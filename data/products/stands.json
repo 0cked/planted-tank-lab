@@ -16,7 +16,8 @@
       "https://ultumnaturesystems.com/",
       "https://aquaforestaquarium.com/"
     ],
-    "source_notes": "Capacity and fit are typical for manufacturer cabinet stands; verify exact rating per distributor listing."
+    "source_notes": "Capacity and fit are typical for manufacturer cabinet stands; verify exact rating per distributor listing.",
+    "curated_rank": 1
   },
   {
     "category_slug": "stand",
@@ -71,7 +72,8 @@
     },
     "sources": [
       "https://www.adana.co.jp/en/"
-    ]
+    ],
+    "curated_rank": 4
   },
   {
     "category_slug": "stand",
@@ -105,7 +107,8 @@
     "sources": [
       "https://www.ikea.com/"
     ],
-    "source_notes": "Not an aquarium-specific product; capacity depends on configuration. Use at your own risk and verify load paths."
+    "source_notes": "Not an aquarium-specific product; capacity depends on configuration. Use at your own risk and verify load paths.",
+    "curated_rank": 3
   },
   {
     "category_slug": "stand",
@@ -139,7 +142,8 @@
     },
     "sources": [
       "https://www.aqueon.com/"
-    ]
+    ],
+    "curated_rank": 2
   },
   {
     "category_slug": "stand",
@@ -173,6 +177,7 @@
     },
     "sources": [
       "https://www.aqueon.com/"
-    ]
+    ],
+    "curated_rank": 5
   }
 ]

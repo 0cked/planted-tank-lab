@@ -17,7 +17,12 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 15,
       "max_tank_length_in": 24,
-      "color_channels": ["white", "blue", "red", "green"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red",
+        "green"
+      ],
       "app_controlled": true
     },
     "sources": [
@@ -42,12 +47,18 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 24,
       "max_tank_length_in": 34,
-      "color_channels": ["white", "blue", "red", "green"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red",
+        "green"
+      ],
       "app_controlled": true
     },
     "sources": [
       "https://fluvalaquatics.com/"
-    ]
+    ],
+    "curated_rank": 1
   },
   {
     "category_slug": "light",
@@ -67,7 +78,12 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 34,
       "max_tank_length_in": 46,
-      "color_channels": ["white", "blue", "red", "green"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red",
+        "green"
+      ],
       "app_controlled": true
     },
     "sources": [
@@ -92,14 +108,18 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 48,
       "max_tank_length_in": 60,
-      "color_channels": ["white", "blue", "red", "green"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red",
+        "green"
+      ],
       "app_controlled": true
     },
     "sources": [
       "https://fluvalaquatics.com/"
     ]
   },
-
   {
     "category_slug": "light",
     "brand_slug": "chihiros",
@@ -117,7 +137,12 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 18,
       "max_tank_length_in": 20,
-      "color_channels": ["white", "blue", "red", "green"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red",
+        "green"
+      ],
       "app_controlled": true
     },
     "sources": [
@@ -141,12 +166,18 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 24,
       "max_tank_length_in": 26,
-      "color_channels": ["white", "blue", "red", "green"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red",
+        "green"
+      ],
       "app_controlled": true
     },
     "sources": [
       "https://www.chihirosaquaticstudio.com/"
-    ]
+    ],
+    "curated_rank": 2
   },
   {
     "category_slug": "light",
@@ -165,14 +196,18 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 36,
       "max_tank_length_in": 38,
-      "color_channels": ["white", "blue", "red", "green"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red",
+        "green"
+      ],
       "app_controlled": true
     },
     "sources": [
       "https://www.chihirosaquaticstudio.com/"
     ]
   },
-
   {
     "category_slug": "light",
     "brand_slug": "twinstar",
@@ -190,7 +225,10 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 18,
       "max_tank_length_in": 20,
-      "color_channels": ["white", "red"],
+      "color_channels": [
+        "white",
+        "red"
+      ],
       "app_controlled": false
     },
     "sources": [
@@ -214,12 +252,16 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 24,
       "max_tank_length_in": 26,
-      "color_channels": ["white", "red"],
+      "color_channels": [
+        "white",
+        "red"
+      ],
       "app_controlled": false
     },
     "sources": [
       "https://www.twinstar-light.com/"
-    ]
+    ],
+    "curated_rank": 3
   },
   {
     "category_slug": "light",
@@ -238,14 +280,16 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 36,
       "max_tank_length_in": 38,
-      "color_channels": ["white", "red"],
+      "color_channels": [
+        "white",
+        "red"
+      ],
       "app_controlled": false
     },
     "sources": [
       "https://www.twinstar-light.com/"
     ]
   },
-
   {
     "category_slug": "light",
     "brand_slug": "twinstar",
@@ -263,7 +307,10 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 18,
       "max_tank_length_in": 20,
-      "color_channels": ["white", "red"],
+      "color_channels": [
+        "white",
+        "red"
+      ],
       "app_controlled": false
     },
     "sources": [
@@ -287,14 +334,16 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 24,
       "max_tank_length_in": 26,
-      "color_channels": ["white", "red"],
+      "color_channels": [
+        "white",
+        "red"
+      ],
       "app_controlled": false
     },
     "sources": [
       "https://www.twinstar-light.com/"
     ]
   },
-
   {
     "category_slug": "light",
     "brand_slug": "onf",
@@ -312,14 +361,19 @@
       "mounting_type": "arm",
       "min_tank_length_in": 16,
       "max_tank_length_in": 24,
-      "color_channels": ["white", "blue", "red", "green"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red",
+        "green"
+      ],
       "app_controlled": true
     },
     "sources": [
       "https://onf.com/"
-    ]
+    ],
+    "curated_rank": 6
   },
-
   {
     "category_slug": "light",
     "brand_slug": "nicrew",
@@ -337,14 +391,17 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 18,
       "max_tank_length_in": 24,
-      "color_channels": ["white", "blue"],
+      "color_channels": [
+        "white",
+        "blue"
+      ],
       "app_controlled": false
     },
     "sources": [
       "https://www.nicrew.com/"
-    ]
+    ],
+    "curated_rank": 5
   },
-
   {
     "category_slug": "light",
     "brand_slug": "finnex",
@@ -362,7 +419,11 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 20,
       "max_tank_length_in": 24,
-      "color_channels": ["white", "blue", "red"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red"
+      ],
       "app_controlled": false
     },
     "sources": [
@@ -386,9 +447,14 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 24,
       "max_tank_length_in": 30,
-      "color_channels": ["white", "blue", "red"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red"
+      ],
       "app_controlled": false
-    }
+    },
+    "curated_rank": 4
   },
   {
     "category_slug": "light",
@@ -407,7 +473,11 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 30,
       "max_tank_length_in": 36,
-      "color_channels": ["white", "blue", "red"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red"
+      ],
       "app_controlled": false
     },
     "sources": [
@@ -431,7 +501,11 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 36,
       "max_tank_length_in": 48,
-      "color_channels": ["white", "blue", "red"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red"
+      ],
       "app_controlled": false
     },
     "sources": [
@@ -455,14 +529,17 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 48,
       "max_tank_length_in": 60,
-      "color_channels": ["white", "blue", "red"],
+      "color_channels": [
+        "white",
+        "blue",
+        "red"
+      ],
       "app_controlled": false
     },
     "sources": [
       "https://www.finnex.net/"
     ]
   },
-
   {
     "category_slug": "light",
     "brand_slug": "chihiros",
@@ -480,7 +557,9 @@
       "mounting_type": "bracket",
       "min_tank_length_in": 24,
       "max_tank_length_in": 26,
-      "color_channels": ["white"],
+      "color_channels": [
+        "white"
+      ],
       "app_controlled": true
     },
     "sources": [

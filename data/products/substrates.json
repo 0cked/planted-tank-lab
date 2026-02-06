@@ -14,7 +14,8 @@
     },
     "sources": [
       "https://www.adana.co.jp/en/"
-    ]
+    ],
+    "curated_rank": 1
   },
   {
     "category_slug": "substrate",
@@ -31,7 +32,8 @@
     },
     "sources": [
       "https://ultumnaturesystems.com/"
-    ]
+    ],
+    "curated_rank": 2
   },
   {
     "category_slug": "substrate",
@@ -48,7 +50,8 @@
     },
     "sources": [
       "https://fluvalaquatics.com/"
-    ]
+    ],
+    "curated_rank": 3
   },
   {
     "category_slug": "substrate",
@@ -82,7 +85,8 @@
     },
     "sources": [
       "https://caribsea.com/"
-    ]
+    ],
+    "curated_rank": 5
   },
   {
     "category_slug": "substrate",
@@ -134,7 +138,8 @@
     "sources": [
       "https://www.amazon.com/s?k=pool+filter+sand"
     ],
-    "source_notes": "Generic commodity; seeded from Amazon search URL."
+    "source_notes": "Generic commodity; seeded from Amazon search URL.",
+    "curated_rank": 4
   },
   {
     "category_slug": "substrate",
@@ -181,7 +186,7 @@
     "specs": {
       "substrate_type": "sand",
       "buffers_ph": false,
-      "grain_size_mm": 1.0,
+      "grain_size_mm": 1,
       "color": "tan"
     },
     "sources": [

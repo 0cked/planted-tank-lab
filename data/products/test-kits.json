@@ -6,8 +6,19 @@
     "name": "API Freshwater Master Test Kit",
     "slug": "api-freshwater-master-kit",
     "description": "Liquid reagent kit for common freshwater parameters.",
-    "specs": { "test_type": "liquid_kit", "measures": ["pH", "ammonia", "nitrite", "nitrate"] },
-    "sources": ["https://apifishcare.com/"]
+    "specs": {
+      "test_type": "liquid_kit",
+      "measures": [
+        "pH",
+        "ammonia",
+        "nitrite",
+        "nitrate"
+      ]
+    },
+    "sources": [
+      "https://apifishcare.com/"
+    ],
+    "curated_rank": 1
   },
   {
     "category_slug": "test_kit",
@@ -16,8 +27,17 @@
     "name": "API GH & KH Test Kit",
     "slug": "api-gh-kh-kit",
     "description": "Liquid titration kit for general hardness and carbonate hardness.",
-    "specs": { "test_type": "liquid_kit", "measures": ["GH", "KH"] },
-    "sources": ["https://apifishcare.com/"]
+    "specs": {
+      "test_type": "liquid_kit",
+      "measures": [
+        "GH",
+        "KH"
+      ]
+    },
+    "sources": [
+      "https://apifishcare.com/"
+    ],
+    "curated_rank": 2
   },
   {
     "category_slug": "test_kit",
@@ -26,8 +46,15 @@
     "name": "CO2 Drop Checker (with Indicator Solution)",
     "slug": "co2-drop-checker-solution",
     "description": "Drop checker + reagent solution for visual CO2 approximation.",
-    "specs": { "test_type": "indicator", "measures": ["CO2"] },
-    "sources": ["https://www.amazon.com/s?k=co2+drop+checker+solution"],
+    "specs": {
+      "test_type": "indicator",
+      "measures": [
+        "CO2"
+      ]
+    },
+    "sources": [
+      "https://www.amazon.com/s?k=co2+drop+checker+solution"
+    ],
     "source_notes": "Generic commodity; seeded from Amazon search URL."
   },
   {
@@ -37,8 +64,16 @@
     "name": "TDS Meter (Handheld)",
     "slug": "hm-digital-tds-meter",
     "description": "Handheld meter to estimate total dissolved solids.",
-    "specs": { "test_type": "meter", "measures": ["TDS"] },
-    "sources": ["https://hmdigital.com/"]
+    "specs": {
+      "test_type": "meter",
+      "measures": [
+        "TDS"
+      ]
+    },
+    "sources": [
+      "https://hmdigital.com/"
+    ],
+    "curated_rank": 3
   },
   {
     "category_slug": "test_kit",
@@ -47,8 +82,16 @@
     "name": "Apera pH Pen",
     "slug": "apera-ph-pen",
     "description": "Handheld pH meter/pen for quick pH readings.",
-    "specs": { "test_type": "meter", "measures": ["pH"] },
-    "sources": ["https://aperainst.com/"]
+    "specs": {
+      "test_type": "meter",
+      "measures": [
+        "pH"
+      ]
+    },
+    "sources": [
+      "https://aperainst.com/"
+    ],
+    "curated_rank": 4
   },
   {
     "category_slug": "test_kit",
@@ -57,7 +100,14 @@
     "name": "Hanna Checker (Phosphate)",
     "slug": "hanna-phosphate-checker",
     "description": "Colorimeter-style checker for phosphate (useful in algae troubleshooting).",
-    "specs": { "test_type": "colorimeter", "measures": ["PO4"] },
-    "sources": ["https://hannainst.com/"]
+    "specs": {
+      "test_type": "colorimeter",
+      "measures": [
+        "PO4"
+      ]
+    },
+    "sources": [
+      "https://hannainst.com/"
+    ]
   }
 ]

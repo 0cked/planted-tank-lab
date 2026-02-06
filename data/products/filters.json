@@ -17,7 +17,8 @@
     },
     "sources": [
       "https://www.oase.com/en/products-a-z/family/product/p/94690-biomaster2-thermo-250-gb.html"
-    ]
+    ],
+    "curated_rank": 1
   },
   {
     "category_slug": "filter",
@@ -59,7 +60,6 @@
       "https://www.oase.com/en/products-a-z/family/product/p/94679-biomaster2-thermo-600-int.html"
     ]
   },
-
   {
     "category_slug": "filter",
     "brand_slug": "eheim",
@@ -94,7 +94,8 @@
     },
     "sources": [
       "https://aqualabaquaria.com/products/classic-external-canister-filter-eheim"
-    ]
+    ],
+    "curated_rank": 4
   },
   {
     "category_slug": "filter",
@@ -132,7 +133,6 @@
       "https://aqualabaquaria.com/products/classic-external-canister-filter-eheim"
     ]
   },
-
   {
     "category_slug": "filter",
     "brand_slug": "fluval",
@@ -169,7 +169,8 @@
     },
     "sources": [
       "https://fluvalaquatics.com/us/shop/product/07-series"
-    ]
+    ],
+    "curated_rank": 2
   },
   {
     "category_slug": "filter",
@@ -209,7 +210,6 @@
       "https://fluvalaquatics.com/us/shop/product/07-series"
     ]
   },
-
   {
     "category_slug": "filter",
     "brand_slug": "aquaclear",
@@ -244,7 +244,8 @@
     },
     "sources": [
       "https://catalog.elmersaquarium.com/products/aquaclear-50-power-filter%7CL1%7CC3%7C110610.html"
-    ]
+    ],
+    "curated_rank": 3
   },
   {
     "category_slug": "filter",
@@ -264,7 +265,6 @@
       "https://www.hawaiireeffish.com/product/aquaclear-power-filter-70/"
     ]
   },
-
   {
     "category_slug": "filter",
     "brand_slug": "aquarium-co-op",
@@ -293,7 +293,8 @@
     },
     "sources": [
       "https://www.aquariumcoop.com/blogs/faqs/sponge-filter-sizes"
-    ]
+    ],
+    "curated_rank": 5
   },
   {
     "category_slug": "filter",
@@ -310,7 +311,6 @@
       "https://www.aquariumcoop.com/blogs/faqs/sponge-filter-sizes"
     ]
   },
-
   {
     "category_slug": "filter",
     "brand_slug": "hikari",

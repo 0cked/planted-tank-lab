@@ -6,8 +6,13 @@
     "name": "EHEIM Jager TruTemp Heater 50W",
     "slug": "eheim-jager-50w",
     "description": "Glass aquarium heater with adjustable thermostat.",
-    "specs": { "wattage": 50, "heater_type": "glass" },
-    "sources": ["https://eheim.com/"]
+    "specs": {
+      "wattage": 50,
+      "heater_type": "glass"
+    },
+    "sources": [
+      "https://eheim.com/"
+    ]
   },
   {
     "category_slug": "heater",
@@ -16,8 +21,14 @@
     "name": "EHEIM Jager TruTemp Heater 100W",
     "slug": "eheim-jager-100w",
     "description": "Glass aquarium heater with adjustable thermostat.",
-    "specs": { "wattage": 100, "heater_type": "glass" },
-    "sources": ["https://eheim.com/"]
+    "specs": {
+      "wattage": 100,
+      "heater_type": "glass"
+    },
+    "sources": [
+      "https://eheim.com/"
+    ],
+    "curated_rank": 1
   },
   {
     "category_slug": "heater",
@@ -26,8 +37,13 @@
     "name": "EHEIM Jager TruTemp Heater 150W",
     "slug": "eheim-jager-150w",
     "description": "Glass aquarium heater with adjustable thermostat.",
-    "specs": { "wattage": 150, "heater_type": "glass" },
-    "sources": ["https://eheim.com/"]
+    "specs": {
+      "wattage": 150,
+      "heater_type": "glass"
+    },
+    "sources": [
+      "https://eheim.com/"
+    ]
   },
   {
     "category_slug": "heater",
@@ -36,8 +52,14 @@
     "name": "EHEIM Jager TruTemp Heater 200W",
     "slug": "eheim-jager-200w",
     "description": "Glass aquarium heater with adjustable thermostat.",
-    "specs": { "wattage": 200, "heater_type": "glass" },
-    "sources": ["https://eheim.com/"]
+    "specs": {
+      "wattage": 200,
+      "heater_type": "glass"
+    },
+    "sources": [
+      "https://eheim.com/"
+    ],
+    "curated_rank": 2
   },
   {
     "category_slug": "heater",
@@ -46,8 +68,13 @@
     "name": "Fluval E Electronic Heater 100W",
     "slug": "fluval-e-100w",
     "description": "Electronic aquarium heater with digital temperature display.",
-    "specs": { "wattage": 100, "heater_type": "electronic" },
-    "sources": ["https://fluvalaquatics.com/"]
+    "specs": {
+      "wattage": 100,
+      "heater_type": "electronic"
+    },
+    "sources": [
+      "https://fluvalaquatics.com/"
+    ]
   },
   {
     "category_slug": "heater",
@@ -56,8 +83,14 @@
     "name": "Fluval E Electronic Heater 200W",
     "slug": "fluval-e-200w",
     "description": "Electronic aquarium heater with digital temperature display.",
-    "specs": { "wattage": 200, "heater_type": "electronic" },
-    "sources": ["https://fluvalaquatics.com/"]
+    "specs": {
+      "wattage": 200,
+      "heater_type": "electronic"
+    },
+    "sources": [
+      "https://fluvalaquatics.com/"
+    ],
+    "curated_rank": 4
   },
   {
     "category_slug": "heater",
@@ -66,8 +99,13 @@
     "name": "Cobalt Neo-Therm Heater 50W",
     "slug": "cobalt-neotherm-50w",
     "description": "Slim electronic heater with shatterproof polymer casing.",
-    "specs": { "wattage": 50, "heater_type": "electronic" },
-    "sources": ["https://cobaltaquatics.com/"]
+    "specs": {
+      "wattage": 50,
+      "heater_type": "electronic"
+    },
+    "sources": [
+      "https://cobaltaquatics.com/"
+    ]
   },
   {
     "category_slug": "heater",
@@ -76,8 +114,14 @@
     "name": "Cobalt Neo-Therm Heater 100W",
     "slug": "cobalt-neotherm-100w",
     "description": "Slim electronic heater with shatterproof polymer casing.",
-    "specs": { "wattage": 100, "heater_type": "electronic" },
-    "sources": ["https://cobaltaquatics.com/"]
+    "specs": {
+      "wattage": 100,
+      "heater_type": "electronic"
+    },
+    "sources": [
+      "https://cobaltaquatics.com/"
+    ],
+    "curated_rank": 3
   },
   {
     "category_slug": "heater",
@@ -86,8 +130,13 @@
     "name": "Cobalt Neo-Therm Heater 150W",
     "slug": "cobalt-neotherm-150w",
     "description": "Slim electronic heater with shatterproof polymer casing.",
-    "specs": { "wattage": 150, "heater_type": "electronic" },
-    "sources": ["https://cobaltaquatics.com/"]
+    "specs": {
+      "wattage": 150,
+      "heater_type": "electronic"
+    },
+    "sources": [
+      "https://cobaltaquatics.com/"
+    ]
   },
   {
     "category_slug": "heater",
@@ -96,8 +145,13 @@
     "name": "Hygger Inline Aquarium Heater 300W",
     "slug": "hygger-inline-300w",
     "description": "Inline heater installed on return line to hide equipment from display.",
-    "specs": { "wattage": 300, "heater_type": "inline" },
-    "sources": ["https://www.amazon.com/s?k=hygger+inline+aquarium+heater"],
+    "specs": {
+      "wattage": 300,
+      "heater_type": "inline"
+    },
+    "sources": [
+      "https://www.amazon.com/s?k=hygger+inline+aquarium+heater"
+    ],
     "source_notes": "Seeded from Amazon search URL; verify exact product model/spec."
   }
 ]

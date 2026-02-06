@@ -14,7 +14,8 @@
       "https://www.aquasabi.com/",
       "https://tropica.com/"
     ],
-    "source_notes": "Dragon/Ohko stone is generally considered inert in freshwater aquascapes."
+    "source_notes": "Dragon/Ohko stone is generally considered inert in freshwater aquascapes.",
+    "curated_rank": 1
   },
   {
     "category_slug": "hardscape",
@@ -29,7 +30,8 @@
     },
     "sources": [
       "https://www.aquasabi.com/"
-    ]
+    ],
+    "curated_rank": 2
   },
   {
     "category_slug": "hardscape",
@@ -44,7 +46,8 @@
     },
     "sources": [
       "https://www.aquasabi.com/"
-    ]
+    ],
+    "curated_rank": 3
   },
   {
     "category_slug": "hardscape",
@@ -60,7 +63,8 @@
     },
     "sources": [
       "https://www.aquasabi.com/"
-    ]
+    ],
+    "curated_rank": 4
   },
   {
     "category_slug": "hardscape",
@@ -76,7 +80,8 @@
     },
     "sources": [
       "https://www.aquasabi.com/"
-    ]
+    ],
+    "curated_rank": 5
   },
   {
     "category_slug": "hardscape",

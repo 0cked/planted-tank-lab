@@ -35,6 +35,7 @@ const productSeedSchema = z.object({
   sources: z.array(z.string().url()).optional(),
   source_notes: z.string().max(2000).optional(),
   verified: z.boolean().optional(),
+  curated_rank: z.number().int().positive().optional(),
 });
 
 const plantSeedSchema = z.object({
@@ -204,6 +205,7 @@ async function upsertProducts(productFiles: string[]): Promise<void> {
           meta: {
             sources: item.sources ?? [],
             source_notes: item.source_notes ?? null,
+            curated_rank: item.curated_rank ?? null,
           },
           status: "active",
           source: "manual",
@@ -223,6 +225,7 @@ async function upsertProducts(productFiles: string[]): Promise<void> {
             meta: {
               sources: item.sources ?? [],
               source_notes: item.source_notes ?? null,
+              curated_rank: item.curated_rank ?? null,
             },
             status: "active",
             source: "manual",

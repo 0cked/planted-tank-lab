@@ -16,6 +16,7 @@ export type BuilderState = {
   // UI/UX toggles (persisted).
   compatibilityEnabled: boolean;
   lowTechNoCo2: boolean;
+  curatedOnly: boolean;
 
   setProduct: (categorySlug: string, product: ProductSnapshot | null) => void;
   addPlant: (plant: PlantSnapshot) => void;
@@ -25,6 +26,7 @@ export type BuilderState = {
   setHasShrimp: (hasShrimp: boolean) => void;
   setCompatibilityEnabled: (enabled: boolean) => void;
   setLowTechNoCo2: (enabled: boolean) => void;
+  setCuratedOnly: (enabled: boolean) => void;
 
   hydrate: (data: {
     buildId: string | null;
@@ -49,6 +51,7 @@ const initialState = {
   flags: initialFlags,
   compatibilityEnabled: true,
   lowTechNoCo2: false,
+  curatedOnly: true,
 };
 
 export const useBuilderStore = create<BuilderState>()(
@@ -87,6 +90,7 @@ export const useBuilderStore = create<BuilderState>()(
           if (enabled) delete nextProducts["co2"];
           return { lowTechNoCo2: enabled, productsByCategory: nextProducts };
         }),
+      setCuratedOnly: (enabled) => set({ curatedOnly: enabled }),
 
       hydrate: (data) => {
         set((s) => ({
@@ -111,6 +115,7 @@ export const useBuilderStore = create<BuilderState>()(
         flags: s.flags,
         compatibilityEnabled: s.compatibilityEnabled,
         lowTechNoCo2: s.lowTechNoCo2,
+        curatedOnly: s.curatedOnly,
       }),
     },
   ),

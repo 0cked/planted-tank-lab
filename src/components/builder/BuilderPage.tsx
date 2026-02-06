@@ -137,6 +137,18 @@ function toProductSnapshot(categorySlug: string, row: ProductRow): ProductSnapsh
   };
 }
 
+function curatedRank(row: ProductRow): number | null {
+  const meta = row.meta;
+  if (!isRecord(meta)) return null;
+  const v = meta["curated_rank"];
+  if (typeof v === "number" && Number.isFinite(v) && v > 0) return Math.floor(v);
+  if (typeof v === "string" && v.trim() !== "") {
+    const n = Number(v);
+    if (Number.isFinite(n) && n > 0) return Math.floor(n);
+  }
+  return null;
+}
+
 function buildSnapshot(params: {
   productsByCategory: Record<string, ProductSnapshot | undefined>;
   plants: PlantSnapshot[];
@@ -282,6 +294,7 @@ function ProductPicker(props: {
   onOpenChange: (open: boolean) => void;
   onPick: (p: ProductSnapshot) => void;
   compatibilityEnabled: boolean;
+  curatedOnly: boolean;
   currentProductsByCategory: Record<string, ProductSnapshot | undefined>;
   currentPlants: PlantSnapshot[];
   currentFlags: BuildFlags;
@@ -310,13 +323,33 @@ function ProductPicker(props: {
   }, [q.data, query]);
 
   const { visibleRows, hiddenCount } = useMemo(() => {
-    if (!props.compatibilityEnabled) return { visibleRows: filtered, hiddenCount: 0 };
-    if (errorRules.length === 0) return { visibleRows: filtered, hiddenCount: 0 };
+    // Optionally show only curated picks to reduce choice overload.
+    const curated = props.curatedOnly
+      ? filtered
+          .map((r) => ({ r, rank: curatedRank(r) }))
+          .filter((x) => x.rank != null)
+          .sort((a, b) => (a.rank ?? 9_999) - (b.rank ?? 9_999))
+          .map((x) => x.r)
+      : [];
+
+    const baseRows = curated.length > 0 ? curated : filtered.slice();
+
+    // Stable sort when not curated (keep alphabetical).
+    if (!props.curatedOnly && baseRows.length > 1) {
+      baseRows.sort((a, b) => {
+        const an = `${a.brand?.name ?? ""} ${a.name}`.trim();
+        const bn = `${b.brand?.name ?? ""} ${b.name}`.trim();
+        return an.localeCompare(bn);
+      });
+    }
+
+    if (!props.compatibilityEnabled) return { visibleRows: baseRows, hiddenCount: 0 };
+    if (errorRules.length === 0) return { visibleRows: baseRows, hiddenCount: 0 };
 
     const out: ProductRow[] = [];
     let hidden = 0;
 
-    for (const r of filtered) {
+    for (const r of baseRows) {
       const candidate = toProductSnapshot(props.categorySlug, r);
       const snapshotCandidate = buildSnapshot({
         productsByCategory: {
@@ -339,6 +372,7 @@ function ProductPicker(props: {
     filtered,
     props.categorySlug,
     props.compatibilityEnabled,
+    props.curatedOnly,
     props.currentFlags,
     props.currentPlants,
     props.currentProductsByCategory,
@@ -561,6 +595,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const flags = useBuilderStore((s) => s.flags);
   const compatibilityEnabled = useBuilderStore((s) => s.compatibilityEnabled);
   const lowTechNoCo2 = useBuilderStore((s) => s.lowTechNoCo2);
+  const curatedOnly = useBuilderStore((s) => s.curatedOnly);
 
   const setProduct = useBuilderStore((s) => s.setProduct);
   const addPlant = useBuilderStore((s) => s.addPlant);
@@ -569,6 +604,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const setHasShrimp = useBuilderStore((s) => s.setHasShrimp);
   const setCompatibilityEnabled = useBuilderStore((s) => s.setCompatibilityEnabled);
   const setLowTechNoCo2 = useBuilderStore((s) => s.setLowTechNoCo2);
+  const setCuratedOnly = useBuilderStore((s) => s.setCuratedOnly);
   const reset = useBuilderStore((s) => s.reset);
   const hydrate = useBuilderStore((s) => s.hydrate);
 
@@ -770,6 +806,15 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                 />
               </label>
               <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
+                <span className="font-medium">Curated picks</span>
+                <input
+                  type="checkbox"
+                  checked={curatedOnly}
+                  onChange={(e) => setCuratedOnly(e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-300"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
                 <span className="font-medium">Low-tech (no CO2)</span>
                 <input
                   type="checkbox"
@@ -955,6 +1000,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
             setProduct(activePicker.categorySlug, p);
           }}
           compatibilityEnabled={compatibilityEnabled}
+          curatedOnly={curatedOnly}
           currentProductsByCategory={productsByCategory}
           currentPlants={plants}
           currentFlags={flags}

@@ -18,7 +18,8 @@
     },
     "sources": [
       "https://ultumnaturesystems.com/"
-    ]
+    ],
+    "curated_rank": 1
   },
   {
     "category_slug": "tank",
@@ -28,8 +29,8 @@
     "slug": "uns-45u",
     "description": "Rimless low-iron glass aquarium (45U format).",
     "specs": {
-      "volume_gal": 9.0,
-      "volume_liters": 34.0,
+      "volume_gal": 9,
+      "volume_liters": 34,
       "length_in": 17.7,
       "width_in": 10.6,
       "height_in": 10.6,
@@ -49,8 +50,8 @@
     "slug": "uns-90u",
     "description": "Rimless low-iron glass aquarium (90U format).",
     "specs": {
-      "volume_gal": 48.0,
-      "volume_liters": 182.0,
+      "volume_gal": 48,
+      "volume_liters": 182,
       "length_in": 35.4,
       "width_in": 17.7,
       "height_in": 17.7,
@@ -62,7 +63,6 @@
       "https://ultumnaturesystems.com/"
     ]
   },
-
   {
     "category_slug": "tank",
     "brand_slug": "waterbox",
@@ -103,7 +103,8 @@
     },
     "sources": [
       "https://waterboxaquariums.com/"
-    ]
+    ],
+    "curated_rank": 3
   },
   {
     "category_slug": "tank",
@@ -168,7 +169,6 @@
       "https://waterboxaquariums.com/"
     ]
   },
-
   {
     "category_slug": "tank",
     "brand_slug": "ada",
@@ -178,7 +178,7 @@
     "description": "ADA standard 45 cm aquarium used in many nano aquascapes.",
     "specs": {
       "volume_gal": 9.6,
-      "volume_liters": 36.0,
+      "volume_liters": 36,
       "length_in": 17.7,
       "width_in": 10.6,
       "height_in": 11.8,
@@ -209,7 +209,8 @@
     },
     "sources": [
       "https://www.adana.co.jp/en/"
-    ]
+    ],
+    "curated_rank": 4
   },
   {
     "category_slug": "tank",
@@ -219,8 +220,8 @@
     "slug": "ada-90p",
     "description": "ADA standard 90 cm aquarium (90P).",
     "specs": {
-      "volume_gal": 48.0,
-      "volume_liters": 182.0,
+      "volume_gal": 48,
+      "volume_liters": 182,
       "length_in": 35.4,
       "width_in": 17.7,
       "height_in": 17.7,
@@ -232,7 +233,6 @@
       "https://www.adana.co.jp/en/"
     ]
   },
-
   {
     "category_slug": "tank",
     "brand_slug": "fluval",
@@ -273,9 +273,9 @@
     },
     "sources": [
       "https://fluvalaquatics.com/"
-    ]
+    ],
+    "curated_rank": 5
   },
-
   {
     "category_slug": "tank",
     "brand_slug": "aqueon",
@@ -316,7 +316,8 @@
     },
     "sources": [
       "https://www.aqueon.com/"
-    ]
+    ],
+    "curated_rank": 2
   },
   {
     "category_slug": "tank",
@@ -360,7 +361,6 @@
       "https://www.aqueon.com/"
     ]
   },
-
   {
     "category_slug": "tank",
     "brand_slug": "lifegard",

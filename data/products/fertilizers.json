@@ -13,7 +13,8 @@
     },
     "sources": [
       "https://www.aquariumcoop.com/"
-    ]
+    ],
+    "curated_rank": 1
   },
   {
     "category_slug": "fertilizer",
@@ -29,7 +30,8 @@
     },
     "sources": [
       "https://nilocg.com/"
-    ]
+    ],
+    "curated_rank": 2
   },
   {
     "category_slug": "fertilizer",
@@ -111,7 +113,8 @@
     },
     "sources": [
       "https://www.2hraquarist.com/"
-    ]
+    ],
+    "curated_rank": 3
   },
   {
     "category_slug": "fertilizer",
@@ -144,7 +147,8 @@
     },
     "sources": [
       "https://www.seachem.com/"
-    ]
+    ],
+    "curated_rank": 4
   },
   {
     "category_slug": "fertilizer",
@@ -160,6 +164,7 @@
     },
     "sources": [
       "https://www.aquariumcoop.com/"
-    ]
+    ],
+    "curated_rank": 5
   }
 ]
