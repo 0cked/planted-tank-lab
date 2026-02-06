@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { SmartImage } from "@/components/SmartImage";
 import { formatSpecs } from "@/lib/specs";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
@@ -9,6 +10,12 @@ function formatMoney(cents: number | null | undefined): string {
   if (cents == null) return "—";
   const dollars = cents / 100;
   return dollars.toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
+
+function firstImageUrl(imageUrl: string | null, imageUrls: unknown): string | null {
+  if (imageUrl) return imageUrl;
+  if (Array.isArray(imageUrls) && typeof imageUrls[0] === "string") return imageUrls[0];
+  return null;
 }
 
 export async function generateMetadata(props: {
@@ -52,6 +59,11 @@ export default async function ProductDetailPage(props: {
 
   const specs = formatSpecs({ categorySlug: p.category.slug, specs: p.specs });
 
+  const gallery = Array.isArray(p.imageUrls)
+    ? p.imageUrls.filter((u): u is string => typeof u === "string")
+    : [];
+  const primaryImage = firstImageUrl(p.imageUrl ?? null, gallery) ?? null;
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -85,7 +97,51 @@ export default async function ProductDetailPage(props: {
         </div>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr_360px]">
+        <aside className="ptl-surface p-6">
+          <div className="text-sm font-medium">Photo</div>
+          <div
+            className="mt-4 overflow-hidden rounded-2xl border bg-white/70"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
+            {primaryImage ? (
+              <SmartImage
+                src={primaryImage}
+                alt=""
+                width={720}
+                height={720}
+                className="aspect-square w-full object-cover"
+              />
+            ) : (
+              <div className="aspect-square w-full bg-[radial-gradient(circle_at_30%_20%,rgba(21,128,61,.22),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(13,148,136,.18),transparent_55%),linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.35))]" />
+            )}
+          </div>
+
+          {gallery.length > 1 ? (
+            <div className="mt-4 grid grid-cols-5 gap-2">
+              {gallery.slice(0, 10).map((u) => (
+                <div
+                  key={u}
+                  className="overflow-hidden rounded-xl border bg-white/70"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                >
+                  <SmartImage
+                    src={u}
+                    alt=""
+                    width={160}
+                    height={160}
+                    className="aspect-square w-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="mt-4 text-xs text-neutral-500">
+            Product images are seeded progressively. You can still compare specs and offers.
+          </div>
+        </aside>
+
         <section className="ptl-surface p-6">
           <div className="text-sm font-medium">Specs</div>
           {specs.length === 0 ? (

@@ -24,7 +24,7 @@ test("products browsing renders", async ({ page }) => {
 test("product detail renders", async ({ page }) => {
   await page.goto("/products/tank/uns-60u");
   await expect(page.getByRole("heading")).toContainText("60U");
-  await expect(page.getByText("Specs")).toBeVisible();
+  await expect(page.getByText("Specs", { exact: true })).toBeVisible();
 });
 
 test("plants browsing and detail render", async ({ page }) => {

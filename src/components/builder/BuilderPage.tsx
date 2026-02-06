@@ -5,6 +5,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { SmartImage } from "@/components/SmartImage";
 import { trpc } from "@/components/TRPCProvider";
 import { evaluateBuild } from "@/engine/evaluate";
 import type {
@@ -145,6 +146,14 @@ function curatedRank(row: ProductRow): number | null {
   if (typeof v === "string" && v.trim() !== "") {
     const n = Number(v);
     if (Number.isFinite(n) && n > 0) return Math.floor(n);
+  }
+  return null;
+}
+
+function firstImageUrl(params: { imageUrl: string | null; imageUrls: unknown }): string | null {
+  if (params.imageUrl) return params.imageUrl;
+  if (Array.isArray(params.imageUrls) && typeof params.imageUrls[0] === "string") {
+    return params.imageUrls[0];
   }
   return null;
 }
@@ -420,9 +429,31 @@ function ProductPicker(props: {
                   key={r.id}
                   className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-white/40"
                 >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{label}</div>
-                    <div className="truncate text-xs text-neutral-600">{r.slug}</div>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className="h-11 w-11 overflow-hidden rounded-xl border bg-[radial-gradient(circle_at_30%_20%,rgba(21,128,61,.22),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(13,148,136,.18),transparent_55%),linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.35))]"
+                      style={{ borderColor: "var(--ptl-border)" }}
+                    >
+                      {(() => {
+                        const img = firstImageUrl({
+                          imageUrl: r.imageUrl ?? null,
+                          imageUrls: r.imageUrls,
+                        });
+                        return img ? (
+                          <SmartImage
+                            src={img}
+                            alt=""
+                            width={96}
+                            height={96}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null;
+                      })()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{label}</div>
+                      <div className="truncate text-xs text-neutral-600">{r.slug}</div>
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -559,11 +590,33 @@ function PlantPicker(props: {
                   key={p.id}
                   className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-white/40"
                 >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{label}</div>
-                    <div className="truncate text-xs text-neutral-600">
-                      {p.difficulty} · {p.lightDemand} light · {p.co2Demand} CO2 ·{" "}
-                      {p.placement}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className="h-11 w-11 overflow-hidden rounded-xl border bg-[radial-gradient(circle_at_30%_20%,rgba(21,128,61,.22),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(13,148,136,.18),transparent_55%),linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.35))]"
+                      style={{ borderColor: "var(--ptl-border)" }}
+                    >
+                      {(() => {
+                        const img = firstImageUrl({
+                          imageUrl: p.imageUrl ?? null,
+                          imageUrls: p.imageUrls,
+                        });
+                        return img ? (
+                          <SmartImage
+                            src={img}
+                            alt=""
+                            width={96}
+                            height={96}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null;
+                      })()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{label}</div>
+                      <div className="truncate text-xs text-neutral-600">
+                        {p.difficulty} · {p.lightDemand} light · {p.co2Demand} CO2 ·{" "}
+                        {p.placement}
+                      </div>
                     </div>
                   </div>
                   <button

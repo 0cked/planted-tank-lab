@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { SmartImage } from "@/components/SmartImage";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -53,6 +54,12 @@ function formatMoney(cents: number | null | undefined): string {
   if (cents == null) return "—";
   const dollars = cents / 100;
   return dollars.toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
+
+function firstImageUrl(imageUrl: string | null, imageUrls: unknown): string | null {
+  if (imageUrl) return imageUrl;
+  if (Array.isArray(imageUrls) && typeof imageUrls[0] === "string") return imageUrls[0];
+  return null;
 }
 
 function tankSummary(specs: unknown): string {
@@ -401,22 +408,46 @@ export default async function ProductCategoryPage(props: {
                         ? lightSummary(p.specs)
                         : "";
                   const brandName = p.brand?.name ?? null;
+                  const img = firstImageUrl(p.imageUrl ?? null, p.imageUrls);
                   return (
                     <li key={p.id} className="px-5 py-4">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <Link
-                            href={`/products/${categorySlug}/${p.slug}`}
-                            className="truncate text-sm font-semibold text-neutral-900 hover:underline"
-                          >
-                            {brandName ? `${brandName} ${p.name}` : p.name}
-                          </Link>
-                          {summary ? (
-                            <div className="mt-1 text-xs text-neutral-600">{summary}</div>
+                      <div className="flex items-start gap-4">
+                        <div
+                          className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border bg-[radial-gradient(circle_at_30%_20%,rgba(21,128,61,.22),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(13,148,136,.18),transparent_55%),linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.35))]"
+                          style={{ borderColor: "var(--ptl-border)" }}
+                        >
+                          {img ? (
+                            // `SmartImage` uses next/image for local assets and <img> for remote
+                            // URLs so we can seed from multiple sources during MVP.
+                            <SmartImage
+                              src={img}
+                              alt=""
+                              width={256}
+                              height={256}
+                              className="h-full w-full object-cover"
+                            />
                           ) : null}
                         </div>
-                        <div className="text-right text-sm font-semibold text-neutral-900">
-                          {formatMoney(price)}
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <Link
+                                href={`/products/${categorySlug}/${p.slug}`}
+                                className="truncate text-sm font-semibold text-neutral-900 hover:underline"
+                              >
+                                {brandName ? `${brandName} ${p.name}` : p.name}
+                              </Link>
+                              {summary ? (
+                                <div className="mt-1 text-xs text-neutral-600">
+                                  {summary}
+                                </div>
+                              ) : null}
+                            </div>
+                            <div className="shrink-0 text-right text-sm font-semibold text-neutral-900">
+                              {formatMoney(price)}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </li>
