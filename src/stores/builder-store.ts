@@ -113,14 +113,24 @@ export const useBuilderStore = create<BuilderState>()(
       setCuratedOnly: (enabled) => set({ curatedOnly: enabled }),
 
       hydrate: (data) => {
-        set((s) => ({
-          buildId: data.buildId,
-          shareSlug: data.shareSlug,
-          productsByCategory: data.productsByCategory,
-          plants: data.plants,
-          selectedOfferIdByProductId: data.selectedOfferIdByProductId ?? {},
-          flags: { ...s.flags, ...(data.flags ?? {}) },
-        }));
+        set((s) => {
+          const incoming = data.flags ?? {};
+          const incomingLowTech =
+            typeof incoming.lowTechNoCo2 === "boolean" ? incoming.lowTechNoCo2 : null;
+          // Keep low-tech as a dedicated store toggle; don't merge it into `flags`.
+          const rest: Partial<BuildFlags> = { ...incoming };
+          delete rest.lowTechNoCo2;
+
+          return {
+            buildId: data.buildId,
+            shareSlug: data.shareSlug,
+            productsByCategory: data.productsByCategory,
+            plants: data.plants,
+            selectedOfferIdByProductId: data.selectedOfferIdByProductId ?? {},
+            flags: { ...s.flags, ...rest },
+            ...(incomingLowTech === null ? {} : { lowTechNoCo2: incomingLowTech }),
+          };
+        });
       },
 
       reset: () => set({ ...initialState }),

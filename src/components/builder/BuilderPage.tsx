@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 import { SmartImage } from "@/components/SmartImage";
 import { trpc } from "@/components/TRPCProvider";
@@ -1028,6 +1029,8 @@ function OffersDialog(props: {
 export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const router = useRouter();
   const initialHydrated = useRef(false);
+  const { data: session } = useSession();
+  const isSignedIn = Boolean(session?.user?.id);
 
   const buildId = useBuilderStore((s) => s.buildId);
   const shareSlug = useBuilderStore((s) => s.shareSlug);
@@ -1217,8 +1220,10 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const categoriesData = categoriesQ.data;
   const categories: CategoryRow[] = categoriesData ?? [];
   const shareMutation = trpc.builds.upsertAnonymous.useMutation();
+  const saveMutation = trpc.builds.upsertMine.useMutation();
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [activeOffers, setActiveOffers] = useState<{ productId: string; productName: string } | null>(null);
 
   const workflow = useMemo(() => {
@@ -1280,6 +1285,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const onShare = async (): Promise<void> => {
     setShareStatus(null);
     setShareUrl(null);
+    setSaveStatus(null);
 
     const productsPayload: Record<string, string> = {};
     for (const [categorySlug, p] of Object.entries(productsByCategory)) {
@@ -1302,6 +1308,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
         productsByCategory: productsPayload,
         plantIds,
         selectedOfferIdByProductId: selectedOfferIds,
+        flags: { hasShrimp: flags.hasShrimp, lowTechNoCo2 },
       });
     } catch {
       setShareStatus("Failed to save build for sharing.");
@@ -1330,6 +1337,60 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     router.push(`/builder/${res.shareSlug}`);
   };
 
+  const onSave = async (): Promise<void> => {
+    setSaveStatus(null);
+    setShareStatus(null);
+
+    if (!session?.user?.id) {
+      setSaveStatus("Sign in to save builds to your account.");
+      return;
+    }
+
+    const productsPayload: Record<string, string> = {};
+    for (const [categorySlug, p] of Object.entries(productsByCategory)) {
+      if (p?.id) productsPayload[categorySlug] = p.id;
+    }
+
+    const plantIds = plants.map((p) => p.id);
+    const selectedOfferIds = Object.fromEntries(
+      Object.entries(selectedOfferIdByProductId).filter(
+        (entry): entry is [string, string] =>
+          typeof entry[1] === "string" && entry[1].length > 0,
+      ),
+    );
+
+    const defaultName = productsByCategory["tank"]?.name
+      ? `${productsByCategory["tank"]?.name} build`
+      : "Untitled Build";
+
+    let res: { buildId: string; shareSlug: string; itemCount: number };
+    try {
+      res = await saveMutation.mutateAsync({
+        buildId: buildId ?? undefined,
+        shareSlug: shareSlug ?? undefined,
+        name: defaultName,
+        productsByCategory: productsPayload,
+        plantIds,
+        selectedOfferIdByProductId: selectedOfferIds,
+        flags: { hasShrimp: flags.hasShrimp, lowTechNoCo2 },
+      });
+    } catch {
+      setSaveStatus("Failed to save build to your account.");
+      return;
+    }
+
+    hydrate({
+      buildId: res.buildId,
+      shareSlug: res.shareSlug,
+      productsByCategory,
+      plants,
+      selectedOfferIdByProductId: selectedOfferIdByProductId,
+      flags: { ...flags, lowTechNoCo2 },
+    });
+
+    setSaveStatus("Saved to your profile.");
+  };
+
   const topBannerEval = evals[0] ?? null;
 
   return (
@@ -1347,6 +1408,9 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
           </p>
           {shareStatus ? (
             <div className="mt-2 text-sm text-neutral-700">{shareStatus}</div>
+          ) : null}
+          {saveStatus ? (
+            <div className="mt-2 text-sm text-neutral-700">{saveStatus}</div>
           ) : null}
           {shareUrl ? (
             <div className="mt-2">
@@ -1367,6 +1431,16 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
           >
             Reset
           </button>
+          {isSignedIn ? (
+            <button
+              type="button"
+              className="ptl-btn-secondary disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => void onSave()}
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? "Saving..." : "Save"}
+            </button>
+          ) : null}
           <button
             type="button"
             className="ptl-btn-primary disabled:cursor-not-allowed disabled:opacity-60"

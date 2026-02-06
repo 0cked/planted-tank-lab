@@ -1,17 +1,86 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import {
   buildItems,
   builds,
   categories,
+  offers,
   plants,
   products,
 } from "@/server/db/schema";
-import { createTRPCRouter, publicProcedure } from "@/server/trpc/trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/server/trpc/trpc";
 import type { PlantSnapshot, ProductSnapshot } from "@/engine/types";
+import type * as fullSchema from "@/server/db/schema";
+
+const buildFlagsSchema = z
+  .object({
+    hasShrimp: z.boolean().optional(),
+    lowTechNoCo2: z.boolean().optional(),
+  })
+  .optional();
+
+async function computeTotalPriceCents(
+  tx: PostgresJsDatabase<typeof fullSchema>,
+  productIds: string[],
+  selectedOfferIdByProductId?: Record<string, string>,
+): Promise<{ totalPriceCents: number; missingOffersCount: number }> {
+  if (productIds.length === 0) return { totalPriceCents: 0, missingOffersCount: 0 };
+
+  // Validate overrides exist and are in-stock; otherwise fall back to best in-stock offer.
+  let total = 0;
+  let missing = 0;
+
+  // Preload override offers in one query (keeps the save mutation snappy).
+  const overrideOfferIds = Object.values(selectedOfferIdByProductId ?? {});
+  const overrideById =
+    overrideOfferIds.length > 0
+      ? await tx
+          .select({
+            id: offers.id,
+            productId: offers.productId,
+            priceCents: offers.priceCents,
+            inStock: offers.inStock,
+          })
+          .from(offers)
+          .where(inArray(offers.id, overrideOfferIds))
+      : [];
+  const overrideOfferByProductId = new Map(
+    overrideById.map((o) => [o.productId, o] as const),
+  );
+
+  for (const productId of productIds) {
+    const override = overrideOfferByProductId.get(productId);
+    if (override && override.inStock && override.priceCents != null) {
+      total += override.priceCents;
+      continue;
+    }
+
+    const best = await tx
+      .select({ priceCents: offers.priceCents })
+      .from(offers)
+      .where(
+        and(
+          eq(offers.productId, productId),
+          eq(offers.inStock, true),
+          isNotNull(offers.priceCents),
+        ),
+      )
+      .orderBy(offers.priceCents)
+      .limit(1);
+    const row = best[0];
+    if (!row) {
+      missing += 1;
+      continue;
+    }
+    total += row.priceCents ?? 0;
+  }
+
+  return { totalPriceCents: total, missingOffersCount: missing };
+}
 
 export const buildsRouter = createTRPCRouter({
   list: publicProcedure
@@ -25,6 +94,23 @@ export const buildsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const limit = input?.limit ?? 50;
       return ctx.db.select().from(builds).limit(limit);
+    }),
+
+  listMine: protectedProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(100).default(50),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const limit = input?.limit ?? 50;
+      return ctx.db
+        .select()
+        .from(builds)
+        .where(eq(builds.userId, ctx.session.user.id))
+        .limit(limit);
     }),
 
   getByShareSlug: publicProcedure
@@ -104,7 +190,10 @@ export const buildsRouter = createTRPCRouter({
           productsByCategory,
           plants: plantList,
           selectedOfferIdByProductId,
-          flags: { hasShrimp: false, lowTechNoCo2: false },
+          flags: {
+            hasShrimp: Boolean((build.flags as Record<string, unknown> | null)?.["hasShrimp"]),
+            lowTechNoCo2: Boolean((build.flags as Record<string, unknown> | null)?.["lowTechNoCo2"]),
+          },
         },
       };
     }),
@@ -121,6 +210,7 @@ export const buildsRouter = createTRPCRouter({
         selectedOfferIdByProductId: z
           .record(z.string().uuid(), z.string().uuid())
           .optional(),
+        flags: buildFlagsSchema,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -162,6 +252,7 @@ export const buildsRouter = createTRPCRouter({
               shareSlug,
               isPublic: false,
               isCompleted: false,
+              flags: input.flags ?? {},
               totalPriceCents: 0,
               itemCount: 0,
               warningsCount: 0,
@@ -178,6 +269,7 @@ export const buildsRouter = createTRPCRouter({
             .set({
               name: input.name ?? undefined,
               description: input.description ?? undefined,
+              flags: input.flags ?? undefined,
               updatedAt: new Date(),
             })
             .where(eq(builds.id, buildId))
@@ -243,14 +335,174 @@ export const buildsRouter = createTRPCRouter({
           await tx.insert(buildItems).values(itemsToInsert);
         }
 
+        const productIds = productEntries.map(([, productId]) => productId);
+        const { totalPriceCents } = await computeTotalPriceCents(
+          tx,
+          productIds,
+          input.selectedOfferIdByProductId,
+        );
+
         await tx
           .update(builds)
           .set({
             itemCount: itemsToInsert.length,
-            totalPriceCents: 0,
+            totalPriceCents,
             updatedAt: new Date(),
           })
           .where(eq(builds.id, buildId));
+
+        return { buildId, shareSlug, itemCount: itemsToInsert.length };
+      });
+    }),
+
+  upsertMine: protectedProcedure
+    .input(
+      z.object({
+        buildId: z.string().uuid().optional(),
+        shareSlug: z.string().min(1).max(20).optional(),
+        name: z.string().min(1).max(300).optional(),
+        description: z.string().max(5000).optional(),
+        productsByCategory: z.record(z.string().min(1), z.string().uuid()),
+        plantIds: z.array(z.string().uuid()).max(200).default([]),
+        selectedOfferIdByProductId: z
+          .record(z.string().uuid(), z.string().uuid())
+          .optional(),
+        flags: buildFlagsSchema,
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.transaction(async (tx) => {
+        const userId = ctx.session.user.id;
+
+        // Resolve categories to IDs once.
+        const categoryRows = await tx
+          .select({ id: categories.id, slug: categories.slug })
+          .from(categories);
+        const categoryIdBySlug = new Map(categoryRows.map((r) => [r.slug, r.id] as const));
+
+        const plantsCategoryId = categoryIdBySlug.get("plants");
+        if (!plantsCategoryId) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Missing required category 'plants'. Seed categories first.",
+          });
+        }
+
+        let buildId = input.buildId ?? null;
+        let shareSlug = input.shareSlug ?? null;
+
+        if (buildId) {
+          const owned = await tx
+            .select({ id: builds.id })
+            .from(builds)
+            .where(and(eq(builds.id, buildId), eq(builds.userId, userId)))
+            .limit(1);
+          if (!owned[0]) throw new TRPCError({ code: "NOT_FOUND" });
+        }
+
+        if (!buildId) {
+          shareSlug = shareSlug ?? nanoid(10);
+          const created = await tx
+            .insert(builds)
+            .values({
+              userId,
+              name: input.name ?? "Untitled Build",
+              description: input.description ?? null,
+              shareSlug,
+              isPublic: false,
+              isCompleted: false,
+              flags: input.flags ?? {},
+              totalPriceCents: 0,
+              itemCount: 0,
+              warningsCount: 0,
+              errorsCount: 0,
+              updatedAt: new Date(),
+            })
+            .returning({ id: builds.id, shareSlug: builds.shareSlug });
+          buildId = created[0]?.id ?? null;
+          shareSlug = created[0]?.shareSlug ?? shareSlug;
+        } else {
+          const updated = await tx
+            .update(builds)
+            .set({
+              name: input.name ?? undefined,
+              description: input.description ?? undefined,
+              flags: input.flags ?? undefined,
+              updatedAt: new Date(),
+            })
+            .where(and(eq(builds.id, buildId), eq(builds.userId, userId)))
+            .returning({ shareSlug: builds.shareSlug });
+          shareSlug = updated[0]?.shareSlug ?? shareSlug;
+        }
+
+        if (!buildId || !shareSlug) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create or update build.",
+          });
+        }
+
+        await tx.delete(buildItems).where(eq(buildItems.buildId, buildId));
+
+        const productEntries = Object.entries(input.productsByCategory);
+        const itemsToInsert: Array<{
+          buildId: string;
+          categoryId: string;
+          productId?: string | null;
+          plantId?: string | null;
+          selectedOfferId?: string | null;
+          quantity: number;
+        }> = [];
+
+        for (const [categorySlug, productId] of productEntries) {
+          const categoryId = categoryIdBySlug.get(categorySlug);
+          if (!categoryId) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Unknown category slug '${categorySlug}'.`,
+            });
+          }
+          const selectedOfferId = input.selectedOfferIdByProductId?.[productId] ?? null;
+          itemsToInsert.push({
+            buildId,
+            categoryId,
+            productId,
+            plantId: null,
+            selectedOfferId,
+            quantity: 1,
+          });
+        }
+
+        for (const plantId of input.plantIds) {
+          itemsToInsert.push({
+            buildId,
+            categoryId: plantsCategoryId,
+            productId: null,
+            plantId,
+            quantity: 1,
+          });
+        }
+
+        if (itemsToInsert.length > 0) {
+          await tx.insert(buildItems).values(itemsToInsert);
+        }
+
+        const productIds = productEntries.map(([, productId]) => productId);
+        const { totalPriceCents } = await computeTotalPriceCents(
+          tx,
+          productIds,
+          input.selectedOfferIdByProductId,
+        );
+
+        await tx
+          .update(builds)
+          .set({
+            userId,
+            itemCount: itemsToInsert.length,
+            totalPriceCents,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(builds.id, buildId), eq(builds.userId, userId)));
 
         return { buildId, shareSlug, itemCount: itemsToInsert.length };
       });

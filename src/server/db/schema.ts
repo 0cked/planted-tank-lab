@@ -363,6 +363,7 @@ export const builds = pgTable(
     isPublic: boolean("is_public").notNull().default(false),
     isCompleted: boolean("is_completed").notNull().default(false),
     coverImageUrl: varchar("cover_image_url", { length: 500 }),
+    flags: jsonb("flags").notNull().default({}),
 
     totalPriceCents: integer("total_price_cents").notNull().default(0),
     itemCount: integer("item_count").notNull().default(0),
