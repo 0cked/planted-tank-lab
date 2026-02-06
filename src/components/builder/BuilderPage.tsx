@@ -2,7 +2,8 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import type { inferRouterOutputs } from "@trpc/server";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { trpc } from "@/components/TRPCProvider";
 import { evaluateBuild } from "@/engine/evaluate";
@@ -23,6 +24,14 @@ type CategoryRow = RouterOutputs["products"]["categoriesList"][number];
 type RuleRow = RouterOutputs["rules"]["listActive"][number];
 type ProductRow = RouterOutputs["products"]["listByCategorySlug"][number];
 type PlantRow = RouterOutputs["plants"]["list"][number];
+
+export type BuilderInitialState = {
+  buildId: string | null;
+  shareSlug: string | null;
+  productsByCategory: Record<string, ProductSnapshot | undefined>;
+  plants: PlantSnapshot[];
+  flags?: Partial<BuildFlags>;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -415,7 +424,12 @@ function PlantPicker(props: {
   );
 }
 
-export function BuilderPage() {
+export function BuilderPage(props: { initialState?: BuilderInitialState }) {
+  const router = useRouter();
+  const initialHydrated = useRef(false);
+
+  const buildId = useBuilderStore((s) => s.buildId);
+  const shareSlug = useBuilderStore((s) => s.shareSlug);
   const productsByCategory = useBuilderStore((s) => s.productsByCategory);
   const plants = useBuilderStore((s) => s.plants);
   const flags = useBuilderStore((s) => s.flags);
@@ -426,6 +440,14 @@ export function BuilderPage() {
   const clearPlants = useBuilderStore((s) => s.clearPlants);
   const setHasShrimp = useBuilderStore((s) => s.setHasShrimp);
   const reset = useBuilderStore((s) => s.reset);
+  const hydrate = useBuilderStore((s) => s.hydrate);
+
+  useEffect(() => {
+    if (!props.initialState) return;
+    if (initialHydrated.current) return;
+    initialHydrated.current = true;
+    hydrate(props.initialState);
+  }, [hydrate, props.initialState]);
 
   const categoriesQ = trpc.products.categoriesList.useQuery();
   const rulesQ = trpc.rules.listActive.useQuery({ limit: 200 });
@@ -486,6 +508,54 @@ export function BuilderPage() {
   }, [productsByCategory, minPriceByProductId]);
 
   const categories: CategoryRow[] = categoriesQ.data ?? [];
+  const shareMutation = trpc.builds.upsertAnonymous.useMutation();
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+
+  const onShare = async (): Promise<void> => {
+    setShareStatus(null);
+    setShareUrl(null);
+
+    const productsPayload: Record<string, string> = {};
+    for (const [categorySlug, p] of Object.entries(productsByCategory)) {
+      if (p?.id) productsPayload[categorySlug] = p.id;
+    }
+
+    const plantIds = plants.map((p) => p.id);
+
+    let res: { buildId: string; shareSlug: string; itemCount: number };
+    try {
+      res = await shareMutation.mutateAsync({
+        buildId: buildId ?? undefined,
+        shareSlug: shareSlug ?? undefined,
+        productsByCategory: productsPayload,
+        plantIds,
+      });
+    } catch {
+      setShareStatus("Failed to save build for sharing.");
+      return;
+    }
+
+    hydrate({
+      buildId: res.buildId,
+      shareSlug: res.shareSlug,
+      productsByCategory,
+      plants,
+      flags,
+    });
+
+    const url = `${window.location.origin}/builder/${res.shareSlug}`;
+    setShareUrl(url);
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareStatus("Copied share link to clipboard.");
+    } catch {
+      setShareStatus("Share link ready. Copy it from the field below.");
+    }
+
+    router.push(`/builder/${res.shareSlug}`);
+  };
 
   const topBannerEval = evals[0] ?? null;
 
@@ -497,6 +567,18 @@ export function BuilderPage() {
           <p className="mt-2 text-sm text-neutral-600">
             Choose parts category-by-category. Warnings update instantly.
           </p>
+          {shareStatus ? (
+            <div className="mt-2 text-sm text-neutral-700">{shareStatus}</div>
+          ) : null}
+          {shareUrl ? (
+            <div className="mt-2">
+              <input
+                readOnly
+                value={shareUrl}
+                className="w-full max-w-[520px] rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800"
+              />
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -509,10 +591,10 @@ export function BuilderPage() {
           <button
             type="button"
             className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={true}
-            title="Sharing is implemented in the next milestone."
+            onClick={() => void onShare()}
+            disabled={shareMutation.isPending}
           >
-            Share
+            {shareMutation.isPending ? "Saving..." : "Share"}
           </button>
         </div>
       </div>
