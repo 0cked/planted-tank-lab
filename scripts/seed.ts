@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { and, eq, sql } from "drizzle-orm";
@@ -29,13 +29,19 @@ const productSeedSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   description: z.string().optional(),
+  image_url: z.string().url().optional(),
+  image_urls: z.array(z.string().url()).optional(),
   specs: z.record(z.string(), z.unknown()),
+  sources: z.array(z.string().url()).optional(),
+  source_notes: z.string().max(2000).optional(),
+  verified: z.boolean().optional(),
 });
 
 const plantSeedSchema = z.object({
   common_name: z.string().min(1),
   scientific_name: z.string().optional(),
   slug: z.string().min(1),
+  family: z.string().optional(),
   difficulty: z.string().min(1),
   light_demand: z.string().min(1),
   co2_demand: z.string().min(1),
@@ -58,6 +64,9 @@ const plantSeedSchema = z.object({
   beginner_friendly: z.boolean().default(false),
 
   description: z.string().optional(),
+  native_region: z.string().optional(),
+  notes: z.string().optional(),
+  sources: z.array(z.string().url()).optional(),
 });
 
 const ruleSeedSchema = z.object({
@@ -187,11 +196,16 @@ async function upsertProducts(productFiles: string[]): Promise<void> {
           name: item.name,
           slug: item.slug,
           description: item.description ?? null,
+          imageUrl: item.image_url ?? null,
+          imageUrls: item.image_urls ?? [],
           specs: item.specs,
-          meta: {},
+          meta: {
+            sources: item.sources ?? [],
+            source_notes: item.source_notes ?? null,
+          },
           status: "active",
           source: "manual",
-          verified: false,
+          verified: item.verified ?? false,
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
@@ -201,11 +215,16 @@ async function upsertProducts(productFiles: string[]): Promise<void> {
             brandId,
             name: item.name,
             description: item.description ?? null,
+            imageUrl: item.image_url ?? null,
+            imageUrls: item.image_urls ?? [],
             specs: item.specs,
-            meta: {},
+            meta: {
+              sources: item.sources ?? [],
+              source_notes: item.source_notes ?? null,
+            },
             status: "active",
             source: "manual",
-            verified: false,
+            verified: item.verified ?? false,
             updatedAt: new Date(),
           },
         });
@@ -224,6 +243,7 @@ async function upsertPlants(): Promise<void> {
         commonName: item.common_name,
         scientificName: item.scientific_name ?? null,
         slug: item.slug,
+        family: item.family ?? null,
         description: item.description ?? null,
 
         difficulty: item.difficulty,
@@ -247,6 +267,10 @@ async function upsertPlants(): Promise<void> {
         shrimpSafe: item.shrimp_safe,
         beginnerFriendly: item.beginner_friendly,
 
+        nativeRegion: item.native_region ?? null,
+        notes:
+          item.notes ??
+          (item.sources?.length ? `Sources: ${item.sources.join(", ")}` : null),
         status: "active",
         verified: false,
         updatedAt: new Date(),
@@ -256,6 +280,7 @@ async function upsertPlants(): Promise<void> {
         set: {
           commonName: item.common_name,
           scientificName: item.scientific_name ?? null,
+          family: item.family ?? null,
           description: item.description ?? null,
 
           difficulty: item.difficulty,
@@ -280,6 +305,10 @@ async function upsertPlants(): Promise<void> {
           shrimpSafe: item.shrimp_safe,
           beginnerFriendly: item.beginner_friendly,
 
+          nativeRegion: item.native_region ?? null,
+          notes:
+            item.notes ??
+            (item.sources?.length ? `Sources: ${item.sources.join(", ")}` : null),
           status: "active",
           verified: false,
           updatedAt: new Date(),
@@ -410,10 +439,10 @@ async function upsertOffers(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const productFiles = [
-    "data/products/tanks.json",
-    "data/products/lights.json",
-  ];
+  const productFiles = readdirSync(join(process.cwd(), "data/products"))
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => join("data/products", f))
+    .sort((a, b) => a.localeCompare(b));
 
   console.log("Seeding: categories...");
   await upsertCategories();
@@ -436,27 +465,28 @@ async function main(): Promise<void> {
   console.log("Seeding: offers...");
   await upsertOffers();
 
-  const counts = await Promise.all([
-    db.select({ c: sql<number>`count(*)::int` }).from(categories),
-    db.select({ c: sql<number>`count(*)::int` }).from(brands),
-    db.select({ c: sql<number>`count(*)::int` }).from(products),
-    db.select({ c: sql<number>`count(*)::int` }).from(plants),
-    db.select({ c: sql<number>`count(*)::int` }).from(compatibilityRules),
-    db.select({ c: sql<number>`count(*)::int` }).from(retailers),
-    db.select({ c: sql<number>`count(*)::int` }).from(offers),
-  ]);
+  // Avoid spiking pooled connections on low-connection poolers.
+  const categoriesCount = await db.select({ c: sql<number>`count(*)::int` }).from(categories);
+  const brandsCount = await db.select({ c: sql<number>`count(*)::int` }).from(brands);
+  const productsCount = await db.select({ c: sql<number>`count(*)::int` }).from(products);
+  const plantsCount = await db.select({ c: sql<number>`count(*)::int` }).from(plants);
+  const rulesCount = await db
+    .select({ c: sql<number>`count(*)::int` })
+    .from(compatibilityRules);
+  const retailersCount = await db.select({ c: sql<number>`count(*)::int` }).from(retailers);
+  const offersCount = await db.select({ c: sql<number>`count(*)::int` }).from(offers);
 
   console.log("Seed complete.");
   console.log(
     JSON.stringify(
       {
-        categories: counts[0][0]?.c,
-        brands: counts[1][0]?.c,
-        products: counts[2][0]?.c,
-        plants: counts[3][0]?.c,
-        rules: counts[4][0]?.c,
-        retailers: counts[5][0]?.c,
-        offers: counts[6][0]?.c,
+        categories: categoriesCount[0]?.c,
+        brands: brandsCount[0]?.c,
+        products: productsCount[0]?.c,
+        plants: plantsCount[0]?.c,
+        rules: rulesCount[0]?.c,
+        retailers: retailersCount[0]?.c,
+        offers: offersCount[0]?.c,
       },
       null,
       2,
