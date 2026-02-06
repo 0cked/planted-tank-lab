@@ -92,7 +92,7 @@ export default async function ProductDetailPage(props: {
             {formatMoney(lowest)}
           </div>
           <div className="mt-1 text-xs text-neutral-500">
-            Best-effort until offers are seeded.
+            Prices update as we add more stores.
           </div>
         </div>
       </div>
@@ -138,7 +138,7 @@ export default async function ProductDetailPage(props: {
           ) : null}
 
           <div className="mt-4 text-xs text-neutral-500">
-            Product images are seeded progressively. You can still compare specs and offers.
+            Product photos are being added over time.
           </div>
         </aside>
 

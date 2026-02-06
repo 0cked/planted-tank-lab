@@ -16,8 +16,8 @@ export default function PrivacyPage() {
           Privacy
         </h1>
         <p className="mt-4 text-sm text-neutral-700">
-          PlantedTankLab is an early MVP. Today, we primarily store product, plant, and
-          offer data, plus anonymous click tracking for affiliate redirects.
+          PlantedTankLab is early and evolving. Today, we primarily store product, plant,
+          and offer data, plus anonymous click tracking for affiliate redirects.
         </p>
         <ul className="mt-6 list-disc space-y-2 pl-5 text-sm text-neutral-700">
           <li>

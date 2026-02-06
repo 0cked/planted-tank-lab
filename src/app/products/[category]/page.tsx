@@ -418,7 +418,7 @@ export default async function ProductCategoryPage(props: {
                         >
                           {img ? (
                             // `SmartImage` uses next/image for local assets and <img> for remote
-                            // URLs so we can seed from multiple sources during MVP.
+                            // URLs so we can pull photos from multiple sources while iterating.
                             <SmartImage
                               src={img}
                               alt=""
@@ -460,7 +460,7 @@ export default async function ProductCategoryPage(props: {
       </div>
 
       <div className="mt-10 text-xs text-neutral-500">
-        {title}. Prices are best-effort until retailer offers are seeded.
+        {title}. Prices update as we add more stores.
       </div>
     </main>
   );

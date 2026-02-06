@@ -26,7 +26,7 @@ export function buildAffiliateUrl(params: {
   if (params.affiliateUrl) return params.affiliateUrl;
 
   // Otherwise, tag based on retailer.
-  // MVP: only Amazon tagging is implemented.
+  // Today: only Amazon tagging is implemented.
   if (params.retailerSlug !== "amazon") return params.rawUrl;
 
   const tag = params.retailerAffiliateTag;
@@ -42,4 +42,3 @@ export function buildAffiliateUrl(params: {
     return params.rawUrl;
   }
 }
-

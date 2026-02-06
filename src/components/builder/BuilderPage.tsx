@@ -393,7 +393,7 @@ function ProductPicker(props: {
       description={
         hiddenCount > 0
           ? `Compatibility filter is hiding ${hiddenCount} incompatible option(s).`
-          : "Data is currently seeded (limited list)."
+          : "A limited catalog is available right now."
       }
       open={props.open}
       onOpenChange={props.onOpenChange}
@@ -417,7 +417,7 @@ function ProductPicker(props: {
         ) : visibleRows.length === 0 ? (
           <div className="px-4 py-3 text-sm text-neutral-600">
             {filtered.length === 0
-              ? "No products seeded for this category yet."
+              ? "No products available for this category yet."
               : "No compatible results. Turn off Compatibility to see all options."}
           </div>
         ) : (
@@ -835,7 +835,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
               {formatMoney(totalCents)}
             </div>
             <div className="mt-1 text-xs text-neutral-500">
-              Prices are best-effort (offers may be unseeded).
+              Prices are estimates (some stores not linked yet).
             </div>
           </div>
           <div>
