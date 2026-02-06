@@ -215,8 +215,27 @@ export const retailers = pgTable(
     slug: varchar("slug", { length: 200 }).notNull(),
     websiteUrl: varchar("website_url", { length: 500 }),
     logoUrl: varchar("logo_url", { length: 500 }),
+    // Prefer `logoAssetPath` for consistent rendering (hosted in `public/`).
+    // `logoUrl` is allowed for hotlinked logos until we move assets to storage.
+    logoAssetPath: varchar("logo_asset_path", { length: 500 }),
+    priority: integer("priority").notNull().default(0),
+
+    // Affiliate config:
+    // - If `offers.affiliate_url` is present, that always wins.
+    // - Else if `affiliateDeeplinkTemplate` is present, we build a deeplink by substituting `{url}`.
+    // - Else if `affiliateTag` is present, we append `affiliateTagParam` as a query param.
     affiliateNetwork: varchar("affiliate_network", { length: 100 }),
     affiliateTag: varchar("affiliate_tag", { length: 200 }),
+    affiliateTagParam: varchar("affiliate_tag_param", { length: 50 })
+      .notNull()
+      .default("tag"),
+    affiliateDeeplinkTemplate: varchar("affiliate_deeplink_template", {
+      length: 1500,
+    }),
+
+    // Used later for redirect allow-listing; stored now so we can seed safely.
+    allowedHosts: jsonb("allowed_hosts").notNull().default([]),
+    meta: jsonb("meta").notNull().default({}),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -225,7 +244,10 @@ export const retailers = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [uniqueIndex("retailers_slug_unique").on(t.slug)],
+  (t) => [
+    uniqueIndex("retailers_slug_unique").on(t.slug),
+    index("idx_retailers_priority").on(t.priority),
+  ],
 );
 
 export const offers = pgTable(

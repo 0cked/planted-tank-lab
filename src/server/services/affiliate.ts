@@ -19,24 +19,33 @@ export function extractIpFromHeaders(xForwardedFor: string | null): string | nul
 export function buildAffiliateUrl(params: {
   retailerSlug: string;
   retailerAffiliateTag: string | null;
+  retailerAffiliateTagParam: string | null;
+  retailerAffiliateDeeplinkTemplate: string | null;
   rawUrl: string;
   affiliateUrl: string | null;
 }): string {
   // If the offer already has an explicit affiliate_url, use it.
   if (params.affiliateUrl) return params.affiliateUrl;
 
-  // Otherwise, tag based on retailer.
-  // Today: only Amazon tagging is implemented.
-  if (params.retailerSlug !== "amazon") return params.rawUrl;
-
-  const tag = params.retailerAffiliateTag;
-  if (!tag) return params.rawUrl;
-
   try {
     const u = new URL(params.rawUrl);
     if (u.protocol !== "http:" && u.protocol !== "https:") return params.rawUrl;
+
+    const template = params.retailerAffiliateDeeplinkTemplate?.trim() ?? null;
+    if (template) {
+      // Replace `{url}` with a URL-encoded raw destination.
+      // If the template doesn't contain `{url}`, we fall back to the raw URL.
+      if (!template.includes("{url}")) return params.rawUrl;
+      return template.replaceAll("{url}", encodeURIComponent(params.rawUrl));
+    }
+
+    const tag = params.retailerAffiliateTag?.trim() ?? null;
+    if (!tag) return params.rawUrl;
+
+    const tagParam = (params.retailerAffiliateTagParam?.trim() || "tag").toLowerCase();
     // Avoid overwriting an existing tag (in case URL is already tagged).
-    if (!u.searchParams.get("tag")) u.searchParams.set("tag", tag);
+    if (!u.searchParams.get(tagParam)) u.searchParams.set(tagParam, tag);
+
     return u.toString();
   } catch {
     return params.rawUrl;

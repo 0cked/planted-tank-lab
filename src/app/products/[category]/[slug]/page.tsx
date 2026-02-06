@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { RetailerMark } from "@/components/RetailerMark";
 import { SmartImage } from "@/components/SmartImage";
 import { formatSpecs } from "@/lib/specs";
 import { getServerCaller } from "@/server/trpc/server-caller";
@@ -182,9 +183,11 @@ export default async function ProductDetailPage(props: {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-neutral-900">
-                        {o.retailer.name}
-                      </div>
+                      <RetailerMark
+                        name={o.retailer.name}
+                        logoAssetPath={(o.retailer as { logoAssetPath?: string | null }).logoAssetPath ?? null}
+                        logoUrl={o.retailer.logoUrl ?? null}
+                      />
                       <div className="mt-1 text-xs text-neutral-600">
                         {o.inStock ? "In stock" : "Out of stock"}
                       </div>

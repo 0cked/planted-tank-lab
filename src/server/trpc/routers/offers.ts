@@ -81,6 +81,7 @@ export const offersRouter = createTRPCRouter({
             slug: retailers.slug,
             websiteUrl: retailers.websiteUrl,
             logoUrl: retailers.logoUrl,
+            logoAssetPath: retailers.logoAssetPath,
           },
         })
         .from(offers)
@@ -134,6 +135,7 @@ export const offersRouter = createTRPCRouter({
             slug: retailers.slug,
             websiteUrl: retailers.websiteUrl,
             logoUrl: retailers.logoUrl,
+            logoAssetPath: retailers.logoAssetPath,
           },
         })
         .from(offers)
@@ -184,6 +186,7 @@ export const offersRouter = createTRPCRouter({
           slug: r.retailer.slug,
           websiteUrl: r.retailer.websiteUrl,
           logoUrl: r.retailer.logoUrl,
+          logoAssetPath: r.retailer.logoAssetPath,
         },
         goUrl: `/go/${r.offer.id}`,
       }));

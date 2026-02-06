@@ -65,7 +65,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 
 ### Phase 4 — Retail Pricing + Affiliate (Real-World Monetization)
 
-- [ ] P4.01 Retailer model finalized: affiliate networks, retailer metadata, logo handling.
+- [x] P4.01 Retailer model finalized: affiliate networks, retailer metadata, logo handling.
 - [ ] P4.02 Offer ingestion (manual): manual offers for core categories until automated ingestion exists.
 - [ ] P4.03 Offer ingestion (refresh): scheduled refresh job system (cron) and a clear “last checked” UI.
 - [ ] P4.04 Affiliate redirect hardening: validation, allow-listing, bot protections, click attribution.

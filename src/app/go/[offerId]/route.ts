@@ -41,6 +41,8 @@ export async function GET(
   const destination = buildAffiliateUrl({
     retailerSlug: row.retailer.slug,
     retailerAffiliateTag: row.retailer.affiliateTag ?? null,
+    retailerAffiliateTagParam: row.retailer.affiliateTagParam ?? null,
+    retailerAffiliateDeeplinkTemplate: row.retailer.affiliateDeeplinkTemplate ?? null,
     rawUrl: row.offer.url,
     affiliateUrl: row.offer.affiliateUrl ?? null,
   });
@@ -76,4 +78,3 @@ export async function GET(
 
   return NextResponse.redirect(destination, { status: 302 });
 }
-

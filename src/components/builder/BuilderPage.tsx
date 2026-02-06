@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { SmartImage } from "@/components/SmartImage";
+import { RetailerMark } from "@/components/RetailerMark";
 import { trpc } from "@/components/TRPCProvider";
 import {
   buildWorkflow,
@@ -995,15 +996,20 @@ function OffersDialog(props: {
                       checked={selected}
                       onChange={() => props.onSelectOfferId(o.id)}
                       className="h-4 w-4"
-                    />
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-neutral-900">
-                        {o.retailer.name}
-                      </div>
-                      <div className="text-xs text-neutral-600">
-                        {o.inStock ? "In stock" : "Out of stock"}
-                        {updated ? ` · Updated ${updated}` : ""}
-                      </div>
+	                    />
+	                    <div className="min-w-0">
+	                      <RetailerMark
+	                        name={o.retailer.name}
+	                        logoAssetPath={
+	                          (o.retailer as { logoAssetPath?: string | null }).logoAssetPath ??
+	                          null
+	                        }
+	                        logoUrl={o.retailer.logoUrl ?? null}
+	                      />
+	                      <div className="text-xs text-neutral-600">
+	                        {o.inStock ? "In stock" : "Out of stock"}
+	                        {updated ? ` · Updated ${updated}` : ""}
+	                      </div>
                     </div>
                   </label>
                   <div className="flex items-center gap-3">

@@ -3,9 +3,12 @@
     "slug": "amazon",
     "name": "Amazon",
     "website_url": "https://www.amazon.com",
+    "logo_asset_path": "/retailers/amazon.svg",
+    "priority": 10,
     "affiliate_network": "amazon",
     "affiliate_tag": "plantedtanklab-20",
+    "affiliate_tag_param": "tag",
+    "allowed_hosts": ["amazon.com", "www.amazon.com", "smile.amazon.com"],
     "active": true
   }
 ]
-
