@@ -6,3 +6,5 @@ node_modules/
 .secrets/
 .vercel/
 *.tsbuildinfo
+tmp-next/
+.tmp-next/

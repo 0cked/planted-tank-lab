@@ -17,7 +17,9 @@ Establish fully working project infrastructure and baseline application foundati
 - [x] (2026-02-06) Verified `curl -I https://plantedtanklab.com` reaches Vercel (404 acceptable at this stage).
 - [x] (2026-02-06) Verified DB connectivity via `SELECT 1` (Python `psycopg`).
 - [ ] (pending) Milestone 0 commit + push.
-- [ ] Milestone 1: Next.js scaffold and dependencies complete.
+- [x] (2026-02-06) Milestone 0 commit + push.
+- [x] (2026-02-06) Scaffolded Next.js App Router project into repo root (via temp dir copy), installed required dependencies, and created directory skeleton.
+- [ ] (pending) Milestone 1 commit.
 - [ ] Milestone 2: Full database schema implemented and pushed.
 - [ ] Milestone 3: tRPC context/router/handlers/provider wired.
 - [ ] Milestone 4: Seed data + seeding script created and executed.

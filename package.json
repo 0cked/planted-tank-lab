@@ -1,0 +1,56 @@
+{
+  "name": "planted-tank-lab",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "format": "prettier -w ."
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.0",
+    "@radix-ui/react-dropdown-menu": "^2.1.0",
+    "@radix-ui/react-select": "^2.1.0",
+    "@radix-ui/react-tooltip": "^1.1.0",
+    "@tanstack/react-query": "^5.0.0",
+    "@trpc/client": "^11.0.0",
+    "@trpc/react-query": "^11.0.0",
+    "@trpc/server": "^11.0.0",
+    "drizzle-orm": "^0.44.0",
+    "next": "16.1.6",
+    "next-auth": "^4.24.0",
+    "nanoid": "^5.0.0",
+    "postgres": "^3.4.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "zod": "^3.23.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@testing-library/react": "^16.0.0",
+    "drizzle-kit": "^0.31.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "playwright": "^1.50.0",
+    "prettier": "^3.0.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^2.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
+  }
+}
