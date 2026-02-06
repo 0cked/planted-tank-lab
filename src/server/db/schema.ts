@@ -184,6 +184,34 @@ export const offers = pgTable(
   (t) => [index("idx_offers_product").on(t.productId)],
 );
 
+export const offerClicks = pgTable(
+  "offer_clicks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    offerId: uuid("offer_id")
+      .notNull()
+      .references(() => offers.id, { onDelete: "cascade" }),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    retailerId: uuid("retailer_id")
+      .notNull()
+      .references(() => retailers.id, { onDelete: "cascade" }),
+
+    ipHash: varchar("ip_hash", { length: 64 }),
+    userAgent: varchar("user_agent", { length: 500 }),
+    referer: varchar("referer", { length: 1000 }),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_offer_clicks_offer").on(t.offerId, t.createdAt),
+    index("idx_offer_clicks_product").on(t.productId, t.createdAt),
+  ],
+);
+
 export const priceHistory = pgTable(
   "price_history",
   {
