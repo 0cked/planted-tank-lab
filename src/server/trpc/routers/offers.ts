@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, eq, inArray, isNotNull, min } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, min } from "drizzle-orm";
 
 import { offers, retailers } from "@/server/db/schema";
 import { createTRPCRouter, publicProcedure } from "@/server/trpc/trpc";
@@ -54,6 +54,61 @@ export const offersRouter = createTRPCRouter({
           ),
         )
         .groupBy(offers.productId);
+    }),
+
+  bestByProductIds: publicProcedure
+    .input(
+      z.object({
+        productIds: z.array(z.string().uuid()).max(200),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      if (input.productIds.length === 0) return [];
+
+      // Order so the first row per product is the best offer:
+      // lowest price, then most recently updated.
+      const rows = await ctx.db
+        .select({
+          offerId: offers.id,
+          productId: offers.productId,
+          priceCents: offers.priceCents,
+          currency: offers.currency,
+          inStock: offers.inStock,
+          updatedAt: offers.updatedAt,
+          retailer: {
+            id: retailers.id,
+            name: retailers.name,
+            slug: retailers.slug,
+            websiteUrl: retailers.websiteUrl,
+            logoUrl: retailers.logoUrl,
+          },
+        })
+        .from(offers)
+        .innerJoin(retailers, eq(offers.retailerId, retailers.id))
+        .where(
+          and(
+            inArray(offers.productId, input.productIds),
+            eq(offers.inStock, true),
+            isNotNull(offers.priceCents),
+          ),
+        )
+        .orderBy(offers.productId, offers.priceCents, desc(offers.updatedAt));
+
+      const best = new Map<string, (typeof rows)[number]>();
+      for (const r of rows) {
+        if (!best.has(r.productId)) best.set(r.productId, r);
+      }
+
+      return Array.from(best.values()).map((r) => ({
+        productId: r.productId,
+        offerId: r.offerId,
+        priceCents: r.priceCents,
+        currency: r.currency,
+        inStock: r.inStock,
+        updatedAt: r.updatedAt,
+        retailer: r.retailer,
+        goUrl: `/go/${r.offerId}`,
+      }));
     }),
 
   listByProductId: publicProcedure

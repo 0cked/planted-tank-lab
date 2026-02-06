@@ -210,6 +210,8 @@ function CategoryRowView(props: {
   required: boolean;
   selectionLabel: string;
   priceLabel: string;
+  priceSubLabel?: string | null;
+  buyHref?: string | null;
   evals: Evaluation[];
   active?: boolean;
   onChoose: () => void;
@@ -245,7 +247,12 @@ function CategoryRowView(props: {
         <div className="truncate text-sm text-neutral-700">{props.selectionLabel}</div>
       </div>
 
-      <div className="text-right text-sm text-neutral-700">{props.priceLabel}</div>
+      <div className="text-right">
+        <div className="text-sm font-medium text-neutral-900">{props.priceLabel}</div>
+        {props.priceSubLabel ? (
+          <div className="text-xs text-neutral-600">{props.priceSubLabel}</div>
+        ) : null}
+      </div>
 
       <div className="flex items-center gap-2">
         <button
@@ -256,6 +263,15 @@ function CategoryRowView(props: {
         >
           {props.selectionLabel.startsWith("+") ? "Choose" : "Swap"}
         </button>
+        {props.buyHref ? (
+          <a
+            href={props.buyHref}
+            className="shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95"
+            style={{ background: "var(--ptl-accent)" }}
+          >
+            Buy
+          </a>
+        ) : null}
         {props.onRemove ? (
           <button
             type="button"
@@ -936,28 +952,47 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     return Array.from(new Set(ids));
   }, [productsByCategory]);
 
-  const pricesQ = trpc.offers.lowestByProductIds.useQuery(
+  const bestOffersQ = trpc.offers.bestByProductIds.useQuery(
     { productIds: selectedProductIds },
     { enabled: selectedProductIds.length > 0 },
   );
 
-  const minPriceByProductId = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const row of pricesQ.data ?? []) {
-      if (row.minPriceCents != null) map.set(row.productId, row.minPriceCents);
+  const bestOfferByProductId = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        offerId: string;
+        priceCents: number;
+        retailerName: string;
+        goUrl: string;
+      }
+    >();
+    for (const row of bestOffersQ.data ?? []) {
+      if (row.priceCents == null) continue;
+      map.set(row.productId, {
+        offerId: row.offerId,
+        priceCents: row.priceCents,
+        retailerName: row.retailer?.name ?? "Retailer",
+        goUrl: row.goUrl,
+      });
     }
     return map;
-  }, [pricesQ.data]);
+  }, [bestOffersQ.data]);
 
   const totalCents = useMemo(() => {
     let total = 0;
     for (const p of Object.values(productsByCategory)) {
       if (!p) continue;
-      const cents = minPriceByProductId.get(p.id);
+      const cents = bestOfferByProductId.get(p.id)?.priceCents;
       if (cents != null) total += cents;
     }
     return total;
-  }, [productsByCategory, minPriceByProductId]);
+  }, [bestOfferByProductId, productsByCategory]);
+
+  const selectedCount = selectedProductIds.length;
+  const pricedCount = bestOfferByProductId.size;
+  const totalLabel = selectedCount > 0 && pricedCount === selectedCount ? "Total" : "Estimated total";
+  const totalDisplay = pricedCount > 0 ? formatMoney(totalCents) : "—";
 
   const categoriesData = categoriesQ.data;
   const categories: CategoryRow[] = categoriesData ?? [];
@@ -1249,12 +1284,16 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       <div className="mt-6 grid gap-4">
         <div className="ptl-surface grid grid-cols-1 gap-3 p-5 sm:grid-cols-4">
           <div>
-            <div className="text-xs font-medium text-neutral-600">Total</div>
+            <div className="text-xs font-medium text-neutral-600">{totalLabel}</div>
             <div className="mt-1 text-xl font-semibold tracking-tight">
-              {formatMoney(totalCents)}
+              {totalDisplay}
             </div>
             <div className="mt-1 text-xs text-neutral-500">
-              Prices are estimates (some stores not linked yet).
+              {selectedCount === 0
+                ? "Pick items to see pricing from in-stock offers."
+                : pricedCount === selectedCount
+                  ? "Best in-stock offer found for each selected item."
+                  : `Best in-stock offers found for ${pricedCount} of ${selectedCount} selected item(s).`}
             </div>
           </div>
           <div>
@@ -1345,9 +1384,10 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                 const isCo2Category = c.slug === "co2";
                 const effectiveSelected =
                   isCo2Category && lowTechNoCo2 ? undefined : selected;
-                const priceCents = effectiveSelected
-                  ? minPriceByProductId.get(effectiveSelected.id)
+                const offer = effectiveSelected
+                  ? bestOfferByProductId.get(effectiveSelected.id)
                   : null;
+                const priceCents = offer?.priceCents ?? null;
 
                 const selectionLabel = isCo2Category
                   ? lowTechNoCo2
@@ -1367,6 +1407,8 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                     required={c.builderRequired}
                     selectionLabel={selectionLabel}
                     priceLabel={formatMoney(priceCents)}
+                    priceSubLabel={offer ? offer.retailerName : effectiveSelected ? "No in-stock offers yet" : null}
+                    buyHref={offer ? offer.goUrl : null}
                     evals={catEvals}
                     active={effectiveFocusedStepId === c.slug}
                     onChoose={() => {
@@ -1518,7 +1560,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       {categoriesQ.isError ? (
         <div className="mt-2 text-xs text-red-700">Failed to load categories.</div>
       ) : null}
-      {pricesQ.isError ? (
+      {bestOffersQ.isError ? (
         <div className="mt-2 text-xs text-red-700">Failed to load prices.</div>
       ) : null}
     </main>
