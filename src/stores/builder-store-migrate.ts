@@ -3,6 +3,7 @@ import type { BuildFlags, PlantSnapshot, ProductSnapshot } from "@/engine/types"
 export type PersistedBuilderStateV2 = {
   buildId: string | null;
   shareSlug: string | null;
+  lastSyncedUserId?: string | null;
   productsByCategory: Record<string, ProductSnapshot | undefined>;
   plants: PlantSnapshot[];
   selectedOfferIdByProductId: Record<string, string | undefined>;
@@ -29,6 +30,11 @@ export function migratePersistedBuilderState(
 
   const shareSlug = persistedState["shareSlug"];
   if (typeof shareSlug === "string" || shareSlug === null) next.shareSlug = shareSlug;
+
+  const lastSyncedUserId = persistedState["lastSyncedUserId"];
+  if (typeof lastSyncedUserId === "string" || lastSyncedUserId === null) {
+    next.lastSyncedUserId = lastSyncedUserId;
+  }
 
   const productsByCategory = persistedState["productsByCategory"];
   if (isPlainObject(productsByCategory)) {
@@ -70,4 +76,3 @@ export function migratePersistedBuilderState(
 
   return next;
 }
-

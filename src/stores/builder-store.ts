@@ -7,6 +7,8 @@ import { migratePersistedBuilderState } from "@/stores/builder-store-migrate";
 export type BuilderState = {
   buildId: string | null;
   shareSlug: string | null;
+  // Tracks which signed-in user we've already synced the current local build to.
+  lastSyncedUserId: string | null;
 
   // Keyed by category slug ("tank", "light", ...).
   productsByCategory: Record<string, ProductSnapshot | undefined>;
@@ -33,6 +35,7 @@ export type BuilderState = {
   setCompatibilityEnabled: (enabled: boolean) => void;
   setLowTechNoCo2: (enabled: boolean) => void;
   setCuratedOnly: (enabled: boolean) => void;
+  setLastSyncedUserId: (userId: string | null) => void;
 
   hydrate: (data: {
     buildId: string | null;
@@ -53,6 +56,7 @@ const initialFlags: BuildFlags = {
 const initialState = {
   buildId: null as string | null,
   shareSlug: null as string | null,
+  lastSyncedUserId: null as string | null,
   productsByCategory: {} as Record<string, ProductSnapshot | undefined>,
   plants: [] as PlantSnapshot[],
   selectedOfferIdByProductId: {} as Record<string, string | undefined>,
@@ -111,6 +115,7 @@ export const useBuilderStore = create<BuilderState>()(
           return { lowTechNoCo2: enabled, productsByCategory: nextProducts };
         }),
       setCuratedOnly: (enabled) => set({ curatedOnly: enabled }),
+      setLastSyncedUserId: (userId) => set({ lastSyncedUserId: userId }),
 
       hydrate: (data) => {
         set((s) => {
@@ -146,6 +151,7 @@ export const useBuilderStore = create<BuilderState>()(
       partialize: (s) => ({
         buildId: s.buildId,
         shareSlug: s.shareSlug,
+        lastSyncedUserId: s.lastSyncedUserId,
         productsByCategory: s.productsByCategory,
         plants: s.plants,
         selectedOfferIdByProductId: s.selectedOfferIdByProductId,

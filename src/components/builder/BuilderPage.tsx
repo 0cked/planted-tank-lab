@@ -1051,6 +1051,8 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const setCompatibilityEnabled = useBuilderStore((s) => s.setCompatibilityEnabled);
   const setLowTechNoCo2 = useBuilderStore((s) => s.setLowTechNoCo2);
   const setCuratedOnly = useBuilderStore((s) => s.setCuratedOnly);
+  const lastSyncedUserId = useBuilderStore((s) => s.lastSyncedUserId);
+  const setLastSyncedUserId = useBuilderStore((s) => s.setLastSyncedUserId);
   const reset = useBuilderStore((s) => s.reset);
   const hydrate = useBuilderStore((s) => s.hydrate);
 
@@ -1390,6 +1392,83 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
 
     setSaveStatus("Saved to your profile.");
   };
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    if (lastSyncedUserId === userId) return;
+    if (saveMutation.isPending) return;
+
+    const hasAnySelections =
+      Object.values(productsByCategory).some((p) => Boolean(p?.id)) || plants.length > 0;
+
+    // Mark as synced even if empty, so we only attempt once per user session.
+    if (!hasAnySelections) {
+      setLastSyncedUserId(userId);
+      return;
+    }
+
+    const run = async (): Promise<void> => {
+      const productsPayload: Record<string, string> = {};
+      for (const [categorySlug, p] of Object.entries(productsByCategory)) {
+        if (p?.id) productsPayload[categorySlug] = p.id;
+      }
+
+      const plantIds = plants.map((p) => p.id);
+      const selectedOfferIds = Object.fromEntries(
+        Object.entries(selectedOfferIdByProductId).filter(
+          (entry): entry is [string, string] =>
+            typeof entry[1] === "string" && entry[1].length > 0,
+        ),
+      );
+
+      const defaultName = productsByCategory["tank"]?.name
+        ? `${productsByCategory["tank"]?.name} build`
+        : "Untitled Build";
+
+      try {
+        const res = await saveMutation.mutateAsync({
+          buildId: buildId ?? undefined,
+          shareSlug: shareSlug ?? undefined,
+          name: defaultName,
+          productsByCategory: productsPayload,
+          plantIds,
+          selectedOfferIdByProductId: selectedOfferIds,
+          flags: { hasShrimp: flags.hasShrimp, lowTechNoCo2 },
+        });
+
+        hydrate({
+          buildId: res.buildId,
+          shareSlug: res.shareSlug,
+          productsByCategory,
+          plants,
+          selectedOfferIdByProductId: selectedOfferIdByProductId,
+          flags: { ...flags, lowTechNoCo2 },
+        });
+
+        setSaveStatus("Synced your local build to your profile.");
+      } catch {
+        setSaveStatus("Could not sync your local build automatically. Use Save to try again.");
+      } finally {
+        setLastSyncedUserId(userId);
+      }
+    };
+
+    void run();
+  }, [
+    buildId,
+    flags,
+    hydrate,
+    lastSyncedUserId,
+    lowTechNoCo2,
+    plants,
+    productsByCategory,
+    saveMutation,
+    selectedOfferIdByProductId,
+    session?.user?.id,
+    setLastSyncedUserId,
+    shareSlug,
+  ]);
 
   const topBannerEval = evals[0] ?? null;
 
