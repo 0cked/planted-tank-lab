@@ -318,6 +318,8 @@ function PickerDialog(props: {
 function ProductPicker(props: {
   categorySlug: string;
   categoryName: string;
+  mode: "choose" | "swap";
+  currentSelection: ProductSnapshot | undefined;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPick: (p: ProductSnapshot) => void;
@@ -425,6 +427,68 @@ function ProductPicker(props: {
   const visibleItems = useMemo(() => items.filter((x) => !x.blocked), [items]);
   const effectiveItems = showIncompatible ? items : visibleItems;
 
+  const bestMatches = useMemo(() => {
+    if (props.mode !== "swap") return [];
+    if (!props.currentSelection) return [];
+    if (visibleItems.length === 0) return [];
+
+    const keysByCategory: Record<string, string[]> = {
+      tank: ["length_in", "volume_gal", "filled_weight_lbs"],
+      light: ["min_tank_length_in", "max_tank_length_in", "par_at_substrate"],
+      filter: ["flow_rate_gph"],
+      heater: ["wattage"],
+      stand: ["weight_capacity_lbs"],
+    };
+
+    const keys = keysByCategory[props.categorySlug] ?? [];
+
+    const num = (v: unknown): number | null => {
+      if (typeof v === "number" && Number.isFinite(v)) return v;
+      if (typeof v === "string" && v.trim() !== "") {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      }
+      return null;
+    };
+
+    const score = (candidate: ProductSnapshot): number => {
+      // Lower score is "closer".
+      let s = 0;
+      let compared = 0;
+      for (const k of keys) {
+        const a = num(props.currentSelection!.specs[k]);
+        const b = num(candidate.specs[k]);
+        if (a == null || b == null) continue;
+        const denom = Math.abs(a) + 1;
+        s += Math.abs(a - b) / denom;
+        compared += 1;
+      }
+      return compared > 0 ? s : Number.POSITIVE_INFINITY;
+    };
+
+    const rows = visibleItems
+      .map((x) => ({ row: x.row, snap: toProductSnapshot(props.categorySlug, x.row) }))
+      .filter((x) => x.snap.id !== props.currentSelection!.id);
+
+    const anyComparableKey = keys.some((k) => num(props.currentSelection?.specs[k]) != null);
+
+    rows.sort((a, b) => {
+      if (anyComparableKey) {
+        const sa = score(a.snap);
+        const sb = score(b.snap);
+        if (sa !== sb) return sa - sb;
+      }
+
+      const ra = curatedRank(a.row) ?? 9_999;
+      const rb = curatedRank(b.row) ?? 9_999;
+      if (ra !== rb) return ra - rb;
+
+      return a.snap.name.localeCompare(b.snap.name);
+    });
+
+    return rows.map((x) => x.snap).slice(0, 10);
+  }, [props.categorySlug, props.currentSelection, props.mode, visibleItems]);
+
   return (
     <PickerDialog
       title={`Choose a ${props.categoryName}`}
@@ -456,6 +520,56 @@ function ProductPicker(props: {
           </label>
         ) : null}
       </div>
+
+      {props.mode === "swap" && props.currentSelection ? (
+        <div className="mt-4 rounded-xl border bg-white/65 p-4" style={{ borderColor: "var(--ptl-border)" }}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="text-xs font-medium text-neutral-600">Current</div>
+              <div className="truncate text-sm font-semibold text-neutral-900">
+                {props.currentSelection.name}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="ptl-btn-secondary"
+              onClick={() => props.onOpenChange(false)}
+            >
+              Keep this
+            </button>
+          </div>
+
+          {bestMatches.length > 0 ? (
+            <div className="mt-3">
+              <div className="text-xs font-medium text-neutral-600">Best matches</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {bestMatches.slice(0, 6).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="rounded-full border bg-white/75 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
+                    style={{ borderColor: "var(--ptl-border)" }}
+                    onClick={() => {
+                      props.onPick(p);
+                      props.onOpenChange(false);
+                    }}
+                    title="Swap to this"
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2 text-xs text-neutral-600">
+                Showing close alternatives based on size/output specs (when available).
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 text-xs text-neutral-600">
+              Tip: turn off Curated picks to see more alternatives.
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <div
         className="mt-4 overflow-hidden rounded-xl border bg-white/70"
@@ -1354,6 +1468,8 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
         <ProductPicker
           categorySlug={activePicker.categorySlug}
           categoryName={activePicker.categoryName}
+          mode={productsByCategory[activePicker.categorySlug] ? "swap" : "choose"}
+          currentSelection={productsByCategory[activePicker.categorySlug]}
           open={true}
           onOpenChange={(open) => {
             if (!open) {

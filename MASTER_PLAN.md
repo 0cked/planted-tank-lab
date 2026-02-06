@@ -37,7 +37,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 - [x] P1.02 Compatibility gating v2: make gating rule-driven and consistent for every category (not just “error rules” for products and a couple heuristics for plants).
 - [x] P1.03 Hidden-options transparency: show “X hidden by compatibility” plus a “Show incompatible” toggle inside pickers (per-picker) without turning off the whole engine.
 - [x] P1.04 Explainers: for any blocked/hidden item, provide a short “why” (top 1-2 rules triggered) and a “fix suggestion” (swap tank/light/etc.).
-- [ ] P1.05 Alternatives panel: on any selected item, a “Swap” view pre-filtered to compatible options and sorted by “best match”.
+- [x] P1.05 Alternatives panel: on any selected item, a “Swap” view pre-filtered to compatible options and sorted by “best match”.
 - [ ] P1.06 Price accuracy UX: treat price as “estimate” unless at least 1 in-stock offer exists; show per-item best offer and total; handle missing offers gracefully.
 - [ ] P1.07 Offer selection: allow choosing a specific retailer offer per product (default: lowest in-stock).
 - [ ] P1.08 Build persistence v1a: anonymous builds saved locally with explicit versioning and migrations (Zustand persist already exists; harden it).
