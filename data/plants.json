@@ -21,6 +21,10 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/008%20CLP/2.JPG&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Microsorumpteropus(008CLP)/30567"
+    ],
     "description": "Hardy epiphyte that attaches to wood or stone. Do not bury the rhizome."
   },
   {
@@ -118,6 +122,10 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/101%20TC/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Anubiasbarterinana(101TC)/18895"
+    ],
     "description": "Slow-growing rhizome plant that tolerates low light and is ideal for hardscape."
   },
   {
@@ -215,6 +223,10 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/003%20TC/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Taxiphyllumbarbieri'BogorMoss'(003TC)/4393"
+    ],
     "description": "Versatile moss for shrimp tanks and fry cover. Can be tied to hardscape or used as a mesh carpet."
   },
   {
@@ -385,6 +397,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/071/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Echinodorusgrisebachii'Bleherae'(071)/4512"
+    ],
     "description": "Large rosette plant and heavy root feeder. Benefits from nutrient-rich substrate or root tabs."
   },
   {
@@ -434,6 +450,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/109/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Cryptocorynewendtii'Green'(109)/4562"
+    ],
     "description": "Hardy crypt with many color variants. May melt when moved but typically recovers."
   },
   {
@@ -531,6 +551,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/079/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Sagittariasubulata(079)/4530"
+    ],
     "description": "Grass-like plant that spreads via runners. Can form a short lawn in good conditions."
   },
   {
@@ -579,6 +603,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/049G/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Staurogynerepens(049G)/4481"
+    ],
     "description": "Compact bushy foreground plant; trims into a low hedge."
   },
   {
@@ -603,6 +631,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/053H/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Pogostemonhelferi(053H)/4499"
+    ],
     "description": "Textured rosette-like plant; needs strong light and CO2 to stay compact."
   },
 
@@ -628,6 +660,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/025/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Micranthemumtweediei'MonteCarlo'(025)/22880"
+    ],
     "description": "Popular carpeting plant that typically needs high light and CO2 to stay compact and carpet."
   },
   {
@@ -652,6 +688,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/132C/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Eleocharisparvula(132C)/4572"
+    ],
     "description": "Fine grass-like carpet that spreads via runners; CO2 helps density."
   },
   {
@@ -748,6 +788,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/048B%20TC/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Micranthemumcallitrichoides'Cuba'(048BTC)/4478"
+    ],
     "description": "Very small-leaved carpet; typically demands CO2, strong light, and stable nutrients."
   },
   {
@@ -772,6 +816,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/039B/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Hydrocotyletripartita(039B)/4458"
+    ],
     "description": "Fast creeping plant with clover-like leaves; can overtake scapes if not trimmed."
   },
 
@@ -797,6 +845,10 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/051%20BDT/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Hygrophiladifformis(051BDT)/4485"
+    ],
     "description": "Fast-growing nutrient sponge and great beginner stem plant. Can be planted or floated."
   },
   {
@@ -918,6 +970,10 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": false,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/033/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Rotalarotundifolia(033)/4447"
+    ],
     "description": "Fast-growing stem plant. Color and compact growth improve with stronger light and CO2."
   },
   {
@@ -991,6 +1047,10 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/033D/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Ludwigiarepens'Rubin'(033D)/4450"
+    ],
     "description": "Hardy red-tinged stem plant; color improves with stronger light."
   },
   {
@@ -1065,6 +1125,11 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/055A/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Vallisneriaspiralis'Tiger'(055A)/4503"
+    ],
+    "notes": "Photo and citation are for a Vallisneria spiralis variant (\"Tiger\"). Care requirements are generally similar but can vary by strain.",
     "description": "Hardy background plant with ribbon leaves; spreads quickly via runners."
   },
   {
@@ -1114,6 +1179,10 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/021A%20POR/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Ceratophyllumdemersum(021APOR)/4434"
+    ],
     "description": "Fast-growing stem-like plant that can be floated or anchored; great nutrient sponge."
   },
   {
@@ -1138,6 +1207,10 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/058%20BDT/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Egeriadensa(058BDT)/4506"
+    ],
     "description": "Hardy oxygenating plant; grows quickly under moderate light."
   },
 
@@ -1238,9 +1311,12 @@
     "shrimp_safe": true,
     "beginner_friendly": true,
     "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/000C%20ST/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Aegagropilalinnaei(000CST)/4385"
+    ],
     "description": "Cladophora aegagropila is not really a plant, but a ball of algae. It is a decorative exception from the rule about avoiding algae at all costs. It is normally found in shallow lakes, where the movement of the waves forms it into a sphere. In an aquarium it must be turned regularly to keep it in shape. It can be divided into smaller pieces, which become spherical with time, or which form a carpet if attached to roots and stones.",
     "native_region": "Cosmopolitan (freshwater lakes)",
-    "notes": "Sources: https://tropica.com/en/plants/plantdetails/Cladophoraaegagropila(000C)/"
+    "notes": "Not really a plant: it is a ball of algae. Turn it periodically for even light and shape."
   },
 
   {
@@ -1464,6 +1540,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
+    "image_url": "https://tropica.com/imagegen.ashx?height=720&image=/Plants/051A/2.png&crop=resize&class=product",
+    "sources": [
+      "https://tropica.com/en/plants/plantdetails/Hygrophilapinnatifida(051A)/4486"
+    ],
     "description": "Unique fern-like leaves; can be planted or attached to hardscape. Colors and form improve with CO2."
   },
   {

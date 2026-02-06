@@ -16,8 +16,8 @@ This sets us up to progressively improve accuracy and visual richness without re
 
 ## Progress
 
-- [ ] Milestone 1: Add DB column + plumbing (schema, migration, seed, tRPC) and render citations on plant detail page.
-- [ ] Milestone 2: Enrich top ~20 plants in `data/plants.json` with `image_url` + `sources` and reseed.
+- [x] Milestone 1: Add DB column + plumbing (schema, migration, seed, tRPC) and render citations on plant detail page.
+- [x] Milestone 2: Enrich top ~20 plants in `data/plants.json` with `image_url` + `sources` and reseed.
 - [ ] Milestone 3: Validation (lint, typecheck, unit, e2e, build) + commit(s) + push.
 
 ## Surprises & Discoveries
@@ -128,4 +128,3 @@ Expected: build succeeds; worktree clean after commits.
 
 - No new npm deps.
 - Schema change via Drizzle migration.
-
