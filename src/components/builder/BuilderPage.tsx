@@ -333,6 +333,7 @@ function ProductPicker(props: {
     limit: 200,
   });
   const [query, setQuery] = useState("");
+  const [showIncompatible, setShowIncompatible] = useState(false);
 
   const blockingRules = useMemo(
     () => props.rules.filter((r) => isBlockingForPicker(r)),
@@ -350,7 +351,7 @@ function ProductPicker(props: {
     });
   }, [q.data, query]);
 
-  const { visibleRows, hiddenCount } = useMemo(() => {
+  const { items, hiddenCount } = useMemo(() => {
     // Optionally show only curated picks to reduce choice overload.
     const curated = props.curatedOnly
       ? filtered
@@ -371,11 +372,14 @@ function ProductPicker(props: {
       });
     }
 
-    if (!props.compatibilityEnabled) return { visibleRows: baseRows, hiddenCount: 0 };
-    if (blockingRules.length === 0) return { visibleRows: baseRows, hiddenCount: 0 };
+    if (!props.compatibilityEnabled || blockingRules.length === 0) {
+      return {
+        items: baseRows.map((row) => ({ row, blocked: false, reason: null })),
+        hiddenCount: 0,
+      };
+    }
 
-    const out: ProductRow[] = [];
-    let hidden = 0;
+    const out: Array<{ row: ProductRow; blocked: boolean; reason: string | null }> = [];
 
     for (const r of baseRows) {
       const candidate = toProductSnapshot(props.categorySlug, r);
@@ -389,12 +393,17 @@ function ProductPicker(props: {
       });
 
       const evals = evaluateBuild(blockingRules, snapshotCandidate);
-      const blocks = evals.some((e) => e.categoriesInvolved.includes(props.categorySlug));
-      if (blocks) hidden += 1;
-      else out.push(r);
+      const relevant = evals.filter((e) => e.categoriesInvolved.includes(props.categorySlug));
+      const blocks = relevant.length > 0;
+      out.push({
+        row: r,
+        blocked: blocks,
+        reason: relevant[0]?.message ?? null,
+      });
     }
 
-    return { visibleRows: out, hiddenCount: hidden };
+    const hiddenCount = out.filter((x) => x.blocked).length;
+    return { items: out, hiddenCount };
   }, [
     blockingRules,
     filtered,
@@ -406,18 +415,21 @@ function ProductPicker(props: {
     props.currentProductsByCategory,
   ]);
 
+  const visibleItems = useMemo(() => items.filter((x) => !x.blocked), [items]);
+  const effectiveItems = showIncompatible ? items : visibleItems;
+
   return (
     <PickerDialog
       title={`Choose a ${props.categoryName}`}
       description={
         hiddenCount > 0
-          ? `Compatibility filter is hiding ${hiddenCount} incompatible option(s).`
+          ? `${hiddenCount} option(s) hidden by compatibility.`
           : "A limited catalog is available right now."
       }
       open={props.open}
       onOpenChange={props.onOpenChange}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -425,6 +437,17 @@ function ProductPicker(props: {
           className="w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
           style={{ borderColor: "var(--ptl-border)" }}
         />
+        {props.compatibilityEnabled && hiddenCount > 0 ? (
+          <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-neutral-800">
+            <input
+              type="checkbox"
+              checked={showIncompatible}
+              onChange={(e) => setShowIncompatible(e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-300"
+            />
+            <span>Show incompatible</span>
+          </label>
+        ) : null}
       </div>
 
       <div
@@ -433,7 +456,7 @@ function ProductPicker(props: {
       >
         {q.isLoading ? (
           <div className="px-4 py-3 text-sm text-neutral-600">Loading...</div>
-        ) : visibleRows.length === 0 ? (
+        ) : effectiveItems.length === 0 ? (
           <div className="px-4 py-3 text-sm text-neutral-600">
             {filtered.length === 0
               ? "No products available for this category yet."
@@ -441,12 +464,16 @@ function ProductPicker(props: {
           </div>
         ) : (
           <ul className="divide-y divide-neutral-200">
-            {visibleRows.map((r) => {
+            {effectiveItems.map((x) => {
+              const r = x.row;
               const label = r.brand?.name ? `${r.brand.name} ${r.name}` : r.name;
               return (
                 <li
                   key={r.id}
-                  className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-white/40"
+                  className={
+                    "flex items-center justify-between gap-4 px-4 py-3 hover:bg-white/40 " +
+                    (x.blocked ? "opacity-80" : "")
+                  }
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div
@@ -471,7 +498,16 @@ function ProductPicker(props: {
                     </div>
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium">{label}</div>
-                      <div className="truncate text-xs text-neutral-600">{r.slug}</div>
+                      <div className="truncate text-xs text-neutral-600">
+                        {x.blocked ? (
+                          <span className="font-semibold text-red-700">
+                            Incompatible:
+                          </span>
+                        ) : null}{" "}
+                        <span className="text-neutral-600">
+                          {x.blocked ? x.reason ?? "Doesn’t fit the current setup." : r.slug}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <button
@@ -480,10 +516,13 @@ function ProductPicker(props: {
                       props.onPick(toProductSnapshot(props.categorySlug, r));
                       props.onOpenChange(false);
                     }}
-                    className="shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95"
-                    style={{ background: "var(--ptl-accent)" }}
+                    className={
+                      "shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95 " +
+                      (x.blocked ? "bg-neutral-700" : "")
+                    }
+                    style={x.blocked ? undefined : { background: "var(--ptl-accent)" }}
                   >
-                    Add
+                    {x.blocked ? "Add anyway" : "Add"}
                   </button>
                 </li>
               );
@@ -507,6 +546,7 @@ function PlantPicker(props: {
 }) {
   const q = trpc.plants.list.useQuery({ limit: 200 });
   const [query, setQuery] = useState("");
+  const [showIncompatible, setShowIncompatible] = useState(false);
 
   const blockingRules = useMemo(
     () => props.rules.filter((r) => isBlockingForPicker(r)),
@@ -524,12 +564,15 @@ function PlantPicker(props: {
     });
   }, [q.data, query]);
 
-  const { visibleRows, hiddenCount } = useMemo(() => {
-    if (!props.compatibilityEnabled) return { visibleRows: filtered, hiddenCount: 0 };
-    if (blockingRules.length === 0) return { visibleRows: filtered, hiddenCount: 0 };
+  const { items, hiddenCount } = useMemo(() => {
+    if (!props.compatibilityEnabled || blockingRules.length === 0) {
+      return {
+        items: filtered.map((row) => ({ row, blocked: false, reason: null })),
+        hiddenCount: 0,
+      };
+    }
 
-    const out: PlantRow[] = [];
-    let hidden = 0;
+    const out: Array<{ row: PlantRow; blocked: boolean; reason: string | null }> = [];
 
     for (const p of filtered) {
       const candidate = toPlantSnapshot(p);
@@ -540,12 +583,13 @@ function PlantPicker(props: {
       });
 
       const evals = evaluateBuild(blockingRules, snapshotCandidate);
-      const blocks = evals.some((e) => e.categoriesInvolved.includes("plants"));
-      if (blocks) hidden += 1;
-      else out.push(p);
+      const relevant = evals.filter((e) => e.categoriesInvolved.includes("plants"));
+      const blocks = relevant.length > 0;
+      out.push({ row: p, blocked: blocks, reason: relevant[0]?.message ?? null });
     }
 
-    return { visibleRows: out, hiddenCount: hidden };
+    const hiddenCount = out.filter((x) => x.blocked).length;
+    return { items: out, hiddenCount };
   }, [
     blockingRules,
     filtered,
@@ -555,18 +599,21 @@ function PlantPicker(props: {
     props.currentProductsByCategory,
   ]);
 
+  const visibleItems = useMemo(() => items.filter((x) => !x.blocked), [items]);
+  const effectiveItems = showIncompatible ? items : visibleItems;
+
   return (
     <PickerDialog
       title="Add Plants"
       description={
         hiddenCount > 0
-          ? `Compatibility filter is hiding ${hiddenCount} plant(s).`
+          ? `${hiddenCount} plant(s) hidden by compatibility.`
           : "Plants are multi-select. Add as many as you want."
       }
       open={props.open}
       onOpenChange={props.onOpenChange}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -574,6 +621,17 @@ function PlantPicker(props: {
           className="w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
           style={{ borderColor: "var(--ptl-border)" }}
         />
+        {props.compatibilityEnabled && hiddenCount > 0 ? (
+          <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-neutral-800">
+            <input
+              type="checkbox"
+              checked={showIncompatible}
+              onChange={(e) => setShowIncompatible(e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-300"
+            />
+            <span>Show incompatible</span>
+          </label>
+        ) : null}
       </div>
 
       <div
@@ -582,7 +640,7 @@ function PlantPicker(props: {
       >
         {q.isLoading ? (
           <div className="px-4 py-3 text-sm text-neutral-600">Loading...</div>
-        ) : visibleRows.length === 0 ? (
+        ) : effectiveItems.length === 0 ? (
           <div className="px-4 py-3 text-sm text-neutral-600">
             {filtered.length === 0
               ? "No plants found."
@@ -590,14 +648,18 @@ function PlantPicker(props: {
           </div>
         ) : (
           <ul className="divide-y divide-neutral-200">
-            {visibleRows.map((p) => {
+            {effectiveItems.map((x) => {
+              const p = x.row;
               const label = p.scientificName
                 ? `${p.commonName} (${p.scientificName})`
                 : p.commonName;
               return (
                 <li
                   key={p.id}
-                  className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-white/40"
+                  className={
+                    "flex items-center justify-between gap-4 px-4 py-3 hover:bg-white/40 " +
+                    (x.blocked ? "opacity-80" : "")
+                  }
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div
@@ -623,18 +685,29 @@ function PlantPicker(props: {
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium">{label}</div>
                       <div className="truncate text-xs text-neutral-600">
-                        {p.difficulty} · {p.lightDemand} light · {p.co2Demand} CO2 ·{" "}
-                        {p.placement}
+                        {x.blocked ? (
+                          <span className="font-semibold text-red-700">
+                            Incompatible:
+                          </span>
+                        ) : null}{" "}
+                        <span className="text-neutral-600">
+                          {x.blocked
+                            ? x.reason ?? "Doesn’t fit the current setup."
+                            : `${p.difficulty} · ${p.lightDemand} light · ${p.co2Demand} CO2 · ${p.placement}`}
+                        </span>
                       </div>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => props.onAdd(toPlantSnapshot(p))}
-                    className="shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95"
-                    style={{ background: "var(--ptl-accent)" }}
+                    className={
+                      "shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95 " +
+                      (x.blocked ? "bg-neutral-700" : "")
+                    }
+                    style={x.blocked ? undefined : { background: "var(--ptl-accent)" }}
                   >
-                    Add
+                    {x.blocked ? "Add anyway" : "Add"}
                   </button>
                 </li>
               );

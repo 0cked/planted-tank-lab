@@ -35,7 +35,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 
 - [x] P1.01 Builder stepper UX: turn the category list into a guided “workflow” (tank -> light -> filter -> CO2 -> substrate -> plants -> extras) with “next recommended step” and progress.
 - [x] P1.02 Compatibility gating v2: make gating rule-driven and consistent for every category (not just “error rules” for products and a couple heuristics for plants).
-- [ ] P1.03 Hidden-options transparency: show “X hidden by compatibility” plus a “Show incompatible” toggle inside pickers (per-picker) without turning off the whole engine.
+- [x] P1.03 Hidden-options transparency: show “X hidden by compatibility” plus a “Show incompatible” toggle inside pickers (per-picker) without turning off the whole engine.
 - [ ] P1.04 Explainers: for any blocked/hidden item, provide a short “why” (top 1-2 rules triggered) and a “fix suggestion” (swap tank/light/etc.).
 - [ ] P1.05 Alternatives panel: on any selected item, a “Swap” view pre-filtered to compatible options and sorted by “best match”.
 - [ ] P1.06 Price accuracy UX: treat price as “estimate” unless at least 1 in-stock offer exists; show per-item best offer and total; handle missing offers gracefully.
