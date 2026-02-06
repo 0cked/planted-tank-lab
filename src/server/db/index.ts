@@ -47,3 +47,5 @@ export const sql =
 if (process.env.NODE_ENV !== "production") globalForDb.__plantedTankSql = sql;
 
 export const db = drizzle(sql, { schema });
+
+export type DbClient = typeof db;

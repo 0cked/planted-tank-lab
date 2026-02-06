@@ -13,6 +13,13 @@ function formatMoney(cents: number | null | undefined): string {
   return dollars.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
+function formatDateShort(value: unknown): string | null {
+  if (value == null) return null;
+  const d = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
 function firstImageUrl(imageUrl: string | null, imageUrls: unknown): string | null {
   if (imageUrl) return imageUrl;
   if (Array.isArray(imageUrls) && typeof imageUrls[0] === "string") return imageUrls[0];
@@ -185,11 +192,19 @@ export default async function ProductDetailPage(props: {
                     <div className="min-w-0">
                       <RetailerMark
                         name={o.retailer.name}
-                        logoAssetPath={(o.retailer as { logoAssetPath?: string | null }).logoAssetPath ?? null}
+                        logoAssetPath={
+                          (o.retailer as { logoAssetPath?: string | null }).logoAssetPath ?? null
+                        }
                         logoUrl={o.retailer.logoUrl ?? null}
                       />
                       <div className="mt-1 text-xs text-neutral-600">
                         {o.inStock ? "In stock" : "Out of stock"}
+                        {(() => {
+                          const checked = formatDateShort(
+                            (o as { lastCheckedAt?: unknown }).lastCheckedAt,
+                          );
+                          return checked ? ` · Checked ${checked}` : "";
+                        })()}
                       </div>
                     </div>
                     <div className="text-right text-sm font-semibold text-neutral-900">

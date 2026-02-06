@@ -24,6 +24,7 @@ export const offersRouter = createTRPCRouter({
           priceCents: offers.priceCents,
           currency: offers.currency,
           inStock: offers.inStock,
+          lastCheckedAt: offers.lastCheckedAt,
           updatedAt: offers.updatedAt,
         })
         .from(offers)
@@ -74,6 +75,7 @@ export const offersRouter = createTRPCRouter({
           priceCents: offers.priceCents,
           currency: offers.currency,
           inStock: offers.inStock,
+          lastCheckedAt: offers.lastCheckedAt,
           updatedAt: offers.updatedAt,
           retailer: {
             id: retailers.id,
@@ -106,6 +108,7 @@ export const offersRouter = createTRPCRouter({
         priceCents: r.priceCents,
         currency: r.currency,
         inStock: r.inStock,
+        lastCheckedAt: r.lastCheckedAt,
         updatedAt: r.updatedAt,
         retailer: r.retailer,
         goUrl: `/go/${r.offerId}`,
@@ -128,6 +131,7 @@ export const offersRouter = createTRPCRouter({
           priceCents: offers.priceCents,
           currency: offers.currency,
           inStock: offers.inStock,
+          lastCheckedAt: offers.lastCheckedAt,
           updatedAt: offers.updatedAt,
           retailer: {
             id: retailers.id,
@@ -149,6 +153,7 @@ export const offersRouter = createTRPCRouter({
         priceCents: r.priceCents,
         currency: r.currency,
         inStock: r.inStock,
+        lastCheckedAt: r.lastCheckedAt,
         updatedAt: r.updatedAt,
         retailer: r.retailer,
         goUrl: `/go/${r.offerId}`,
@@ -179,6 +184,7 @@ export const offersRouter = createTRPCRouter({
         priceCents: r.offer.priceCents,
         currency: r.offer.currency,
         inStock: r.offer.inStock,
+        lastCheckedAt: r.offer.lastCheckedAt,
         updatedAt: r.offer.updatedAt,
         retailer: {
           id: r.retailer.id,

@@ -947,6 +947,13 @@ function OffersDialog(props: {
     return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   };
 
+  const formatCheckedAt = (value: unknown): string | null => {
+    if (value == null) return null;
+    const d = value instanceof Date ? value : new Date(String(value));
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  };
+
   return (
     <PickerDialog
       title={`Offers for ${props.productName}`}
@@ -983,6 +990,7 @@ function OffersDialog(props: {
             {(offersQ.data ?? []).map((o) => {
               const selected = props.selectedOfferId === o.id;
               const price = formatMoney(o.priceCents);
+              const checked = formatCheckedAt((o as { lastCheckedAt?: unknown }).lastCheckedAt);
               const updated = formatUpdatedAt((o as { updatedAt?: unknown }).updatedAt);
               return (
                 <li
@@ -1006,10 +1014,10 @@ function OffersDialog(props: {
 	                        }
 	                        logoUrl={o.retailer.logoUrl ?? null}
 	                      />
-	                      <div className="text-xs text-neutral-600">
-	                        {o.inStock ? "In stock" : "Out of stock"}
-	                        {updated ? ` · Updated ${updated}` : ""}
-	                      </div>
+                      <div className="text-xs text-neutral-600">
+                        {o.inStock ? "In stock" : "Out of stock"}
+                        {checked ? ` · Checked ${checked}` : updated ? ` · Updated ${updated}` : ""}
+                      </div>
                     </div>
                   </label>
                   <div className="flex items-center gap-3">
