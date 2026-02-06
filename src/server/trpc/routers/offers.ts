@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { and, eq, inArray, isNotNull, min } from "drizzle-orm";
 
-import { offers } from "@/server/db/schema";
+import { offers, retailers } from "@/server/db/schema";
 import { createTRPCRouter, publicProcedure } from "@/server/trpc/trpc";
 
 export const offersRouter = createTRPCRouter({
@@ -42,5 +42,30 @@ export const offersRouter = createTRPCRouter({
           ),
         )
         .groupBy(offers.productId);
+    }),
+
+  listByProductId: publicProcedure
+    .input(
+      z.object({
+        productId: z.string().uuid(),
+        limit: z.number().int().min(1).max(100).default(50),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.db
+        .select({
+          offer: offers,
+          retailer: retailers,
+        })
+        .from(offers)
+        .innerJoin(retailers, eq(offers.retailerId, retailers.id))
+        .where(eq(offers.productId, input.productId))
+        .orderBy(offers.priceCents)
+        .limit(input.limit);
+
+      return rows.map((r) => ({
+        ...r.offer,
+        retailer: r.retailer,
+      }));
     }),
 });
