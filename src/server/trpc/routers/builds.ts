@@ -54,6 +54,7 @@ export const buildsRouter = createTRPCRouter({
 
       const productsByCategory: Record<string, ProductSnapshot | undefined> = {};
       const plantList: PlantSnapshot[] = [];
+      const selectedOfferIdByProductId: Record<string, string | undefined> = {};
 
       for (const row of items) {
         if (row.product) {
@@ -64,6 +65,9 @@ export const buildsRouter = createTRPCRouter({
             categorySlug: row.categorySlug,
             specs: (row.product.specs ?? {}) as Record<string, unknown>,
           };
+          if (row.item.selectedOfferId) {
+            selectedOfferIdByProductId[row.product.id] = row.item.selectedOfferId;
+          }
         } else if (row.plant) {
           plantList.push({
             id: row.plant.id,
@@ -99,6 +103,7 @@ export const buildsRouter = createTRPCRouter({
           shareSlug: build.shareSlug,
           productsByCategory,
           plants: plantList,
+          selectedOfferIdByProductId,
           flags: { hasShrimp: false },
         },
       };
@@ -113,6 +118,9 @@ export const buildsRouter = createTRPCRouter({
         description: z.string().max(5000).optional(),
         productsByCategory: z.record(z.string().min(1), z.string().uuid()),
         plantIds: z.array(z.string().uuid()).max(200).default([]),
+        selectedOfferIdByProductId: z
+          .record(z.string().uuid(), z.string().uuid())
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -194,6 +202,7 @@ export const buildsRouter = createTRPCRouter({
           categoryId: string;
           productId?: string | null;
           plantId?: string | null;
+          selectedOfferId?: string | null;
           quantity: number;
           addedAt?: Date;
         }> = [];
@@ -206,11 +215,16 @@ export const buildsRouter = createTRPCRouter({
               message: `Unknown category slug '${categorySlug}'.`,
             });
           }
+
+          const selectedOfferId =
+            input.selectedOfferIdByProductId?.[productId] ?? null;
+
           itemsToInsert.push({
             buildId,
             categoryId,
             productId,
             plantId: null,
+            selectedOfferId,
             quantity: 1,
           });
         }

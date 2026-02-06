@@ -37,6 +37,7 @@ export type BuilderInitialState = {
   shareSlug: string | null;
   productsByCategory: Record<string, ProductSnapshot | undefined>;
   plants: PlantSnapshot[];
+  selectedOfferIdByProductId?: Record<string, string | undefined>;
   flags?: Partial<BuildFlags>;
 };
 
@@ -1254,6 +1255,12 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     }
 
     const plantIds = plants.map((p) => p.id);
+    const selectedOfferIds = Object.fromEntries(
+      Object.entries(selectedOfferIdByProductId).filter(
+        (entry): entry is [string, string] =>
+          typeof entry[1] === "string" && entry[1].length > 0,
+      ),
+    );
 
     let res: { buildId: string; shareSlug: string; itemCount: number };
     try {
@@ -1262,6 +1269,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
         shareSlug: shareSlug ?? undefined,
         productsByCategory: productsPayload,
         plantIds,
+        selectedOfferIdByProductId: selectedOfferIds,
       });
     } catch {
       setShareStatus("Failed to save build for sharing.");
@@ -1273,6 +1281,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       shareSlug: res.shareSlug,
       productsByCategory,
       plants,
+      selectedOfferIdByProductId: selectedOfferIdByProductId,
       flags,
     });
 

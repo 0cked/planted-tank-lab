@@ -39,6 +39,7 @@ export type BuilderState = {
     shareSlug: string | null;
     productsByCategory: Record<string, ProductSnapshot | undefined>;
     plants: PlantSnapshot[];
+    selectedOfferIdByProductId?: Record<string, string | undefined>;
     flags?: Partial<BuildFlags>;
   }) => void;
 
@@ -117,7 +118,7 @@ export const useBuilderStore = create<BuilderState>()(
           shareSlug: data.shareSlug,
           productsByCategory: data.productsByCategory,
           plants: data.plants,
-          selectedOfferIdByProductId: s.selectedOfferIdByProductId,
+          selectedOfferIdByProductId: data.selectedOfferIdByProductId ?? {},
           flags: { ...s.flags, ...(data.flags ?? {}) },
         }));
       },
