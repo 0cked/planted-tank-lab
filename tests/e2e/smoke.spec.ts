@@ -28,7 +28,9 @@ test("product detail renders", async ({ page }) => {
 test("plants browsing and detail render", async ({ page }) => {
   await page.goto("/plants");
   await expect(page.getByRole("heading", { name: "Plants" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Java Fern" })).toBeVisible();
+  await expect(
+    page.locator('a[href="/plants/java-fern"]').first(),
+  ).toBeVisible();
 
   await page.goto("/plants/java-fern");
   await expect(page.getByRole("heading", { name: "Java Fern" })).toBeVisible();
