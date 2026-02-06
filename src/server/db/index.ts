@@ -1,7 +1,29 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { existsSync, readFileSync } from "node:fs";
 
 import * as schema from "./schema";
+
+function loadEnvLocal(): void {
+  if (process.env.DATABASE_URL) return;
+
+  const envPath = ".env.local";
+  if (!existsSync(envPath)) return;
+
+  const lines = readFileSync(envPath, "utf8").split(/\r?\n/);
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq === -1) continue;
+    const key = line.slice(0, eq).trim();
+    const value = line.slice(eq + 1).trim();
+    if (!key) continue;
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
+}
+
+loadEnvLocal();
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {

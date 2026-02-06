@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "seed": "tsx scripts/seed.ts",
     "format": "prettier -w ."
   },
   "dependencies": {
@@ -44,6 +45,7 @@
     "prettier": "^3.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "tsx": "^4.0.0",
     "vitest": "^2.0.0"
   },
   "pnpm": {

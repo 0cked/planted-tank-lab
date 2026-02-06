@@ -1,0 +1,108 @@
+[
+  {
+    "category_slug": "light",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
+    "name": "Fluval Plant Spectrum 3.0 LED (24\")",
+    "slug": "fluval-plant-3-0-24",
+    "description": "App-controlled planted aquarium LED with adjustable spectrum.",
+    "specs": {
+      "par_at_substrate": 70,
+      "par_at_12in": 90,
+      "par_at_18in": 55,
+      "par_at_24in": 35,
+      "spectrum_kelvin": 6500,
+      "wattage": 32,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 24,
+      "max_tank_length_in": 34,
+      "color_channels": ["white", "blue", "red", "green"],
+      "app_controlled": true
+    }
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "chihiros",
+    "brand_name": "Chihiros",
+    "name": "Chihiros WRGB II 60",
+    "slug": "chihiros-wrgb-ii-60",
+    "description": "High-output WRGB LED for high-tech planted tanks.",
+    "specs": {
+      "par_at_substrate": 120,
+      "par_at_12in": 150,
+      "par_at_18in": 110,
+      "par_at_24in": 80,
+      "wattage": 67,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 24,
+      "max_tank_length_in": 26,
+      "color_channels": ["white", "blue", "red", "green"],
+      "app_controlled": true
+    }
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "nicrew",
+    "brand_name": "NICREW",
+    "name": "NICREW ClassicLED Plus",
+    "slug": "nicrew-classicled-plus",
+    "description": "Budget LED light suitable for low-light planted tanks.",
+    "specs": {
+      "par_at_substrate": 25,
+      "par_at_12in": 35,
+      "par_at_18in": 20,
+      "par_at_24in": 12,
+      "wattage": 18,
+      "dimmable": false,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 18,
+      "max_tank_length_in": 24,
+      "color_channels": ["white", "blue"],
+      "app_controlled": false
+    }
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "finnex",
+    "brand_name": "Finnex",
+    "name": "Finnex Planted+ 24/7 (24\")",
+    "slug": "finnex-planted-plus-24-7-24",
+    "description": "Programmable 24/7 cycle LED with planted tank spectrum.",
+    "specs": {
+      "par_at_substrate": 60,
+      "par_at_12in": 80,
+      "par_at_18in": 50,
+      "par_at_24in": 30,
+      "wattage": 30,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 24,
+      "max_tank_length_in": 30,
+      "color_channels": ["white", "blue", "red"],
+      "app_controlled": false
+    }
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "onf",
+    "brand_name": "ONF",
+    "name": "ONF Flat One+",
+    "slug": "onf-flat-one-plus",
+    "description": "Compact premium LED for smaller high-tech aquariums.",
+    "specs": {
+      "par_at_substrate": 90,
+      "par_at_12in": 110,
+      "par_at_18in": 75,
+      "par_at_24in": 50,
+      "wattage": 36,
+      "dimmable": true,
+      "mounting_type": "arm",
+      "min_tank_length_in": 16,
+      "max_tank_length_in": 24,
+      "color_channels": ["white", "blue", "red", "green"],
+      "app_controlled": true
+    }
+  }
+]

@@ -23,8 +23,9 @@ Establish fully working project infrastructure and baseline application foundati
 - [x] (2026-02-06) Implemented full Drizzle schema and DB connection; pushed schema to Supabase and verified required tables exist.
 - [x] (2026-02-06) Milestone 2 commit.
 - [x] (2026-02-06) Wired tRPC (context, root router, stub routers, route handler, client provider) and integrated provider into the root layout.
-- [ ] (pending) Milestone 3 commit.
-- [ ] Milestone 4: Seed data + seeding script created and executed.
+- [x] (2026-02-06) Milestone 3 commit.
+- [x] (2026-02-06) Created seed JSON + idempotent seeding script; seeded categories, products, plants, and rules into Supabase.
+- [ ] (pending) Milestone 4 commit.
 - [ ] Milestone 5: Basic pages implemented with data pipeline proof.
 - [ ] Milestone 6: Full verification, deploy, and production smoke checks complete.
 - [ ] Milestone commit series complete and pushed to `main`.
@@ -45,6 +46,9 @@ Establish fully working project infrastructure and baseline application foundati
   Date: 2026-02-06
 - Decision: Keep secrets in `.env.local` only and generate `.env.example` with placeholders.
   Rationale: Required by `AGENTS.md` and security constraints.
+  Date: 2026-02-06
+- Decision: Add `tsx` as a dev dependency to run `scripts/seed.ts`.
+  Rationale: Milestone 4 requires a TypeScript seed script and `pnpm seed`; `tsx` is the minimal, standard TS runner without adding heavier tooling.
   Date: 2026-02-06
 
 ## Outcomes & Retrospective

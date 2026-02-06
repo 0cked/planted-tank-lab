@@ -1,0 +1,165 @@
+[
+  {
+    "code": "RULE_001",
+    "name": "Tank Volume vs. Filter Flow Rate",
+    "description": "Warn when filter turnover is outside a typical planted tank range.",
+    "severity": "warning",
+    "categories_involved": ["tank", "filter"],
+    "condition_logic": {
+      "type": "turnover_range",
+      "tank_volume_key": "volume_gal",
+      "filter_flow_key": "flow_rate_gph",
+      "min_turnover": 4,
+      "max_turnover": 15
+    },
+    "message_template": "Most planted tanks do best with 4–10× turnover. Your filter provides {turnover}× turnover for this tank.",
+    "fix_suggestion": "Choose a filter with adjustable flow, add a spray bar, or pick a model better sized for your tank.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_002",
+    "name": "Light PAR vs. Plant Light Demand",
+    "description": "Warn when high-light plants are selected with low PAR.",
+    "severity": "warning",
+    "categories_involved": ["light", "plants"],
+    "condition_logic": {
+      "type": "plant_light_demand_min_par",
+      "light_par_key": "par_at_substrate",
+      "min_par_for_high": 50
+    },
+    "message_template": "High-light plants like {plant_name} typically need PAR > 50 µmol at substrate level. Your light provides approximately {par} µmol.",
+    "fix_suggestion": "Upgrade your light or swap for lower-demand plants.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_003",
+    "name": "CO2 Requirement",
+    "description": "Warn when CO2-required plants are selected without a CO2 system.",
+    "severity": "warning",
+    "categories_involved": ["plants", "co2"],
+    "condition_logic": {
+      "type": "co2_required_plants",
+      "required_value": "required"
+    },
+    "message_template": "Plants like {plant_name} require CO2 injection to thrive. Without CO2, expect slow growth or melting.",
+    "fix_suggestion": "Add a CO2 system or swap for low-tech-friendly alternatives.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_004",
+    "name": "Light Fixture Length vs. Tank Length",
+    "description": "Error when light length range does not fit the selected tank.",
+    "severity": "error",
+    "categories_involved": ["tank", "light"],
+    "condition_logic": {
+      "type": "light_fit_range",
+      "tank_length_key": "length_in",
+      "light_min_key": "min_tank_length_in",
+      "light_max_key": "max_tank_length_in"
+    },
+    "message_template": "This light is designed for {light_range} tanks, but your tank is {tank_length} inches. It won't mount properly.",
+    "fix_suggestion": "Choose a light sized for your tank length.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_005",
+    "name": "Substrate Buffering + pH Sensitivity",
+    "description": "Recommend caution when active substrate lowers pH and plants prefer alkaline water.",
+    "severity": "recommendation",
+    "categories_involved": ["substrate", "plants"],
+    "condition_logic": {
+      "type": "substrate_buffers_ph",
+      "substrate_key": "buffers_ph",
+      "plant_ph_min_threshold": 7.0
+    },
+    "message_template": "Active substrates like {substrate_name} lower pH. Plants preferring alkaline water ({plant_name}) may not do their best.",
+    "fix_suggestion": "Consider an inert substrate or plants tolerant of lower pH.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_006",
+    "name": "Heater Wattage Sizing",
+    "description": "Warn when heater wattage is outside typical watts-per-gallon sizing.",
+    "severity": "warning",
+    "categories_involved": ["tank", "heater"],
+    "condition_logic": {
+      "type": "heater_watts_per_gallon",
+      "tank_volume_key": "volume_gal",
+      "heater_wattage_key": "wattage",
+      "min_wpg": 3,
+      "max_wpg": 7
+    },
+    "message_template": "The general rule is 3–5 watts per gallon. Your heater provides {wpg} watts per gallon for this tank.",
+    "fix_suggestion": "Choose a heater better sized for your tank volume.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_007",
+    "name": "Shrimp-Safe Fertilizer Check",
+    "description": "Error when shrimp flag is enabled and fertilizer contains copper.",
+    "severity": "error",
+    "categories_involved": ["fertilizer", "accessories"],
+    "condition_logic": {
+      "type": "shrimp_copper_check",
+      "requires_shrimp_flag": true
+    },
+    "message_template": "This fertilizer contains copper, which can be toxic to invertebrates. Choose a shrimp-safe alternative.",
+    "fix_suggestion": "Pick a fertilizer explicitly marked shrimp-safe.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_008",
+    "name": "Carpet Plant + Light/CO2",
+    "description": "Recommend caution when carpet plants are selected without high light and CO2.",
+    "severity": "recommendation",
+    "categories_involved": ["plants", "light"],
+    "condition_logic": {
+      "type": "carpet_needs_light_and_co2",
+      "carpet_value": "carpet",
+      "min_par": 80
+    },
+    "message_template": "Carpet plants like {plant_name} almost always need high light AND CO2 to carpet successfully.",
+    "fix_suggestion": "Add CO2 and a higher-output light, or choose a non-carpeting foreground plant.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_009",
+    "name": "Stand Weight Capacity",
+    "description": "Error when filled tank weight exceeds stand rating.",
+    "severity": "error",
+    "categories_involved": ["tank", "stand"],
+    "condition_logic": {
+      "type": "stand_weight_capacity",
+      "tank_weight_key": "filled_weight_lbs",
+      "stand_capacity_key": "weight_capacity_lbs"
+    },
+    "message_template": "This tank weighs approximately {weight} lbs when filled. This stand is rated for {capacity} lbs. This is a safety hazard.",
+    "fix_suggestion": "Choose a stand rated for the filled weight of your tank.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_010",
+    "name": "Hardscape pH/GH Impact",
+    "description": "Recommend caution when hardscape raises GH/KH and plants prefer soft water.",
+    "severity": "recommendation",
+    "categories_involved": ["hardscape", "plants"],
+    "condition_logic": {
+      "type": "hardscape_raises_hardness",
+      "hardscape_key": "raises_gh",
+      "plant_soft_water_key": "prefers_soft_water"
+    },
+    "message_template": "Seiryu stone raises GH and KH over time. Soft-water plants like {plant_name} may grow more slowly.",
+    "fix_suggestion": "Consider using inert stone or adjusting your water change routine.",
+    "active": true,
+    "version": 1
+  }
+]

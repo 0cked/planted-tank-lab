@@ -1,0 +1,14 @@
+[
+  { "slug": "tank", "name": "Tank", "display_order": 1, "builder_required": true },
+  { "slug": "stand", "name": "Stand", "display_order": 2, "builder_required": false },
+  { "slug": "light", "name": "Light", "display_order": 3, "builder_required": true },
+  { "slug": "filter", "name": "Filter", "display_order": 4, "builder_required": true },
+  { "slug": "co2", "name": "CO2", "display_order": 5, "builder_required": false },
+  { "slug": "substrate", "name": "Substrate", "display_order": 6, "builder_required": true },
+  { "slug": "hardscape", "name": "Hardscape", "display_order": 7, "builder_required": false },
+  { "slug": "plants", "name": "Plants", "display_order": 8, "builder_required": true },
+  { "slug": "fertilizer", "name": "Fertilizer", "display_order": 9, "builder_required": false },
+  { "slug": "heater", "name": "Heater", "display_order": 10, "builder_required": false },
+  { "slug": "test_kit", "name": "Test Kit", "display_order": 11, "builder_required": false },
+  { "slug": "accessories", "name": "Accessories", "display_order": 12, "builder_required": false }
+]
