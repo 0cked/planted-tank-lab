@@ -17,7 +17,7 @@ Add affiliate monetization and polish:
 - [x] (2026-02-06) Milestone 2: Retailer + offer seed data (Amazon) and seed script updates.
 - [x] (2026-02-06) Milestone 3: Wire “Buy” buttons to `/go` and add affiliate disclosure.
 - [x] (2026-02-06) Milestone 4: SEO polish (metadata defaults, OG image, sitemap, robots).
-- [ ] (2026-02-06) Milestone 5: Verify end-to-end + deploy.
+- [x] (2026-02-06) Milestone 5: Verify end-to-end + deploy.
 
 ## Surprises & Discoveries
 
