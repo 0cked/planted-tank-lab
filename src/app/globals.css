@@ -59,24 +59,36 @@ body {
   background-image: url("/patterns/leaf-mesh.svg");
   background-size: 520px 520px;
   background-repeat: repeat;
-  opacity: 0.12;
-  mix-blend-mode: multiply;
+  opacity: 0.09;
+  mix-blend-mode: soft-light;
 }
 
 @layer components {
   .ptl-surface {
-    @apply rounded-2xl border bg-white/70 shadow-sm backdrop-blur-sm;
+    @apply rounded-3xl border shadow-sm backdrop-blur-md;
     border-color: var(--ptl-border);
+    box-shadow: var(--ptl-shadow);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.86),
+      rgba(255, 255, 255, 0.62)
+    );
   }
 
   .ptl-surface-strong {
-    @apply rounded-2xl border bg-white/90 shadow-sm;
+    @apply rounded-3xl border shadow-sm;
     border-color: var(--ptl-border);
+    box-shadow: var(--ptl-shadow);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(255, 255, 255, 0.9)
+    );
   }
 
   .ptl-btn-primary {
     @apply inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition;
-    background: var(--ptl-accent);
+    background: linear-gradient(135deg, var(--ptl-accent), #0f6a49);
   }
   .ptl-btn-primary:hover {
     filter: brightness(0.96);
@@ -96,6 +108,10 @@ body {
     @apply inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold;
     border-color: var(--ptl-border);
     color: var(--ptl-ink-muted);
-    background: rgba(255, 255, 255, 0.7);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.82),
+      rgba(255, 255, 255, 0.64)
+    );
   }
 }

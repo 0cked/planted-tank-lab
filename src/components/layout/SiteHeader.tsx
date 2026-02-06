@@ -7,9 +7,15 @@ function NavLink(props: { href: string; children: React.ReactNode }) {
   return (
     <Link
       href={props.href}
-      className="rounded-full px-3 py-1.5 text-sm font-semibold text-neutral-700 transition hover:bg-white/60 hover:text-neutral-900"
+      className="relative px-3 py-1.5 text-sm font-semibold text-neutral-800/80 transition hover:text-neutral-950"
     >
-      {props.children}
+      <span className="relative">
+        {props.children}
+        <span
+          className="absolute -bottom-1 left-0 h-[2px] w-0 rounded-full transition-all group-hover:w-full"
+          style={{ background: "var(--ptl-accent)" }}
+        />
+      </span>
     </Link>
   );
 }
@@ -17,40 +23,42 @@ function NavLink(props: { href: string; children: React.ReactNode }) {
 export function SiteHeader() {
   return (
     <header
-      className="sticky top-0 z-40 border-b bg-white/65 backdrop-blur-md"
+      className="sticky top-0 z-40 border-b bg-white/55 backdrop-blur-md"
       style={{ borderColor: "var(--ptl-border)" }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex flex-col gap-1">
           <Image
             src="/brand/ptl-logo.svg"
-            alt=""
-            aria-hidden="true"
-            width={32}
-            height={32}
+            alt="PlantedTankLab"
+            width={220}
+            height={40}
             priority
+            className="h-7 w-auto"
           />
-          <div className="leading-tight">
-            <div
-              className="text-base font-semibold tracking-tight"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              PlantedTankLab
-            </div>
-            <div className="text-[11px] font-medium text-neutral-600">
-              Build planted tanks with confidence
-            </div>
+          <div className="text-[11px] font-medium text-neutral-700">
+            Build planted tanks with confidence
           </div>
         </Link>
 
-        <nav className="flex items-center gap-1">
-          <NavLink href="/builder">Builder</NavLink>
-          <NavLink href="/products">Products</NavLink>
-          <NavLink href="/plants">Plants</NavLink>
+        <nav className="hidden items-center gap-1 sm:flex">
+          <div className="group">
+            <NavLink href="/builder">Builder</NavLink>
+          </div>
+          <div className="group">
+            <NavLink href="/products">Products</NavLink>
+          </div>
+          <div className="group">
+            <NavLink href="/plants">Plants</NavLink>
+          </div>
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link href="/builder" className="hidden sm:inline-flex ptl-btn-secondary">
+          <Link
+            href="/builder"
+            className="sm:hidden rounded-full border bg-white/70 px-3 py-1.5 text-sm font-semibold text-neutral-800/80"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
             Builder
           </Link>
           <UserMenu />
