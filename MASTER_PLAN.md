@@ -60,7 +60,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 
 - [x] P3.01 Plants browsing revamp: image-forward list, fast filters, and “curated” default view.
 - [x] P3.02 Plant detail: richer structured info (type, origin, growth form, height range, care notes), with displayed citations and last-updated.
-- [ ] P3.03 Product pages: consistent photo slots, specs tables, and “works well with” suggestions based on build stats.
+- [x] P3.03 Product pages: consistent photo slots, specs tables, and “works well with” suggestions based on build stats.
 - [ ] P3.04 SEO: metadata polish, category index pages, canonical URLs, structured data where applicable, sitemap correctness.
 
 ### Phase 4 — Retail Pricing + Affiliate (Real-World Monetization)
