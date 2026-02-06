@@ -16,7 +16,6 @@ Establish fully working project infrastructure and baseline application foundati
 - [x] (2026-02-06) Cleaned Cloudflare DNS and created DNS-only CNAMEs for apex + `www`.
 - [x] (2026-02-06) Verified `curl -I https://plantedtanklab.com` reaches Vercel (404 acceptable at this stage).
 - [x] (2026-02-06) Verified DB connectivity via `SELECT 1` (Python `psycopg`).
-- [ ] (pending) Milestone 0 commit + push.
 - [x] (2026-02-06) Milestone 0 commit + push.
 - [x] (2026-02-06) Scaffolded Next.js App Router project into repo root (via temp dir copy), installed required dependencies, and created directory skeleton.
 - [x] (2026-02-06) Milestone 1 commit.
@@ -25,8 +24,9 @@ Establish fully working project infrastructure and baseline application foundati
 - [x] (2026-02-06) Wired tRPC (context, root router, stub routers, route handler, client provider) and integrated provider into the root layout.
 - [x] (2026-02-06) Milestone 3 commit.
 - [x] (2026-02-06) Created seed JSON + idempotent seeding script; seeded categories, products, plants, and rules into Supabase.
-- [ ] (pending) Milestone 4 commit.
-- [ ] Milestone 5: Basic pages implemented with data pipeline proof.
+- [x] (2026-02-06) Milestone 4 commit.
+- [x] (2026-02-06) Implemented basic pages (home, builder, products, plants) and proved DB → tRPC → UI on `/builder`.
+- [ ] (pending) Milestone 5 commit.
 - [ ] Milestone 6: Full verification, deploy, and production smoke checks complete.
 - [ ] Milestone commit series complete and pushed to `main`.
 
