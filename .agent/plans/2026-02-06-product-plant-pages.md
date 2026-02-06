@@ -16,7 +16,7 @@ This makes the site useful beyond the builder by enabling direct discovery and i
 
 - [x] (2026-02-06) Milestone 1: Expand tRPC APIs for product/plant browse + detail.
 - [x] (2026-02-06) Milestone 2: Product category browser + category pages with query-param filters.
-- [ ] (2026-02-06) Milestone 3: Product detail page with specs table + offers section.
+- [x] (2026-02-06) Milestone 3: Product detail page with specs table + offers section.
 - [ ] (2026-02-06) Milestone 4: Plant browser with filters + plant detail care card.
 - [ ] (2026-02-06) Milestone 5: Playwright smoke tests + final validation + deploy.
 
