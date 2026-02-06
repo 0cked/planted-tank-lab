@@ -21,6 +21,18 @@ function allowDevLogin(): boolean {
   return process.env.AUTH_DEV_LOGIN === "true";
 }
 
+function isAdminEmail(email: string | null | undefined): boolean {
+  const e = (email ?? "").trim().toLowerCase();
+  if (!e) return false;
+  const raw = (process.env.ADMIN_EMAILS ?? "").trim();
+  if (!raw) return false;
+  const list = raw
+    .split(",")
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(e);
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     ...(hasGoogle()
@@ -96,6 +108,19 @@ export const authOptions: NextAuthOptions = {
           .limit(1);
         token.role = rows[0]?.role ?? "user";
       }
+
+      // Bootstrap admins via env without needing a separate admin panel.
+      if (typeof token.sub === "string" && isAdminEmail(typeof token.email === "string" ? token.email : null)) {
+        if (token.role !== "admin") {
+          token.role = "admin";
+          try {
+            await db.update(users).set({ role: "admin", updatedAt: new Date() }).where(eq(users.id, token.sub));
+          } catch {
+            // ignore; token role will still grant access for this session.
+          }
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
