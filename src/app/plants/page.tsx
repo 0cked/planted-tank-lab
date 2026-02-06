@@ -32,7 +32,10 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
   const lightDemand = (first(searchParams, "light") ?? "").trim() || undefined;
   const co2Demand = (first(searchParams, "co2") ?? "").trim() || undefined;
   const placement = (first(searchParams, "placement") ?? "").trim() || undefined;
-  const beginnerFriendly = toBool(first(searchParams, "beginner"));
+  const curated = first(searchParams, "curated");
+  const curatedOnly = curated === null ? true : toBool(curated);
+  // Legacy support for older share URLs.
+  const beginnerFriendly = curatedOnly || toBool(first(searchParams, "beginner"));
   const shrimpSafe = toBool(first(searchParams, "shrimpSafe"));
 
   const plants = await caller.plants.search({
@@ -48,20 +51,44 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
-      <h1
-        className="text-4xl font-semibold tracking-tight"
-        style={{ fontFamily: "var(--font-display)" }}
-      >
-        Plants
-      </h1>
-      <p className="mt-3 text-sm text-neutral-700">
-        Filter by difficulty, light, CO2, and placement. URLs are shareable via query params.
-      </p>
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1
+            className="text-4xl font-semibold tracking-tight"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Plants
+          </h1>
+          <p className="mt-3 max-w-[70ch] text-sm text-neutral-700">
+            Image-forward browsing with fast filters. Start with curated beginner picks, then
+            widen as you refine your scape.
+          </p>
+        </div>
+        <div className="ptl-surface-strong flex items-center gap-3 px-4 py-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+            Showing
+          </div>
+          <div className="text-sm font-semibold text-neutral-900">{plants.length}</div>
+        </div>
+      </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <section className="ptl-surface p-5">
+        <section className="ptl-surface sticky top-24 self-start p-5">
           <div className="text-sm font-medium">Filters</div>
           <form className="mt-4 space-y-4" method="GET">
+            <div>
+              <label className="text-xs font-medium text-neutral-700">Browse mode</label>
+              <select
+                name="curated"
+                defaultValue={curatedOnly ? "1" : "0"}
+                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm font-semibold text-neutral-900 outline-none focus:border-[color:var(--ptl-accent)]"
+                style={{ borderColor: "var(--ptl-border)" }}
+              >
+                <option value="1">Curated picks</option>
+                <option value="0">All plants</option>
+              </select>
+            </div>
+
             <div>
               <label className="text-xs font-medium text-neutral-700">Search</label>
               <input
@@ -138,17 +165,6 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
             <label className="flex items-center gap-2 text-sm text-neutral-700">
               <input
                 type="checkbox"
-                name="beginner"
-                value="1"
-                defaultChecked={beginnerFriendly}
-                className="h-4 w-4 rounded border-neutral-300"
-              />
-              Beginner-friendly
-            </label>
-
-            <label className="flex items-center gap-2 text-sm text-neutral-700">
-              <input
-                type="checkbox"
                 name="shrimpSafe"
                 value="1"
                 defaultChecked={shrimpSafe}
@@ -175,73 +191,91 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
         </section>
 
         <section>
-          <div className="text-sm text-neutral-700">
-            Showing <span className="font-medium text-neutral-900">{plants.length}</span>{" "}
-            result(s)
-          </div>
-
-          <div
-            className="mt-4 overflow-hidden rounded-2xl border bg-white/70 shadow-sm backdrop-blur-sm"
-            style={{ borderColor: "var(--ptl-border)" }}
-          >
-            {plants.length === 0 ? (
-              <div className="px-5 py-8 text-sm text-neutral-600">No results.</div>
-            ) : (
-              <ul className="divide-y divide-neutral-200">
-                {plants.map((p) => (
-                  <li key={p.id} className="px-5 py-4">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex min-w-0 gap-3">
-                        <div className="mt-0.5 h-12 w-12 shrink-0 overflow-hidden rounded-xl border bg-white/60" style={{ borderColor: "var(--ptl-border)" }}>
-                          {p.imageUrl ? (
-                            <Image
-                              src={p.imageUrl}
-                              alt=""
-                              aria-hidden="true"
-                              width={96}
-                              height={96}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div
-                              className="h-full w-full"
-                              style={{
-                                background:
-                                  "radial-gradient(28px 28px at 20% 20%, rgba(122, 163, 66, 0.35), transparent 60%), radial-gradient(40px 40px at 70% 60%, rgba(27, 127, 90, 0.22), transparent 65%), linear-gradient(135deg, rgba(255,255,255,0.65), rgba(255,255,255,0.25))",
-                              }}
-                            />
-                          )}
-                        </div>
-
-                      <div className="min-w-0">
-                        <Link
-                          href={`/plants/${p.slug}`}
-                          className="truncate text-sm font-semibold text-neutral-900 hover:underline"
-                        >
-                          {p.commonName}
-                        </Link>
-                        {p.scientificName ? (
-                          <div className="truncate text-xs text-neutral-600">
-                            {p.scientificName}
+          {plants.length === 0 ? (
+            <div className="ptl-surface p-7 text-sm text-neutral-700">No results.</div>
+          ) : (
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {plants.map((p) => {
+                const hasImg = Boolean(p.imageUrl);
+                return (
+                  <li key={p.id}>
+                    <Link
+                      href={`/plants/${p.slug}`}
+                      className="group block overflow-hidden rounded-3xl border bg-white/60 shadow-sm backdrop-blur-sm transition hover:bg-white/75"
+                      style={{ borderColor: "var(--ptl-border)" }}
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden">
+                        {hasImg ? (
+                          <Image
+                            src={p.imageUrl as string}
+                            alt=""
+                            aria-hidden="true"
+                            fill
+                            sizes="(max-width: 1024px) 50vw, 33vw"
+                            className="object-cover transition duration-500 group-hover:scale-[1.04]"
+                          />
+                        ) : (
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              background:
+                                "radial-gradient(160px 120px at 20% 20%, rgba(34,197,94,.24), transparent 60%), radial-gradient(220px 160px at 80% 70%, rgba(13,148,136,.18), transparent 65%), linear-gradient(135deg, rgba(255,255,255,0.72), rgba(255,255,255,0.28))",
+                            }}
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-black/0" />
+                        <div className="absolute bottom-3 left-3 right-3">
+                          <div className="truncate text-sm font-semibold text-white">
+                            {p.commonName}
                           </div>
-                        ) : null}
-                        <div className="mt-1 text-xs text-neutral-600">
-                          {p.difficulty} · {p.lightDemand} light · {p.co2Demand} CO2 ·{" "}
-                          {p.placement}
+                          {p.scientificName ? (
+                            <div className="truncate text-xs text-white/80">
+                              {p.scientificName}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
+
+                      <div className="p-4">
+                        <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-neutral-800">
+                          <span className="rounded-full border bg-white/70 px-2 py-1" style={{ borderColor: "var(--ptl-border)" }}>
+                            {p.difficulty}
+                          </span>
+                          <span className="rounded-full border bg-white/70 px-2 py-1" style={{ borderColor: "var(--ptl-border)" }}>
+                            {p.lightDemand} light
+                          </span>
+                          <span className="rounded-full border bg-white/70 px-2 py-1" style={{ borderColor: "var(--ptl-border)" }}>
+                            {p.co2Demand} CO2
+                          </span>
+                          <span className="rounded-full border bg-white/70 px-2 py-1" style={{ borderColor: "var(--ptl-border)" }}>
+                            {p.placement}
+                          </span>
+                          {p.beginnerFriendly ? (
+                            <span className="rounded-full border bg-emerald-50 px-2 py-1 text-emerald-900" style={{ borderColor: "rgba(16,185,129,.25)" }}>
+                              Beginner
+                            </span>
+                          ) : null}
+                          {p.shrimpSafe ? (
+                            <span className="rounded-full border bg-sky-50 px-2 py-1 text-sky-900" style={{ borderColor: "rgba(56,189,248,.25)" }}>
+                              Shrimp-safe
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-3 line-clamp-2 text-sm text-neutral-700">
+                          {p.description ?? "Open for care details, growth notes, and sources."}
+                        </div>
+
+                        <div className="mt-4 text-xs font-semibold text-emerald-800">
+                          View care
+                        </div>
                       </div>
-                      <div className="text-xs text-neutral-600">
-                        {p.beginnerFriendly ? "Beginner" : null}
-                        {p.beginnerFriendly && p.shrimpSafe ? " · " : null}
-                        {p.shrimpSafe ? "Shrimp-safe" : null}
-                      </div>
-                    </div>
+                    </Link>
                   </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                );
+              })}
+            </ul>
+          )}
         </section>
       </div>
     </main>
