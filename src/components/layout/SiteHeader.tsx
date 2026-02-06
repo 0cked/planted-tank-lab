@@ -51,6 +51,9 @@ export function SiteHeader() {
           <div className="group">
             <NavLink href="/plants">Plants</NavLink>
           </div>
+          <div className="group">
+            <NavLink href="/builds">Builds</NavLink>
+          </div>
         </nav>
 
         <div className="flex items-center gap-2">

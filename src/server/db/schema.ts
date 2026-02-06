@@ -456,6 +456,24 @@ export const buildEvaluations = pgTable(
   },
 );
 
+export const buildReports = pgTable(
+  "build_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    buildId: uuid("build_id")
+      .notNull()
+      .references(() => builds.id, { onDelete: "cascade" }),
+    reporterUserId: uuid("reporter_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("idx_build_reports_build").on(t.buildId)],
+);
+
 export const userFavorites = pgTable(
   "user_favorites",
   {

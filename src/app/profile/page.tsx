@@ -8,6 +8,7 @@ import { db } from "@/server/db";
 import { builds, plants, products, userFavorites } from "@/server/db/schema";
 
 import { SignOutButton } from "./SignOutButton";
+import { PublishToggle } from "./PublishToggle";
 
 export const metadata: Metadata = {
   title: "Profile | PlantedTankLab",
@@ -132,15 +133,18 @@ export default async function ProfilePage() {
                         {b.isPublic ? "Public" : "Private"}
                       </div>
                     </div>
-                    {b.shareSlug ? (
-                      <Link href={`/builder/${b.shareSlug}`} className="ptl-btn-secondary shrink-0">
-                        Open
-                      </Link>
-                    ) : (
-                      <Link href="/builder" className="ptl-btn-secondary shrink-0">
-                        Open
-                      </Link>
-                    )}
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <PublishToggle buildId={b.id} isPublic={b.isPublic} />
+                      {b.shareSlug ? (
+                        <Link href={`/builds/${b.shareSlug}`} className="ptl-btn-secondary shrink-0">
+                          View
+                        </Link>
+                      ) : (
+                        <Link href="/builder" className="ptl-btn-secondary shrink-0">
+                          View
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </li>
               ))}

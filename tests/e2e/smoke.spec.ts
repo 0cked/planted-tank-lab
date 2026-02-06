@@ -44,3 +44,8 @@ test("profile renders (signed out)", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Your profile" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
 });
+
+test("builds index renders", async ({ page }) => {
+  await page.goto("/builds");
+  await expect(page.getByRole("heading", { name: "Builds" })).toBeVisible();
+});

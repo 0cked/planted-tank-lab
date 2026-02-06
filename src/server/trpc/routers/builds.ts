@@ -1,17 +1,18 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import {
   buildItems,
+  buildReports,
   builds,
   categories,
   offers,
   plants,
   products,
-} from "@/server/db/schema";
+  } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/server/trpc/trpc";
 import type { PlantSnapshot, ProductSnapshot } from "@/engine/types";
 import type * as fullSchema from "@/server/db/schema";
@@ -96,6 +97,33 @@ export const buildsRouter = createTRPCRouter({
       return ctx.db.select().from(builds).limit(limit);
     }),
 
+  listPublic: publicProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(100).default(50),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const limit = input?.limit ?? 50;
+      return ctx.db
+        .select({
+          id: builds.id,
+          name: builds.name,
+          shareSlug: builds.shareSlug,
+          description: builds.description,
+          coverImageUrl: builds.coverImageUrl,
+          totalPriceCents: builds.totalPriceCents,
+          itemCount: builds.itemCount,
+          updatedAt: builds.updatedAt,
+        })
+        .from(builds)
+        .where(eq(builds.isPublic, true))
+        .orderBy(desc(builds.updatedAt))
+        .limit(limit);
+    }),
+
   listMine: protectedProcedure
     .input(
       z
@@ -111,6 +139,43 @@ export const buildsRouter = createTRPCRouter({
         .from(builds)
         .where(eq(builds.userId, ctx.session.user.id))
         .limit(limit);
+    }),
+
+  setPublic: protectedProcedure
+    .input(z.object({ buildId: z.string().uuid(), isPublic: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const updated = await ctx.db
+        .update(builds)
+        .set({ isPublic: input.isPublic, updatedAt: new Date() })
+        .where(and(eq(builds.id, input.buildId), eq(builds.userId, ctx.session.user.id)))
+        .returning({ id: builds.id, isPublic: builds.isPublic });
+      if (!updated[0]) throw new TRPCError({ code: "NOT_FOUND" });
+      return updated[0];
+    }),
+
+  report: publicProcedure
+    .input(
+      z.object({
+        shareSlug: z.string().min(1).max(20),
+        reason: z.string().trim().min(1).max(2000).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const buildRow = await ctx.db
+        .select({ id: builds.id })
+        .from(builds)
+        .where(eq(builds.shareSlug, input.shareSlug))
+        .limit(1);
+      const buildId = buildRow[0]?.id;
+      if (!buildId) throw new TRPCError({ code: "NOT_FOUND" });
+
+      await ctx.db.insert(buildReports).values({
+        buildId,
+        reporterUserId: ctx.session?.user?.id ?? null,
+        reason: input.reason ?? null,
+      });
+
+      return { ok: true as const };
     }),
 
   getByShareSlug: publicProcedure
@@ -183,6 +248,10 @@ export const buildsRouter = createTRPCRouter({
           name: build.name,
           shareSlug: build.shareSlug,
           description: build.description,
+          isPublic: build.isPublic,
+          itemCount: build.itemCount,
+          totalPriceCents: build.totalPriceCents,
+          updatedAt: build.updatedAt,
         },
         snapshot: {
           buildId: build.id,

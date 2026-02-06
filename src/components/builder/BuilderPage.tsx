@@ -1326,7 +1326,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       flags,
     });
 
-    const url = `${window.location.origin}/builder/${res.shareSlug}`;
+    const url = `${window.location.origin}/builds/${res.shareSlug}`;
     setShareUrl(url);
 
     try {
@@ -1336,7 +1336,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       setShareStatus("Share link ready. Copy it from the field below.");
     }
 
-    router.push(`/builder/${res.shareSlug}`);
+    router.push(`/builds/${res.shareSlug}`);
   };
 
   const onSave = async (): Promise<void> => {
