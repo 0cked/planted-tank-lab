@@ -38,3 +38,9 @@ test("plants browsing and detail render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Java Fern" })).toBeVisible();
   await expect(page.getByText("Care Card")).toBeVisible();
 });
+
+test("profile renders (signed out)", async ({ page }) => {
+  await page.goto("/profile");
+  await expect(page.getByRole("heading", { name: "Your profile" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+});

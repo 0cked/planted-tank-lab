@@ -49,10 +49,10 @@ export function UserMenu() {
         >
           <DropdownMenu.Item asChild>
             <Link
-              href="/builder"
+              href="/profile"
               className="block cursor-pointer rounded-xl px-3 py-2 text-sm font-semibold text-neutral-800 outline-none hover:bg-neutral-100/70"
             >
-              My builds (soon)
+              Profile
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 h-px bg-neutral-200/70" />
@@ -67,4 +67,3 @@ export function UserMenu() {
     </DropdownMenu.Root>
   );
 }
-
