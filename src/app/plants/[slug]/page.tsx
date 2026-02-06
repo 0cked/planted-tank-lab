@@ -23,6 +23,12 @@ function rangeLabel(min: number | null, max: number | null, unit?: string): stri
   return `<=${max}${unit ? ` ${unit}` : ""}`;
 }
 
+function title(v: string | null | undefined): string {
+  const t = (v ?? "").trim();
+  if (!t) return "—";
+  return t.slice(0, 1).toUpperCase() + t.slice(1);
+}
+
 function pill(text: string) {
   return (
     <span className="ptl-pill">
@@ -68,6 +74,8 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
 
   const maxHeight = numOrNull(p.maxHeightIn);
   const sources = sourcesList((p as { sources?: unknown }).sources);
+  const updated = p.updatedAt ? new Date(p.updatedAt).toISOString().slice(0, 10) : null;
+  const typeLabel = p.substrateType ?? p.placement;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -188,7 +196,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
         </section>
 
         <section className="ptl-surface p-6 lg:col-span-2">
-          <div className="text-sm font-medium">Details</div>
+          <div className="text-sm font-medium">Plant info</div>
           <div
             className="mt-4 overflow-hidden rounded-xl border bg-white/70"
             style={{ borderColor: "var(--ptl-border)" }}
@@ -197,15 +205,29 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
               <tbody className="divide-y divide-neutral-200">
                 <tr>
                   <th className="w-[40%] bg-white/60 px-4 py-2 font-semibold text-neutral-800">
+                    Type
+                  </th>
+                  <td className="px-4 py-2 text-neutral-800">{title(typeLabel)}</td>
+                </tr>
+                <tr>
+                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
+                    Origin
+                  </th>
+                  <td className="px-4 py-2 text-neutral-800">{p.nativeRegion ?? "—"}</td>
+                </tr>
+                <tr>
+                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
                     Growth rate
                   </th>
                   <td className="px-4 py-2 text-neutral-800">{p.growthRate ?? "—"}</td>
                 </tr>
                 <tr>
                   <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
-                    Substrate type
+                    Height range
                   </th>
-                  <td className="px-4 py-2 text-neutral-800">{p.substrateType ?? "—"}</td>
+                  <td className="px-4 py-2 text-neutral-800">
+                    {rangeLabel(null, maxHeight, "in")}
+                  </td>
                 </tr>
                 <tr>
                   <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
@@ -215,9 +237,9 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
                 </tr>
                 <tr>
                   <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
-                    Native region
+                    Family
                   </th>
-                  <td className="px-4 py-2 text-neutral-800">{p.nativeRegion ?? "—"}</td>
+                  <td className="px-4 py-2 text-neutral-800">{p.family ?? "—"}</td>
                 </tr>
               </tbody>
             </table>
@@ -245,6 +267,12 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
               <div className="mt-2 text-xs text-neutral-500">
                 Citations are shown for transparency; care parameters can vary by conditions.
               </div>
+            </div>
+          ) : null}
+
+          {updated ? (
+            <div className="mt-6 text-xs text-neutral-500">
+              Last updated: <span className="font-semibold text-neutral-700">{updated}</span>
             </div>
           ) : null}
         </section>
