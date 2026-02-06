@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, eq, ilike, isNotNull } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNotNull, ne, sql } from "drizzle-orm";
 
-import { brands, categories, products } from "@/server/db/schema";
+import { buildItems, brands, categories, products } from "@/server/db/schema";
 import { createTRPCRouter, publicProcedure } from "@/server/trpc/trpc";
 
 export const productsRouter = createTRPCRouter({
@@ -162,5 +162,78 @@ export const productsRouter = createTRPCRouter({
         brand: row.brand,
         category: row.category,
       };
+    }),
+
+  worksWellWith: publicProcedure
+    .input(
+      z.object({
+        productId: z.string().uuid(),
+        limit: z.number().int().min(1).max(12).default(6),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // 1) Find builds that include this product.
+      const buildIdRows = await ctx.db
+        .select({ buildId: buildItems.buildId })
+        .from(buildItems)
+        .where(eq(buildItems.productId, input.productId))
+        .limit(500);
+
+      const buildIds = Array.from(new Set(buildIdRows.map((r) => r.buildId)));
+      if (buildIds.length === 0) return [];
+
+      // 2) Count other products that co-occur in those builds.
+      const counts = await ctx.db
+        .select({
+          productId: buildItems.productId,
+          uses: sql<number>`count(*)`.mapWith(Number),
+        })
+        .from(buildItems)
+        .where(
+          and(
+            inArray(buildItems.buildId, buildIds),
+            isNotNull(buildItems.productId),
+            ne(buildItems.productId, input.productId),
+          ),
+        )
+        .groupBy(buildItems.productId)
+        .orderBy(desc(sql<number>`count(*)`))
+        .limit(input.limit);
+
+      const ids = counts
+        .map((c) => c.productId)
+        .filter((id): id is string => typeof id === "string");
+      if (ids.length === 0) return [];
+
+      const rows = await ctx.db
+        .select({
+          product: products,
+          category: categories,
+          brand: brands,
+        })
+        .from(products)
+        .innerJoin(categories, eq(products.categoryId, categories.id))
+        .leftJoin(brands, eq(products.brandId, brands.id))
+        .where(inArray(products.id, ids))
+        .limit(input.limit);
+
+      const usesById = new Map(
+        counts
+          .filter((c): c is { productId: string; uses: number } => typeof c.productId === "string")
+          .map((c) => [c.productId, c.uses] as const),
+      );
+
+      return rows
+        .map((r) => ({
+          id: r.product.id,
+          name: r.product.name,
+          slug: r.product.slug,
+          imageUrl: r.product.imageUrl,
+          imageUrls: r.product.imageUrls,
+          category: { slug: r.category.slug, name: r.category.name },
+          brand: r.brand ? { slug: r.brand.slug, name: r.brand.name } : null,
+          uses: usesById.get(r.product.id) ?? 0,
+        }))
+        .sort((a, b) => (b.uses - a.uses) || a.name.localeCompare(b.name));
     }),
 });
