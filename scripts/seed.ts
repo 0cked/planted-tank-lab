@@ -252,6 +252,7 @@ async function upsertPlants(): Promise<void> {
         description: item.description ?? null,
         imageUrl: item.image_url ?? null,
         imageUrls: item.image_urls ?? [],
+        sources: item.sources ?? [],
 
         difficulty: item.difficulty,
         lightDemand: item.light_demand,
@@ -275,9 +276,7 @@ async function upsertPlants(): Promise<void> {
         beginnerFriendly: item.beginner_friendly,
 
         nativeRegion: item.native_region ?? null,
-        notes:
-          item.notes ??
-          (item.sources?.length ? `Sources: ${item.sources.join(", ")}` : null),
+        notes: item.notes ?? null,
         status: "active",
         verified: false,
         updatedAt: new Date(),
@@ -291,6 +290,7 @@ async function upsertPlants(): Promise<void> {
           description: item.description ?? null,
           imageUrl: item.image_url ?? null,
           imageUrls: item.image_urls ?? [],
+          sources: item.sources ?? [],
 
           difficulty: item.difficulty,
           lightDemand: item.light_demand,
@@ -315,9 +315,7 @@ async function upsertPlants(): Promise<void> {
           beginnerFriendly: item.beginner_friendly,
 
           nativeRegion: item.native_region ?? null,
-          notes:
-            item.notes ??
-            (item.sources?.length ? `Sources: ${item.sources.join(", ")}` : null),
+          notes: item.notes ?? null,
           status: "active",
           verified: false,
           updatedAt: new Date(),

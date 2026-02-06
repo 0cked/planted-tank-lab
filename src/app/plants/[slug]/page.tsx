@@ -5,6 +5,11 @@ import { notFound } from "next/navigation";
 
 import { getServerCaller } from "@/server/trpc/server-caller";
 
+function sourcesList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v): v is string => typeof v === "string" && v.startsWith("http"));
+}
+
 function numOrNull(v: string | number | null): number | null {
   if (v == null) return null;
   const n = Number(v);
@@ -62,6 +67,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
   const phMax = numOrNull(p.phMax);
 
   const maxHeight = numOrNull(p.maxHeightIn);
+  const sources = sourcesList((p as { sources?: unknown }).sources);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -218,6 +224,29 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
           </div>
 
           {p.notes ? <p className="mt-4 text-sm text-neutral-600">{p.notes}</p> : null}
+
+          {sources.length > 0 ? (
+            <div className="mt-6">
+              <div className="text-sm font-medium">Sources</div>
+              <ul className="mt-3 space-y-2 text-sm text-neutral-700">
+                {sources.map((u) => (
+                  <li key={u} className="truncate">
+                    <a
+                      href={u}
+                      target="_blank"
+                      rel="noreferrer nofollow"
+                      className="hover:underline"
+                    >
+                      {u}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-2 text-xs text-neutral-500">
+                Citations are shown for transparency; care parameters can vary by conditions.
+              </div>
+            </div>
+          ) : null}
         </section>
       </div>
     </main>

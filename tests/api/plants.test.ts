@@ -15,6 +15,7 @@ describe("tRPC plants router", () => {
     const p = await caller.plants.getBySlug({ slug: "java-fern" });
     expect(p.slug).toBe("java-fern");
     expect(p.commonName.toLowerCase()).toContain("java");
+    expect(Array.isArray((p as { sources?: unknown }).sources)).toBe(true);
   });
 
   test("search can filter by difficulty", async () => {
@@ -24,4 +25,3 @@ describe("tRPC plants router", () => {
     expect(rows.every((r) => r.difficulty === "easy")).toBe(true);
   });
 });
-

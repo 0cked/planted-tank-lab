@@ -239,6 +239,7 @@ export const plants = pgTable(
     description: text("description"),
     imageUrl: varchar("image_url", { length: 500 }),
     imageUrls: jsonb("image_urls").notNull().default([]),
+    sources: jsonb("sources").notNull().default([]),
 
     difficulty: varchar("difficulty", { length: 20 }).notNull(),
     lightDemand: varchar("light_demand", { length: 20 }).notNull(),
