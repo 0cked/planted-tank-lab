@@ -29,8 +29,8 @@ Establish fully working project infrastructure and baseline application foundati
 - [x] (2026-02-06) Milestone 5 commit.
 - [x] (2026-02-06) Ran local verification: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm dev` (smoke via curl).
 - [x] (2026-02-06) Forced Vercel project framework to Next.js and verified production renders at `https://plantedtanklab.com` (home + `/builder`). 
-- [ ] (pending) Milestone 6 commit.
-- [ ] Milestone commit series complete and pushed to `main`.
+- [x] (2026-02-06) Milestone 6 commit.
+- [x] (2026-02-06) Milestone commit series complete and pushed to `main`.
 
 ## Surprises & Discoveries
 
