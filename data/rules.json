@@ -26,7 +26,8 @@
     "condition_logic": {
       "type": "plant_light_demand_min_par",
       "light_par_key": "par_at_substrate",
-      "min_par_for_high": 50
+      "min_par_for_high": 50,
+      "blocks_selection": true
     },
     "message_template": "High-light plants like {plant_name} typically need PAR > 50 µmol at substrate level. Your light provides approximately {par} µmol.",
     "fix_suggestion": "Upgrade your light or swap for lower-demand plants.",
@@ -41,7 +42,8 @@
     "categories_involved": ["plants", "co2"],
     "condition_logic": {
       "type": "co2_required_plants",
-      "required_value": "required"
+      "required_value": "required",
+      "blocks_selection": true
     },
     "message_template": "Plants like {plant_name} require CO2 injection to thrive. Without CO2, expect slow growth or melting.",
     "fix_suggestion": "Add a CO2 system or swap for low-tech-friendly alternatives.",
@@ -123,7 +125,8 @@
     "condition_logic": {
       "type": "carpet_needs_light_and_co2",
       "carpet_value": "carpet",
-      "min_par": 80
+      "min_par": 80,
+      "blocks_selection": true
     },
     "message_template": "Carpet plants like {plant_name} almost always need high light AND CO2 to carpet successfully.",
     "fix_suggestion": "Add CO2 and a higher-output light, or choose a non-carpeting foreground plant.",

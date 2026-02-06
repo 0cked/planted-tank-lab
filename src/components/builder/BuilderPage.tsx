@@ -110,6 +110,13 @@ function toCompatibilityRule(r: RuleRow): CompatibilityRule {
   };
 }
 
+function isBlockingForPicker(rule: CompatibilityRule): boolean {
+  if (rule.severity === "error") return true;
+  const logic = rule.conditionLogic;
+  if (!isRecord(logic)) return false;
+  return logic["blocks_selection"] === true;
+}
+
 function toPlantSnapshot(p: PlantRow): PlantSnapshot {
   return {
     id: p.id,
@@ -327,8 +334,8 @@ function ProductPicker(props: {
   });
   const [query, setQuery] = useState("");
 
-  const errorRules = useMemo(
-    () => props.rules.filter((r) => r.severity === "error"),
+  const blockingRules = useMemo(
+    () => props.rules.filter((r) => isBlockingForPicker(r)),
     [props.rules],
   );
 
@@ -365,7 +372,7 @@ function ProductPicker(props: {
     }
 
     if (!props.compatibilityEnabled) return { visibleRows: baseRows, hiddenCount: 0 };
-    if (errorRules.length === 0) return { visibleRows: baseRows, hiddenCount: 0 };
+    if (blockingRules.length === 0) return { visibleRows: baseRows, hiddenCount: 0 };
 
     const out: ProductRow[] = [];
     let hidden = 0;
@@ -381,15 +388,15 @@ function ProductPicker(props: {
         flags: props.currentFlags,
       });
 
-      const evals = evaluateBuild(errorRules, snapshotCandidate);
-      const blocks = evals.some((e) => e.severity === "error");
+      const evals = evaluateBuild(blockingRules, snapshotCandidate);
+      const blocks = evals.some((e) => e.categoriesInvolved.includes(props.categorySlug));
       if (blocks) hidden += 1;
       else out.push(r);
     }
 
     return { visibleRows: out, hiddenCount: hidden };
   }, [
-    errorRules,
+    blockingRules,
     filtered,
     props.categorySlug,
     props.compatibilityEnabled,
@@ -493,19 +500,18 @@ function PlantPicker(props: {
   onOpenChange: (open: boolean) => void;
   onAdd: (p: PlantSnapshot) => void;
   compatibilityEnabled: boolean;
-  lowTechNoCo2: boolean;
-  selectedLight: ProductSnapshot | undefined;
-  selectedCo2: ProductSnapshot | undefined;
+  currentProductsByCategory: Record<string, ProductSnapshot | undefined>;
+  currentPlants: PlantSnapshot[];
+  currentFlags: BuildFlags;
+  rules: CompatibilityRule[];
 }) {
   const q = trpc.plants.list.useQuery({ limit: 200 });
   const [query, setQuery] = useState("");
 
-  const parAtSubstrate = useMemo(() => {
-    const raw = props.selectedLight?.specs?.["par_at_substrate"];
-    if (raw == null) return null;
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : null;
-  }, [props.selectedLight]);
+  const blockingRules = useMemo(
+    () => props.rules.filter((r) => isBlockingForPicker(r)),
+    [props.rules],
+  );
 
   const filtered = useMemo(() => {
     const rows = q.data ?? [];
@@ -520,42 +526,33 @@ function PlantPicker(props: {
 
   const { visibleRows, hiddenCount } = useMemo(() => {
     if (!props.compatibilityEnabled) return { visibleRows: filtered, hiddenCount: 0 };
+    if (blockingRules.length === 0) return { visibleRows: filtered, hiddenCount: 0 };
 
-    const decidedNoCo2 = props.lowTechNoCo2;
     const out: PlantRow[] = [];
     let hidden = 0;
 
     for (const p of filtered) {
-      // CO2 gating only when user explicitly chose low-tech.
-      if (decidedNoCo2 && p.co2Demand === "required") {
-        hidden += 1;
-        continue;
-      }
+      const candidate = toPlantSnapshot(p);
+      const snapshotCandidate = buildSnapshot({
+        productsByCategory: props.currentProductsByCategory,
+        plants: [...props.currentPlants, candidate],
+        flags: props.currentFlags,
+      });
 
-      // Light gating only when a light is selected and PAR is known.
-      if (parAtSubstrate != null && parAtSubstrate < 50 && p.lightDemand === "high") {
-        hidden += 1;
-        continue;
-      }
-
-      // Carpet gating (rule-aligned): most carpets need high light and CO2.
-      if (p.placement === "carpet") {
-        const tooLowPar = parAtSubstrate != null && parAtSubstrate < 80;
-        if (tooLowPar || decidedNoCo2) {
-          hidden += 1;
-          continue;
-        }
-      }
-
-      out.push(p);
+      const evals = evaluateBuild(blockingRules, snapshotCandidate);
+      const blocks = evals.some((e) => e.categoriesInvolved.includes("plants"));
+      if (blocks) hidden += 1;
+      else out.push(p);
     }
 
     return { visibleRows: out, hiddenCount: hidden };
   }, [
+    blockingRules,
     filtered,
-    parAtSubstrate,
     props.compatibilityEnabled,
-    props.lowTechNoCo2,
+    props.currentFlags,
+    props.currentPlants,
+    props.currentProductsByCategory,
   ]);
 
   return (
@@ -1284,9 +1281,10 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
           }}
           onAdd={(p) => addPlant(p)}
           compatibilityEnabled={compatibilityEnabled}
-          lowTechNoCo2={lowTechNoCo2}
-          selectedLight={productsByCategory["light"]}
-          selectedCo2={productsByCategory["co2"]}
+          currentProductsByCategory={productsByCategory}
+          currentPlants={plants}
+          currentFlags={flags}
+          rules={rules}
         />
       ) : null}
 
