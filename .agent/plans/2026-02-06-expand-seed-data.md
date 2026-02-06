@@ -16,7 +16,7 @@ This makes browsing, filtering, and building meaningfully representative of the 
 - [x] (2026-02-06) Milestone 1: Seed format upgrade (sources/provenance) + seed script supports many product files.
 - [x] (2026-02-06) Milestone 2: Add equipment JSON for all categories to reach 124 products total; run `pnpm seed`.
 - [x] (2026-02-06) Milestone 3: Expand plants to 70; run `pnpm seed`.
-- [ ] (2026-02-06) Milestone 4: Validate and spot-check pages (builder pickers, product lists/details, plant lists/details).
+- [x] (2026-02-06) Milestone 4: Validate and spot-check pages (builder pickers, product lists/details, plant lists/details).
 
 ## Surprises & Discoveries
 
