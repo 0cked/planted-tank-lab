@@ -1,0 +1,201 @@
+[
+  {
+    "category_slug": "co2",
+    "brand_slug": "co2art",
+    "brand_name": "CO2Art",
+    "name": "CO2Art Pro-SE Dual Stage Regulator",
+    "slug": "co2art-pro-se",
+    "description": "Dual-stage regulator with solenoid for planted aquarium CO2 injection.",
+    "specs": {
+      "co2_type": "regulator",
+      "stages": 2,
+      "solenoid": true,
+      "working_pressure_psi": 30,
+      "connection": "CGA320"
+    },
+    "sources": [
+      "https://www.co2art.us/"
+    ]
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "aquatek",
+    "brand_name": "AquaTek",
+    "name": "AquaTek CO2 Regulator (Dual Gauge)",
+    "slug": "aquatek-co2-regulator-dual-gauge",
+    "description": "Entry-level CO2 regulator with dual gauges and solenoid.",
+    "specs": {
+      "co2_type": "regulator",
+      "stages": 1,
+      "solenoid": true,
+      "connection": "CGA320"
+    },
+    "sources": [
+      "https://aquatekusa.com/"
+    ]
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "fzone",
+    "brand_name": "FZONE",
+    "name": "FZONE Dual Stage CO2 Regulator",
+    "slug": "fzone-dual-stage-regulator",
+    "description": "Budget dual-stage CO2 regulator commonly used for planted tanks.",
+    "specs": {
+      "co2_type": "regulator",
+      "stages": 2,
+      "solenoid": true,
+      "connection": "CGA320"
+    },
+    "sources": [
+      "https://fzaqua.com/"
+    ]
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "zrdr",
+    "brand_name": "ZRDR",
+    "name": "ZRDR CO2 Regulator (Dual Stage)",
+    "slug": "zrdr-dual-stage-regulator",
+    "description": "Dual stage regulator option often paired with planted tanks.",
+    "specs": {
+      "co2_type": "regulator",
+      "stages": 2,
+      "solenoid": true,
+      "connection": "CGA320"
+    },
+    "sources": [
+      "https://www.amazon.com/s?k=ZRDR+dual+stage+co2+regulator"
+    ],
+    "source_notes": "Seeded using an Amazon search URL; replace with manufacturer page when available."
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
+    "name": "Fluval Pressurized CO2 Kit",
+    "slug": "fluval-pressurized-co2-kit",
+    "description": "Complete pressurized CO2 kit for planted aquariums.",
+    "specs": {
+      "co2_type": "kit",
+      "solenoid": true,
+      "connection": "disposable"
+    },
+    "sources": [
+      "https://fluvalaquatics.com/"
+    ]
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "ista",
+    "brand_name": "ISTA",
+    "name": "ISTA Inline CO2 Diffuser",
+    "slug": "ista-inline-diffuser",
+    "description": "Inline diffuser for use on filter return tubing.",
+    "specs": {
+      "co2_type": "diffuser_inline",
+      "tubing_size_mm": 16,
+      "bubble_counter": false
+    },
+    "sources": [
+      "https://www.ista-international.com/"
+    ]
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "up-aqua",
+    "brand_name": "UP Aqua",
+    "name": "UP Aqua Inline CO2 Atomizer",
+    "slug": "up-aqua-inline-atomizer",
+    "description": "Popular inline CO2 atomizer for canister filter return lines.",
+    "specs": {
+      "co2_type": "diffuser_inline",
+      "tubing_size_mm": 16,
+      "bubble_counter": false
+    },
+    "sources": [
+      "https://www.amazon.com/s?k=UP+Aqua+inline+atomizer"
+    ],
+    "source_notes": "Seeded using an Amazon search URL; replace with manufacturer page when available."
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "ada",
+    "brand_name": "ADA",
+    "name": "ADA Pollen Glass CO2 Diffuser",
+    "slug": "ada-pollen-glass-diffuser",
+    "description": "Glass ceramic diffuser for fine CO2 mist.",
+    "specs": {
+      "co2_type": "diffuser_ceramic",
+      "material": "glass",
+      "recommended_tank_gal_max": 30
+    },
+    "sources": [
+      "https://www.adana.co.jp/en/"
+    ]
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "co2art",
+    "brand_name": "CO2Art",
+    "name": "CO2Art Bazooka Inline Diffuser",
+    "slug": "co2art-bazooka-inline-diffuser",
+    "description": "Inline diffuser designed for higher-flow canister filters.",
+    "specs": {
+      "co2_type": "diffuser_inline",
+      "tubing_size_mm": 16,
+      "recommended_flow_gph_min": 150
+    },
+    "sources": [
+      "https://www.co2art.us/"
+    ]
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "fzone",
+    "brand_name": "FZONE",
+    "name": "FZONE 2.5L CO2 Cylinder",
+    "slug": "fzone-2-5l-cylinder",
+    "description": "Refillable CO2 cylinder for planted aquarium regulators.",
+    "specs": {
+      "co2_type": "cylinder",
+      "capacity_l": 2.5,
+      "connection": "CGA320"
+    },
+    "sources": [
+      "https://fzaqua.com/"
+    ]
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "aquatek",
+    "brand_name": "AquaTek",
+    "name": "AquaTek 5 lb CO2 Cylinder",
+    "slug": "aquatek-5lb-cylinder",
+    "description": "Standard 5 lb refillable CO2 cylinder.",
+    "specs": {
+      "co2_type": "cylinder",
+      "capacity_lb": 5,
+      "connection": "CGA320"
+    },
+    "sources": [
+      "https://aquatekusa.com/"
+    ]
+  },
+  {
+    "category_slug": "co2",
+    "brand_slug": "generic",
+    "brand_name": "Generic",
+    "name": "CO2 Drop Checker (Glass)",
+    "slug": "co2-drop-checker-glass",
+    "description": "Colorimetric indicator used to estimate dissolved CO2 level (requires indicator solution).",
+    "specs": {
+      "co2_type": "drop_checker",
+      "material": "glass"
+    },
+    "sources": [
+      "https://www.amazon.com/s?k=co2+drop+checker"
+    ],
+    "source_notes": "Generic accessory; seeded from an Amazon search URL."
+  }
+]

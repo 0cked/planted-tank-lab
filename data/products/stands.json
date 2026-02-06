@@ -1,0 +1,178 @@
+[
+  {
+    "category_slug": "stand",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS Cabinet Stand for 60U",
+    "slug": "uns-stand-60u",
+    "description": "Factory cabinet stand sized for UNS 60U aquariums.",
+    "specs": {
+      "compatible_tank_slug": "uns-60u",
+      "stand_type": "cabinet",
+      "weight_capacity_lbs": 300,
+      "material": "engineered_wood"
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/",
+      "https://aquaforestaquarium.com/"
+    ],
+    "source_notes": "Capacity and fit are typical for manufacturer cabinet stands; verify exact rating per distributor listing."
+  },
+  {
+    "category_slug": "stand",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS Cabinet Stand for 45U",
+    "slug": "uns-stand-45u",
+    "description": "Factory cabinet stand sized for UNS 45U aquariums.",
+    "specs": {
+      "compatible_tank_slug": "uns-45u",
+      "stand_type": "cabinet",
+      "weight_capacity_lbs": 200,
+      "material": "engineered_wood"
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/",
+      "https://aquaforestaquarium.com/"
+    ],
+    "source_notes": "Capacity and fit are typical for manufacturer cabinet stands; verify exact rating per distributor listing."
+  },
+  {
+    "category_slug": "stand",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS Cabinet Stand for 90U",
+    "slug": "uns-stand-90u",
+    "description": "Factory cabinet stand sized for UNS 90U aquariums.",
+    "specs": {
+      "compatible_tank_slug": "uns-90u",
+      "stand_type": "cabinet",
+      "weight_capacity_lbs": 800,
+      "material": "engineered_wood"
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/",
+      "https://aquaforestaquarium.com/"
+    ],
+    "source_notes": "Capacity and fit are typical for manufacturer cabinet stands; verify exact rating per distributor listing."
+  },
+  {
+    "category_slug": "stand",
+    "brand_slug": "ada",
+    "brand_name": "ADA",
+    "name": "ADA Cube Cabinet Stand (60P)",
+    "slug": "ada-cube-cabinet-60p",
+    "description": "ADA cabinet stand for 60 cm (60P) aquariums.",
+    "specs": {
+      "compatible_tank_slug": "ada-60p",
+      "stand_type": "cabinet",
+      "weight_capacity_lbs": 350,
+      "material": "engineered_wood"
+    },
+    "sources": [
+      "https://www.adana.co.jp/en/"
+    ]
+  },
+  {
+    "category_slug": "stand",
+    "brand_slug": "ada",
+    "brand_name": "ADA",
+    "name": "ADA Cube Cabinet Stand (90P)",
+    "slug": "ada-cube-cabinet-90p",
+    "description": "ADA cabinet stand for 90 cm (90P) aquariums.",
+    "specs": {
+      "compatible_tank_slug": "ada-90p",
+      "stand_type": "cabinet",
+      "weight_capacity_lbs": 900,
+      "material": "engineered_wood"
+    },
+    "sources": [
+      "https://www.adana.co.jp/en/"
+    ]
+  },
+  {
+    "category_slug": "stand",
+    "brand_slug": "ikea",
+    "brand_name": "IKEA",
+    "name": "IKEA KALLAX 2x2 Shelf Unit (Popular Aquarium Stand Hack)",
+    "slug": "ikea-kallax-2x2",
+    "description": "A common DIY option for smaller tanks when properly reinforced and leveled.",
+    "specs": {
+      "stand_type": "shelf",
+      "weight_capacity_lbs": 250,
+      "material": "particleboard"
+    },
+    "sources": [
+      "https://www.ikea.com/"
+    ],
+    "source_notes": "Not an aquarium-specific product; capacity depends on configuration. Use at your own risk and verify load paths."
+  },
+  {
+    "category_slug": "stand",
+    "brand_slug": "aqueon",
+    "brand_name": "Aqueon",
+    "name": "Aqueon Metal Stand for 10 Gallon",
+    "slug": "aqueon-metal-stand-10",
+    "description": "Basic metal aquarium stand sized for standard 10 gallon tanks.",
+    "specs": {
+      "stand_type": "metal",
+      "compatible_volume_gal": 10,
+      "weight_capacity_lbs": 200,
+      "material": "steel"
+    },
+    "sources": [
+      "https://www.aqueon.com/"
+    ]
+  },
+  {
+    "category_slug": "stand",
+    "brand_slug": "aqueon",
+    "brand_name": "Aqueon",
+    "name": "Aqueon Metal Stand for 20 Long",
+    "slug": "aqueon-metal-stand-20-long",
+    "description": "Basic metal aquarium stand sized for standard 20 gallon long tanks.",
+    "specs": {
+      "stand_type": "metal",
+      "compatible_volume_gal": 20,
+      "weight_capacity_lbs": 350,
+      "material": "steel"
+    },
+    "sources": [
+      "https://www.aqueon.com/"
+    ]
+  },
+  {
+    "category_slug": "stand",
+    "brand_slug": "aqueon",
+    "brand_name": "Aqueon",
+    "name": "Aqueon Metal Stand for 29 Gallon",
+    "slug": "aqueon-metal-stand-29",
+    "description": "Basic metal aquarium stand sized for standard 29 gallon tanks.",
+    "specs": {
+      "stand_type": "metal",
+      "compatible_volume_gal": 29,
+      "weight_capacity_lbs": 450,
+      "material": "steel"
+    },
+    "sources": [
+      "https://www.aqueon.com/"
+    ]
+  },
+  {
+    "category_slug": "stand",
+    "brand_slug": "aqueon",
+    "brand_name": "Aqueon",
+    "name": "Aqueon Metal Stand for 40 Breeder",
+    "slug": "aqueon-metal-stand-40-breeder",
+    "description": "Basic metal aquarium stand sized for 40 breeder tanks.",
+    "specs": {
+      "stand_type": "metal",
+      "compatible_volume_gal": 40,
+      "weight_capacity_lbs": 600,
+      "material": "steel"
+    },
+    "sources": [
+      "https://www.aqueon.com/"
+    ]
+  }
+]

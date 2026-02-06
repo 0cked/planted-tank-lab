@@ -1,0 +1,326 @@
+[
+  {
+    "category_slug": "filter",
+    "brand_slug": "oase",
+    "brand_name": "Oase",
+    "name": "Oase BioMaster2 Thermo 250",
+    "slug": "oase-biomaster2-thermo-250",
+    "description": "External canister filter with integrated heater chamber.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 238,
+      "rated_volume_gal_max": 66,
+      "filter_volume_l": 4.4,
+      "prefilter_volume_l": 0.4,
+      "has_integrated_heater": true,
+      "adjustable_flow": true
+    },
+    "sources": [
+      "https://www.oase.com/en/products-a-z/family/product/p/94690-biomaster2-thermo-250-gb.html"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "oase",
+    "brand_name": "Oase",
+    "name": "Oase BioMaster2 Thermo 350",
+    "slug": "oase-biomaster2-thermo-350",
+    "description": "External canister filter with integrated heater chamber.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 291,
+      "rated_volume_gal_max": 92,
+      "filter_volume_l": 5.6,
+      "prefilter_volume_l": 0.5,
+      "has_integrated_heater": true,
+      "adjustable_flow": true
+    },
+    "sources": [
+      "https://www.oase.com/en/products-a-z/family/product/p/94685-biomaster2-thermo-350-gb.html"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "oase",
+    "brand_name": "Oase",
+    "name": "Oase BioMaster2 Thermo 600",
+    "slug": "oase-biomaster2-thermo-600",
+    "description": "External canister filter with integrated heater chamber.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 330,
+      "rated_volume_gal_max": 159,
+      "filter_volume_l": 6.8,
+      "prefilter_volume_l": 0.6,
+      "has_integrated_heater": true,
+      "adjustable_flow": true
+    },
+    "sources": [
+      "https://www.oase.com/en/products-a-z/family/product/p/94679-biomaster2-thermo-600-int.html"
+    ]
+  },
+
+  {
+    "category_slug": "filter",
+    "brand_slug": "eheim",
+    "brand_name": "EHEIM",
+    "name": "EHEIM classic 150 (2211)",
+    "slug": "eheim-classic-150-2211",
+    "description": "Classic series external canister filter.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 79,
+      "rated_volume_gal_min": 15,
+      "rated_volume_gal_max": 40,
+      "adjustable_flow": false
+    },
+    "sources": [
+      "https://aqualabaquaria.com/products/classic-external-canister-filter-eheim"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "eheim",
+    "brand_name": "EHEIM",
+    "name": "EHEIM classic 250 (2213)",
+    "slug": "eheim-classic-250-2213",
+    "description": "Classic series external canister filter.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 116,
+      "rated_volume_gal_min": 20,
+      "rated_volume_gal_max": 65,
+      "adjustable_flow": false
+    },
+    "sources": [
+      "https://aqualabaquaria.com/products/classic-external-canister-filter-eheim"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "eheim",
+    "brand_name": "EHEIM",
+    "name": "EHEIM classic 350 (2215)",
+    "slug": "eheim-classic-350-2215",
+    "description": "Classic series external canister filter.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 164,
+      "rated_volume_gal_min": 30,
+      "rated_volume_gal_max": 90,
+      "adjustable_flow": false
+    },
+    "sources": [
+      "https://aqualabaquaria.com/products/classic-external-canister-filter-eheim"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "eheim",
+    "brand_name": "EHEIM",
+    "name": "EHEIM classic 600 (2217)",
+    "slug": "eheim-classic-600-2217",
+    "description": "Classic series external canister filter.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 264,
+      "rated_volume_gal_min": 50,
+      "rated_volume_gal_max": 160,
+      "adjustable_flow": false
+    },
+    "sources": [
+      "https://aqualabaquaria.com/products/classic-external-canister-filter-eheim"
+    ]
+  },
+
+  {
+    "category_slug": "filter",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
+    "name": "Fluval 107 Canister Filter",
+    "slug": "fluval-107-canister",
+    "description": "07 series external canister filter.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 95,
+      "pump_output_gph": 145,
+      "rated_volume_gal_min": 10,
+      "rated_volume_gal_max": 30,
+      "adjustable_flow": true
+    },
+    "sources": [
+      "https://fluvalaquatics.com/us/shop/product/07-series"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
+    "name": "Fluval 207 Canister Filter",
+    "slug": "fluval-207-canister",
+    "description": "07 series external canister filter.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 121,
+      "pump_output_gph": 206,
+      "rated_volume_gal_min": 20,
+      "rated_volume_gal_max": 45,
+      "adjustable_flow": true
+    },
+    "sources": [
+      "https://fluvalaquatics.com/us/shop/product/07-series"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
+    "name": "Fluval 307 Canister Filter",
+    "slug": "fluval-307-canister",
+    "description": "07 series external canister filter.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 206,
+      "pump_output_gph": 303,
+      "rated_volume_gal_min": 40,
+      "rated_volume_gal_max": 70,
+      "adjustable_flow": true
+    },
+    "sources": [
+      "https://fluvalaquatics.com/us/shop/product/07-series"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
+    "name": "Fluval 407 Canister Filter",
+    "slug": "fluval-407-canister",
+    "description": "07 series external canister filter.",
+    "specs": {
+      "type": "canister",
+      "flow_rate_gph": 245,
+      "pump_output_gph": 383,
+      "rated_volume_gal_min": 50,
+      "rated_volume_gal_max": 100,
+      "adjustable_flow": true
+    },
+    "sources": [
+      "https://fluvalaquatics.com/us/shop/product/07-series"
+    ]
+  },
+
+  {
+    "category_slug": "filter",
+    "brand_slug": "aquaclear",
+    "brand_name": "AquaClear",
+    "name": "AquaClear 20 Power Filter",
+    "slug": "aquaclear-20-hob",
+    "description": "Hang-on-back (HOB) power filter.",
+    "specs": {
+      "type": "hob",
+      "flow_rate_gph": 100,
+      "rated_volume_gal_min": 5,
+      "rated_volume_gal_max": 20,
+      "adjustable_flow": true
+    },
+    "sources": [
+      "https://www.aquabiotech.com/boutique/filtration/mechanical-filtration/aquaclear-70-power-filter-265-l-70-us-gal"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "aquaclear",
+    "brand_name": "AquaClear",
+    "name": "AquaClear 50 Power Filter",
+    "slug": "aquaclear-50-hob",
+    "description": "Hang-on-back (HOB) power filter.",
+    "specs": {
+      "type": "hob",
+      "flow_rate_gph": 200,
+      "rated_volume_gal_min": 20,
+      "rated_volume_gal_max": 50,
+      "adjustable_flow": true
+    },
+    "sources": [
+      "https://catalog.elmersaquarium.com/products/aquaclear-50-power-filter%7CL1%7CC3%7C110610.html"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "aquaclear",
+    "brand_name": "AquaClear",
+    "name": "AquaClear 70 Power Filter",
+    "slug": "aquaclear-70-hob",
+    "description": "Hang-on-back (HOB) power filter.",
+    "specs": {
+      "type": "hob",
+      "flow_rate_gph": 300,
+      "rated_volume_gal_min": 40,
+      "rated_volume_gal_max": 70,
+      "adjustable_flow": true
+    },
+    "sources": [
+      "https://www.hawaiireeffish.com/product/aquaclear-power-filter-70/"
+    ]
+  },
+
+  {
+    "category_slug": "filter",
+    "brand_slug": "aquarium-co-op",
+    "brand_name": "Aquarium Co-Op",
+    "name": "Aquarium Co-Op Sponge Filter (Small)",
+    "slug": "aquarium-co-op-sponge-filter-small",
+    "description": "Air-driven sponge filter.",
+    "specs": {
+      "type": "sponge",
+      "rated_volume_gal_min": 10
+    },
+    "sources": [
+      "https://www.aquariumcoop.com/blogs/faqs/sponge-filter-sizes"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "aquarium-co-op",
+    "brand_name": "Aquarium Co-Op",
+    "name": "Aquarium Co-Op Sponge Filter (Medium)",
+    "slug": "aquarium-co-op-sponge-filter-medium",
+    "description": "Air-driven sponge filter.",
+    "specs": {
+      "type": "sponge",
+      "rated_volume_gal_min": 20
+    },
+    "sources": [
+      "https://www.aquariumcoop.com/blogs/faqs/sponge-filter-sizes"
+    ]
+  },
+  {
+    "category_slug": "filter",
+    "brand_slug": "aquarium-co-op",
+    "brand_name": "Aquarium Co-Op",
+    "name": "Aquarium Co-Op Sponge Filter (Large)",
+    "slug": "aquarium-co-op-sponge-filter-large",
+    "description": "Air-driven sponge filter.",
+    "specs": {
+      "type": "sponge",
+      "rated_volume_gal_min": 40
+    },
+    "sources": [
+      "https://www.aquariumcoop.com/blogs/faqs/sponge-filter-sizes"
+    ]
+  },
+
+  {
+    "category_slug": "filter",
+    "brand_slug": "hikari",
+    "brand_name": "Hikari",
+    "name": "Hikari Bacto-Surge Sponge Filter",
+    "slug": "hikari-bacto-surge-sponge-filter",
+    "description": "Air-driven sponge filter.",
+    "specs": {
+      "type": "sponge"
+    },
+    "sources": []
+  }
+]

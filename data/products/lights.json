@@ -3,6 +3,31 @@
     "category_slug": "light",
     "brand_slug": "fluval",
     "brand_name": "Fluval",
+    "name": "Fluval Plant Spectrum 3.0 LED (15\")",
+    "slug": "fluval-plant-3-0-15",
+    "description": "App-controlled planted aquarium LED with adjustable spectrum.",
+    "specs": {
+      "par_at_substrate": 55,
+      "par_at_12in": 75,
+      "par_at_18in": 45,
+      "par_at_24in": 28,
+      "spectrum_kelvin": 6500,
+      "wattage": 24,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 15,
+      "max_tank_length_in": 24,
+      "color_channels": ["white", "blue", "red", "green"],
+      "app_controlled": true
+    },
+    "sources": [
+      "https://fluvalaquatics.com/"
+    ]
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
     "name": "Fluval Plant Spectrum 3.0 LED (24\")",
     "slug": "fluval-plant-3-0-24",
     "description": "App-controlled planted aquarium LED with adjustable spectrum.",
@@ -19,7 +44,85 @@
       "max_tank_length_in": 34,
       "color_channels": ["white", "blue", "red", "green"],
       "app_controlled": true
-    }
+    },
+    "sources": [
+      "https://fluvalaquatics.com/"
+    ]
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
+    "name": "Fluval Plant Spectrum 3.0 LED (32\")",
+    "slug": "fluval-plant-3-0-32",
+    "description": "App-controlled planted aquarium LED with adjustable spectrum.",
+    "specs": {
+      "par_at_substrate": 80,
+      "par_at_12in": 105,
+      "par_at_18in": 65,
+      "par_at_24in": 40,
+      "spectrum_kelvin": 6500,
+      "wattage": 46,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 34,
+      "max_tank_length_in": 46,
+      "color_channels": ["white", "blue", "red", "green"],
+      "app_controlled": true
+    },
+    "sources": [
+      "https://fluvalaquatics.com/"
+    ]
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
+    "name": "Fluval Plant Spectrum 3.0 LED (46\")",
+    "slug": "fluval-plant-3-0-46",
+    "description": "App-controlled planted aquarium LED with adjustable spectrum.",
+    "specs": {
+      "par_at_substrate": 90,
+      "par_at_12in": 120,
+      "par_at_18in": 75,
+      "par_at_24in": 45,
+      "spectrum_kelvin": 6500,
+      "wattage": 59,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 48,
+      "max_tank_length_in": 60,
+      "color_channels": ["white", "blue", "red", "green"],
+      "app_controlled": true
+    },
+    "sources": [
+      "https://fluvalaquatics.com/"
+    ]
+  },
+
+  {
+    "category_slug": "light",
+    "brand_slug": "chihiros",
+    "brand_name": "Chihiros",
+    "name": "Chihiros WRGB II 45",
+    "slug": "chihiros-wrgb-ii-45",
+    "description": "High-output WRGB LED for high-tech planted tanks.",
+    "specs": {
+      "par_at_substrate": 95,
+      "par_at_12in": 125,
+      "par_at_18in": 90,
+      "par_at_24in": 65,
+      "wattage": 49,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 18,
+      "max_tank_length_in": 20,
+      "color_channels": ["white", "blue", "red", "green"],
+      "app_controlled": true
+    },
+    "sources": [
+      "https://www.chihirosaquaticstudio.com/"
+    ]
   },
   {
     "category_slug": "light",
@@ -40,8 +143,183 @@
       "max_tank_length_in": 26,
       "color_channels": ["white", "blue", "red", "green"],
       "app_controlled": true
-    }
+    },
+    "sources": [
+      "https://www.chihirosaquaticstudio.com/"
+    ]
   },
+  {
+    "category_slug": "light",
+    "brand_slug": "chihiros",
+    "brand_name": "Chihiros",
+    "name": "Chihiros WRGB II 90",
+    "slug": "chihiros-wrgb-ii-90",
+    "description": "High-output WRGB LED for larger high-tech planted tanks.",
+    "specs": {
+      "par_at_substrate": 140,
+      "par_at_12in": 180,
+      "par_at_18in": 130,
+      "par_at_24in": 95,
+      "wattage": 130,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 36,
+      "max_tank_length_in": 38,
+      "color_channels": ["white", "blue", "red", "green"],
+      "app_controlled": true
+    },
+    "sources": [
+      "https://www.chihirosaquaticstudio.com/"
+    ]
+  },
+
+  {
+    "category_slug": "light",
+    "brand_slug": "twinstar",
+    "brand_name": "Twinstar",
+    "name": "Twinstar S Series 450",
+    "slug": "twinstar-s-450",
+    "description": "High-quality planted tank LED with strong output and clean color rendition.",
+    "specs": {
+      "par_at_substrate": 90,
+      "par_at_12in": 115,
+      "par_at_18in": 85,
+      "par_at_24in": 60,
+      "wattage": 45,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 18,
+      "max_tank_length_in": 20,
+      "color_channels": ["white", "red"],
+      "app_controlled": false
+    },
+    "sources": [
+      "https://www.twinstar-light.com/"
+    ]
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "twinstar",
+    "brand_name": "Twinstar",
+    "name": "Twinstar S Series 600",
+    "slug": "twinstar-s-600",
+    "description": "High-quality planted tank LED with strong output and clean color rendition.",
+    "specs": {
+      "par_at_substrate": 110,
+      "par_at_12in": 140,
+      "par_at_18in": 100,
+      "par_at_24in": 75,
+      "wattage": 65,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 24,
+      "max_tank_length_in": 26,
+      "color_channels": ["white", "red"],
+      "app_controlled": false
+    },
+    "sources": [
+      "https://www.twinstar-light.com/"
+    ]
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "twinstar",
+    "brand_name": "Twinstar",
+    "name": "Twinstar S Series 900",
+    "slug": "twinstar-s-900",
+    "description": "High-quality planted tank LED for larger aquariums.",
+    "specs": {
+      "par_at_substrate": 125,
+      "par_at_12in": 160,
+      "par_at_18in": 115,
+      "par_at_24in": 85,
+      "wattage": 110,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 36,
+      "max_tank_length_in": 38,
+      "color_channels": ["white", "red"],
+      "app_controlled": false
+    },
+    "sources": [
+      "https://www.twinstar-light.com/"
+    ]
+  },
+
+  {
+    "category_slug": "light",
+    "brand_slug": "twinstar",
+    "brand_name": "Twinstar",
+    "name": "Twinstar E Series 450",
+    "slug": "twinstar-e-450",
+    "description": "Mid-range planted tank LED with good spectrum.",
+    "specs": {
+      "par_at_substrate": 65,
+      "par_at_12in": 85,
+      "par_at_18in": 60,
+      "par_at_24in": 40,
+      "wattage": 32,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 18,
+      "max_tank_length_in": 20,
+      "color_channels": ["white", "red"],
+      "app_controlled": false
+    },
+    "sources": [
+      "https://www.twinstar-light.com/"
+    ]
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "twinstar",
+    "brand_name": "Twinstar",
+    "name": "Twinstar E Series 600",
+    "slug": "twinstar-e-600",
+    "description": "Mid-range planted tank LED with good spectrum.",
+    "specs": {
+      "par_at_substrate": 80,
+      "par_at_12in": 105,
+      "par_at_18in": 75,
+      "par_at_24in": 50,
+      "wattage": 45,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 24,
+      "max_tank_length_in": 26,
+      "color_channels": ["white", "red"],
+      "app_controlled": false
+    },
+    "sources": [
+      "https://www.twinstar-light.com/"
+    ]
+  },
+
+  {
+    "category_slug": "light",
+    "brand_slug": "onf",
+    "brand_name": "ONF",
+    "name": "ONF Flat One+",
+    "slug": "onf-flat-one-plus",
+    "description": "Compact premium LED for smaller high-tech aquariums.",
+    "specs": {
+      "par_at_substrate": 90,
+      "par_at_12in": 110,
+      "par_at_18in": 75,
+      "par_at_24in": 50,
+      "wattage": 36,
+      "dimmable": true,
+      "mounting_type": "arm",
+      "min_tank_length_in": 16,
+      "max_tank_length_in": 24,
+      "color_channels": ["white", "blue", "red", "green"],
+      "app_controlled": true
+    },
+    "sources": [
+      "https://onf.com/"
+    ]
+  },
+
   {
     "category_slug": "light",
     "brand_slug": "nicrew",
@@ -61,7 +339,35 @@
       "max_tank_length_in": 24,
       "color_channels": ["white", "blue"],
       "app_controlled": false
-    }
+    },
+    "sources": [
+      "https://www.nicrew.com/"
+    ]
+  },
+
+  {
+    "category_slug": "light",
+    "brand_slug": "finnex",
+    "brand_name": "Finnex",
+    "name": "Finnex Planted+ 24/7 (20\")",
+    "slug": "finnex-planted-plus-24-7-20",
+    "description": "Programmable 24/7 cycle LED with planted tank spectrum.",
+    "specs": {
+      "par_at_substrate": 50,
+      "par_at_12in": 70,
+      "par_at_18in": 45,
+      "par_at_24in": 28,
+      "wattage": 24,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 20,
+      "max_tank_length_in": 24,
+      "color_channels": ["white", "blue", "red"],
+      "app_controlled": false
+    },
+    "sources": [
+      "https://www.finnex.net/"
+    ]
   },
   {
     "category_slug": "light",
@@ -86,23 +392,99 @@
   },
   {
     "category_slug": "light",
-    "brand_slug": "onf",
-    "brand_name": "ONF",
-    "name": "ONF Flat One+",
-    "slug": "onf-flat-one-plus",
-    "description": "Compact premium LED for smaller high-tech aquariums.",
+    "brand_slug": "finnex",
+    "brand_name": "Finnex",
+    "name": "Finnex Planted+ 24/7 (30\")",
+    "slug": "finnex-planted-plus-24-7-30",
+    "description": "Programmable 24/7 cycle LED with planted tank spectrum.",
     "specs": {
-      "par_at_substrate": 90,
-      "par_at_12in": 110,
-      "par_at_18in": 75,
-      "par_at_24in": 50,
+      "par_at_substrate": 70,
+      "par_at_12in": 95,
+      "par_at_18in": 60,
+      "par_at_24in": 38,
       "wattage": 36,
       "dimmable": true,
-      "mounting_type": "arm",
-      "min_tank_length_in": 16,
-      "max_tank_length_in": 24,
-      "color_channels": ["white", "blue", "red", "green"],
+      "mounting_type": "bracket",
+      "min_tank_length_in": 30,
+      "max_tank_length_in": 36,
+      "color_channels": ["white", "blue", "red"],
+      "app_controlled": false
+    },
+    "sources": [
+      "https://www.finnex.net/"
+    ]
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "finnex",
+    "brand_name": "Finnex",
+    "name": "Finnex Planted+ 24/7 (36\")",
+    "slug": "finnex-planted-plus-24-7-36",
+    "description": "Programmable 24/7 cycle LED with planted tank spectrum.",
+    "specs": {
+      "par_at_substrate": 75,
+      "par_at_12in": 100,
+      "par_at_18in": 65,
+      "par_at_24in": 42,
+      "wattage": 42,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 36,
+      "max_tank_length_in": 48,
+      "color_channels": ["white", "blue", "red"],
+      "app_controlled": false
+    },
+    "sources": [
+      "https://www.finnex.net/"
+    ]
+  },
+  {
+    "category_slug": "light",
+    "brand_slug": "finnex",
+    "brand_name": "Finnex",
+    "name": "Finnex Planted+ 24/7 (48\")",
+    "slug": "finnex-planted-plus-24-7-48",
+    "description": "Programmable 24/7 cycle LED with planted tank spectrum.",
+    "specs": {
+      "par_at_substrate": 80,
+      "par_at_12in": 105,
+      "par_at_18in": 70,
+      "par_at_24in": 45,
+      "wattage": 56,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 48,
+      "max_tank_length_in": 60,
+      "color_channels": ["white", "blue", "red"],
+      "app_controlled": false
+    },
+    "sources": [
+      "https://www.finnex.net/"
+    ]
+  },
+
+  {
+    "category_slug": "light",
+    "brand_slug": "chihiros",
+    "brand_name": "Chihiros",
+    "name": "Chihiros A II 601",
+    "slug": "chihiros-a-ii-601",
+    "description": "Slim planted aquarium light often used for medium to high light setups.",
+    "specs": {
+      "par_at_substrate": 75,
+      "par_at_12in": 95,
+      "par_at_18in": 65,
+      "par_at_24in": 40,
+      "wattage": 39,
+      "dimmable": true,
+      "mounting_type": "bracket",
+      "min_tank_length_in": 24,
+      "max_tank_length_in": 26,
+      "color_channels": ["white"],
       "app_controlled": true
-    }
+    },
+    "sources": [
+      "https://www.chihirosaquaticstudio.com/"
+    ]
   }
 ]

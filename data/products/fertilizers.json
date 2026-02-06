@@ -1,0 +1,165 @@
+[
+  {
+    "category_slug": "fertilizer",
+    "brand_slug": "aquarium-co-op",
+    "brand_name": "Aquarium Co-Op",
+    "name": "Easy Green All-in-One Fertilizer",
+    "slug": "easy-green",
+    "description": "All-in-one liquid fertilizer for planted aquariums.",
+    "specs": {
+      "fertilizer_type": "all_in_one",
+      "shrimp_safe": true,
+      "copper_content": 0
+    },
+    "sources": [
+      "https://www.aquariumcoop.com/"
+    ]
+  },
+  {
+    "category_slug": "fertilizer",
+    "brand_slug": "nilocg",
+    "brand_name": "NilocG",
+    "name": "ThriveS (Shrimp-Specific) All-in-One",
+    "slug": "nilocg-thrives",
+    "description": "All-in-one fertilizer formulated for shrimp tanks.",
+    "specs": {
+      "fertilizer_type": "all_in_one",
+      "shrimp_safe": true,
+      "copper_content": 0
+    },
+    "sources": [
+      "https://nilocg.com/"
+    ]
+  },
+  {
+    "category_slug": "fertilizer",
+    "brand_slug": "nilocg",
+    "brand_name": "NilocG",
+    "name": "Thrive All-in-One Fertilizer",
+    "slug": "nilocg-thrive",
+    "description": "Popular all-in-one fertilizer for planted tanks.",
+    "specs": {
+      "fertilizer_type": "all_in_one",
+      "shrimp_safe": false,
+      "copper_content": 0.1
+    },
+    "sources": [
+      "https://nilocg.com/"
+    ],
+    "source_notes": "Copper content value is a presence/flag for rule testing, not a lab-verified concentration."
+  },
+  {
+    "category_slug": "fertilizer",
+    "brand_slug": "seachem",
+    "brand_name": "Seachem",
+    "name": "Seachem Flourish",
+    "slug": "seachem-flourish",
+    "description": "Comprehensive supplement (trace and micronutrients) for planted aquariums.",
+    "specs": {
+      "fertilizer_type": "comprehensive",
+      "shrimp_safe": false,
+      "copper_content": 0.1
+    },
+    "sources": [
+      "https://www.seachem.com/flourish.php"
+    ],
+    "source_notes": "Copper content value is a presence/flag for rule testing, not a lab-verified concentration."
+  },
+  {
+    "category_slug": "fertilizer",
+    "brand_slug": "seachem",
+    "brand_name": "Seachem",
+    "name": "Seachem Flourish Nitrogen",
+    "slug": "seachem-flourish-nitrogen",
+    "description": "Nitrogen supplement for planted tanks.",
+    "specs": {
+      "fertilizer_type": "macro",
+      "shrimp_safe": true,
+      "copper_content": 0
+    },
+    "sources": [
+      "https://www.seachem.com/"
+    ]
+  },
+  {
+    "category_slug": "fertilizer",
+    "brand_slug": "seachem",
+    "brand_name": "Seachem",
+    "name": "Seachem Flourish Potassium",
+    "slug": "seachem-flourish-potassium",
+    "description": "Potassium supplement for planted tanks.",
+    "specs": {
+      "fertilizer_type": "macro",
+      "shrimp_safe": true,
+      "copper_content": 0
+    },
+    "sources": [
+      "https://www.seachem.com/"
+    ]
+  },
+  {
+    "category_slug": "fertilizer",
+    "brand_slug": "apt",
+    "brand_name": "APT",
+    "name": "APT Complete",
+    "slug": "apt-complete",
+    "description": "All-in-one fertilizer commonly used in high-tech planted aquariums.",
+    "specs": {
+      "fertilizer_type": "all_in_one",
+      "shrimp_safe": true,
+      "copper_content": 0
+    },
+    "sources": [
+      "https://www.2hraquarist.com/"
+    ]
+  },
+  {
+    "category_slug": "fertilizer",
+    "brand_slug": "apt",
+    "brand_name": "APT",
+    "name": "APT EI",
+    "slug": "apt-ei",
+    "description": "High-dosing fertilizer approach (Estimative Index style).",
+    "specs": {
+      "fertilizer_type": "ei",
+      "shrimp_safe": false,
+      "copper_content": 0.1
+    },
+    "sources": [
+      "https://www.2hraquarist.com/"
+    ],
+    "source_notes": "Copper content value is a presence/flag for rule testing."
+  },
+  {
+    "category_slug": "fertilizer",
+    "brand_slug": "seachem",
+    "brand_name": "Seachem",
+    "name": "Seachem Flourish Tabs",
+    "slug": "seachem-flourish-tabs",
+    "description": "Root tabs for heavy root-feeding plants.",
+    "specs": {
+      "fertilizer_type": "root_tabs",
+      "shrimp_safe": true,
+      "copper_content": 0
+    },
+    "sources": [
+      "https://www.seachem.com/"
+    ]
+  },
+  {
+    "category_slug": "fertilizer",
+    "brand_slug": "aquarium-co-op",
+    "brand_name": "Aquarium Co-Op",
+    "name": "Easy Root Tabs",
+    "slug": "easy-root-tabs",
+    "description": "Root tabs designed for planted tank substrates.",
+    "specs": {
+      "fertilizer_type": "root_tabs",
+      "shrimp_safe": true,
+      "copper_content": 0
+    },
+    "sources": [
+      "https://www.aquariumcoop.com/"
+    ]
+  }
+]

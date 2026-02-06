@@ -7,15 +7,82 @@
     "slug": "uns-60u",
     "description": "Rimless low-iron glass aquarium (60U format).",
     "specs": {
-      "volume_gal": 20,
-      "volume_liters": 75.7,
+      "volume_gal": 20.6,
+      "volume_liters": 77.8,
       "length_in": 23.6,
       "width_in": 14.2,
       "height_in": 14.2,
       "material": "glass",
       "rimless": true,
       "filled_weight_lbs": 190
-    }
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/"
+    ]
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 45U Rimless Aquarium",
+    "slug": "uns-45u",
+    "description": "Rimless low-iron glass aquarium (45U format).",
+    "specs": {
+      "volume_gal": 9.0,
+      "volume_liters": 34.0,
+      "length_in": 17.7,
+      "width_in": 10.6,
+      "height_in": 10.6,
+      "material": "glass",
+      "rimless": true,
+      "filled_weight_lbs": 85
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/"
+    ]
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 90U Rimless Aquarium",
+    "slug": "uns-90u",
+    "description": "Rimless low-iron glass aquarium (90U format).",
+    "specs": {
+      "volume_gal": 48.0,
+      "volume_liters": 182.0,
+      "length_in": 35.4,
+      "width_in": 17.7,
+      "height_in": 17.7,
+      "material": "glass",
+      "rimless": true,
+      "filled_weight_lbs": 450
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/"
+    ]
+  },
+
+  {
+    "category_slug": "tank",
+    "brand_slug": "waterbox",
+    "brand_name": "Waterbox",
+    "name": "Waterbox Clear 6",
+    "slug": "waterbox-clear-6",
+    "description": "Small rimless aquarium from the Waterbox Clear series.",
+    "specs": {
+      "volume_gal": 6,
+      "volume_liters": 22.7,
+      "length_in": 13.8,
+      "width_in": 9.8,
+      "height_in": 9.8,
+      "material": "glass",
+      "rimless": true,
+      "filled_weight_lbs": 55
+    },
+    "sources": [
+      "https://waterboxaquariums.com/"
+    ]
   },
   {
     "category_slug": "tank",
@@ -33,43 +100,159 @@
       "material": "glass",
       "rimless": true,
       "filled_weight_lbs": 95
-    }
+    },
+    "sources": [
+      "https://waterboxaquariums.com/"
+    ]
   },
   {
     "category_slug": "tank",
-    "brand_slug": "aqueon",
-    "brand_name": "Aqueon",
-    "name": "Standard 10 Gallon Aquarium",
-    "slug": "standard-10-gallon",
-    "description": "Common 10 gallon glass aquarium (standard footprint).",
+    "brand_slug": "waterbox",
+    "brand_name": "Waterbox",
+    "name": "Waterbox Clear 16",
+    "slug": "waterbox-clear-16",
+    "description": "Mid-size rimless aquarium from Waterbox Clear series.",
     "specs": {
-      "volume_gal": 10,
-      "volume_liters": 37.9,
-      "length_in": 20,
-      "width_in": 10,
-      "height_in": 12,
+      "volume_gal": 16,
+      "volume_liters": 60.6,
+      "length_in": 23.6,
+      "width_in": 11.8,
+      "height_in": 11.8,
       "material": "glass",
-      "rimless": false,
-      "filled_weight_lbs": 100
-    }
+      "rimless": true,
+      "filled_weight_lbs": 155
+    },
+    "sources": [
+      "https://waterboxaquariums.com/"
+    ]
   },
   {
     "category_slug": "tank",
-    "brand_slug": "aqueon",
-    "brand_name": "Aqueon",
-    "name": "Standard 20 Gallon Long Aquarium",
-    "slug": "standard-20-gallon-long",
-    "description": "Common 20 gallon long glass aquarium (30 inch length).",
+    "brand_slug": "waterbox",
+    "brand_name": "Waterbox",
+    "name": "Waterbox Clear 20",
+    "slug": "waterbox-clear-20",
+    "description": "Rimless aquarium from Waterbox Clear series.",
     "specs": {
       "volume_gal": 20,
       "volume_liters": 75.7,
-      "length_in": 30,
-      "width_in": 12,
-      "height_in": 12,
+      "length_in": 23.6,
+      "width_in": 14.2,
+      "height_in": 14.2,
+      "material": "glass",
+      "rimless": true,
+      "filled_weight_lbs": 190
+    },
+    "sources": [
+      "https://waterboxaquariums.com/"
+    ]
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "waterbox",
+    "brand_name": "Waterbox",
+    "name": "Waterbox Clear 35",
+    "slug": "waterbox-clear-35",
+    "description": "Larger rimless aquarium from Waterbox Clear series.",
+    "specs": {
+      "volume_gal": 35,
+      "volume_liters": 132.5,
+      "length_in": 35.4,
+      "width_in": 15.7,
+      "height_in": 15.7,
+      "material": "glass",
+      "rimless": true,
+      "filled_weight_lbs": 330
+    },
+    "sources": [
+      "https://waterboxaquariums.com/"
+    ]
+  },
+
+  {
+    "category_slug": "tank",
+    "brand_slug": "ada",
+    "brand_name": "ADA",
+    "name": "ADA Cube Garden 45-P",
+    "slug": "ada-45p",
+    "description": "ADA standard 45 cm aquarium used in many nano aquascapes.",
+    "specs": {
+      "volume_gal": 9.6,
+      "volume_liters": 36.0,
+      "length_in": 17.7,
+      "width_in": 10.6,
+      "height_in": 11.8,
+      "material": "glass",
+      "rimless": true,
+      "filled_weight_lbs": 95
+    },
+    "sources": [
+      "https://www.adana.co.jp/en/"
+    ]
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "ada",
+    "brand_name": "ADA",
+    "name": "ADA Cube Garden 60-P",
+    "slug": "ada-60p",
+    "description": "ADA standard 60 cm aquarium (60P).",
+    "specs": {
+      "volume_gal": 17.1,
+      "volume_liters": 64.8,
+      "length_in": 23.6,
+      "width_in": 11.8,
+      "height_in": 14.2,
+      "material": "glass",
+      "rimless": true,
+      "filled_weight_lbs": 165
+    },
+    "sources": [
+      "https://www.adana.co.jp/en/"
+    ]
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "ada",
+    "brand_name": "ADA",
+    "name": "ADA Cube Garden 90-P",
+    "slug": "ada-90p",
+    "description": "ADA standard 90 cm aquarium (90P).",
+    "specs": {
+      "volume_gal": 48.0,
+      "volume_liters": 182.0,
+      "length_in": 35.4,
+      "width_in": 17.7,
+      "height_in": 17.7,
+      "material": "glass",
+      "rimless": true,
+      "filled_weight_lbs": 450
+    },
+    "sources": [
+      "https://www.adana.co.jp/en/"
+    ]
+  },
+
+  {
+    "category_slug": "tank",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
+    "name": "Fluval Flex 9",
+    "slug": "fluval-flex-9",
+    "description": "All-in-one aquarium with curved front glass and rear filtration.",
+    "specs": {
+      "volume_gal": 9,
+      "volume_liters": 34.1,
+      "length_in": 13.6,
+      "width_in": 13.2,
+      "height_in": 13.2,
       "material": "glass",
       "rimless": false,
-      "filled_weight_lbs": 225
-    }
+      "filled_weight_lbs": 85
+    },
+    "sources": [
+      "https://fluvalaquatics.com/"
+    ]
   },
   {
     "category_slug": "tank",
@@ -87,6 +270,116 @@
       "material": "glass",
       "rimless": false,
       "filled_weight_lbs": 150
-    }
+    },
+    "sources": [
+      "https://fluvalaquatics.com/"
+    ]
+  },
+
+  {
+    "category_slug": "tank",
+    "brand_slug": "aqueon",
+    "brand_name": "Aqueon",
+    "name": "Standard 10 Gallon Aquarium",
+    "slug": "standard-10-gallon",
+    "description": "Common 10 gallon glass aquarium (standard footprint).",
+    "specs": {
+      "volume_gal": 10,
+      "volume_liters": 37.9,
+      "length_in": 20,
+      "width_in": 10,
+      "height_in": 12,
+      "material": "glass",
+      "rimless": false,
+      "filled_weight_lbs": 100
+    },
+    "sources": [
+      "https://www.aqueon.com/"
+    ]
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "aqueon",
+    "brand_name": "Aqueon",
+    "name": "Standard 20 Gallon Long Aquarium",
+    "slug": "standard-20-gallon-long",
+    "description": "Common 20 gallon long glass aquarium (30 inch length).",
+    "specs": {
+      "volume_gal": 20,
+      "volume_liters": 75.7,
+      "length_in": 30,
+      "width_in": 12,
+      "height_in": 12,
+      "material": "glass",
+      "rimless": false,
+      "filled_weight_lbs": 225
+    },
+    "sources": [
+      "https://www.aqueon.com/"
+    ]
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "aqueon",
+    "brand_name": "Aqueon",
+    "name": "Standard 29 Gallon Aquarium",
+    "slug": "standard-29-gallon",
+    "description": "Common 29 gallon glass aquarium (30 inch length, taller).",
+    "specs": {
+      "volume_gal": 29,
+      "volume_liters": 109.8,
+      "length_in": 30,
+      "width_in": 12,
+      "height_in": 18,
+      "material": "glass",
+      "rimless": false,
+      "filled_weight_lbs": 310
+    },
+    "sources": [
+      "https://www.aqueon.com/"
+    ]
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "aqueon",
+    "brand_name": "Aqueon",
+    "name": "Standard 40 Gallon Breeder Aquarium",
+    "slug": "standard-40-breeder",
+    "description": "Popular 40 breeder footprint for planted tanks and aquascapes.",
+    "specs": {
+      "volume_gal": 40,
+      "volume_liters": 151.4,
+      "length_in": 36,
+      "width_in": 18,
+      "height_in": 16,
+      "material": "glass",
+      "rimless": false,
+      "filled_weight_lbs": 420
+    },
+    "sources": [
+      "https://www.aqueon.com/"
+    ]
+  },
+
+  {
+    "category_slug": "tank",
+    "brand_slug": "lifegard",
+    "brand_name": "Lifegard Aquatics",
+    "name": "Lifegard 5 Gallon Crystal Aquarium",
+    "slug": "lifegard-5g-crystal",
+    "description": "Small rimless nano aquarium.",
+    "specs": {
+      "volume_gal": 5,
+      "volume_liters": 18.9,
+      "length_in": 11.8,
+      "width_in": 11.8,
+      "height_in": 11.8,
+      "material": "glass",
+      "rimless": true,
+      "filled_weight_lbs": 50
+    },
+    "sources": [
+      "https://lifegardaquatics.com/"
+    ]
   }
 ]

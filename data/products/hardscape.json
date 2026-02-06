@@ -1,0 +1,131 @@
+[
+  {
+    "category_slug": "hardscape",
+    "brand_slug": "generic",
+    "brand_name": "Generic",
+    "name": "Dragon Stone (Ohko Stone)",
+    "slug": "dragon-stone",
+    "description": "Textured inert stone commonly used in aquascaping.",
+    "specs": {
+      "hardscape_type": "stone",
+      "raises_gh": false
+    },
+    "sources": [
+      "https://www.aquasabi.com/",
+      "https://tropica.com/"
+    ],
+    "source_notes": "Dragon/Ohko stone is generally considered inert in freshwater aquascapes."
+  },
+  {
+    "category_slug": "hardscape",
+    "brand_slug": "generic",
+    "brand_name": "Generic",
+    "name": "Seiryu Stone",
+    "slug": "seiryu-stone",
+    "description": "Popular aquascaping stone that can raise KH/GH over time.",
+    "specs": {
+      "hardscape_type": "stone",
+      "raises_gh": true
+    },
+    "sources": [
+      "https://www.aquasabi.com/"
+    ]
+  },
+  {
+    "category_slug": "hardscape",
+    "brand_slug": "generic",
+    "brand_name": "Generic",
+    "name": "Lava Rock",
+    "slug": "lava-rock",
+    "description": "Porous volcanic rock; generally inert and good for bacterial colonization.",
+    "specs": {
+      "hardscape_type": "stone",
+      "raises_gh": false
+    },
+    "sources": [
+      "https://www.aquasabi.com/"
+    ]
+  },
+  {
+    "category_slug": "hardscape",
+    "brand_slug": "generic",
+    "brand_name": "Generic",
+    "name": "Spider Wood (Azalea Root)",
+    "slug": "spider-wood",
+    "description": "Branchy wood used for aquascapes; may leach tannins initially.",
+    "specs": {
+      "hardscape_type": "wood",
+      "raises_gh": false,
+      "tannins": true
+    },
+    "sources": [
+      "https://www.aquasabi.com/"
+    ]
+  },
+  {
+    "category_slug": "hardscape",
+    "brand_slug": "generic",
+    "brand_name": "Generic",
+    "name": "Manzanita Wood",
+    "slug": "manzanita-wood",
+    "description": "Hard, branching wood often used for aquascaping; typically sinks after soaking.",
+    "specs": {
+      "hardscape_type": "wood",
+      "raises_gh": false,
+      "tannins": true
+    },
+    "sources": [
+      "https://www.aquasabi.com/"
+    ]
+  },
+  {
+    "category_slug": "hardscape",
+    "brand_slug": "generic",
+    "brand_name": "Generic",
+    "name": "Cholla Wood",
+    "slug": "cholla-wood",
+    "description": "Cactus skeleton wood used for shrimp tanks and nano scapes.",
+    "specs": {
+      "hardscape_type": "wood",
+      "raises_gh": false,
+      "tannins": true
+    },
+    "sources": [
+      "https://www.amazon.com/s?k=cholla+wood+aquarium"
+    ],
+    "source_notes": "Generic commodity; seeded from Amazon search URL."
+  },
+  {
+    "category_slug": "hardscape",
+    "brand_slug": "generic",
+    "brand_name": "Generic",
+    "name": "Mopani Wood",
+    "slug": "mopani-wood",
+    "description": "Dense wood that often sinks easily but can release tannins.",
+    "specs": {
+      "hardscape_type": "wood",
+      "raises_gh": false,
+      "tannins": true
+    },
+    "sources": [
+      "https://www.amazon.com/s?k=mopani+wood+aquarium"
+    ],
+    "source_notes": "Generic commodity; seeded from Amazon search URL."
+  },
+  {
+    "category_slug": "hardscape",
+    "brand_slug": "generic",
+    "brand_name": "Generic",
+    "name": "Slate Stone",
+    "slug": "slate-stone",
+    "description": "Layered stone often used for terraces and retaining walls in aquascapes.",
+    "specs": {
+      "hardscape_type": "stone",
+      "raises_gh": false
+    },
+    "sources": [
+      "https://www.amazon.com/s?k=slate+stone+aquarium"
+    ],
+    "source_notes": "Generic commodity; seeded from Amazon search URL."
+  }
+]

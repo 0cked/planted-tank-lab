@@ -1,0 +1,208 @@
+[
+  {
+    "category_slug": "substrate",
+    "brand_slug": "ada",
+    "brand_name": "ADA",
+    "name": "ADA Aqua Soil Amazonia Ver. 2",
+    "slug": "ada-aquasoil-amazonia-v2",
+    "description": "Active planted aquarium soil designed to buffer pH and supply nutrients.",
+    "specs": {
+      "substrate_type": "active_soil",
+      "buffers_ph": true,
+      "grain_size_mm": 3,
+      "color": "black"
+    },
+    "sources": [
+      "https://www.adana.co.jp/en/"
+    ]
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS Controsoil (Normal)",
+    "slug": "uns-controsoil-normal",
+    "description": "Active soil for planted tanks; commonly used for aquascaping.",
+    "specs": {
+      "substrate_type": "active_soil",
+      "buffers_ph": true,
+      "grain_size_mm": 3,
+      "color": "black"
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/"
+    ]
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "fluval",
+    "brand_name": "Fluval",
+    "name": "Fluval Plant and Shrimp Stratum",
+    "slug": "fluval-stratum",
+    "description": "Volcanic soil substrate aimed at planted and shrimp tanks.",
+    "specs": {
+      "substrate_type": "active_soil",
+      "buffers_ph": true,
+      "grain_size_mm": 2,
+      "color": "dark_brown"
+    },
+    "sources": [
+      "https://fluvalaquatics.com/"
+    ]
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "tropica",
+    "brand_name": "Tropica",
+    "name": "Tropica Aquarium Soil",
+    "slug": "tropica-aquarium-soil",
+    "description": "Active aquarium soil that buffers pH and supports planted growth.",
+    "specs": {
+      "substrate_type": "active_soil",
+      "buffers_ph": true,
+      "grain_size_mm": 2,
+      "color": "brown"
+    },
+    "sources": [
+      "https://tropica.com/"
+    ]
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "caribsea",
+    "brand_name": "CaribSea",
+    "name": "CaribSea Eco-Complete Planted Substrate",
+    "slug": "caribsea-eco-complete",
+    "description": "Inert planted substrate with porous volcanic material.",
+    "specs": {
+      "substrate_type": "inert_gravel",
+      "buffers_ph": false,
+      "grain_size_mm": 3,
+      "color": "black"
+    },
+    "sources": [
+      "https://caribsea.com/"
+    ]
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "seachem",
+    "brand_name": "Seachem",
+    "name": "Seachem Flourite Black",
+    "slug": "seachem-flourite-black",
+    "description": "Porous clay gravel substrate; inert and long-lasting.",
+    "specs": {
+      "substrate_type": "inert_gravel",
+      "buffers_ph": false,
+      "grain_size_mm": 3,
+      "color": "black"
+    },
+    "sources": [
+      "https://www.seachem.com/"
+    ]
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "seachem",
+    "brand_name": "Seachem",
+    "name": "Seachem Flourite Red",
+    "slug": "seachem-flourite-red",
+    "description": "Porous clay gravel substrate; inert and long-lasting.",
+    "specs": {
+      "substrate_type": "inert_gravel",
+      "buffers_ph": false,
+      "grain_size_mm": 3,
+      "color": "red"
+    },
+    "sources": [
+      "https://www.seachem.com/"
+    ]
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "hth",
+    "brand_name": "HTH",
+    "name": "Pool Filter Sand (Inert)",
+    "slug": "pool-filter-sand",
+    "description": "Common inert sand option for planted tanks (often used with root tabs).",
+    "specs": {
+      "substrate_type": "sand",
+      "buffers_ph": false,
+      "grain_size_mm": 0.6,
+      "color": "tan"
+    },
+    "sources": [
+      "https://www.amazon.com/s?k=pool+filter+sand"
+    ],
+    "source_notes": "Generic commodity; seeded from Amazon search URL."
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "coal-slag",
+    "brand_name": "Black Diamond",
+    "name": "Black Diamond Blasting Sand (Medium Grit)",
+    "slug": "black-diamond-blasting-sand-medium",
+    "description": "Popular budget inert substrate (coal slag) when properly rinsed.",
+    "specs": {
+      "substrate_type": "sand",
+      "buffers_ph": false,
+      "grain_size_mm": 1.2,
+      "color": "black"
+    },
+    "sources": [
+      "https://www.tractorsupply.com/"
+    ],
+    "source_notes": "Often sold via farm stores; verify grit size and safety for aquarium use."
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS Controsoil (Extra Fine)",
+    "slug": "uns-controsoil-extra-fine",
+    "description": "Finer-grain active soil suited for smaller aquascapes and carpets.",
+    "specs": {
+      "substrate_type": "active_soil",
+      "buffers_ph": true,
+      "grain_size_mm": 1,
+      "color": "black"
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/"
+    ]
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "seachem",
+    "brand_name": "Seachem",
+    "name": "Seachem Flourite Sand",
+    "slug": "seachem-flourite-sand",
+    "description": "Sandy/granular clay substrate; inert and suitable for planted tanks.",
+    "specs": {
+      "substrate_type": "sand",
+      "buffers_ph": false,
+      "grain_size_mm": 1.0,
+      "color": "tan"
+    },
+    "sources": [
+      "https://www.seachem.com/"
+    ]
+  },
+  {
+    "category_slug": "substrate",
+    "brand_slug": "ada",
+    "brand_name": "ADA",
+    "name": "ADA Aqua Soil Amazonia Ver. 2 (Powder)",
+    "slug": "ada-aquasoil-amazonia-v2-powder",
+    "description": "Powder granule variant of Amazonia, used as a top layer for small plants/carpets.",
+    "specs": {
+      "substrate_type": "active_soil",
+      "buffers_ph": true,
+      "grain_size_mm": 1,
+      "color": "black"
+    },
+    "sources": [
+      "https://www.adana.co.jp/en/"
+    ]
+  }
+]
