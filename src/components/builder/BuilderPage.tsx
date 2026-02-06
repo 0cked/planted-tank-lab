@@ -212,6 +212,7 @@ function CategoryRowView(props: {
   priceLabel: string;
   priceSubLabel?: string | null;
   buyHref?: string | null;
+  onOffers?: (() => void) | undefined;
   evals: Evaluation[];
   active?: boolean;
   onChoose: () => void;
@@ -263,6 +264,16 @@ function CategoryRowView(props: {
         >
           {props.selectionLabel.startsWith("+") ? "Choose" : "Swap"}
         </button>
+        {props.onOffers ? (
+          <button
+            type="button"
+            onClick={props.onOffers}
+            className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
+            Offers
+          </button>
+        ) : null}
         {props.buyHref ? (
           <a
             href={props.buyHref}
@@ -881,6 +892,106 @@ function PlantPicker(props: {
   );
 }
 
+function OffersDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  productId: string;
+  productName: string;
+  selectedOfferId: string | null;
+  onSelectOfferId: (offerId: string | null) => void;
+}) {
+  const offersQ = trpc.offers.listByProductId.useQuery(
+    { productId: props.productId, limit: 50 },
+    { enabled: props.open },
+  );
+
+  const formatUpdatedAt = (value: unknown): string | null => {
+    if (value == null) return null;
+    const d = value instanceof Date ? value : new Date(String(value));
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  };
+
+  return (
+    <PickerDialog
+      title={`Offers for ${props.productName}`}
+      description="Pick a retailer. Default is the best in-stock price."
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="text-sm text-neutral-700">
+          {props.selectedOfferId ? "Custom offer selected." : "Using best in-stock offer."}
+        </div>
+        <button
+          type="button"
+          className="ptl-btn-secondary"
+          onClick={() => props.onSelectOfferId(null)}
+          disabled={!props.selectedOfferId}
+        >
+          Use best price
+        </button>
+      </div>
+
+      <div
+        className="mt-4 overflow-hidden rounded-xl border bg-white/70"
+        style={{ borderColor: "var(--ptl-border)" }}
+      >
+        {offersQ.isLoading ? (
+          <div className="px-4 py-3 text-sm text-neutral-600">Loading offers...</div>
+        ) : (offersQ.data ?? []).length === 0 ? (
+          <div className="px-4 py-3 text-sm text-neutral-600">
+            No offers available for this item yet.
+          </div>
+        ) : (
+          <ul className="divide-y divide-neutral-200">
+            {(offersQ.data ?? []).map((o) => {
+              const selected = props.selectedOfferId === o.id;
+              const price = formatMoney(o.priceCents);
+              const updated = formatUpdatedAt((o as { updatedAt?: unknown }).updatedAt);
+              return (
+                <li
+                  key={o.id}
+                  className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-white/40"
+                >
+                  <label className="flex min-w-0 items-center gap-3">
+                    <input
+                      type="radio"
+                      name={`offer-${props.productId}`}
+                      checked={selected}
+                      onChange={() => props.onSelectOfferId(o.id)}
+                      className="h-4 w-4"
+                    />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-neutral-900">
+                        {o.retailer.name}
+                      </div>
+                      <div className="text-xs text-neutral-600">
+                        {o.inStock ? "In stock" : "Out of stock"}
+                        {updated ? ` · Updated ${updated}` : ""}
+                      </div>
+                    </div>
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm font-semibold text-neutral-900">{price}</div>
+                    <a
+                      href={o.goUrl}
+                      className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+                      style={{ borderColor: "var(--ptl-border)" }}
+                    >
+                      View
+                    </a>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </PickerDialog>
+  );
+}
+
 export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const router = useRouter();
   const initialHydrated = useRef(false);
@@ -890,6 +1001,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const productsByCategory = useBuilderStore((s) => s.productsByCategory);
   const plants = useBuilderStore((s) => s.plants);
   const flags = useBuilderStore((s) => s.flags);
+  const selectedOfferIdByProductId = useBuilderStore((s) => s.selectedOfferIdByProductId);
   const compatibilityEnabled = useBuilderStore((s) => s.compatibilityEnabled);
   const lowTechNoCo2 = useBuilderStore((s) => s.lowTechNoCo2);
   const curatedOnly = useBuilderStore((s) => s.curatedOnly);
@@ -898,6 +1010,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const addPlant = useBuilderStore((s) => s.addPlant);
   const removePlantById = useBuilderStore((s) => s.removePlantById);
   const clearPlants = useBuilderStore((s) => s.clearPlants);
+  const setSelectedOfferId = useBuilderStore((s) => s.setSelectedOfferId);
   const setHasShrimp = useBuilderStore((s) => s.setHasShrimp);
   const setCompatibilityEnabled = useBuilderStore((s) => s.setCompatibilityEnabled);
   const setLowTechNoCo2 = useBuilderStore((s) => s.setLowTechNoCo2);
@@ -957,6 +1070,17 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     { enabled: selectedProductIds.length > 0 },
   );
 
+  const selectedOfferIds = useMemo(() => {
+    const ids = Object.values(selectedOfferIdByProductId)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+    return Array.from(new Set(ids));
+  }, [selectedOfferIdByProductId]);
+
+  const selectedOffersQ = trpc.offers.getByIds.useQuery(
+    { offerIds: selectedOfferIds },
+    { enabled: selectedOfferIds.length > 0 },
+  );
+
   const bestOfferByProductId = useMemo(() => {
     const map = new Map<
       string,
@@ -979,18 +1103,81 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     return map;
   }, [bestOffersQ.data]);
 
+  const selectedOfferByProductId = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        offerId: string;
+        priceCents: number | null;
+        inStock: boolean;
+        retailerName: string;
+        goUrl: string;
+      }
+    >();
+    for (const row of selectedOffersQ.data ?? []) {
+      map.set(row.productId, {
+        offerId: row.offerId,
+        priceCents: row.priceCents ?? null,
+        inStock: row.inStock,
+        retailerName: row.retailer?.name ?? "Retailer",
+        goUrl: row.goUrl,
+      });
+    }
+    return map;
+  }, [selectedOffersQ.data]);
+
+  const chosenOfferByProductId = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        offerId: string;
+        priceCents: number;
+        retailerName: string;
+        goUrl: string;
+        source: "selected" | "best";
+      }
+    >();
+
+    for (const productId of selectedProductIds) {
+      const selectedOfferId = selectedOfferIdByProductId[productId] ?? null;
+      const selected = selectedOfferId ? selectedOfferByProductId.get(productId) : null;
+      if (selected && selected.inStock && selected.priceCents != null) {
+        map.set(productId, {
+          offerId: selected.offerId,
+          priceCents: selected.priceCents,
+          retailerName: selected.retailerName,
+          goUrl: selected.goUrl,
+          source: "selected",
+        });
+        continue;
+      }
+
+      const best = bestOfferByProductId.get(productId);
+      if (best) {
+        map.set(productId, { ...best, source: "best" });
+      }
+    }
+
+    return map;
+  }, [
+    bestOfferByProductId,
+    selectedOfferByProductId,
+    selectedOfferIdByProductId,
+    selectedProductIds,
+  ]);
+
   const totalCents = useMemo(() => {
     let total = 0;
     for (const p of Object.values(productsByCategory)) {
       if (!p) continue;
-      const cents = bestOfferByProductId.get(p.id)?.priceCents;
+      const cents = chosenOfferByProductId.get(p.id)?.priceCents;
       if (cents != null) total += cents;
     }
     return total;
-  }, [bestOfferByProductId, productsByCategory]);
+  }, [chosenOfferByProductId, productsByCategory]);
 
   const selectedCount = selectedProductIds.length;
-  const pricedCount = bestOfferByProductId.size;
+  const pricedCount = chosenOfferByProductId.size;
   const totalLabel = selectedCount > 0 && pricedCount === selectedCount ? "Total" : "Estimated total";
   const totalDisplay = pricedCount > 0 ? formatMoney(totalCents) : "—";
 
@@ -999,6 +1186,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const shareMutation = trpc.builds.upsertAnonymous.useMutation();
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [activeOffers, setActiveOffers] = useState<{ productId: string; productName: string } | null>(null);
 
   const workflow = useMemo(() => {
     return buildWorkflow({
@@ -1385,7 +1573,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                 const effectiveSelected =
                   isCo2Category && lowTechNoCo2 ? undefined : selected;
                 const offer = effectiveSelected
-                  ? bestOfferByProductId.get(effectiveSelected.id)
+                  ? chosenOfferByProductId.get(effectiveSelected.id)
                   : null;
                 const priceCents = offer?.priceCents ?? null;
 
@@ -1407,8 +1595,23 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                     required={c.builderRequired}
                     selectionLabel={selectionLabel}
                     priceLabel={formatMoney(priceCents)}
-                    priceSubLabel={offer ? offer.retailerName : effectiveSelected ? "No in-stock offers yet" : null}
+                    priceSubLabel={
+                      offer
+                        ? `${offer.retailerName}${offer.source === "selected" ? " (selected)" : ""}`
+                        : effectiveSelected
+                          ? "No in-stock offers yet"
+                          : null
+                    }
                     buyHref={offer ? offer.goUrl : null}
+                    onOffers={
+                      effectiveSelected
+                        ? () =>
+                            setActiveOffers({
+                              productId: effectiveSelected.id,
+                              productName: effectiveSelected.name,
+                            })
+                        : undefined
+                    }
                     evals={catEvals}
                     active={effectiveFocusedStepId === c.slug}
                     onChoose={() => {
@@ -1551,6 +1754,22 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
         />
       ) : null}
 
+      {activeOffers ? (
+        <OffersDialog
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) setActiveOffers(null);
+          }}
+          productId={activeOffers.productId}
+          productName={activeOffers.productName}
+          selectedOfferId={selectedOfferIdByProductId[activeOffers.productId] ?? null}
+          onSelectOfferId={(offerId) => {
+            setSelectedOfferId(activeOffers.productId, offerId);
+            setActiveOffers(null);
+          }}
+        />
+      ) : null}
+
       {rulesQ.isLoading ? (
         <div className="mt-6 text-xs text-neutral-500">Loading rules...</div>
       ) : null}
@@ -1560,7 +1779,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       {categoriesQ.isError ? (
         <div className="mt-2 text-xs text-red-700">Failed to load categories.</div>
       ) : null}
-      {bestOffersQ.isError ? (
+      {bestOffersQ.isError || selectedOffersQ.isError ? (
         <div className="mt-2 text-xs text-red-700">Failed to load prices.</div>
       ) : null}
     </main>

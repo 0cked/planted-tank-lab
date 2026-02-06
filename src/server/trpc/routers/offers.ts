@@ -111,6 +111,48 @@ export const offersRouter = createTRPCRouter({
       }));
     }),
 
+  getByIds: publicProcedure
+    .input(
+      z.object({
+        offerIds: z.array(z.string().uuid()).max(200),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      if (input.offerIds.length === 0) return [];
+
+      const rows = await ctx.db
+        .select({
+          offerId: offers.id,
+          productId: offers.productId,
+          priceCents: offers.priceCents,
+          currency: offers.currency,
+          inStock: offers.inStock,
+          updatedAt: offers.updatedAt,
+          retailer: {
+            id: retailers.id,
+            name: retailers.name,
+            slug: retailers.slug,
+            websiteUrl: retailers.websiteUrl,
+            logoUrl: retailers.logoUrl,
+          },
+        })
+        .from(offers)
+        .innerJoin(retailers, eq(offers.retailerId, retailers.id))
+        .where(inArray(offers.id, input.offerIds))
+        .orderBy(desc(offers.updatedAt));
+
+      return rows.map((r) => ({
+        productId: r.productId,
+        offerId: r.offerId,
+        priceCents: r.priceCents,
+        currency: r.currency,
+        inStock: r.inStock,
+        updatedAt: r.updatedAt,
+        retailer: r.retailer,
+        goUrl: `/go/${r.offerId}`,
+      }));
+    }),
+
   listByProductId: publicProcedure
     .input(
       z.object({
@@ -135,6 +177,7 @@ export const offersRouter = createTRPCRouter({
         priceCents: r.offer.priceCents,
         currency: r.offer.currency,
         inStock: r.offer.inStock,
+        updatedAt: r.offer.updatedAt,
         retailer: {
           id: r.retailer.id,
           name: r.retailer.name,

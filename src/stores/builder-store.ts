@@ -11,6 +11,9 @@ export type BuilderState = {
   productsByCategory: Record<string, ProductSnapshot | undefined>;
   plants: PlantSnapshot[];
 
+  // Optional per-product override (user picked a specific retailer offer).
+  selectedOfferIdByProductId: Record<string, string | undefined>;
+
   flags: BuildFlags;
 
   // UI/UX toggles (persisted).
@@ -22,6 +25,8 @@ export type BuilderState = {
   addPlant: (plant: PlantSnapshot) => void;
   removePlantById: (plantId: string) => void;
   clearPlants: () => void;
+
+  setSelectedOfferId: (productId: string, offerId: string | null) => void;
 
   setHasShrimp: (hasShrimp: boolean) => void;
   setCompatibilityEnabled: (enabled: boolean) => void;
@@ -48,6 +53,7 @@ const initialState = {
   shareSlug: null as string | null,
   productsByCategory: {} as Record<string, ProductSnapshot | undefined>,
   plants: [] as PlantSnapshot[],
+  selectedOfferIdByProductId: {} as Record<string, string | undefined>,
   flags: initialFlags,
   compatibilityEnabled: true,
   lowTechNoCo2: false,
@@ -62,9 +68,12 @@ export const useBuilderStore = create<BuilderState>()(
       setProduct: (categorySlug, product) => {
         set((s) => {
           const next = { ...s.productsByCategory };
+          const nextSelectedOffers = { ...s.selectedOfferIdByProductId };
+          const prev = s.productsByCategory[categorySlug];
+          if (prev?.id) delete nextSelectedOffers[prev.id];
           if (!product) delete next[categorySlug];
           else next[categorySlug] = product;
-          return { productsByCategory: next };
+          return { productsByCategory: next, selectedOfferIdByProductId: nextSelectedOffers };
         });
       },
 
@@ -82,6 +91,14 @@ export const useBuilderStore = create<BuilderState>()(
 
       clearPlants: () => set({ plants: [] }),
 
+      setSelectedOfferId: (productId, offerId) =>
+        set((s) => {
+          const next = { ...s.selectedOfferIdByProductId };
+          if (!offerId) delete next[productId];
+          else next[productId] = offerId;
+          return { selectedOfferIdByProductId: next };
+        }),
+
       setHasShrimp: (hasShrimp) => set((s) => ({ flags: { ...s.flags, hasShrimp } })),
       setCompatibilityEnabled: (enabled) => set({ compatibilityEnabled: enabled }),
       setLowTechNoCo2: (enabled) =>
@@ -98,6 +115,7 @@ export const useBuilderStore = create<BuilderState>()(
           shareSlug: data.shareSlug,
           productsByCategory: data.productsByCategory,
           plants: data.plants,
+          selectedOfferIdByProductId: s.selectedOfferIdByProductId,
           flags: { ...s.flags, ...(data.flags ?? {}) },
         }));
       },
@@ -112,6 +130,7 @@ export const useBuilderStore = create<BuilderState>()(
         shareSlug: s.shareSlug,
         productsByCategory: s.productsByCategory,
         plants: s.plants,
+        selectedOfferIdByProductId: s.selectedOfferIdByProductId,
         flags: s.flags,
         compatibilityEnabled: s.compatibilityEnabled,
         lowTechNoCo2: s.lowTechNoCo2,
