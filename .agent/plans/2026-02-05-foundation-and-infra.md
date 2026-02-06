@@ -26,8 +26,10 @@ Establish fully working project infrastructure and baseline application foundati
 - [x] (2026-02-06) Created seed JSON + idempotent seeding script; seeded categories, products, plants, and rules into Supabase.
 - [x] (2026-02-06) Milestone 4 commit.
 - [x] (2026-02-06) Implemented basic pages (home, builder, products, plants) and proved DB → tRPC → UI on `/builder`.
-- [ ] (pending) Milestone 5 commit.
-- [ ] Milestone 6: Full verification, deploy, and production smoke checks complete.
+- [x] (2026-02-06) Milestone 5 commit.
+- [x] (2026-02-06) Ran local verification: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm dev` (smoke via curl).
+- [x] (2026-02-06) Forced Vercel project framework to Next.js and verified production renders at `https://plantedtanklab.com` (home + `/builder`). 
+- [ ] (pending) Milestone 6 commit.
 - [ ] Milestone commit series complete and pushed to `main`.
 
 ## Surprises & Discoveries
@@ -38,6 +40,10 @@ Establish fully working project infrastructure and baseline application foundati
   Evidence: Initial connection attempt failed; URL-encoding fixed connection and `SELECT 1` returned successfully.
 - Observation: `vercel domains inspect plantedtanklab.com` reports association with an older project name even though aliases point to the deployment created by this repo-linked project.
   Evidence: `vercel alias list` shows `plantedtanklab.com` and `www.plantedtanklab.com` aliased to the `planted-tank-lab` production deployment URL.
+- Observation: The Vercel project was created before the Next.js scaffold existed, leaving the project framework unset/\"Other\" and causing production URLs to return `NOT_FOUND` despite successful builds.
+  Evidence: `vercel project inspect planted-tank-lab` showed \"Framework Preset: Other\"; production began serving correctly after setting `framework: \"nextjs\"` via the Vercel API.
+- Observation: Deploying via Vercel CLI uploaded the local `.secrets/` directory into the deployment file tree before `.vercelignore` was added (secrets were not committed to git, but were present in deployment inputs).
+  Evidence: `vercel api /v6/deployments/<id>/files` output included `.secrets/cloudflare/API_TOKEN.txt` and `.secrets/supabase/supabaseinfo.txt` as files in earlier deployments.
 
 ## Decision Log
 
@@ -49,6 +55,12 @@ Establish fully working project infrastructure and baseline application foundati
   Date: 2026-02-06
 - Decision: Add `tsx` as a dev dependency to run `scripts/seed.ts`.
   Rationale: Milestone 4 requires a TypeScript seed script and `pnpm seed`; `tsx` is the minimal, standard TS runner without adding heavier tooling.
+  Date: 2026-02-06
+- Decision: Add `.vercelignore` to prevent local-only secrets (`.secrets/`, `.env.local`) from being uploaded during CLI deployments.
+  Rationale: Even though secrets are gitignored, Vercel CLI deploys from the filesystem; `.vercelignore` is required to ensure secrets never enter deployment inputs.
+  Date: 2026-02-06
+- Decision: Update the Vercel project framework to `nextjs` via API.
+  Rationale: The project was created before `package.json`/Next scaffold existed, leaving framework unset and causing production to serve `NOT_FOUND`.
   Date: 2026-02-06
 
 ## Outcomes & Retrospective

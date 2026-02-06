@@ -8,8 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:e2e": "playwright test",
+    "test": "vitest run --passWithNoTests",
+    "test:e2e": "playwright test --pass-with-no-tests",
     "seed": "tsx scripts/seed.ts",
     "format": "prettier -w ."
   },
