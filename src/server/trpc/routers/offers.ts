@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { and, desc, eq, inArray, isNotNull, min } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNotNull, min } from "drizzle-orm";
 
-import { offers, retailers } from "@/server/db/schema";
+import { offers, priceHistory, retailers } from "@/server/db/schema";
 import { createTRPCRouter, publicProcedure } from "@/server/trpc/trpc";
 
 export const offersRouter = createTRPCRouter({
@@ -196,5 +196,40 @@ export const offersRouter = createTRPCRouter({
         },
         goUrl: `/go/${r.offer.id}`,
       }));
+    }),
+
+  priceHistoryByProductId: publicProcedure
+    .input(
+      z.object({
+        productId: z.string().uuid(),
+        days: z.number().int().min(1).max(365).default(30),
+        limit: z.number().int().min(1).max(2000).default(500),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const cutoff = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000);
+
+      const rows = await ctx.db
+        .select({
+          offerId: priceHistory.offerId,
+          recordedAt: priceHistory.recordedAt,
+          priceCents: priceHistory.priceCents,
+          inStock: priceHistory.inStock,
+          retailer: {
+            id: retailers.id,
+            name: retailers.name,
+            slug: retailers.slug,
+            logoUrl: retailers.logoUrl,
+            logoAssetPath: retailers.logoAssetPath,
+          },
+        })
+        .from(priceHistory)
+        .innerJoin(offers, eq(priceHistory.offerId, offers.id))
+        .innerJoin(retailers, eq(offers.retailerId, retailers.id))
+        .where(and(eq(offers.productId, input.productId), gt(priceHistory.recordedAt, cutoff)))
+        .orderBy(asc(priceHistory.recordedAt))
+        .limit(input.limit);
+
+      return rows;
     }),
 });

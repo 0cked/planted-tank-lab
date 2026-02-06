@@ -20,6 +20,48 @@ function formatDateShort(value: unknown): string | null {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+function isoDay(value: unknown): string | null {
+  if (value == null) return null;
+  const d = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+function PriceSparkline(props: { centsByDay: Array<{ day: string; cents: number }> }) {
+  const w = 320;
+  const h = 70;
+  const pad = 6;
+
+  const values = props.centsByDay.map((p) => p.cents);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = Math.max(1, max - min);
+
+  const pts = props.centsByDay.map((p, idx) => {
+    const x = pad + (idx * (w - pad * 2)) / Math.max(1, props.centsByDay.length - 1);
+    const y = h - pad - ((p.cents - min) * (h - pad * 2)) / span;
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  });
+
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      className="mt-3 w-full overflow-visible"
+      role="img"
+      aria-label="Price history sparkline"
+    >
+      <polyline
+        points={pts.join(" ")}
+        fill="none"
+        stroke="rgba(5,150,105,0.95)"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function firstImageUrl(imageUrl: string | null, imageUrls: unknown): string | null {
   if (imageUrl) return imageUrl;
   if (Array.isArray(imageUrls) && typeof imageUrls[0] === "string") return imageUrls[0];
@@ -58,6 +100,9 @@ export default async function ProductDetailPage(props: {
   const title = brandName ? `${brandName} ${p.name}` : p.name;
 
   const offers = await caller.offers.listByProductId({ productId: p.id, limit: 50 });
+  const historyRows = await caller.offers
+    .priceHistoryByProductId({ productId: p.id, days: 30, limit: 500 })
+    .catch(() => []);
   const worksWellWith = await caller.products.worksWellWith({ productId: p.id, limit: 6 }).catch(() => []);
   const lowest = offers.reduce<number | null>((min, o) => {
     const cents = o.priceCents;
@@ -72,6 +117,21 @@ export default async function ProductDetailPage(props: {
     ? p.imageUrls.filter((u): u is string => typeof u === "string")
     : [];
   const primaryImage = firstImageUrl(p.imageUrl ?? null, gallery) ?? null;
+
+  const centsByDay = (() => {
+    const m = new Map<string, number>();
+    for (const r of historyRows) {
+      if (!r.inStock) continue;
+      const day = isoDay(r.recordedAt);
+      if (!day) continue;
+      const prev = m.get(day);
+      if (prev == null) m.set(day, r.priceCents);
+      else m.set(day, Math.min(prev, r.priceCents));
+    }
+    return Array.from(m.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([day, cents]) => ({ day, cents }));
+  })();
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -178,6 +238,20 @@ export default async function ProductDetailPage(props: {
 
         <aside className="ptl-surface p-6">
           <div className="text-sm font-medium">Offers</div>
+          {centsByDay.length >= 2 ? (
+            <div
+              className="mt-4 rounded-2xl border bg-white/70 px-4 py-3"
+              style={{ borderColor: "var(--ptl-border)" }}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+                Price trend (last 30 days)
+              </div>
+              <PriceSparkline centsByDay={centsByDay} />
+              <div className="mt-2 text-xs text-neutral-500">
+                Based on our periodic checks. Prices may vary.
+              </div>
+            </div>
+          ) : null}
           {offers.length === 0 ? (
             <div className="mt-3 text-sm text-neutral-600">No offers yet.</div>
           ) : (

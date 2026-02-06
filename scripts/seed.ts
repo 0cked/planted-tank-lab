@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/server/db";
@@ -10,6 +10,7 @@ import {
   categories,
   compatibilityRules,
   offers,
+  priceHistory,
   plants,
   products,
   retailers,
@@ -468,6 +469,31 @@ async function upsertOffers(): Promise<void> {
   }
 }
 
+async function backfillInitialPriceHistory(): Promise<void> {
+  // Seed at least one price history point per priced offer, but only if it has no history yet.
+  const rows = await db
+    .select({
+      offerId: offers.id,
+      priceCents: offers.priceCents,
+      inStock: offers.inStock,
+    })
+    .from(offers)
+    .leftJoin(priceHistory, eq(offers.id, priceHistory.offerId))
+    .where(and(isNotNull(offers.priceCents), isNull(priceHistory.offerId)))
+    .limit(5000);
+
+  for (const r of rows) {
+    const cents = r.priceCents;
+    if (cents == null) continue;
+    await db.insert(priceHistory).values({
+      offerId: r.offerId,
+      priceCents: cents,
+      inStock: r.inStock,
+      recordedAt: new Date(),
+    });
+  }
+}
+
 async function main(): Promise<void> {
   const productFiles = readdirSync(join(process.cwd(), "data/products"))
     .filter((f) => f.endsWith(".json"))
@@ -495,6 +521,9 @@ async function main(): Promise<void> {
   console.log("Seeding: offers...");
   await upsertOffers();
 
+  console.log("Seeding: price history (initial backfill)...");
+  await backfillInitialPriceHistory();
+
   // Avoid spiking pooled connections on low-connection poolers.
   const categoriesCount = await db.select({ c: sql<number>`count(*)::int` }).from(categories);
   const brandsCount = await db.select({ c: sql<number>`count(*)::int` }).from(brands);
@@ -505,6 +534,7 @@ async function main(): Promise<void> {
     .from(compatibilityRules);
   const retailersCount = await db.select({ c: sql<number>`count(*)::int` }).from(retailers);
   const offersCount = await db.select({ c: sql<number>`count(*)::int` }).from(offers);
+  const priceHistoryCount = await db.select({ c: sql<number>`count(*)::int` }).from(priceHistory);
 
   console.log("Seed complete.");
   console.log(
@@ -517,6 +547,7 @@ async function main(): Promise<void> {
         rules: rulesCount[0]?.c,
         retailers: retailersCount[0]?.c,
         offers: offersCount[0]?.c,
+        priceHistory: priceHistoryCount[0]?.c,
       },
       null,
       2,

@@ -1,7 +1,7 @@
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 import type { DbClient } from "@/server/db";
-import { offers } from "@/server/db/schema";
+import { offers, priceHistory } from "@/server/db/schema";
 
 type RefreshResult = {
   scanned: number;
@@ -24,7 +24,12 @@ export async function refreshOffersJob(params: {
   // Only refresh offers that have a URL and haven't been checked recently.
   // (Some offers may have null prices; we still check reachability.)
   const rows = await params.db
-    .select({ id: offers.id, url: offers.url })
+    .select({
+      id: offers.id,
+      url: offers.url,
+      priceCents: offers.priceCents,
+      inStock: offers.inStock,
+    })
     .from(offers)
     .where(
       and(
@@ -69,6 +74,15 @@ export async function refreshOffersJob(params: {
           updatedAt: new Date(),
         })
         .where(eq(offers.id, row.id));
+
+      if (row.priceCents != null) {
+        await params.db.insert(priceHistory).values({
+          offerId: row.id,
+          priceCents: row.priceCents,
+          inStock: ok,
+          recordedAt: new Date(),
+        });
+      }
 
       updated += 1;
     } catch {
