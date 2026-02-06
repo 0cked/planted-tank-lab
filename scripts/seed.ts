@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/server/db";
@@ -9,8 +9,10 @@ import {
   brands,
   categories,
   compatibilityRules,
+  offers,
   plants,
   products,
+  retailers,
 } from "@/server/db/schema";
 
 const categorySeedSchema = z.object({
@@ -69,6 +71,25 @@ const ruleSeedSchema = z.object({
   fix_suggestion: z.string().optional(),
   active: z.boolean().default(true),
   version: z.number().int().positive().default(1),
+});
+
+const retailerSeedSchema = z.object({
+  slug: z.string().min(1),
+  name: z.string().min(1),
+  website_url: z.string().url().optional(),
+  logo_url: z.string().url().optional(),
+  affiliate_network: z.string().optional(),
+  affiliate_tag: z.string().optional(),
+  active: z.boolean().default(true),
+});
+
+const offerSeedSchema = z.object({
+  product_slug: z.string().min(1),
+  retailer_slug: z.string().min(1),
+  price_cents: z.number().int().nonnegative().optional(),
+  currency: z.string().min(3).max(3).default("USD"),
+  url: z.string().url(),
+  in_stock: z.boolean().default(true),
 });
 
 function readJson<T>(relPath: string): T {
@@ -305,6 +326,89 @@ async function upsertRules(): Promise<void> {
   }
 }
 
+async function upsertRetailers(): Promise<void> {
+  const raw = readJson<unknown>("data/retailers.json");
+  const items = z.array(retailerSeedSchema).parse(raw);
+
+  for (const item of items) {
+    await db
+      .insert(retailers)
+      .values({
+        slug: item.slug,
+        name: item.name,
+        websiteUrl: item.website_url ?? null,
+        logoUrl: item.logo_url ?? null,
+        affiliateNetwork: item.affiliate_network ?? null,
+        affiliateTag: item.affiliate_tag ?? null,
+        active: item.active,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: retailers.slug,
+        set: {
+          name: item.name,
+          websiteUrl: item.website_url ?? null,
+          logoUrl: item.logo_url ?? null,
+          affiliateNetwork: item.affiliate_network ?? null,
+          affiliateTag: item.affiliate_tag ?? null,
+          active: item.active,
+          updatedAt: new Date(),
+        },
+      });
+  }
+}
+
+async function upsertOffers(): Promise<void> {
+  const raw = readJson<unknown>("data/offers.json");
+  const items = z.array(offerSeedSchema).parse(raw);
+
+  const productRows = await db.select({ id: products.id, slug: products.slug }).from(products);
+  const retailerRows = await db
+    .select({ id: retailers.id, slug: retailers.slug })
+    .from(retailers);
+
+  const productIdBySlug = new Map(productRows.map((r) => [r.slug, r.id] as const));
+  const retailerIdBySlug = new Map(retailerRows.map((r) => [r.slug, r.id] as const));
+
+  for (const item of items) {
+    const productId = productIdBySlug.get(item.product_slug);
+    if (!productId) throw new Error(`Unknown product_slug '${item.product_slug}' for offer`);
+    const retailerId = retailerIdBySlug.get(item.retailer_slug);
+    if (!retailerId) throw new Error(`Unknown retailer_slug '${item.retailer_slug}' for offer`);
+
+    // One offer per (product, retailer) for now.
+    const existing = await db
+      .select({ id: offers.id })
+      .from(offers)
+      .where(and(eq(offers.productId, productId), eq(offers.retailerId, retailerId)))
+      .limit(1);
+
+    if (existing[0]?.id) {
+      await db
+        .update(offers)
+        .set({
+          priceCents: item.price_cents ?? null,
+          currency: item.currency,
+          url: item.url,
+          inStock: item.in_stock,
+          updatedAt: new Date(),
+        })
+        .where(eq(offers.id, existing[0].id));
+    } else {
+      await db.insert(offers).values({
+        productId,
+        retailerId,
+        priceCents: item.price_cents ?? null,
+        currency: item.currency,
+        url: item.url,
+        affiliateUrl: null,
+        inStock: item.in_stock,
+        updatedAt: new Date(),
+      });
+    }
+  }
+}
+
 async function main(): Promise<void> {
   const productFiles = [
     "data/products/tanks.json",
@@ -326,12 +430,20 @@ async function main(): Promise<void> {
   console.log("Seeding: compatibility rules...");
   await upsertRules();
 
+  console.log("Seeding: retailers...");
+  await upsertRetailers();
+
+  console.log("Seeding: offers...");
+  await upsertOffers();
+
   const counts = await Promise.all([
     db.select({ c: sql<number>`count(*)::int` }).from(categories),
     db.select({ c: sql<number>`count(*)::int` }).from(brands),
     db.select({ c: sql<number>`count(*)::int` }).from(products),
     db.select({ c: sql<number>`count(*)::int` }).from(plants),
     db.select({ c: sql<number>`count(*)::int` }).from(compatibilityRules),
+    db.select({ c: sql<number>`count(*)::int` }).from(retailers),
+    db.select({ c: sql<number>`count(*)::int` }).from(offers),
   ]);
 
   console.log("Seed complete.");
@@ -343,6 +455,8 @@ async function main(): Promise<void> {
         products: counts[2][0]?.c,
         plants: counts[3][0]?.c,
         rules: counts[4][0]?.c,
+        retailers: counts[5][0]?.c,
+        offers: counts[6][0]?.c,
       },
       null,
       2,

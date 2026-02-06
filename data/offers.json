@@ -1,0 +1,84 @@
+[
+  {
+    "product_slug": "uns-60u",
+    "retailer_slug": "amazon",
+    "price_cents": 8999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=UNS+60U+rimless+aquarium",
+    "in_stock": true
+  },
+  {
+    "product_slug": "waterbox-clear-10",
+    "retailer_slug": "amazon",
+    "price_cents": 12999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Waterbox+Clear+10+aquarium",
+    "in_stock": true
+  },
+  {
+    "product_slug": "standard-10-gallon",
+    "retailer_slug": "amazon",
+    "price_cents": 1799,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=10+gallon+aquarium+tank",
+    "in_stock": true
+  },
+  {
+    "product_slug": "standard-20-gallon-long",
+    "retailer_slug": "amazon",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=20+gallon+long+aquarium+tank",
+    "in_stock": true
+  },
+  {
+    "product_slug": "fluval-flex-15",
+    "retailer_slug": "amazon",
+    "price_cents": 13999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Fluval+Flex+15",
+    "in_stock": true
+  },
+
+  {
+    "product_slug": "fluval-plant-3-0-24",
+    "retailer_slug": "amazon",
+    "price_cents": 10999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Fluval+Plant+3.0+24",
+    "in_stock": true
+  },
+  {
+    "product_slug": "chihiros-wrgb-ii-60",
+    "retailer_slug": "amazon",
+    "price_cents": 19999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Chihiros+WRGB+II+60",
+    "in_stock": true
+  },
+  {
+    "product_slug": "nicrew-classicled-plus",
+    "retailer_slug": "amazon",
+    "price_cents": 2999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=NICREW+ClassicLED+Plus",
+    "in_stock": true
+  },
+  {
+    "product_slug": "finnex-planted-plus-24-7-24",
+    "retailer_slug": "amazon",
+    "price_cents": 8999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Finnex+Planted%2B+24%2F7+24",
+    "in_stock": true
+  },
+  {
+    "product_slug": "onf-flat-one-plus",
+    "retailer_slug": "amazon",
+    "price_cents": 15999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=ONF+Flat+One%2B",
+    "in_stock": true
+  }
+]
+
