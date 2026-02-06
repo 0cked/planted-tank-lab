@@ -7,6 +7,12 @@ import { useRouter } from "next/navigation";
 
 import { SmartImage } from "@/components/SmartImage";
 import { trpc } from "@/components/TRPCProvider";
+import {
+  buildWorkflow,
+  coreProgress,
+  isStepComplete,
+  nextRecommendedCoreStep,
+} from "@/components/builder/builder-workflow";
 import { evaluateBuild } from "@/engine/evaluate";
 import type {
   BuildFlags,
@@ -198,13 +204,19 @@ function CategoryRowView(props: {
   selectionLabel: string;
   priceLabel: string;
   evals: Evaluation[];
+  active?: boolean;
   onChoose: () => void;
   onRemove?: () => void;
 }) {
   const topEval = props.evals[0] ?? null;
 
   return (
-    <div className="grid grid-cols-[1fr_1.7fr_0.8fr_auto] items-center gap-3 px-4 py-3 hover:bg-white/35">
+    <div
+      className={
+        "grid grid-cols-[1fr_1.7fr_0.8fr_auto] items-center gap-3 px-4 py-3 hover:bg-white/35 " +
+        (props.active ? "bg-white/40" : "")
+      }
+    >
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <div className="truncate font-medium">{props.categoryName}</div>
@@ -677,6 +689,8 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     | null
   >(null);
 
+  const [focusedStepId, setFocusedStepId] = useState<string | null>(null);
+
   const rules: CompatibilityRule[] = useMemo(
     () => (rulesQ.data ?? []).map(toCompatibilityRule),
     [rulesQ.data],
@@ -729,10 +743,67 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     return total;
   }, [productsByCategory, minPriceByProductId]);
 
-  const categories: CategoryRow[] = categoriesQ.data ?? [];
+  const categoriesData = categoriesQ.data;
+  const categories: CategoryRow[] = categoriesData ?? [];
   const shareMutation = trpc.builds.upsertAnonymous.useMutation();
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+
+  const workflow = useMemo(() => {
+    return buildWorkflow({
+      categories: (categoriesData ?? []).map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        builderRequired: c.builderRequired,
+      })),
+    });
+  }, [categoriesData]);
+
+  const workflowState = useMemo(
+    () => ({
+      productsByCategory,
+      plants,
+      flags,
+      lowTechNoCo2,
+    }),
+    [flags, lowTechNoCo2, plants, productsByCategory],
+  );
+
+  const nextCoreStep = useMemo(
+    () => nextRecommendedCoreStep(workflow.core, workflowState),
+    [workflow.core, workflowState],
+  );
+
+  const progress = useMemo(
+    () => coreProgress(workflow.core, workflowState),
+    [workflow.core, workflowState],
+  );
+
+  const effectiveFocusedStepId = focusedStepId ?? nextCoreStep?.id ?? null;
+
+  const openWorkflowStep = (stepId: string): void => {
+    const step =
+      workflow.core.find((s) => s.id === stepId) ??
+      workflow.extras.find((s) => s.id === stepId) ??
+      null;
+    if (!step) return;
+
+    setFocusedStepId(step.id);
+
+    if (step.kind === "plants") {
+      setActivePicker({ type: "plants" });
+      return;
+    }
+
+    if (step.categorySlug === "co2" && lowTechNoCo2) setLowTechNoCo2(false);
+
+    const c = categories.find((x) => x.slug === step.categorySlug);
+    setActivePicker({
+      type: "product",
+      categorySlug: step.categorySlug,
+      categoryName: c?.name ?? step.label,
+    });
+  };
 
   const onShare = async (): Promise<void> => {
     setShareStatus(null);
@@ -825,6 +896,138 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
             {shareMutation.isPending ? "Saving..." : "Share"}
           </button>
         </div>
+      </div>
+
+      <div className="mt-6 ptl-surface p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="text-xs font-medium text-neutral-600">Progress</div>
+            <div className="mt-1 text-sm font-semibold text-neutral-900">
+              {progress.done} of {progress.total} steps complete
+            </div>
+            <div
+              className="mt-2 h-2 w-full max-w-[520px] overflow-hidden rounded-full border bg-white/60"
+              style={{ borderColor: "var(--ptl-border)" }}
+              aria-hidden="true"
+            >
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width:
+                    progress.total > 0
+                      ? `${Math.round((progress.done / progress.total) * 100)}%`
+                      : "0%",
+                  background: "linear-gradient(90deg, var(--ptl-accent), rgba(13,148,136,.85))",
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+            {nextCoreStep ? (
+              <>
+                <div className="text-xs font-medium text-neutral-600">
+                  Next recommended
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openWorkflowStep(nextCoreStep.id)}
+                  className="ptl-btn-primary"
+                >
+                  {isStepComplete(nextCoreStep, workflowState)
+                    ? `Review ${nextCoreStep.label}`
+                    : `Choose ${nextCoreStep.label}`}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="text-xs font-medium text-neutral-600">Core setup</div>
+                <div className="text-sm font-semibold text-neutral-900">
+                  Complete. Add extras or share.
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {workflow.core.map((s, idx) => {
+            const done = isStepComplete(s, workflowState);
+            const active = effectiveFocusedStepId === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => openWorkflowStep(s.id)}
+                className={
+                  "group flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition " +
+                  (active
+                    ? "bg-white/85"
+                    : "bg-white/60 hover:bg-white/80") +
+                  " cursor-pointer"
+                }
+                style={{ borderColor: "var(--ptl-border)" }}
+                aria-current={active ? "step" : undefined}
+                title={done ? "Selected" : "Not selected yet"}
+              >
+                <span
+                  className={
+                    "grid h-6 w-6 place-items-center rounded-full border text-xs font-bold " +
+                    (done
+                      ? "bg-emerald-50 text-emerald-800"
+                      : "bg-white text-neutral-700")
+                  }
+                  style={{ borderColor: "var(--ptl-border)" }}
+                >
+                  {done ? "✓" : idx + 1}
+                </span>
+                <span className="text-neutral-900">{s.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {workflow.extras.length > 0 ? (
+          <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--ptl-border)" }}>
+            <div className="text-xs font-medium text-neutral-600">Extras</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {workflow.extras.map((s) => {
+                const done = isStepComplete(s, workflowState);
+                const active = effectiveFocusedStepId === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => openWorkflowStep(s.id)}
+                    className={
+                      "group flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition " +
+                      (active
+                        ? "bg-white/85"
+                        : "bg-white/50 hover:bg-white/75") +
+                      " cursor-pointer"
+                    }
+                    style={{ borderColor: "var(--ptl-border)" }}
+                    aria-current={active ? "step" : undefined}
+                    title={done ? "Selected" : "Optional"}
+                  >
+                    <span
+                      className={
+                        "grid h-6 w-6 place-items-center rounded-full border text-xs font-bold " +
+                        (done
+                          ? "bg-emerald-50 text-emerald-800"
+                          : "bg-white text-neutral-700")
+                      }
+                      style={{ borderColor: "var(--ptl-border)" }}
+                    >
+                      {done ? "✓" : "+"}
+                    </span>
+                    <span className="text-neutral-900">{s.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-6 grid gap-4">
@@ -949,7 +1152,9 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                     selectionLabel={selectionLabel}
                     priceLabel={formatMoney(priceCents)}
                     evals={catEvals}
+                    active={effectiveFocusedStepId === c.slug}
                     onChoose={() => {
+                      setFocusedStepId(c.slug);
                       if (isCo2Category && lowTechNoCo2) setLowTechNoCo2(false);
                       setActivePicker({
                         type: "product",
@@ -999,7 +1204,10 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setActivePicker({ type: "plants" })}
+                  onClick={() => {
+                    setFocusedStepId("plants");
+                    setActivePicker({ type: "plants" });
+                  }}
                   className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
                   style={{ borderColor: "var(--ptl-border)" }}
                 >
@@ -1046,11 +1254,15 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
           categoryName={activePicker.categoryName}
           open={true}
           onOpenChange={(open) => {
-            if (!open) setActivePicker(null);
+            if (!open) {
+              setActivePicker(null);
+              setFocusedStepId(null);
+            }
           }}
           onPick={(p) => {
             if (activePicker.categorySlug === "co2") setLowTechNoCo2(false);
             setProduct(activePicker.categorySlug, p);
+            setFocusedStepId(null);
           }}
           compatibilityEnabled={compatibilityEnabled}
           curatedOnly={curatedOnly}
@@ -1065,7 +1277,10 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
         <PlantPicker
           open={true}
           onOpenChange={(open) => {
-            if (!open) setActivePicker(null);
+            if (!open) {
+              setActivePicker(null);
+              setFocusedStepId(null);
+            }
           }}
           onAdd={(p) => addPlant(p)}
           compatibilityEnabled={compatibilityEnabled}
