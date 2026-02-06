@@ -70,7 +70,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 - [x] P4.03 Offer ingestion (refresh): scheduled refresh job system (cron) and a clear “last checked” UI.
 - [x] P4.04 Affiliate redirect hardening: validation, allow-listing, bot protections, click attribution.
 - [x] P4.05 Price history UI: show “price over time” for popular items (optional before launch).
-- [ ] P4.06 Legal/UX: clear affiliate disclosure near all purchase links; cookie policy accuracy.
+- [x] P4.06 Legal/UX: clear affiliate disclosure near all purchase links; cookie policy accuracy.
 
 ### Phase 5 — Admin + Operations (Maintainability)
 

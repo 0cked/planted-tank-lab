@@ -16,21 +16,26 @@ export default function PrivacyPage() {
           Privacy
         </h1>
         <p className="mt-4 text-sm text-neutral-700">
-          PlantedTankLab is early and evolving. Today, we primarily store product, plant,
-          and offer data, plus anonymous click tracking for affiliate redirects.
+          PlantedTankLab is early and evolving. We store product, plant, and offer data,
+          plus account and build data if you choose to sign in.
         </p>
         <ul className="mt-6 list-disc space-y-2 pl-5 text-sm text-neutral-700">
           <li>
             Affiliate clicks may be logged (offer, retailer, timestamp, and basic request
-            metadata) to help us understand what people use.
+            metadata like a hashed IP and user-agent) to help us understand what people use
+            and to protect the redirect system from abuse.
           </li>
           <li>
-            We do not sell personal data. If/when accounts are enabled, this page will be
-            updated with details on account data and retention.
+            If you create an account, we store your email address and authentication/session
+            tokens needed to keep you signed in. You can also save builds and favorites.
           </li>
           <li>
             Third-party retailers (like Amazon) may set their own cookies or tracking when
             you click through to purchase.
+          </li>
+          <li>
+            We set essential cookies for sign-in. We also store a cookie-consent choice for
+            optional analytics (off by default).
           </li>
         </ul>
         <p className="mt-6 text-xs text-neutral-600">

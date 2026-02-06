@@ -294,6 +294,8 @@ function CategoryRowView(props: {
         {props.buyHref ? (
           <a
             href={props.buyHref}
+            target="_blank"
+            rel="noreferrer nofollow"
             className="shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95"
             style={{ background: "var(--ptl-accent)" }}
           >
@@ -1024,6 +1026,8 @@ function OffersDialog(props: {
                     <div className="text-sm font-semibold text-neutral-900">{price}</div>
                     <a
                       href={o.goUrl}
+                      target="_blank"
+                      rel="noreferrer nofollow"
                       className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
                       style={{ borderColor: "var(--ptl-border)" }}
                     >
@@ -1919,6 +1923,10 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
             ) : null}
           </div>
         )}
+      </div>
+
+      <div className="mt-3 text-xs text-neutral-600">
+        Affiliate disclosure: PlantedTankLab may earn from qualifying purchases.
       </div>
 
       {activePicker?.type === "product" ? (

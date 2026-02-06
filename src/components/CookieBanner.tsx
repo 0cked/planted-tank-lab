@@ -56,8 +56,8 @@ export function CookieBanner() {
         aria-live="polite"
       >
         <div className="text-sm text-neutral-800">
-          <span className="font-semibold">Cookies:</span> we use essential cookies and
-          may use analytics cookies to improve the product.
+          <span className="font-semibold">Cookies:</span> we use essential cookies for
+          sign-in and saved builds. Optional analytics cookies are off by default.
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button
@@ -68,7 +68,7 @@ export function CookieBanner() {
               setDismissed(true);
             }}
           >
-            Decline
+            No thanks
           </button>
           <button
             type="button"
@@ -78,11 +78,10 @@ export function CookieBanner() {
               setDismissed(true);
             }}
           >
-            Allow
+            Allow analytics
           </button>
         </div>
       </div>
     </div>
   );
 }
-
