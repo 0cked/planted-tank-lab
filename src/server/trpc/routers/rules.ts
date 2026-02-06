@@ -23,4 +23,22 @@ export const rulesRouter = createTRPCRouter({
 
       return q.where(eq(compatibilityRules.active, true)).limit(limit);
     }),
+
+  listActive: publicProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(200).default(100),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const limit = input?.limit ?? 100;
+      return ctx.db
+        .select()
+        .from(compatibilityRules)
+        .where(eq(compatibilityRules.active, true))
+        .orderBy(compatibilityRules.code)
+        .limit(limit);
+    }),
 });

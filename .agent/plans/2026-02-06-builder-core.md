@@ -16,7 +16,7 @@ Deliver a functional PCPartPicker-like builder at `/builder`:
 
 - [x] (2026-02-06) Read `PLAN.md` sections 3.2 and 5.2 (rules + builder UX).
 - [x] (2026-02-06) Milestone 1: Builder store (Zustand) + compatibility engine + unit tests.
-- [ ] Milestone 2: tRPC endpoints for builder data (categories/products/plants/rules) and build persistence (create/update/get by share_slug).
+- [x] (2026-02-06) Milestone 2: tRPC endpoints for builder data (categories/products/plants/rules) and build persistence (create/update/get by share_slug).
 - [ ] Milestone 3: Builder UI (pickers, summary bar, warnings) wired to state + tRPC.
 - [ ] Milestone 4: Share links (save + copy URL) and `/builder/[shareSlug]` hydration.
 - [ ] Milestone 5: Verification (lint/type/test/build/dev + production smoke) and commits pushed.
