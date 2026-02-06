@@ -75,7 +75,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 ### Phase 5 — Admin + Operations (Maintainability)
 
 - [x] P5.01 Admin auth + role-based access control.
-- [ ] P5.02 Admin CRUD (products): spec-driven forms via `spec_definitions`.
+- [x] P5.02 Admin CRUD (products): spec-driven forms via `spec_definitions`.
 - [ ] P5.03 Admin CRUD (plants): care fields + sources + image upload.
 - [ ] P5.04 Admin CRUD (rules): create/edit/disable + preview evaluator.
 - [ ] P5.05 Admin CRUD (offers): edit offers, trigger refresh, manage affiliate templates.
