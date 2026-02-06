@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import type { BuildFlags, PlantSnapshot, ProductSnapshot } from "@/engine/types";
+import { migratePersistedBuilderState } from "@/stores/builder-store-migrate";
 
 export type BuilderState = {
   buildId: string | null;
@@ -59,6 +60,7 @@ const initialState = {
   lowTechNoCo2: false,
   curatedOnly: true,
 };
+
 
 export const useBuilderStore = create<BuilderState>()(
   persist(
@@ -124,7 +126,12 @@ export const useBuilderStore = create<BuilderState>()(
     }),
     {
       name: "ptl-builder-v1",
+      version: 2,
       storage: createJSONStorage(() => localStorage),
+      migrate: (persistedState, version) => ({
+        ...initialState,
+        ...(migratePersistedBuilderState(persistedState, version) as Partial<typeof initialState>),
+      }),
       partialize: (s) => ({
         buildId: s.buildId,
         shareSlug: s.shareSlug,

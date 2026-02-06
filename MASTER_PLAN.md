@@ -40,7 +40,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 - [x] P1.05 Alternatives panel: on any selected item, a “Swap” view pre-filtered to compatible options and sorted by “best match”.
 - [x] P1.06 Price accuracy UX: treat price as “estimate” unless at least 1 in-stock offer exists; show per-item best offer and total; handle missing offers gracefully.
 - [x] P1.07 Offer selection: allow choosing a specific retailer offer per product (default: lowest in-stock).
-- [ ] P1.08 Build persistence v1a: anonymous builds saved locally with explicit versioning and migrations (Zustand persist already exists; harden it).
+- [x] P1.08 Build persistence v1a: anonymous builds saved locally with explicit versioning and migrations (Zustand persist already exists; harden it).
 - [ ] P1.09 Build persistence v1b: share links always load correctly (server route fetch + hydrate) and do not break after rule updates.
 - [ ] P1.10 Rule set expansion (seed): expand DB-seeded rules to the “Starter 20” from `PLAN.md`.
 - [ ] P1.11 Rule engine support: implement the operators/condition shapes required by those 20 rules (client-side engine).
