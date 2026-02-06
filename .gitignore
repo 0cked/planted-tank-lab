@@ -8,3 +8,5 @@ node_modules/
 *.tsbuildinfo
 tmp-next/
 .tmp-next/
+test-results/
+playwright-report/

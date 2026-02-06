@@ -23,9 +23,9 @@
     "@trpc/react-query": "^11.0.0",
     "@trpc/server": "^11.0.0",
     "drizzle-orm": "^0.44.0",
+    "nanoid": "^5.0.0",
     "next": "16.1.6",
     "next-auth": "^4.24.0",
-    "nanoid": "^5.0.0",
     "postgres": "^3.4.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -33,19 +33,20 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/react": "^16.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@testing-library/react": "^16.0.0",
     "drizzle-kit": "^0.31.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "playwright": "^1.50.0",
     "prettier": "^3.0.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
     "tsx": "^4.0.0",
+    "typescript": "^5",
     "vitest": "^2.0.0"
   },
   "pnpm": {

@@ -18,7 +18,7 @@ This makes the site useful beyond the builder by enabling direct discovery and i
 - [x] (2026-02-06) Milestone 2: Product category browser + category pages with query-param filters.
 - [x] (2026-02-06) Milestone 3: Product detail page with specs table + offers section.
 - [x] (2026-02-06) Milestone 4: Plant browser with filters + plant detail care card.
-- [ ] (2026-02-06) Milestone 5: Playwright smoke tests + final validation + deploy.
+- [x] (2026-02-06) Milestone 5: Playwright smoke tests + final validation + deploy.
 
 ## Surprises & Discoveries
 
@@ -28,6 +28,8 @@ This makes the site useful beyond the builder by enabling direct discovery and i
   Evidence: `Error: Failed to load url @/server/db` from `pnpm test` before config.
 - Observation: Next.js typed routes validation can get stale after adding new routes; deleting `.next/` and rerunning `pnpm typecheck` fixed the validator error.
   Evidence: `.next/types/validator.ts` complaining that `\"/plants/[slug]\"` does not satisfy `AppRoutes` until `.next/` was removed.
+- Observation: In Next.js 16 dev server, `params` / `searchParams` are Promises in Route Handlers and Pages, and must be unwrapped with `await` before property access.
+  Evidence: Next dev error `sync-dynamic-apis` thrown when reading `props.params.slug` and `props.searchParams.q` synchronously.
 
 ## Decision Log
 
