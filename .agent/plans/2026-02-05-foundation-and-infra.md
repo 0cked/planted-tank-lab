@@ -21,8 +21,9 @@ Establish fully working project infrastructure and baseline application foundati
 - [x] (2026-02-06) Scaffolded Next.js App Router project into repo root (via temp dir copy), installed required dependencies, and created directory skeleton.
 - [x] (2026-02-06) Milestone 1 commit.
 - [x] (2026-02-06) Implemented full Drizzle schema and DB connection; pushed schema to Supabase and verified required tables exist.
-- [ ] (pending) Milestone 2 commit.
-- [ ] Milestone 3: tRPC context/router/handlers/provider wired.
+- [x] (2026-02-06) Milestone 2 commit.
+- [x] (2026-02-06) Wired tRPC (context, root router, stub routers, route handler, client provider) and integrated provider into the root layout.
+- [ ] (pending) Milestone 3 commit.
 - [ ] Milestone 4: Seed data + seeding script created and executed.
 - [ ] Milestone 5: Basic pages implemented with data pipeline proof.
 - [ ] Milestone 6: Full verification, deploy, and production smoke checks complete.
