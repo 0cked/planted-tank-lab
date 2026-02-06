@@ -54,7 +54,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 - [x] P2.03 Save builds to DB (API): create/update build, items, and cached totals.
 - [x] P2.04 Save builds to DB (migration): auto-migrate local build into account on first login.
 - [x] P2.05 Public builds: publish/unpublish; canonical share pages; basic moderation hooks.
-- [ ] P2.06 Authorization: enforce user ownership for build mutations; admin roles for admin routes.
+- [x] P2.06 Authorization: enforce user ownership for build mutations; admin roles for admin routes.
 
 ### Phase 3 — Products/Plants Browsing That Feels Like Aquascaping (UX + SEO)
 
