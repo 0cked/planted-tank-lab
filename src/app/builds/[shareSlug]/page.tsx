@@ -7,10 +7,22 @@ import { ReportBuildDialog } from "./ReportBuildDialog";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
-export const metadata: Metadata = {
-  title: "Build | PlantedTankLab",
-  description: "A planted tank build snapshot.",
-};
+export async function generateMetadata(props: {
+  params: Promise<{ shareSlug: string }>;
+}): Promise<Metadata> {
+  const { shareSlug } = await props.params;
+  const caller = appRouter.createCaller(
+    await createTRPCContext({ req: new Request("http://localhost") }),
+  );
+  const data = await caller.builds.getByShareSlug({ shareSlug }).catch(() => null);
+  if (!data) return { title: "Build | PlantedTankLab" };
+  return {
+    title: data.build.name,
+    description:
+      data.build.description ??
+      `A planted tank build snapshot with ${data.build.itemCount} items.`,
+  };
+}
 
 function formatMoney(cents: number | null | undefined): string {
   if (cents == null || cents <= 0) return "—";
@@ -123,4 +135,3 @@ export default async function BuildSharePage(props: {
     </main>
   );
 }
-

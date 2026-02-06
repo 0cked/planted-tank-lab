@@ -1,52 +1,73 @@
 import type { MetadataRoute } from "next";
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 
 import { db } from "@/server/db";
-import { categories, plants, products } from "@/server/db/schema";
+import { builds, categories, plants, products } from "@/server/db/schema";
 
-export const dynamic = "force-dynamic";
+const BASE_URL = "https://plantedtanklab.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://plantedtanklab.com";
+  const now = new Date();
 
-  const productRows = await db
-    .select({
-      productSlug: products.slug,
-      categorySlug: categories.slug,
-      updatedAt: products.updatedAt,
-    })
-    .from(products)
-    .innerJoin(categories, eq(products.categoryId, categories.id));
+  const [categoryIdRows, prods, pls, publicBuilds] = await Promise.all([
+    db.select({ id: categories.id, slug: categories.slug }).from(categories),
+    db
+      .select({ slug: products.slug, categoryId: products.categoryId, updatedAt: products.updatedAt })
+      .from(products),
+    db.select({ slug: plants.slug, updatedAt: plants.updatedAt }).from(plants),
+    db
+      .select({ shareSlug: builds.shareSlug, updatedAt: builds.updatedAt })
+      .from(builds)
+      .where(and(eq(builds.isPublic, true), isNotNull(builds.shareSlug)))
+      .limit(500),
+  ]);
 
-  const plantRows = await db
-    .select({ slug: plants.slug, updatedAt: plants.updatedAt })
-    .from(plants);
+  const categorySlugById2 = new Map(categoryIdRows.map((c) => [c.id, c.slug] as const));
 
-  const urls: MetadataRoute.Sitemap = [
-    { url: `${baseUrl}/`, changeFrequency: "weekly", priority: 1 },
-    { url: `${baseUrl}/builder`, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/products`, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/plants`, changeFrequency: "weekly", priority: 0.8 },
+  const staticRoutes: MetadataRoute.Sitemap = [
+    { url: `${BASE_URL}/`, lastModified: now },
+    { url: `${BASE_URL}/builder`, lastModified: now },
+    { url: `${BASE_URL}/products`, lastModified: now },
+    { url: `${BASE_URL}/plants`, lastModified: now },
+    { url: `${BASE_URL}/builds`, lastModified: now },
+    { url: `${BASE_URL}/about`, lastModified: now },
+    { url: `${BASE_URL}/privacy`, lastModified: now },
+    { url: `${BASE_URL}/contact`, lastModified: now },
   ];
 
-  for (const row of productRows) {
-    urls.push({
-      url: `${baseUrl}/products/${row.categorySlug}/${row.productSlug}`,
-      lastModified: row.updatedAt ?? undefined,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    });
-  }
+  const productCategoryRoutes: MetadataRoute.Sitemap = categoryIdRows
+    .filter((c) => c.slug !== "plants")
+    .map((c) => ({
+      url: `${BASE_URL}/products/${c.slug}`,
+      lastModified: now,
+    }));
 
-  for (const row of plantRows) {
-    urls.push({
-      url: `${baseUrl}/plants/${row.slug}`,
-      lastModified: row.updatedAt ?? undefined,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    });
-  }
+  const productDetailRoutes: MetadataRoute.Sitemap = prods
+    .map((p) => {
+      const catSlug = categorySlugById2.get(p.categoryId);
+      if (!catSlug || catSlug === "plants") return null;
+      return {
+        url: `${BASE_URL}/products/${catSlug}/${p.slug}`,
+        lastModified: p.updatedAt ?? now,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => Boolean(x));
 
-  return urls;
+  const plantDetailRoutes: MetadataRoute.Sitemap = pls.map((p) => ({
+    url: `${BASE_URL}/plants/${p.slug}`,
+    lastModified: p.updatedAt ?? now,
+  }));
+
+  const publicBuildRoutes: MetadataRoute.Sitemap = publicBuilds
+    .map((b) => b.shareSlug)
+    .filter((s): s is string => typeof s === "string" && s.length > 0)
+    .map((shareSlug) => ({ url: `${BASE_URL}/builds/${shareSlug}`, lastModified: now }));
+
+  return [
+    ...staticRoutes,
+    ...productCategoryRoutes,
+    ...productDetailRoutes,
+    ...plantDetailRoutes,
+    ...publicBuildRoutes,
+  ];
 }
-

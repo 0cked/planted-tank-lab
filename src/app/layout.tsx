@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://plantedtanklab.com"),
   title: {
     default: "PlantedTankLab",
-    template: "%s",
+    template: "%s | PlantedTankLab",
   },
   description: "PCPartPicker for planted aquariums.",
   openGraph: {
