@@ -51,7 +51,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 
 - [x] P2.01 Auth providers: Google OAuth + email magic links (remove dev-only provider from production builds).
 - [x] P2.02 User profile: view builds, favorites, settings.
-- [ ] P2.03 Save builds to DB (API): create/update build, items, and cached totals.
+- [x] P2.03 Save builds to DB (API): create/update build, items, and cached totals.
 - [ ] P2.04 Save builds to DB (migration): auto-migrate local build into account on first login.
 - [ ] P2.05 Public builds: publish/unpublish; canonical share pages; basic moderation hooks.
 - [ ] P2.06 Authorization: enforce user ownership for build mutations; admin roles for admin routes.
