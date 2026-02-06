@@ -13,7 +13,12 @@ import {
   plants,
   products,
   } from "@/server/db/schema";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/server/trpc/trpc";
+import {
+  adminProcedure,
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "@/server/trpc/trpc";
 import type { PlantSnapshot, ProductSnapshot } from "@/engine/types";
 import type * as fullSchema from "@/server/db/schema";
 
@@ -84,7 +89,7 @@ async function computeTotalPriceCents(
 }
 
 export const buildsRouter = createTRPCRouter({
-  list: publicProcedure
+  list: adminProcedure
     .input(
       z
         .object({
