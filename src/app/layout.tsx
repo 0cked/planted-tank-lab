@@ -50,6 +50,11 @@ export default function RootLayout({
               </div>
             </header>
             {children}
+            <footer className="mt-16 border-t border-neutral-200">
+              <div className="mx-auto max-w-5xl px-6 py-8 text-xs text-neutral-600">
+                Affiliate disclosure: PlantedTankLab may earn from qualifying purchases.
+              </div>
+            </footer>
           </div>
         </TRPCProvider>
       </body>

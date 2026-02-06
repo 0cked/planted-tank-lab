@@ -15,7 +15,19 @@ export const offersRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const limit = input?.limit ?? 50;
-      return ctx.db.select().from(offers).limit(limit);
+      // Safe shape (do not expose raw URLs or affiliate tags via generic listing).
+      return ctx.db
+        .select({
+          id: offers.id,
+          productId: offers.productId,
+          retailerId: offers.retailerId,
+          priceCents: offers.priceCents,
+          currency: offers.currency,
+          inStock: offers.inStock,
+          updatedAt: offers.updatedAt,
+        })
+        .from(offers)
+        .limit(limit);
     }),
 
   lowestByProductIds: publicProcedure
@@ -64,8 +76,18 @@ export const offersRouter = createTRPCRouter({
         .limit(input.limit);
 
       return rows.map((r) => ({
-        ...r.offer,
-        retailer: r.retailer,
+        id: r.offer.id,
+        priceCents: r.offer.priceCents,
+        currency: r.offer.currency,
+        inStock: r.offer.inStock,
+        retailer: {
+          id: r.retailer.id,
+          name: r.retailer.name,
+          slug: r.retailer.slug,
+          websiteUrl: r.retailer.websiteUrl,
+          logoUrl: r.retailer.logoUrl,
+        },
+        goUrl: `/go/${r.offer.id}`,
       }));
     }),
 });

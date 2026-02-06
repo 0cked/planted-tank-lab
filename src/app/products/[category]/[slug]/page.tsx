@@ -128,12 +128,12 @@ export default async function ProductDetailPage(props: {
 
                   <div className="mt-2">
                     <a
-                      href={o.url}
+                      href={o.goUrl}
                       target="_blank"
                       rel="noreferrer nofollow"
                       className="inline-flex rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800"
                     >
-                      View
+                      Buy
                     </a>
                   </div>
                 </li>
@@ -142,7 +142,7 @@ export default async function ProductDetailPage(props: {
           )}
 
           <div className="mt-4 text-xs text-neutral-500">
-            Affiliate redirects are added later via `/go/[offerId]`.
+            Affiliate disclosure: PlantedTankLab may earn from qualifying purchases.
           </div>
         </aside>
       </div>
