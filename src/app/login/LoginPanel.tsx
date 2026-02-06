@@ -3,9 +3,10 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 
-export function LoginPanel(props: { allowGoogle: boolean; allowDev: boolean }) {
+export function LoginPanel(props: { allowGoogle: boolean; allowEmail: boolean; allowDev: boolean }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<string | null>(null);
+  const [emailStatus, setEmailStatus] = useState<string | null>(null);
 
   return (
     <div className="ptl-surface-strong p-7 sm:p-10">
@@ -20,6 +21,48 @@ export function LoginPanel(props: { allowGoogle: boolean; allowDev: boolean }) {
       </p>
 
       <div className="mt-8 space-y-3">
+        {props.allowEmail ? (
+          <form
+            className="rounded-2xl border bg-white/70 p-4"
+            style={{ borderColor: "var(--ptl-border)" }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              setEmailStatus(null);
+              const trimmed = email.trim();
+              if (!trimmed) {
+                setEmailStatus("Enter your email address.");
+                return;
+              }
+              setEmailStatus("Sending a magic link...");
+              void signIn("email", { email: trimmed, callbackUrl: "/builder" });
+            }}
+          >
+            <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+              Email magic link
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                style={{ borderColor: "var(--ptl-border)" }}
+              />
+              <button type="submit" className="ptl-btn-primary whitespace-nowrap">
+                Email me a link
+              </button>
+            </div>
+            {emailStatus ? <div className="mt-2 text-xs text-neutral-700">{emailStatus}</div> : null}
+          </form>
+        ) : (
+          <div
+            className="rounded-2xl border bg-white/55 px-4 py-3 text-sm text-neutral-700"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
+            Email sign-in is not configured yet.
+          </div>
+        )}
+
         {props.allowGoogle ? (
           <button
             type="button"
@@ -75,4 +118,3 @@ export function LoginPanel(props: { allowGoogle: boolean; allowDev: boolean }) {
     </div>
   );
 }
-

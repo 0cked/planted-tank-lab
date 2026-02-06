@@ -11,6 +11,10 @@ function allowGoogle(): boolean {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 }
 
+function allowEmail(): boolean {
+  return Boolean(process.env.EMAIL_SERVER && process.env.EMAIL_FROM);
+}
+
 function allowDev(): boolean {
   if (process.env.NODE_ENV === "production") return false;
   return process.env.AUTH_DEV_LOGIN === "true";
@@ -20,7 +24,7 @@ export default function LoginPage() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
-        <LoginPanel allowGoogle={allowGoogle()} allowDev={allowDev()} />
+        <LoginPanel allowGoogle={allowGoogle()} allowEmail={allowEmail()} allowDev={allowDev()} />
         <div className="ptl-surface p-7 sm:p-10">
           <div className="text-sm font-semibold">What you get</div>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-neutral-700">
@@ -36,4 +40,3 @@ export default function LoginPage() {
     </main>
   );
 }
-

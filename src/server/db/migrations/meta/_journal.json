@@ -8,6 +8,13 @@
       "when": 1770402690892,
       "tag": "0000_add_plants_sources_jsonb",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770412494653,
+      "tag": "0001_pink_zuras",
+      "breakpoints": true
     }
   ]
 }
