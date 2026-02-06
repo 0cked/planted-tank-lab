@@ -1,19 +1,624 @@
 [
   {
-    "product_slug": "uns-60u",
+    "product_slug": "ada-60p",
+    "retailer_slug": "amazon",
+    "price_cents": 22999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=ADA%20Cube%20Garden%2060-P",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "ada-60p",
+    "retailer_slug": "buceplant",
+    "price_cents": 22999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=ADA%20Cube%20Garden%2060-P",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "ada-aquasoil-amazonia-v2",
+    "retailer_slug": "amazon",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=ADA%20Aqua%20Soil%20Amazonia%20Ver.%202",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "ada-aquasoil-amazonia-v2",
+    "retailer_slug": "buceplant",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=ADA%20Aqua%20Soil%20Amazonia%20Ver.%202",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "ada-cube-cabinet-60p",
+    "retailer_slug": "amazon",
+    "price_cents": 39999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=ADA%20Cube%20Cabinet%20Stand%20(60P)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "ada-cube-cabinet-60p",
+    "retailer_slug": "buceplant",
+    "price_cents": 39999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=ADA%20Cube%20Cabinet%20Stand%20(60P)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "apera-ph-pen",
+    "retailer_slug": "amazon",
+    "price_cents": 4999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Apera%20pH%20Pen",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "api-freshwater-master-kit",
+    "retailer_slug": "amazon",
+    "price_cents": 2999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=API%20Freshwater%20Master%20Test%20Kit",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "api-gh-kh-kit",
+    "retailer_slug": "amazon",
+    "price_cents": 1499,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=API%20GH%20%26%20KH%20Test%20Kit",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "apt-complete",
+    "retailer_slug": "amazon",
+    "price_cents": 2999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=APT%20Complete",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "apt-complete",
+    "retailer_slug": "buceplant",
+    "price_cents": 2999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=APT%20Complete",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "aquaclear-50-hob",
+    "retailer_slug": "amazon",
+    "price_cents": 5499,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=AquaClear%2050%20Power%20Filter",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "aquarium-co-op-sponge-filter-medium",
+    "retailer_slug": "amazon",
+    "price_cents": 999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Aquarium%20Co-Op%20Sponge%20Filter%20(Medium)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "aquarium-co-op-sponge-filter-medium",
+    "retailer_slug": "aquarium-co-op",
+    "price_cents": 999,
+    "currency": "USD",
+    "url": "https://www.aquariumcoop.com/search?q=Aquarium%20Co-Op%20Sponge%20Filter%20(Medium)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "aqueon-metal-stand-20-long",
+    "retailer_slug": "amazon",
+    "price_cents": 4999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Aqueon%20Metal%20Stand%20for%2020%20Long",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "aqueon-metal-stand-40-breeder",
     "retailer_slug": "amazon",
     "price_cents": 8999,
     "currency": "USD",
-    "url": "https://www.amazon.com/s?k=UNS+60U+rimless+aquarium",
-    "in_stock": true
+    "url": "https://www.amazon.com/s?k=Aqueon%20Metal%20Stand%20for%2040%20Breeder",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
   },
   {
-    "product_slug": "waterbox-clear-10",
+    "product_slug": "caribsea-eco-complete",
+    "retailer_slug": "amazon",
+    "price_cents": 2999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=CaribSea%20Eco-Complete%20Planted%20Substrate",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "chihiros-wrgb-ii-60",
+    "retailer_slug": "amazon",
+    "price_cents": 23999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Chihiros%20WRGB%20II%2060",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "chihiros-wrgb-ii-60",
+    "retailer_slug": "buceplant",
+    "price_cents": 23999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Chihiros%20WRGB%20II%2060",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "chihiros-wrgb-ii-60",
+    "retailer_slug": "glassaqua",
+    "price_cents": 23999,
+    "currency": "USD",
+    "url": "https://shop.glassaqua.com/search?q=Chihiros%20WRGB%20II%2060",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "co2art-bazooka-inline-diffuser",
+    "retailer_slug": "amazon",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=CO2Art%20Bazooka%20Inline%20Diffuser",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "co2art-bazooka-inline-diffuser",
+    "retailer_slug": "co2art",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://www.co2art.us/search?q=CO2Art%20Bazooka%20Inline%20Diffuser",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "co2art-pro-se",
+    "retailer_slug": "amazon",
+    "price_cents": 16999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=CO2Art%20Pro-SE%20Dual%20Stage%20Regulator",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "co2art-pro-se",
+    "retailer_slug": "co2art",
+    "price_cents": 16999,
+    "currency": "USD",
+    "url": "https://www.co2art.us/search?q=CO2Art%20Pro-SE%20Dual%20Stage%20Regulator",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "cobalt-neotherm-100w",
+    "retailer_slug": "amazon",
+    "price_cents": 7999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Cobalt%20Neo-Therm%20Heater%20100W",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "cobalt-neotherm-100w",
+    "retailer_slug": "buceplant",
+    "price_cents": 7999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Cobalt%20Neo-Therm%20Heater%20100W",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "dragon-stone",
+    "retailer_slug": "amazon",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Dragon%20Stone%20(Ohko%20Stone)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "dragon-stone",
+    "retailer_slug": "buceplant",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Dragon%20Stone%20(Ohko%20Stone)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "easy-green",
+    "retailer_slug": "amazon",
+    "price_cents": 1799,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Easy%20Green%20All-in-One%20Fertilizer",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "easy-green",
+    "retailer_slug": "aquarium-co-op",
+    "price_cents": 1799,
+    "currency": "USD",
+    "url": "https://www.aquariumcoop.com/search?q=Easy%20Green%20All-in-One%20Fertilizer",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "easy-root-tabs",
+    "retailer_slug": "amazon",
+    "price_cents": 1199,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Easy%20Root%20Tabs",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "easy-root-tabs",
+    "retailer_slug": "aquarium-co-op",
+    "price_cents": 1199,
+    "currency": "USD",
+    "url": "https://www.aquariumcoop.com/search?q=Easy%20Root%20Tabs",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "eheim-classic-250-2213",
+    "retailer_slug": "amazon",
+    "price_cents": 11999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=EHEIM%20classic%20250%20(2213)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "eheim-classic-250-2213",
+    "retailer_slug": "buceplant",
+    "price_cents": 11999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=EHEIM%20classic%20250%20(2213)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "eheim-jager-100w",
+    "retailer_slug": "amazon",
+    "price_cents": 2699,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=EHEIM%20Jager%20TruTemp%20Heater%20100W",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "eheim-jager-200w",
+    "retailer_slug": "amazon",
+    "price_cents": 3299,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=EHEIM%20Jager%20TruTemp%20Heater%20200W",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "finnex-planted-plus-24-7-24",
+    "retailer_slug": "amazon",
+    "price_cents": 9999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Finnex%20Planted%2B%2024%2F7%20(24%22)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "fluval-207-canister",
+    "retailer_slug": "amazon",
+    "price_cents": 16999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Fluval%20207%20Canister%20Filter",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "fluval-e-200w",
+    "retailer_slug": "amazon",
+    "price_cents": 5999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Fluval%20E%20Electronic%20Heater%20200W",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "fluval-flex-15",
+    "retailer_slug": "amazon",
+    "price_cents": 13999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Fluval%20Flex%2015",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "fluval-plant-3-0-24",
     "retailer_slug": "amazon",
     "price_cents": 12999,
     "currency": "USD",
-    "url": "https://www.amazon.com/s?k=Waterbox+Clear+10+aquarium",
-    "in_stock": true
+    "url": "https://www.amazon.com/s?k=Fluval%20Plant%20Spectrum%203.0%20LED%20(24%22)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "fluval-plant-3-0-24",
+    "retailer_slug": "buceplant",
+    "price_cents": 12999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Fluval%20Plant%20Spectrum%203.0%20LED%20(24%22)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "fluval-pressurized-co2-kit",
+    "retailer_slug": "amazon",
+    "price_cents": 16999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Fluval%20Pressurized%20CO2%20Kit",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "fluval-stratum",
+    "retailer_slug": "amazon",
+    "price_cents": 2499,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Fluval%20Plant%20and%20Shrimp%20Stratum",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "fzone-dual-stage-regulator",
+    "retailer_slug": "amazon",
+    "price_cents": 8999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=FZONE%20Dual%20Stage%20CO2%20Regulator",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "fzone-dual-stage-regulator",
+    "retailer_slug": "buceplant",
+    "price_cents": 8999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=FZONE%20Dual%20Stage%20CO2%20Regulator",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "hm-digital-tds-meter",
+    "retailer_slug": "amazon",
+    "price_cents": 1999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=TDS%20Meter%20(Handheld)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "ikea-kallax-2x2",
+    "retailer_slug": "amazon",
+    "price_cents": 7999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=IKEA%20KALLAX%202x2%20Shelf%20Unit%20(Popular%20Aquarium%20Stand%20Hack)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "ikea-kallax-2x2",
+    "retailer_slug": "ikea",
+    "price_cents": 7999,
+    "currency": "USD",
+    "url": "https://www.ikea.com/us/en/search/?q=IKEA%20KALLAX%202x2%20Shelf%20Unit%20(Popular%20Aquarium%20Stand%20Hack)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "ista-inline-diffuser",
+    "retailer_slug": "amazon",
+    "price_cents": 2499,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=ISTA%20Inline%20CO2%20Diffuser",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "ista-inline-diffuser",
+    "retailer_slug": "buceplant",
+    "price_cents": 2499,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=ISTA%20Inline%20CO2%20Diffuser",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "lava-rock",
+    "retailer_slug": "amazon",
+    "price_cents": 1999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Lava%20Rock",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "lava-rock",
+    "retailer_slug": "buceplant",
+    "price_cents": 1999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Lava%20Rock",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "manzanita-wood",
+    "retailer_slug": "amazon",
+    "price_cents": 3499,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Manzanita%20Wood",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "manzanita-wood",
+    "retailer_slug": "buceplant",
+    "price_cents": 3499,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Manzanita%20Wood",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "nicrew-classicled-plus",
+    "retailer_slug": "amazon",
+    "price_cents": 3499,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=NICREW%20ClassicLED%20Plus",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "nilocg-thrives",
+    "retailer_slug": "amazon",
+    "price_cents": 1999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=ThriveS%20(Shrimp-Specific)%20All-in-One",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "nilocg-thrives",
+    "retailer_slug": "nilocg",
+    "price_cents": 1999,
+    "currency": "USD",
+    "url": "https://nilocg.com/search?q=ThriveS%20(Shrimp-Specific)%20All-in-One",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "oase-biomaster2-thermo-250",
+    "retailer_slug": "amazon",
+    "price_cents": 25999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Oase%20BioMaster2%20Thermo%20250",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "oase-biomaster2-thermo-250",
+    "retailer_slug": "buceplant",
+    "price_cents": 25999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Oase%20BioMaster2%20Thermo%20250",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "onf-flat-one-plus",
+    "retailer_slug": "amazon",
+    "price_cents": 19999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=ONF%20Flat%20One%2B",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "onf-flat-one-plus",
+    "retailer_slug": "glassaqua",
+    "price_cents": 19999,
+    "currency": "USD",
+    "url": "https://shop.glassaqua.com/search?q=ONF%20Flat%20One%2B",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "pool-filter-sand",
+    "retailer_slug": "amazon",
+    "price_cents": 1499,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Pool%20Filter%20Sand%20(Inert)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "seachem-flourish-tabs",
+    "retailer_slug": "amazon",
+    "price_cents": 899,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Seachem%20Flourish%20Tabs",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "seachem-flourish-tabs",
+    "retailer_slug": "buceplant",
+    "price_cents": 899,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Seachem%20Flourish%20Tabs",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "seiryu-stone",
+    "retailer_slug": "amazon",
+    "price_cents": 4499,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Seiryu%20Stone",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "seiryu-stone",
+    "retailer_slug": "buceplant",
+    "price_cents": 4499,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Seiryu%20Stone",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "spider-wood",
+    "retailer_slug": "amazon",
+    "price_cents": 2999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=Spider%20Wood%20(Azalea%20Root)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "spider-wood",
+    "retailer_slug": "buceplant",
+    "price_cents": 2999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Spider%20Wood%20(Azalea%20Root)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
   },
   {
     "product_slug": "standard-10-gallon",
@@ -21,64 +626,115 @@
     "price_cents": 1799,
     "currency": "USD",
     "url": "https://www.amazon.com/s?k=10+gallon+aquarium+tank",
-    "in_stock": true
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:46:41.339Z"
   },
   {
     "product_slug": "standard-20-gallon-long",
     "retailer_slug": "amazon",
-    "price_cents": 3999,
+    "price_cents": 5999,
     "currency": "USD",
-    "url": "https://www.amazon.com/s?k=20+gallon+long+aquarium+tank",
-    "in_stock": true
+    "url": "https://www.amazon.com/s?k=Standard%2020%20Gallon%20Long%20Aquarium",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
   },
   {
-    "product_slug": "fluval-flex-15",
-    "retailer_slug": "amazon",
-    "price_cents": 13999,
+    "product_slug": "standard-20-gallon-long",
+    "retailer_slug": "petco",
+    "price_cents": 5999,
     "currency": "USD",
-    "url": "https://www.amazon.com/s?k=Fluval+Flex+15",
-    "in_stock": true
-  },
-
-  {
-    "product_slug": "fluval-plant-3-0-24",
-    "retailer_slug": "amazon",
-    "price_cents": 10999,
-    "currency": "USD",
-    "url": "https://www.amazon.com/s?k=Fluval+Plant+3.0+24",
-    "in_stock": true
+    "url": "https://www.petco.com/shop/en/petcostore/search?query=Standard%2020%20Gallon%20Long%20Aquarium",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
   },
   {
-    "product_slug": "chihiros-wrgb-ii-60",
+    "product_slug": "twinstar-s-600",
     "retailer_slug": "amazon",
     "price_cents": 19999,
     "currency": "USD",
-    "url": "https://www.amazon.com/s?k=Chihiros+WRGB+II+60",
-    "in_stock": true
+    "url": "https://www.amazon.com/s?k=Twinstar%20S%20Series%20600",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
   },
   {
-    "product_slug": "nicrew-classicled-plus",
-    "retailer_slug": "amazon",
-    "price_cents": 2999,
+    "product_slug": "twinstar-s-600",
+    "retailer_slug": "buceplant",
+    "price_cents": 19999,
     "currency": "USD",
-    "url": "https://www.amazon.com/s?k=NICREW+ClassicLED+Plus",
-    "in_stock": true
+    "url": "https://buceplant.com/search?type=product&q=Twinstar%20S%20Series%20600",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
   },
   {
-    "product_slug": "finnex-planted-plus-24-7-24",
-    "retailer_slug": "amazon",
-    "price_cents": 8999,
+    "product_slug": "twinstar-s-600",
+    "retailer_slug": "glassaqua",
+    "price_cents": 19999,
     "currency": "USD",
-    "url": "https://www.amazon.com/s?k=Finnex+Planted%2B+24%2F7+24",
-    "in_stock": true
+    "url": "https://shop.glassaqua.com/search?q=Twinstar%20S%20Series%20600",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
   },
   {
-    "product_slug": "onf-flat-one-plus",
+    "product_slug": "uns-60u",
+    "retailer_slug": "amazon",
+    "price_cents": 18999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=UNS%2060U%20Rimless%20Aquarium",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "uns-controsoil-normal",
+    "retailer_slug": "amazon",
+    "price_cents": 3499,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=UNS%20Controsoil%20(Normal)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "uns-controsoil-normal",
+    "retailer_slug": "buceplant",
+    "price_cents": 3499,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=UNS%20Controsoil%20(Normal)",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "uns-stand-60u",
+    "retailer_slug": "amazon",
+    "price_cents": 29999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=UNS%20Cabinet%20Stand%20for%2060U",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "uns-stand-60u",
+    "retailer_slug": "buceplant",
+    "price_cents": 29999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=UNS%20Cabinet%20Stand%20for%2060U",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "waterbox-clear-10",
     "retailer_slug": "amazon",
     "price_cents": 15999,
     "currency": "USD",
-    "url": "https://www.amazon.com/s?k=ONF+Flat+One%2B",
-    "in_stock": true
+    "url": "https://www.amazon.com/s?k=Waterbox%20Clear%2010",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
+  },
+  {
+    "product_slug": "waterbox-clear-10",
+    "retailer_slug": "buceplant",
+    "price_cents": 15999,
+    "currency": "USD",
+    "url": "https://buceplant.com/search?type=product&q=Waterbox%20Clear%2010",
+    "in_stock": true,
+    "last_checked_at": "2026-02-06T22:44:14.831Z"
   }
 ]
-

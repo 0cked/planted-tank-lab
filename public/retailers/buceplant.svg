@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 42" role="img" aria-label="Buce Plant">
+  <title>Buce Plant</title>
+  <rect width="160" height="42" rx="10" fill="#064e3b"/>
+  <text x="16" y="27" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="16" font-weight="700" fill="#ecfdf5">
+    Buce Plant
+  </text>
+  <path d="M136 14c-7 2-11 7-12 13 8-2 12-7 12-13Z" fill="#a7f3d0" opacity=".9"/>
+</svg>
+

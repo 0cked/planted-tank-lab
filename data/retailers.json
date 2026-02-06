@@ -10,5 +10,68 @@
     "affiliate_tag_param": "tag",
     "allowed_hosts": ["amazon.com", "www.amazon.com", "smile.amazon.com"],
     "active": true
+  },
+  {
+    "slug": "buceplant",
+    "name": "Buce Plant",
+    "website_url": "https://buceplant.com",
+    "logo_asset_path": "/retailers/buceplant.svg",
+    "priority": 20,
+    "allowed_hosts": ["buceplant.com", "www.buceplant.com"],
+    "active": true
+  },
+  {
+    "slug": "glassaqua",
+    "name": "Glass Aqua",
+    "website_url": "https://shop.glassaqua.com",
+    "logo_asset_path": "/retailers/glassaqua.svg",
+    "priority": 30,
+    "allowed_hosts": ["shop.glassaqua.com", "glassaqua.com", "www.glassaqua.com"],
+    "active": true
+  },
+  {
+    "slug": "aquarium-co-op",
+    "name": "Aquarium Co-Op",
+    "website_url": "https://www.aquariumcoop.com",
+    "logo_asset_path": "/retailers/aquarium-co-op.svg",
+    "priority": 40,
+    "allowed_hosts": ["aquariumcoop.com", "www.aquariumcoop.com"],
+    "active": true
+  },
+  {
+    "slug": "co2art",
+    "name": "CO2Art",
+    "website_url": "https://www.co2art.us",
+    "logo_asset_path": "/retailers/co2art.svg",
+    "priority": 50,
+    "allowed_hosts": ["co2art.us", "www.co2art.us", "co2art.co.uk", "www.co2art.co.uk"],
+    "active": true
+  },
+  {
+    "slug": "nilocg",
+    "name": "NilocG",
+    "website_url": "https://nilocg.com",
+    "logo_asset_path": "/retailers/nilocg.svg",
+    "priority": 60,
+    "allowed_hosts": ["nilocg.com", "www.nilocg.com"],
+    "active": true
+  },
+  {
+    "slug": "petco",
+    "name": "Petco",
+    "website_url": "https://www.petco.com",
+    "logo_asset_path": "/retailers/petco.svg",
+    "priority": 70,
+    "allowed_hosts": ["petco.com", "www.petco.com"],
+    "active": true
+  },
+  {
+    "slug": "ikea",
+    "name": "IKEA",
+    "website_url": "https://www.ikea.com",
+    "logo_asset_path": "/retailers/ikea.svg",
+    "priority": 80,
+    "allowed_hosts": ["ikea.com", "www.ikea.com"],
+    "active": true
   }
 ]

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 42" role="img" aria-label="Aquarium Co-Op">
+  <title>Aquarium Co-Op</title>
+  <rect width="180" height="42" rx="10" fill="#1f2937"/>
+  <path d="M20 28c7 0 13-4 16-10-6 2-10 2-16 0-6-2-10-2-16 0 3 6 9 10 16 10Z" fill="#60a5fa" opacity=".95"/>
+  <circle cx="12" cy="21" r="2" fill="#e5e7eb"/>
+  <text x="44" y="27" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="16" font-weight="700" fill="#ffffff">
+    Aquarium Co-Op
+  </text>
+</svg>
+

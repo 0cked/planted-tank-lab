@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 42" role="img" aria-label="CO2Art">
+  <title>CO2Art</title>
+  <rect width="140" height="42" rx="10" fill="#111827"/>
+  <text x="16" y="27" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="16" font-weight="800" fill="#ffffff">
+    CO2Art
+  </text>
+  <path d="M116 12c4 5 4 13 0 18" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+  <path d="M122 14c4 4 4 10 0 14" fill="none" stroke="#86efac" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+</svg>
+

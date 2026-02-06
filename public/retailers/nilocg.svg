@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 42" role="img" aria-label="NilocG">
+  <title>NilocG</title>
+  <rect width="140" height="42" rx="10" fill="#052e16"/>
+  <text x="16" y="27" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="16" font-weight="800" fill="#ecfdf5">
+    NilocG
+  </text>
+  <path d="M112 30c6-2 10-7 10-14-6 2-10 7-10 14Z" fill="#bbf7d0" opacity=".9"/>
+</svg>
+

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 42" role="img" aria-label="IKEA">
+  <title>IKEA</title>
+  <rect width="120" height="42" rx="10" fill="#0f4c81"/>
+  <rect x="12" y="10" width="96" height="22" rx="11" fill="#fbbf24"/>
+  <text x="30" y="27" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="16" font-weight="900" fill="#0f4c81">
+    IKEA
+  </text>
+</svg>
+

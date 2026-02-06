@@ -107,7 +107,9 @@ const offerSeedSchema = z.object({
   price_cents: z.number().int().nonnegative().optional(),
   currency: z.string().min(3).max(3).default("USD"),
   url: z.string().url(),
+  affiliate_url: z.string().url().optional(),
   in_stock: z.boolean().default(true),
+  last_checked_at: z.string().datetime().optional(),
 });
 
 function readJson<T>(relPath: string): T {
@@ -444,7 +446,9 @@ async function upsertOffers(): Promise<void> {
           priceCents: item.price_cents ?? null,
           currency: item.currency,
           url: item.url,
+          affiliateUrl: item.affiliate_url ?? null,
           inStock: item.in_stock,
+          lastCheckedAt: item.last_checked_at ? new Date(item.last_checked_at) : null,
           updatedAt: new Date(),
         })
         .where(eq(offers.id, existing[0].id));
@@ -455,8 +459,9 @@ async function upsertOffers(): Promise<void> {
         priceCents: item.price_cents ?? null,
         currency: item.currency,
         url: item.url,
-        affiliateUrl: null,
+        affiliateUrl: item.affiliate_url ?? null,
         inStock: item.in_stock,
+        lastCheckedAt: item.last_checked_at ? new Date(item.last_checked_at) : null,
         updatedAt: new Date(),
       });
     }
