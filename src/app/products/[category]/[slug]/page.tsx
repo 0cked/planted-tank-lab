@@ -12,11 +12,12 @@ function formatMoney(cents: number | null | undefined): string {
 }
 
 export async function generateMetadata(props: {
-  params: { category: string; slug: string };
+  params: Promise<{ category: string; slug: string }>;
 }): Promise<Metadata> {
+  const params = await props.params;
   const caller = await getServerCaller();
   try {
-    const p = await caller.products.getBySlug({ slug: props.params.slug });
+    const p = await caller.products.getBySlug({ slug: params.slug });
     const brandName = p.brand?.name ?? null;
     const title = brandName ? `${brandName} ${p.name}` : p.name;
     return {
@@ -29,12 +30,13 @@ export async function generateMetadata(props: {
 }
 
 export default async function ProductDetailPage(props: {
-  params: { category: string; slug: string };
+  params: Promise<{ category: string; slug: string }>;
 }) {
+  const params = await props.params;
   const caller = await getServerCaller();
-  const p = await caller.products.getBySlug({ slug: props.params.slug });
+  const p = await caller.products.getBySlug({ slug: params.slug });
 
-  if (p.category.slug !== props.params.category) notFound();
+  if (p.category.slug !== params.category) notFound();
   if (p.category.slug === "plants") notFound();
 
   const brandName = p.brand?.name ?? null;
@@ -147,4 +149,3 @@ export default async function ProductDetailPage(props: {
     </main>
   );
 }
-

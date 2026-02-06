@@ -21,16 +21,18 @@ function toBool(v: string | null): boolean {
   return v === "1" || v === "true" || v === "on";
 }
 
-export default async function PlantsPage(props: { searchParams: SearchParams }) {
+export default async function PlantsPage(props: { searchParams: Promise<SearchParams> }) {
   const caller = await getServerCaller();
 
-  const q = (first(props.searchParams, "q") ?? "").trim() || undefined;
-  const difficulty = (first(props.searchParams, "difficulty") ?? "").trim() || undefined;
-  const lightDemand = (first(props.searchParams, "light") ?? "").trim() || undefined;
-  const co2Demand = (first(props.searchParams, "co2") ?? "").trim() || undefined;
-  const placement = (first(props.searchParams, "placement") ?? "").trim() || undefined;
-  const beginnerFriendly = toBool(first(props.searchParams, "beginner"));
-  const shrimpSafe = toBool(first(props.searchParams, "shrimpSafe"));
+  const searchParams = await props.searchParams;
+
+  const q = (first(searchParams, "q") ?? "").trim() || undefined;
+  const difficulty = (first(searchParams, "difficulty") ?? "").trim() || undefined;
+  const lightDemand = (first(searchParams, "light") ?? "").trim() || undefined;
+  const co2Demand = (first(searchParams, "co2") ?? "").trim() || undefined;
+  const placement = (first(searchParams, "placement") ?? "").trim() || undefined;
+  const beginnerFriendly = toBool(first(searchParams, "beginner"));
+  const shrimpSafe = toBool(first(searchParams, "shrimpSafe"));
 
   const plants = await caller.plants.search({
     q,

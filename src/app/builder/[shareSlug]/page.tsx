@@ -4,8 +4,9 @@ import { BuilderPage } from "@/components/builder/BuilderPage";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
-export default async function Page(props: { params: { shareSlug: string } }) {
-  const shareSlug = props.params.shareSlug;
+export default async function Page(props: { params: Promise<{ shareSlug: string }> }) {
+  const params = await props.params;
+  const shareSlug = params.shareSlug;
 
   const caller = appRouter.createCaller(
     await createTRPCContext({ req: new Request("http://localhost") }),
@@ -20,4 +21,3 @@ export default async function Page(props: { params: { shareSlug: string } }) {
 
   return <BuilderPage initialState={data.snapshot} />;
 }
-

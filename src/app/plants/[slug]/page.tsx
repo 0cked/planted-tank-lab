@@ -26,11 +26,12 @@ function pill(text: string) {
 }
 
 export async function generateMetadata(props: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
+  const params = await props.params;
   const caller = await getServerCaller();
   try {
-    const p = await caller.plants.getBySlug({ slug: props.params.slug });
+    const p = await caller.plants.getBySlug({ slug: params.slug });
     return {
       title: `${p.commonName} | PlantedTankLab`,
       description:
@@ -42,12 +43,14 @@ export async function generateMetadata(props: {
   }
 }
 
-export default async function PlantDetailPage(props: { params: { slug: string } }) {
+export default async function PlantDetailPage(props: { params: Promise<{ slug: string }> }) {
   const caller = await getServerCaller();
+
+  const params = await props.params;
 
   let p: Awaited<ReturnType<typeof caller.plants.getBySlug>>;
   try {
-    p = await caller.plants.getBySlug({ slug: props.params.slug });
+    p = await caller.plants.getBySlug({ slug: params.slug });
   } catch {
     notFound();
   }
@@ -172,4 +175,3 @@ export default async function PlantDetailPage(props: { params: { slug: string } 
     </main>
   );
 }
-

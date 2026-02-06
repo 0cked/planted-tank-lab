@@ -83,10 +83,11 @@ function lightSummary(specs: unknown): string {
 }
 
 export async function generateMetadata(props: {
-  params: { category: string };
+  params: Promise<{ category: string }>;
 }): Promise<Metadata> {
+  const params = await props.params;
   const caller = await getServerCaller();
-  const category = await caller.products.categoryBySlug({ slug: props.params.category });
+  const category = await caller.products.categoryBySlug({ slug: params.category });
   if (!category || category.slug === "plants") {
     return {
       title: "Products | PlantedTankLab",
@@ -100,29 +101,31 @@ export async function generateMetadata(props: {
 }
 
 export default async function ProductCategoryPage(props: {
-  params: { category: string };
-  searchParams: SearchParams;
+  params: Promise<{ category: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
-  const categorySlug = props.params.category;
+  const params = await props.params;
+  const searchParams = await props.searchParams;
+  const categorySlug = params.category;
   const caller = await getServerCaller();
 
   const category = await caller.products.categoryBySlug({ slug: categorySlug });
   if (!category) notFound();
   if (category.slug === "plants") notFound();
 
-  const q = (first(props.searchParams, "q") ?? "").trim() || undefined;
-  const brandSlug = (first(props.searchParams, "brand") ?? "").trim() || undefined;
+  const q = (first(searchParams, "q") ?? "").trim() || undefined;
+  const brandSlug = (first(searchParams, "brand") ?? "").trim() || undefined;
 
-  const volumeMin = toNumberOrNull(first(props.searchParams, "volumeMin"));
-  const volumeMax = toNumberOrNull(first(props.searchParams, "volumeMax"));
-  const rimless = toBool(first(props.searchParams, "rimless"));
-  const material = (first(props.searchParams, "material") ?? "").trim() || undefined;
+  const volumeMin = toNumberOrNull(first(searchParams, "volumeMin"));
+  const volumeMax = toNumberOrNull(first(searchParams, "volumeMax"));
+  const rimless = toBool(first(searchParams, "rimless"));
+  const material = (first(searchParams, "material") ?? "").trim() || undefined;
 
-  const parMin = toNumberOrNull(first(props.searchParams, "parMin"));
-  const parMax = toNumberOrNull(first(props.searchParams, "parMax"));
-  const tankLength = toNumberOrNull(first(props.searchParams, "tankLength"));
-  const dimmable = toBool(first(props.searchParams, "dimmable"));
-  const app = toBool(first(props.searchParams, "app"));
+  const parMin = toNumberOrNull(first(searchParams, "parMin"));
+  const parMax = toNumberOrNull(first(searchParams, "parMax"));
+  const tankLength = toNumberOrNull(first(searchParams, "tankLength"));
+  const dimmable = toBool(first(searchParams, "dimmable"));
+  const app = toBool(first(searchParams, "app"));
 
   const brands = await caller.products.brandsByCategorySlug({ categorySlug });
   const raw = await caller.products.search({
