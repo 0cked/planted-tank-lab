@@ -2,8 +2,12 @@ import { expect, test } from "@playwright/test";
 
 test("home renders", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "PlantedTankLab" })).toBeVisible();
-  await expect(page.getByText("Build your perfect planted tank")).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Build a planted tank setup that actually makes sense.",
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: /Start Building/i })).toBeVisible();
 });
 
 test("products browsing renders", async ({ page }) => {
