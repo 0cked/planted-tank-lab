@@ -22,7 +22,7 @@ function snapshot(partial?: Partial<BuildSnapshot>): BuildSnapshot {
   return {
     productsByCategory: {},
     plants: [],
-    flags: { hasShrimp: false },
+    flags: { hasShrimp: false, lowTechNoCo2: false },
     ...partial,
   };
 }
@@ -119,6 +119,7 @@ describe("compatibility engine (seeded rule types)", () => {
     ];
 
     const s = snapshot({
+      flags: { hasShrimp: false, lowTechNoCo2: true },
       plants: [
         {
           id: "p1",

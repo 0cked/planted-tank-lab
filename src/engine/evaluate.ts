@@ -128,6 +128,10 @@ function evaluateCo2RequiredPlants(
   const co2 = snapshot.productsByCategory["co2"];
   if (co2) return [];
 
+  // Only warn/block once the user explicitly decided "no CO2".
+  // If CO2 just hasn't been picked yet, don't treat that as a mismatch.
+  if (snapshot.flags.lowTechNoCo2 !== true) return [];
+
   const evals: Evaluation[] = [];
   for (const plant of snapshot.plants) {
     if (plant.co2Demand !== requiredValue) continue;

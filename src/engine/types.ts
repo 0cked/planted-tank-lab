@@ -55,6 +55,9 @@ export type PlantSnapshot = {
 
 export type BuildFlags = {
   hasShrimp: boolean;
+  // True when the user explicitly chose a low-tech setup without CO2.
+  // This is distinct from "CO2 not selected yet".
+  lowTechNoCo2?: boolean;
 };
 
 export type BuildSnapshot = {
@@ -62,4 +65,3 @@ export type BuildSnapshot = {
   plants: PlantSnapshot[];
   flags: BuildFlags;
 };
-

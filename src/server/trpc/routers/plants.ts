@@ -10,12 +10,12 @@ export const plantsRouter = createTRPCRouter({
     .input(
       z
         .object({
-          limit: z.number().int().min(1).max(100).default(50),
+          limit: z.number().int().min(1).max(500).default(200),
         })
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      const limit = input?.limit ?? 50;
+      const limit = input?.limit ?? 200;
       return ctx.db.select().from(plants).orderBy(plants.commonName).limit(limit);
     }),
 

@@ -104,7 +104,7 @@ export const buildsRouter = createTRPCRouter({
           productsByCategory,
           plants: plantList,
           selectedOfferIdByProductId,
-          flags: { hasShrimp: false },
+          flags: { hasShrimp: false, lowTechNoCo2: false },
         },
       };
     }),

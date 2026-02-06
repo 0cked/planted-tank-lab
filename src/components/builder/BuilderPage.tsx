@@ -115,6 +115,18 @@ function isBlockingForPicker(rule: CompatibilityRule): boolean {
   if (rule.severity === "error") return true;
   const logic = rule.conditionLogic;
   if (!isRecord(logic)) return false;
+  const type = logic["type"];
+  if (typeof type === "string") {
+    // Some "soft" rules are treated as picker-gating constraints because they represent
+    // practical selection dead-ends (e.g., CO2-required plants without CO2).
+    if (
+      type === "co2_required_plants" ||
+      type === "plant_light_demand_min_par" ||
+      type === "carpet_needs_light_and_co2"
+    ) {
+      return true;
+    }
+  }
   return logic["blocks_selection"] === true;
 }
 
@@ -207,6 +219,7 @@ function countsBySeverity(evals: Evaluation[]): Record<Severity, number> {
 }
 
 function CategoryRowView(props: {
+  testId?: string;
   categoryName: string;
   required: boolean;
   selectionLabel: string;
@@ -223,6 +236,7 @@ function CategoryRowView(props: {
 
   return (
     <div
+      data-testid={props.testId}
       className={
         "grid grid-cols-[1fr_1.7fr_0.8fr_auto] items-center gap-3 px-4 py-3 hover:bg-white/35 " +
         (props.active ? "bg-white/40" : "")
@@ -696,6 +710,7 @@ function PlantPicker(props: {
   onOpenChange: (open: boolean) => void;
   onAdd: (p: PlantSnapshot) => void;
   compatibilityEnabled: boolean;
+  lowTechNoCo2: boolean;
   currentProductsByCategory: Record<string, ProductSnapshot | undefined>;
   currentPlants: PlantSnapshot[];
   currentFlags: BuildFlags;
@@ -736,6 +751,22 @@ function PlantPicker(props: {
     }> = [];
 
     for (const p of filtered) {
+      // Explicit user decision: low-tech means "no CO2", so hide CO2-required plants.
+      // This avoids treating "CO2 not selected yet" as a mismatch.
+      if (props.lowTechNoCo2 && p.co2Demand === "required") {
+        out.push({
+          row: p,
+          blocked: true,
+          reasons: [
+            {
+              message: `Plants like ${p.commonName} require CO2 injection to thrive.`,
+              fixSuggestion: "Turn off Low-tech (no CO2), or choose plants that don’t require CO2.",
+            },
+          ],
+        });
+        continue;
+      }
+
       const candidate = toPlantSnapshot(p);
       const snapshotCandidate = buildSnapshot({
         productsByCategory: props.currentProductsByCategory,
@@ -762,6 +793,7 @@ function PlantPicker(props: {
     blockingRules,
     filtered,
     props.compatibilityEnabled,
+    props.lowTechNoCo2,
     props.currentFlags,
     props.currentPlants,
     props.currentProductsByCategory,
@@ -1047,9 +1079,9 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       buildSnapshot({
         productsByCategory,
         plants,
-        flags,
+        flags: { ...flags, lowTechNoCo2 },
       }),
-    [productsByCategory, plants, flags],
+    [productsByCategory, plants, flags, lowTechNoCo2],
   );
 
   const evals = useMemo(() => {
@@ -1600,6 +1632,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                 return (
                   <CategoryRowView
                     key={c.id}
+                    testId={`category-row-${c.slug}`}
                     categoryName={c.name}
                     required={c.builderRequired}
                     selectionLabel={selectionLabel}
@@ -1639,7 +1672,10 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                 );
               })}
 
-            <div className="grid grid-cols-[1fr_1.7fr_0.8fr_auto] items-center gap-3 px-4 py-3">
+            <div
+              data-testid="category-row-plants"
+              className="grid grid-cols-[1fr_1.7fr_0.8fr_auto] items-center gap-3 px-4 py-3"
+            >
               <div className="min-w-0">
                 <div className="truncate font-medium">Plants</div>
                 {(evalsByCat["plants"] ?? [])[0] ? (
@@ -1740,7 +1776,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
           curatedOnly={curatedOnly}
           currentProductsByCategory={productsByCategory}
           currentPlants={plants}
-          currentFlags={flags}
+          currentFlags={{ ...flags, lowTechNoCo2 }}
           rules={rules}
         />
       ) : null}
@@ -1756,9 +1792,10 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
           }}
           onAdd={(p) => addPlant(p)}
           compatibilityEnabled={compatibilityEnabled}
+          lowTechNoCo2={lowTechNoCo2}
           currentProductsByCategory={productsByCategory}
           currentPlants={plants}
-          currentFlags={flags}
+          currentFlags={{ ...flags, lowTechNoCo2 }}
           rules={rules}
         />
       ) : null}
