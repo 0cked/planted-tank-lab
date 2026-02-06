@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -65,7 +66,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex items-start justify-between gap-6">
-        <div>
+        <div className="min-w-0">
           <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
             <Link href="/plants" className="hover:text-neutral-900 hover:underline">
               Plants
@@ -96,6 +97,42 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
+        <section className="ptl-surface overflow-hidden p-0">
+          <div className="border-b px-6 py-5" style={{ borderColor: "var(--ptl-border)" }}>
+            <div className="text-sm font-medium">Photo</div>
+          </div>
+          <div className="p-6">
+            <div
+              className="relative aspect-[16/10] overflow-hidden rounded-2xl border bg-white/60"
+              style={{ borderColor: "var(--ptl-border)" }}
+            >
+              {p.imageUrl ? (
+                <Image
+                  src={p.imageUrl}
+                  alt=""
+                  aria-hidden="true"
+                  fill
+                  sizes="(min-width: 1024px) 560px, 100vw"
+                  className="object-cover"
+                />
+              ) : (
+                <div
+                  className="h-full w-full"
+                  style={{
+                    background:
+                      "radial-gradient(220px 180px at 20% 20%, rgba(122, 163, 66, 0.28), transparent 60%), radial-gradient(280px 220px at 70% 70%, rgba(27, 127, 90, 0.18), transparent 60%), linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,255,255,0.25))",
+                  }}
+                />
+              )}
+            </div>
+            {p.imageUrl ? (
+              <div className="mt-2 text-xs text-neutral-600">
+                Images are provided as-is from external sources.
+              </div>
+            ) : null}
+          </div>
+        </section>
+
         <section className="ptl-surface p-6">
           <div className="text-sm font-medium">Care Card</div>
 
@@ -144,7 +181,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
           </div>
         </section>
 
-        <section className="ptl-surface p-6">
+        <section className="ptl-surface p-6 lg:col-span-2">
           <div className="text-sm font-medium">Details</div>
           <div
             className="mt-4 overflow-hidden rounded-xl border bg-white/70"

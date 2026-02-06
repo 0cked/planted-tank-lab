@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Geist_Mono, Spline_Sans } from "next/font/google";
 import "./globals.css";
 import { TRPCProvider } from "@/components/TRPCProvider";
+import { CookieBanner } from "@/components/CookieBanner";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 
@@ -68,6 +69,7 @@ export default function RootLayout({
             <SiteHeader />
             {children}
             <SiteFooter />
+            <CookieBanner />
           </div>
         </TRPCProvider>
       </body>

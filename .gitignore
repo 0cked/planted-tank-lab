@@ -10,3 +10,4 @@ tmp-next/
 .tmp-next/
 test-results/
 playwright-report/
+SCR-*.png

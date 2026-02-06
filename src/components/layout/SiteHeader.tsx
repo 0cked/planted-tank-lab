@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { UserMenu } from "@/components/layout/UserMenu";
+
 function NavLink(props: { href: string; children: React.ReactNode }) {
   return (
     <Link
@@ -47,10 +49,11 @@ export function SiteHeader() {
           <NavLink href="/plants">Plants</NavLink>
         </nav>
 
-        <div className="hidden items-center gap-2 sm:flex">
-          <Link href="/builder" className="ptl-btn-primary">
-            Start building
+        <div className="flex items-center gap-2">
+          <Link href="/builder" className="hidden sm:inline-flex ptl-btn-secondary">
+            Builder
           </Link>
+          <UserMenu />
         </div>
       </div>
     </header>

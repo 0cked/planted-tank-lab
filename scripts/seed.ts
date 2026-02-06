@@ -42,6 +42,8 @@ const plantSeedSchema = z.object({
   scientific_name: z.string().optional(),
   slug: z.string().min(1),
   family: z.string().optional(),
+  image_url: z.string().url().optional(),
+  image_urls: z.array(z.string().url()).optional(),
   difficulty: z.string().min(1),
   light_demand: z.string().min(1),
   co2_demand: z.string().min(1),
@@ -245,6 +247,8 @@ async function upsertPlants(): Promise<void> {
         slug: item.slug,
         family: item.family ?? null,
         description: item.description ?? null,
+        imageUrl: item.image_url ?? null,
+        imageUrls: item.image_urls ?? [],
 
         difficulty: item.difficulty,
         lightDemand: item.light_demand,
@@ -282,6 +286,8 @@ async function upsertPlants(): Promise<void> {
           scientificName: item.scientific_name ?? null,
           family: item.family ?? null,
           description: item.description ?? null,
+          imageUrl: item.image_url ?? null,
+          imageUrls: item.image_urls ?? [],
 
           difficulty: item.difficulty,
           lightDemand: item.light_demand,

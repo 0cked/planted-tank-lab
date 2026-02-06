@@ -243,7 +243,7 @@ function PickerDialog(props: {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-white/90 p-5 shadow-xl backdrop-blur-md"
+          className="fixed left-1/2 top-1/2 flex max-h-[85dvh] w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border bg-white/90 p-5 shadow-xl backdrop-blur-md"
           style={{ borderColor: "var(--ptl-border)" }}
         >
           <div className="flex items-start justify-between gap-4">
@@ -268,7 +268,7 @@ function PickerDialog(props: {
             </Dialog.Close>
           </div>
 
-          <div className="mt-4">{props.children}</div>
+          <div className="mt-4 min-h-0 overflow-y-auto pr-1">{props.children}</div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
@@ -281,12 +281,22 @@ function ProductPicker(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPick: (p: ProductSnapshot) => void;
+  compatibilityEnabled: boolean;
+  currentProductsByCategory: Record<string, ProductSnapshot | undefined>;
+  currentPlants: PlantSnapshot[];
+  currentFlags: BuildFlags;
+  rules: CompatibilityRule[];
 }) {
   const q = trpc.products.listByCategorySlug.useQuery({
     categorySlug: props.categorySlug,
     limit: 200,
   });
   const [query, setQuery] = useState("");
+
+  const errorRules = useMemo(
+    () => props.rules.filter((r) => r.severity === "error"),
+    [props.rules],
+  );
 
   const filtered = useMemo(() => {
     const rows = q.data ?? [];
@@ -299,10 +309,49 @@ function ProductPicker(props: {
     });
   }, [q.data, query]);
 
+  const { visibleRows, hiddenCount } = useMemo(() => {
+    if (!props.compatibilityEnabled) return { visibleRows: filtered, hiddenCount: 0 };
+    if (errorRules.length === 0) return { visibleRows: filtered, hiddenCount: 0 };
+
+    const out: ProductRow[] = [];
+    let hidden = 0;
+
+    for (const r of filtered) {
+      const candidate = toProductSnapshot(props.categorySlug, r);
+      const snapshotCandidate = buildSnapshot({
+        productsByCategory: {
+          ...props.currentProductsByCategory,
+          [props.categorySlug]: candidate,
+        },
+        plants: props.currentPlants,
+        flags: props.currentFlags,
+      });
+
+      const evals = evaluateBuild(errorRules, snapshotCandidate);
+      const blocks = evals.some((e) => e.severity === "error");
+      if (blocks) hidden += 1;
+      else out.push(r);
+    }
+
+    return { visibleRows: out, hiddenCount: hidden };
+  }, [
+    errorRules,
+    filtered,
+    props.categorySlug,
+    props.compatibilityEnabled,
+    props.currentFlags,
+    props.currentPlants,
+    props.currentProductsByCategory,
+  ]);
+
   return (
     <PickerDialog
       title={`Choose a ${props.categoryName}`}
-      description="Data is currently seeded (limited list)."
+      description={
+        hiddenCount > 0
+          ? `Compatibility filter is hiding ${hiddenCount} incompatible option(s).`
+          : "Data is currently seeded (limited list)."
+      }
       open={props.open}
       onOpenChange={props.onOpenChange}
     >
@@ -322,13 +371,15 @@ function ProductPicker(props: {
       >
         {q.isLoading ? (
           <div className="px-4 py-3 text-sm text-neutral-600">Loading...</div>
-        ) : filtered.length === 0 ? (
+        ) : visibleRows.length === 0 ? (
           <div className="px-4 py-3 text-sm text-neutral-600">
-            No products seeded for this category yet.
+            {filtered.length === 0
+              ? "No products seeded for this category yet."
+              : "No compatible results. Turn off Compatibility to see all options."}
           </div>
         ) : (
           <ul className="divide-y divide-neutral-200">
-            {filtered.map((r) => {
+            {visibleRows.map((r) => {
               const label = r.brand?.name ? `${r.brand.name} ${r.name}` : r.name;
               return (
                 <li
@@ -364,9 +415,20 @@ function PlantPicker(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (p: PlantSnapshot) => void;
+  compatibilityEnabled: boolean;
+  lowTechNoCo2: boolean;
+  selectedLight: ProductSnapshot | undefined;
+  selectedCo2: ProductSnapshot | undefined;
 }) {
-  const q = trpc.plants.list.useQuery({ limit: 100 });
+  const q = trpc.plants.list.useQuery({ limit: 200 });
   const [query, setQuery] = useState("");
+
+  const parAtSubstrate = useMemo(() => {
+    const raw = props.selectedLight?.specs?.["par_at_substrate"];
+    if (raw == null) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }, [props.selectedLight]);
 
   const filtered = useMemo(() => {
     const rows = q.data ?? [];
@@ -379,10 +441,54 @@ function PlantPicker(props: {
     });
   }, [q.data, query]);
 
+  const { visibleRows, hiddenCount } = useMemo(() => {
+    if (!props.compatibilityEnabled) return { visibleRows: filtered, hiddenCount: 0 };
+
+    const decidedNoCo2 = props.lowTechNoCo2;
+    const out: PlantRow[] = [];
+    let hidden = 0;
+
+    for (const p of filtered) {
+      // CO2 gating only when user explicitly chose low-tech.
+      if (decidedNoCo2 && p.co2Demand === "required") {
+        hidden += 1;
+        continue;
+      }
+
+      // Light gating only when a light is selected and PAR is known.
+      if (parAtSubstrate != null && parAtSubstrate < 50 && p.lightDemand === "high") {
+        hidden += 1;
+        continue;
+      }
+
+      // Carpet gating (rule-aligned): most carpets need high light and CO2.
+      if (p.placement === "carpet") {
+        const tooLowPar = parAtSubstrate != null && parAtSubstrate < 80;
+        if (tooLowPar || decidedNoCo2) {
+          hidden += 1;
+          continue;
+        }
+      }
+
+      out.push(p);
+    }
+
+    return { visibleRows: out, hiddenCount: hidden };
+  }, [
+    filtered,
+    parAtSubstrate,
+    props.compatibilityEnabled,
+    props.lowTechNoCo2,
+  ]);
+
   return (
     <PickerDialog
       title="Add Plants"
-      description="Plants are multi-select. Add as many as you want."
+      description={
+        hiddenCount > 0
+          ? `Compatibility filter is hiding ${hiddenCount} plant(s).`
+          : "Plants are multi-select. Add as many as you want."
+      }
       open={props.open}
       onOpenChange={props.onOpenChange}
     >
@@ -402,11 +508,15 @@ function PlantPicker(props: {
       >
         {q.isLoading ? (
           <div className="px-4 py-3 text-sm text-neutral-600">Loading...</div>
-        ) : filtered.length === 0 ? (
-          <div className="px-4 py-3 text-sm text-neutral-600">No plants found.</div>
+        ) : visibleRows.length === 0 ? (
+          <div className="px-4 py-3 text-sm text-neutral-600">
+            {filtered.length === 0
+              ? "No plants found."
+              : "No compatible results. Turn off Compatibility to see all plants."}
+          </div>
         ) : (
           <ul className="divide-y divide-neutral-200">
-            {filtered.map((p) => {
+            {visibleRows.map((p) => {
               const label = p.scientificName
                 ? `${p.commonName} (${p.scientificName})`
                 : p.commonName;
@@ -449,12 +559,16 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const productsByCategory = useBuilderStore((s) => s.productsByCategory);
   const plants = useBuilderStore((s) => s.plants);
   const flags = useBuilderStore((s) => s.flags);
+  const compatibilityEnabled = useBuilderStore((s) => s.compatibilityEnabled);
+  const lowTechNoCo2 = useBuilderStore((s) => s.lowTechNoCo2);
 
   const setProduct = useBuilderStore((s) => s.setProduct);
   const addPlant = useBuilderStore((s) => s.addPlant);
   const removePlantById = useBuilderStore((s) => s.removePlantById);
   const clearPlants = useBuilderStore((s) => s.clearPlants);
   const setHasShrimp = useBuilderStore((s) => s.setHasShrimp);
+  const setCompatibilityEnabled = useBuilderStore((s) => s.setCompatibilityEnabled);
+  const setLowTechNoCo2 = useBuilderStore((s) => s.setLowTechNoCo2);
   const reset = useBuilderStore((s) => s.reset);
   const hydrate = useBuilderStore((s) => s.hydrate);
 
@@ -489,7 +603,10 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     [productsByCategory, plants, flags],
   );
 
-  const evals = useMemo(() => evaluateBuild(rules, snapshot), [rules, snapshot]);
+  const evals = useMemo(() => {
+    if (!compatibilityEnabled) return [];
+    return evaluateBuild(rules, snapshot);
+  }, [compatibilityEnabled, rules, snapshot]);
   const evalsByCat = useMemo(() => groupByCategory(evals), [evals]);
   const counts = useMemo(() => countsBySeverity(evals), [evals]);
 
@@ -641,16 +758,36 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
             <div className="mt-1 text-xl font-semibold tracking-tight">{counts.warning}</div>
           </div>
           <div>
-            <div className="text-xs font-medium text-neutral-600">Shrimp</div>
-            <label className="mt-2 inline-flex items-center gap-2 text-sm text-neutral-700">
-              <input
-                type="checkbox"
-                checked={flags.hasShrimp}
-                onChange={(e) => setHasShrimp(e.target.checked)}
-                className="h-4 w-4 rounded border-neutral-300"
-              />
-              Shrimp tank
-            </label>
+            <div className="text-xs font-medium text-neutral-600">Options</div>
+            <div className="mt-2 space-y-2">
+              <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
+                <span className="font-medium">Compatibility</span>
+                <input
+                  type="checkbox"
+                  checked={compatibilityEnabled}
+                  onChange={(e) => setCompatibilityEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-300"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
+                <span className="font-medium">Low-tech (no CO2)</span>
+                <input
+                  type="checkbox"
+                  checked={lowTechNoCo2}
+                  onChange={(e) => setLowTechNoCo2(e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-300"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
+                <span className="font-medium">Shrimp tank</span>
+                <input
+                  type="checkbox"
+                  checked={flags.hasShrimp}
+                  onChange={(e) => setHasShrimp(e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-300"
+                />
+              </label>
+            </div>
           </div>
         </div>
 
@@ -672,7 +809,9 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
           </div>
         ) : (
           <div className="ptl-surface p-4 text-sm text-neutral-700">
-            No compatibility issues detected yet. Start selecting items.
+            {compatibilityEnabled
+              ? "No compatibility issues detected yet. Start selecting items."
+              : "Compatibility engine is off. Turn it on to see checks and warnings."}
           </div>
         )}
       </div>
@@ -686,9 +825,22 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
               .filter((c) => c.slug !== "plants")
               .map((c) => {
                 const selected = productsByCategory[c.slug];
-                const priceCents = selected ? minPriceByProductId.get(selected.id) : null;
+                const isCo2Category = c.slug === "co2";
+                const effectiveSelected =
+                  isCo2Category && lowTechNoCo2 ? undefined : selected;
+                const priceCents = effectiveSelected
+                  ? minPriceByProductId.get(effectiveSelected.id)
+                  : null;
 
-                const selectionLabel = selected ? selected.name : `+ Choose a ${c.name}`;
+                const selectionLabel = isCo2Category
+                  ? lowTechNoCo2
+                    ? "No CO2 (low-tech)"
+                    : effectiveSelected
+                      ? effectiveSelected.name
+                      : `+ Choose a ${c.name}`
+                  : effectiveSelected
+                    ? effectiveSelected.name
+                    : `+ Choose a ${c.name}`;
                 const catEvals = evalsByCat[c.slug] ?? [];
 
                 return (
@@ -699,14 +851,17 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                     selectionLabel={selectionLabel}
                     priceLabel={formatMoney(priceCents)}
                     evals={catEvals}
-                    onChoose={() =>
+                    onChoose={() => {
+                      if (isCo2Category && lowTechNoCo2) setLowTechNoCo2(false);
                       setActivePicker({
                         type: "product",
                         categorySlug: c.slug,
                         categoryName: c.name,
-                      })
+                      });
+                    }}
+                    onRemove={
+                      effectiveSelected ? () => setProduct(c.slug, null) : undefined
                     }
-                    onRemove={selected ? () => setProduct(c.slug, null) : undefined}
                   />
                 );
               })}
@@ -795,7 +950,15 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
           onOpenChange={(open) => {
             if (!open) setActivePicker(null);
           }}
-          onPick={(p) => setProduct(activePicker.categorySlug, p)}
+          onPick={(p) => {
+            if (activePicker.categorySlug === "co2") setLowTechNoCo2(false);
+            setProduct(activePicker.categorySlug, p);
+          }}
+          compatibilityEnabled={compatibilityEnabled}
+          currentProductsByCategory={productsByCategory}
+          currentPlants={plants}
+          currentFlags={flags}
+          rules={rules}
         />
       ) : null}
 
@@ -806,6 +969,10 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
             if (!open) setActivePicker(null);
           }}
           onAdd={(p) => addPlant(p)}
+          compatibilityEnabled={compatibilityEnabled}
+          lowTechNoCo2={lowTechNoCo2}
+          selectedLight={productsByCategory["light"]}
+          selectedCo2={productsByCategory["co2"]}
         />
       ) : null}
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 
 import { getServerCaller } from "@/server/trpc/server-caller";
 
@@ -190,6 +191,28 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                 {plants.map((p) => (
                   <li key={p.id} className="px-5 py-4">
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex min-w-0 gap-3">
+                        <div className="mt-0.5 h-12 w-12 shrink-0 overflow-hidden rounded-xl border bg-white/60" style={{ borderColor: "var(--ptl-border)" }}>
+                          {p.imageUrl ? (
+                            <Image
+                              src={p.imageUrl}
+                              alt=""
+                              aria-hidden="true"
+                              width={96}
+                              height={96}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div
+                              className="h-full w-full"
+                              style={{
+                                background:
+                                  "radial-gradient(28px 28px at 20% 20%, rgba(122, 163, 66, 0.35), transparent 60%), radial-gradient(40px 40px at 70% 60%, rgba(27, 127, 90, 0.22), transparent 65%), linear-gradient(135deg, rgba(255,255,255,0.65), rgba(255,255,255,0.25))",
+                              }}
+                            />
+                          )}
+                        </div>
+
                       <div className="min-w-0">
                         <Link
                           href={`/plants/${p.slug}`}
@@ -206,6 +229,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                           {p.difficulty} · {p.lightDemand} light · {p.co2Demand} CO2 ·{" "}
                           {p.placement}
                         </div>
+                      </div>
                       </div>
                       <div className="text-xs text-neutral-600">
                         {p.beginnerFriendly ? "Beginner" : null}
