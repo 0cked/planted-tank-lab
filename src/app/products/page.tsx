@@ -13,9 +13,14 @@ export default async function ProductsPage() {
   const categories = await caller.products.categoriesList();
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
-      <h1 className="text-3xl font-semibold tracking-tight">Products</h1>
-      <p className="mt-2 text-sm text-neutral-600">
+    <main className="mx-auto max-w-6xl px-6 py-14">
+      <h1
+        className="text-4xl font-semibold tracking-tight"
+        style={{ fontFamily: "var(--font-display)" }}
+      >
+        Products
+      </h1>
+      <p className="mt-3 text-sm text-neutral-700">
         Browse equipment categories and compare compatible options.
       </p>
 
@@ -26,13 +31,15 @@ export default async function ProductsPage() {
             <Link
               key={c.id}
               href={`/products/${c.slug}`}
-              className="rounded-xl border border-neutral-200 bg-white p-5 hover:border-neutral-300"
+              className="ptl-surface p-6 transition hover:bg-white/80"
             >
-              <div className="text-sm text-neutral-600">Category</div>
-              <div className="mt-1 text-lg font-semibold tracking-tight">
+              <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+                Category
+              </div>
+              <div className="mt-2 text-lg font-semibold tracking-tight text-neutral-900">
                 {c.name}
               </div>
-              <div className="mt-2 text-sm text-neutral-600">
+              <div className="mt-2 text-sm text-neutral-700">
                 Browse {c.name.toLowerCase()} and see key specs.
               </div>
             </Link>

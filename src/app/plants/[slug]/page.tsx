@@ -19,7 +19,7 @@ function rangeLabel(min: number | null, max: number | null, unit?: string): stri
 
 function pill(text: string) {
   return (
-    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-800">
+    <span className="ptl-pill">
       {text}
     </span>
   );
@@ -63,20 +63,25 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
   const maxHeight = numOrNull(p.maxHeightIn);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
+    <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex items-start justify-between gap-6">
         <div>
-          <div className="text-sm text-neutral-600">
+          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
             <Link href="/plants" className="hover:text-neutral-900 hover:underline">
               Plants
             </Link>
           </div>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">{p.commonName}</h1>
+          <h1
+            className="mt-2 text-4xl font-semibold tracking-tight"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {p.commonName}
+          </h1>
           {p.scientificName ? (
             <div className="mt-1 text-sm italic text-neutral-600">{p.scientificName}</div>
           ) : null}
           {p.description ? (
-            <p className="mt-3 max-w-2xl text-sm text-neutral-600">{p.description}</p>
+            <p className="mt-3 max-w-2xl text-sm text-neutral-700">{p.description}</p>
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -91,14 +96,17 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
-        <section className="rounded-xl border border-neutral-200 bg-white p-5">
+        <section className="ptl-surface p-6">
           <div className="text-sm font-medium">Care Card</div>
 
-          <div className="mt-4 overflow-hidden rounded-lg border border-neutral-200">
+          <div
+            className="mt-4 overflow-hidden rounded-xl border bg-white/70"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
             <table className="w-full text-left text-sm">
               <tbody className="divide-y divide-neutral-200">
                 <tr>
-                  <th className="w-[40%] bg-neutral-50 px-4 py-2 font-medium text-neutral-800">
+                  <th className="w-[40%] bg-white/60 px-4 py-2 font-semibold text-neutral-800">
                     Temperature
                   </th>
                   <td className="px-4 py-2 text-neutral-800">
@@ -106,25 +114,25 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
                   </td>
                 </tr>
                 <tr>
-                  <th className="bg-neutral-50 px-4 py-2 font-medium text-neutral-800">pH</th>
+                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">pH</th>
                   <td className="px-4 py-2 text-neutral-800">
                     {rangeLabel(phMin, phMax)}
                   </td>
                 </tr>
                 <tr>
-                  <th className="bg-neutral-50 px-4 py-2 font-medium text-neutral-800">GH</th>
+                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">GH</th>
                   <td className="px-4 py-2 text-neutral-800">
                     {rangeLabel(p.ghMin ?? null, p.ghMax ?? null)}
                   </td>
                 </tr>
                 <tr>
-                  <th className="bg-neutral-50 px-4 py-2 font-medium text-neutral-800">KH</th>
+                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">KH</th>
                   <td className="px-4 py-2 text-neutral-800">
                     {rangeLabel(p.khMin ?? null, p.khMax ?? null)}
                   </td>
                 </tr>
                 <tr>
-                  <th className="bg-neutral-50 px-4 py-2 font-medium text-neutral-800">
+                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
                     Max height
                   </th>
                   <td className="px-4 py-2 text-neutral-800">
@@ -136,31 +144,34 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
           </div>
         </section>
 
-        <section className="rounded-xl border border-neutral-200 bg-white p-5">
+        <section className="ptl-surface p-6">
           <div className="text-sm font-medium">Details</div>
-          <div className="mt-4 overflow-hidden rounded-lg border border-neutral-200">
+          <div
+            className="mt-4 overflow-hidden rounded-xl border bg-white/70"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
             <table className="w-full text-left text-sm">
               <tbody className="divide-y divide-neutral-200">
                 <tr>
-                  <th className="w-[40%] bg-neutral-50 px-4 py-2 font-medium text-neutral-800">
+                  <th className="w-[40%] bg-white/60 px-4 py-2 font-semibold text-neutral-800">
                     Growth rate
                   </th>
                   <td className="px-4 py-2 text-neutral-800">{p.growthRate ?? "—"}</td>
                 </tr>
                 <tr>
-                  <th className="bg-neutral-50 px-4 py-2 font-medium text-neutral-800">
+                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
                     Substrate type
                   </th>
                   <td className="px-4 py-2 text-neutral-800">{p.substrateType ?? "—"}</td>
                 </tr>
                 <tr>
-                  <th className="bg-neutral-50 px-4 py-2 font-medium text-neutral-800">
+                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
                     Propagation
                   </th>
                   <td className="px-4 py-2 text-neutral-800">{p.propagation ?? "—"}</td>
                 </tr>
                 <tr>
-                  <th className="bg-neutral-50 px-4 py-2 font-medium text-neutral-800">
+                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
                     Native region
                   </th>
                   <td className="px-4 py-2 text-neutral-800">{p.nativeRegion ?? "—"}</td>

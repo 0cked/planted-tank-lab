@@ -71,7 +71,7 @@ function severityClasses(sev: Severity): string {
     case "recommendation":
       return "border-blue-200 bg-blue-50 text-blue-900";
     case "completeness":
-      return "border-neutral-200 bg-neutral-50 text-neutral-900";
+      return "border-neutral-200 bg-white/60 text-neutral-900";
   }
 }
 
@@ -183,12 +183,12 @@ function CategoryRowView(props: {
   const topEval = props.evals[0] ?? null;
 
   return (
-    <div className="grid grid-cols-[1fr_1.7fr_0.8fr_auto] items-center gap-3 px-4 py-3">
+    <div className="grid grid-cols-[1fr_1.7fr_0.8fr_auto] items-center gap-3 px-4 py-3 hover:bg-white/35">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <div className="truncate font-medium">{props.categoryName}</div>
           {props.required ? (
-            <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] text-neutral-700">
+            <span className="ptl-pill">
               Required
             </span>
           ) : null}
@@ -211,7 +211,8 @@ function CategoryRowView(props: {
         <button
           type="button"
           onClick={props.onChoose}
-          className="rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50"
+          className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+          style={{ borderColor: "var(--ptl-border)" }}
         >
           {props.selectionLabel.startsWith("+") ? "Choose" : "Swap"}
         </button>
@@ -219,7 +220,8 @@ function CategoryRowView(props: {
           <button
             type="button"
             onClick={props.onRemove}
-            className="rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50"
+            className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+            style={{ borderColor: "var(--ptl-border)" }}
           >
             Remove
           </button>
@@ -240,7 +242,10 @@ function PickerDialog(props: {
     <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-neutral-200 bg-white p-5 shadow-xl">
+        <Dialog.Content
+          className="fixed left-1/2 top-1/2 w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-white/90 p-5 shadow-xl backdrop-blur-md"
+          style={{ borderColor: "var(--ptl-border)" }}
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <Dialog.Title className="text-lg font-semibold tracking-tight">
@@ -255,7 +260,8 @@ function PickerDialog(props: {
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50"
+                className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+                style={{ borderColor: "var(--ptl-border)" }}
               >
                 Close
               </button>
@@ -305,11 +311,15 @@ function ProductPicker(props: {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search..."
-          className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+          className="w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+          style={{ borderColor: "var(--ptl-border)" }}
         />
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-neutral-200">
+      <div
+        className="mt-4 overflow-hidden rounded-xl border bg-white/70"
+        style={{ borderColor: "var(--ptl-border)" }}
+      >
         {q.isLoading ? (
           <div className="px-4 py-3 text-sm text-neutral-600">Loading...</div>
         ) : filtered.length === 0 ? (
@@ -323,7 +333,7 @@ function ProductPicker(props: {
               return (
                 <li
                   key={r.id}
-                  className="flex items-center justify-between gap-4 px-4 py-3"
+                  className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-white/40"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{label}</div>
@@ -335,7 +345,8 @@ function ProductPicker(props: {
                       props.onPick(toProductSnapshot(props.categorySlug, r));
                       props.onOpenChange(false);
                     }}
-                    className="shrink-0 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800"
+                    className="shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95"
+                    style={{ background: "var(--ptl-accent)" }}
                   >
                     Add
                   </button>
@@ -380,11 +391,15 @@ function PlantPicker(props: {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search plants..."
-          className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+          className="w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+          style={{ borderColor: "var(--ptl-border)" }}
         />
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-neutral-200">
+      <div
+        className="mt-4 overflow-hidden rounded-xl border bg-white/70"
+        style={{ borderColor: "var(--ptl-border)" }}
+      >
         {q.isLoading ? (
           <div className="px-4 py-3 text-sm text-neutral-600">Loading...</div>
         ) : filtered.length === 0 ? (
@@ -398,7 +413,7 @@ function PlantPicker(props: {
               return (
                 <li
                   key={p.id}
-                  className="flex items-center justify-between gap-4 px-4 py-3"
+                  className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-white/40"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{label}</div>
@@ -410,7 +425,8 @@ function PlantPicker(props: {
                   <button
                     type="button"
                     onClick={() => props.onAdd(toPlantSnapshot(p))}
-                    className="shrink-0 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800"
+                    className="shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95"
+                    style={{ background: "var(--ptl-accent)" }}
                   >
                     Add
                   </button>
@@ -560,11 +576,16 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const topBannerEval = evals[0] ?? null;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex items-start justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Builder</h1>
-          <p className="mt-2 text-sm text-neutral-600">
+          <h1
+            className="text-4xl font-semibold tracking-tight"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Builder
+          </h1>
+          <p className="mt-3 text-sm text-neutral-700">
             Choose parts category-by-category. Warnings update instantly.
           </p>
           {shareStatus ? (
@@ -575,7 +596,8 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
               <input
                 readOnly
                 value={shareUrl}
-                className="w-full max-w-[520px] rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800"
+                className="w-full max-w-[520px] rounded-xl border bg-white/70 px-3 py-2 text-sm text-neutral-800"
+                style={{ borderColor: "var(--ptl-border)" }}
               />
             </div>
           ) : null}
@@ -583,14 +605,14 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm hover:bg-neutral-50"
+            className="ptl-btn-secondary"
             onClick={() => reset()}
           >
             Reset
           </button>
           <button
             type="button"
-            className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="ptl-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
             onClick={() => void onShare()}
             disabled={shareMutation.isPending}
           >
@@ -600,7 +622,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       </div>
 
       <div className="mt-6 grid gap-4">
-        <div className="grid grid-cols-1 gap-3 rounded-xl border border-neutral-200 bg-white p-4 sm:grid-cols-4">
+        <div className="ptl-surface grid grid-cols-1 gap-3 p-5 sm:grid-cols-4">
           <div>
             <div className="text-xs font-medium text-neutral-600">Total</div>
             <div className="mt-1 text-xl font-semibold tracking-tight">
@@ -649,13 +671,13 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
             </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
+          <div className="ptl-surface p-4 text-sm text-neutral-700">
             No compatibility issues detected yet. Start selecting items.
           </div>
         )}
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+      <div className="mt-8 overflow-hidden rounded-2xl border bg-white/70 shadow-sm backdrop-blur-sm" style={{ borderColor: "var(--ptl-border)" }}>
         {categoriesQ.isLoading ? (
           <div className="px-4 py-3 text-sm text-neutral-600">Loading categories...</div>
         ) : (
@@ -725,7 +747,8 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                 <button
                   type="button"
                   onClick={() => setActivePicker({ type: "plants" })}
-                  className="rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50"
+                  className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+                  style={{ borderColor: "var(--ptl-border)" }}
                 >
                   {plants.length === 0 ? "Add" : "Manage"}
                 </button>
@@ -733,7 +756,8 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                   <button
                     type="button"
                     onClick={() => clearPlants()}
-                    className="rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50"
+                    className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+                    style={{ borderColor: "var(--ptl-border)" }}
                   >
                     Clear
                   </button>
@@ -742,14 +766,15 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
             </div>
 
             {plants.length > 0 ? (
-              <div className="border-t border-neutral-200 bg-neutral-50 px-4 py-3">
+              <div className="border-t bg-white/55 px-4 py-3" style={{ borderColor: "var(--ptl-border)" }}>
                 <div className="flex flex-wrap gap-2">
                   {plants.map((p) => (
                     <button
                       key={p.id}
                       type="button"
                       onClick={() => removePlantById(p.id)}
-                      className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-sm text-neutral-800 hover:bg-neutral-100"
+                      className="rounded-full border bg-white/80 px-3 py-1 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+                      style={{ borderColor: "var(--ptl-border)" }}
                       title="Remove"
                     >
                       {p.commonName} x

@@ -186,12 +186,19 @@ export default async function ProductCategoryPage(props: {
   const title = `${category.name} Products`;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
+    <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-sm text-neutral-600">Products</div>
-          <h1 className="text-3xl font-semibold tracking-tight">{category.name}</h1>
-          <p className="mt-2 text-sm text-neutral-600">
+          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+            Products
+          </div>
+          <h1
+            className="mt-2 text-4xl font-semibold tracking-tight"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {category.name}
+          </h1>
+          <p className="mt-3 text-sm text-neutral-700">
             Filters are query-param based (shareable URLs).
           </p>
         </div>
@@ -201,7 +208,7 @@ export default async function ProductCategoryPage(props: {
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <section className="rounded-xl border border-neutral-200 bg-white p-5">
+        <section className="ptl-surface p-5">
           <div className="text-sm font-medium">Filters</div>
           <form className="mt-4 space-y-4" method="GET">
             <div>
@@ -210,7 +217,8 @@ export default async function ProductCategoryPage(props: {
                 name="q"
                 defaultValue={q ?? ""}
                 placeholder="Name contains..."
-                className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                style={{ borderColor: "var(--ptl-border)" }}
               />
             </div>
 
@@ -219,7 +227,8 @@ export default async function ProductCategoryPage(props: {
               <select
                 name="brand"
                 defaultValue={brandSlug ?? ""}
-                className="mt-1 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400"
+                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                style={{ borderColor: "var(--ptl-border)" }}
               >
                 <option value="">Any</option>
                 {brands.map((b) => (
@@ -239,7 +248,8 @@ export default async function ProductCategoryPage(props: {
                       name="volumeMin"
                       inputMode="numeric"
                       defaultValue={volumeMin ?? ""}
-                      className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+                      className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                      style={{ borderColor: "var(--ptl-border)" }}
                     />
                   </div>
                   <div>
@@ -248,7 +258,8 @@ export default async function ProductCategoryPage(props: {
                       name="volumeMax"
                       inputMode="numeric"
                       defaultValue={volumeMax ?? ""}
-                      className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+                      className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                      style={{ borderColor: "var(--ptl-border)" }}
                     />
                   </div>
                 </div>
@@ -269,7 +280,8 @@ export default async function ProductCategoryPage(props: {
                   <select
                     name="material"
                     defaultValue={material ?? ""}
-                    className="mt-1 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400"
+                    className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                    style={{ borderColor: "var(--ptl-border)" }}
                   >
                     <option value="">Any</option>
                     <option value="glass">Glass</option>
@@ -288,7 +300,8 @@ export default async function ProductCategoryPage(props: {
                       name="parMin"
                       inputMode="numeric"
                       defaultValue={parMin ?? ""}
-                      className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+                      className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                      style={{ borderColor: "var(--ptl-border)" }}
                     />
                   </div>
                   <div>
@@ -297,7 +310,8 @@ export default async function ProductCategoryPage(props: {
                       name="parMax"
                       inputMode="numeric"
                       defaultValue={parMax ?? ""}
-                      className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+                      className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                      style={{ borderColor: "var(--ptl-border)" }}
                     />
                   </div>
                 </div>
@@ -309,7 +323,8 @@ export default async function ProductCategoryPage(props: {
                     inputMode="numeric"
                     defaultValue={tankLength ?? ""}
                     placeholder="e.g. 24"
-                    className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+                    className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                    style={{ borderColor: "var(--ptl-border)" }}
                   />
                   <div className="mt-1 text-xs text-neutral-500">
                     Filters lights that fit this tank length.
@@ -347,13 +362,13 @@ export default async function ProductCategoryPage(props: {
             <div className="flex items-center gap-2">
               <button
                 type="submit"
-                className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+                className="ptl-btn-primary"
               >
                 Apply
               </button>
               <Link
                 href={`/products/${categorySlug}`}
-                className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm hover:bg-neutral-50"
+                className="ptl-btn-secondary"
               >
                 Reset
               </Link>
@@ -363,13 +378,16 @@ export default async function ProductCategoryPage(props: {
 
         <section>
           <div className="flex items-center justify-between">
-            <div className="text-sm text-neutral-600">
+            <div className="text-sm text-neutral-700">
               Showing <span className="font-medium text-neutral-900">{filtered.length}</span>{" "}
               result(s)
             </div>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+          <div
+            className="mt-4 overflow-hidden rounded-2xl border bg-white/70 shadow-sm backdrop-blur-sm"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
             {filtered.length === 0 ? (
               <div className="px-5 py-8 text-sm text-neutral-600">No results.</div>
             ) : (
@@ -397,7 +415,7 @@ export default async function ProductCategoryPage(props: {
                             <div className="mt-1 text-xs text-neutral-600">{summary}</div>
                           ) : null}
                         </div>
-                        <div className="text-right text-sm font-medium text-neutral-900">
+                        <div className="text-right text-sm font-semibold text-neutral-900">
                           {formatMoney(price)}
                         </div>
                       </div>

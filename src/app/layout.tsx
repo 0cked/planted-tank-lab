@@ -1,17 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { Fraunces, Geist_Mono, Spline_Sans } from "next/font/google";
 import "./globals.css";
 import { TRPCProvider } from "@/components/TRPCProvider";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { SiteHeader } from "@/components/layout/SiteHeader";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const fontSans = Spline_Sans({
+  variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+  variable: "--font-mono",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const fontDisplay = Fraunces({
+  variable: "--font-display",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -33,6 +42,15 @@ export const metadata: Metadata = {
     title: "PlantedTankLab",
     description: "PCPartPicker for planted aquariums.",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({
@@ -43,34 +61,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${fontSans.variable} ${geistMono.variable} ${fontDisplay.variable} antialiased`}
       >
         <TRPCProvider>
-          <div className="min-h-dvh bg-white text-neutral-900">
-            <header className="border-b border-neutral-200">
-              <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-                <Link href="/" className="font-semibold tracking-tight">
-                  PlantedTankLab
-                </Link>
-                <nav className="flex items-center gap-4 text-sm text-neutral-700">
-                  <Link href="/builder" className="hover:text-neutral-900">
-                    Builder
-                  </Link>
-                  <Link href="/products" className="hover:text-neutral-900">
-                    Products
-                  </Link>
-                  <Link href="/plants" className="hover:text-neutral-900">
-                    Plants
-                  </Link>
-                </nav>
-              </div>
-            </header>
+          <div className="ptl-app text-neutral-900">
+            <SiteHeader />
             {children}
-            <footer className="mt-16 border-t border-neutral-200">
-              <div className="mx-auto max-w-5xl px-6 py-8 text-xs text-neutral-600">
-                Affiliate disclosure: PlantedTankLab may earn from qualifying purchases.
-              </div>
-            </footer>
+            <SiteFooter />
           </div>
         </TRPCProvider>
       </body>

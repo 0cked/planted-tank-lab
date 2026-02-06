@@ -53,10 +53,10 @@ export default async function ProductDetailPage(props: {
   const specs = formatSpecs({ categorySlug: p.category.slug, specs: p.specs });
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
+    <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-sm text-neutral-600">
+          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
             <Link
               href={`/products/${p.category.slug}`}
               className="hover:text-neutral-900 hover:underline"
@@ -64,14 +64,21 @@ export default async function ProductDetailPage(props: {
               {p.category.name}
             </Link>
           </div>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">{title}</h1>
+          <h1
+            className="mt-2 text-4xl font-semibold tracking-tight"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {title}
+          </h1>
           {p.description ? (
-            <p className="mt-2 max-w-2xl text-sm text-neutral-600">{p.description}</p>
+            <p className="mt-3 max-w-2xl text-sm text-neutral-700">{p.description}</p>
           ) : null}
         </div>
-        <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4 text-right">
-          <div className="text-xs font-medium text-neutral-600">Lowest price</div>
-          <div className="mt-1 text-xl font-semibold tracking-tight">{formatMoney(lowest)}</div>
+        <div className="ptl-surface px-5 py-4 text-right">
+          <div className="text-xs font-semibold text-neutral-600">Lowest price</div>
+          <div className="mt-1 text-2xl font-semibold tracking-tight">
+            {formatMoney(lowest)}
+          </div>
           <div className="mt-1 text-xs text-neutral-500">
             Best-effort until offers are seeded.
           </div>
@@ -79,17 +86,20 @@ export default async function ProductDetailPage(props: {
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
-        <section className="rounded-xl border border-neutral-200 bg-white p-5">
+        <section className="ptl-surface p-6">
           <div className="text-sm font-medium">Specs</div>
           {specs.length === 0 ? (
             <div className="mt-3 text-sm text-neutral-600">No specs yet.</div>
           ) : (
-            <div className="mt-4 overflow-hidden rounded-lg border border-neutral-200">
+            <div
+              className="mt-4 overflow-hidden rounded-xl border bg-white/70"
+              style={{ borderColor: "var(--ptl-border)" }}
+            >
               <table className="w-full text-left text-sm">
                 <tbody className="divide-y divide-neutral-200">
                   {specs.map((row) => (
                     <tr key={row.key}>
-                      <th className="w-[40%] bg-neutral-50 px-4 py-2 font-medium text-neutral-800">
+                      <th className="w-[40%] bg-white/60 px-4 py-2 font-semibold text-neutral-800">
                         {row.label}
                       </th>
                       <td className="px-4 py-2 text-neutral-800">{row.value}</td>
@@ -101,7 +111,7 @@ export default async function ProductDetailPage(props: {
           )}
         </section>
 
-        <aside className="rounded-xl border border-neutral-200 bg-white p-5">
+        <aside className="ptl-surface p-6">
           <div className="text-sm font-medium">Offers</div>
           {offers.length === 0 ? (
             <div className="mt-3 text-sm text-neutral-600">No offers yet.</div>
@@ -110,11 +120,12 @@ export default async function ProductDetailPage(props: {
               {offers.map((o) => (
                 <li
                   key={o.id}
-                  className="rounded-lg border border-neutral-200 p-3"
+                  className="rounded-xl border bg-white/70 p-4"
+                  style={{ borderColor: "var(--ptl-border)" }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-neutral-900">
+                      <div className="truncate text-sm font-semibold text-neutral-900">
                         {o.retailer.name}
                       </div>
                       <div className="mt-1 text-xs text-neutral-600">
@@ -131,7 +142,7 @@ export default async function ProductDetailPage(props: {
                       href={o.goUrl}
                       target="_blank"
                       rel="noreferrer nofollow"
-                      className="inline-flex rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800"
+                      className="ptl-btn-primary"
                     >
                       Buy
                     </a>

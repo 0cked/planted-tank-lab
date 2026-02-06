@@ -7,7 +7,9 @@ test("home renders", async ({ page }) => {
       name: "Build a planted tank setup that actually makes sense.",
     }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: /Start Building/i })).toBeVisible();
+  await expect(
+    page.getByRole("main").getByRole("link", { name: /Start building/i }),
+  ).toBeVisible();
 });
 
 test("products browsing renders", async ({ page }) => {
