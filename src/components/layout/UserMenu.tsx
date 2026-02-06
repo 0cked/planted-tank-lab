@@ -29,6 +29,7 @@ export function UserMenu() {
   }
 
   const email = data.user.email ?? "Account";
+  const isAdmin = data.user.role === "admin";
 
   return (
     <DropdownMenu.Root>
@@ -55,6 +56,16 @@ export function UserMenu() {
               Profile
             </Link>
           </DropdownMenu.Item>
+          {isAdmin ? (
+            <DropdownMenu.Item asChild>
+              <Link
+                href="/admin"
+                className="block cursor-pointer rounded-xl px-3 py-2 text-sm font-semibold text-neutral-800 outline-none hover:bg-neutral-100/70"
+              >
+                Admin
+              </Link>
+            </DropdownMenu.Item>
+          ) : null}
           <DropdownMenu.Separator className="my-1 h-px bg-neutral-200/70" />
           <DropdownMenu.Item
             onSelect={() => void signOut({ callbackUrl: "/" })}

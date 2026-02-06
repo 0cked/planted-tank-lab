@@ -76,7 +76,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 
 - [x] P5.01 Admin auth + role-based access control.
 - [x] P5.02 Admin CRUD (products): spec-driven forms via `spec_definitions`.
-- [ ] P5.03 Admin CRUD (plants): care fields + sources + image upload.
+- [x] P5.03 Admin CRUD (plants): care fields + sources + image upload.
 - [ ] P5.04 Admin CRUD (rules): create/edit/disable + preview evaluator.
 - [ ] P5.05 Admin CRUD (offers): edit offers, trigger refresh, manage affiliate templates.
 - [ ] P5.06 Moderation tools: public builds review and takedown.
