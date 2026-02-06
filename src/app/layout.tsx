@@ -15,8 +15,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PlantedTankLab",
-  description: "PCPartPicker for planted aquariums",
+  metadataBase: new URL("https://plantedtanklab.com"),
+  title: {
+    default: "PlantedTankLab",
+    template: "%s",
+  },
+  description: "PCPartPicker for planted aquariums.",
+  openGraph: {
+    title: "PlantedTankLab",
+    description: "PCPartPicker for planted aquariums.",
+    url: "https://plantedtanklab.com",
+    siteName: "PlantedTankLab",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PlantedTankLab",
+    description: "PCPartPicker for planted aquariums.",
+  },
 };
 
 export default function RootLayout({
