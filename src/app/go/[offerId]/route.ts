@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 
 import { db } from "@/server/db";
 import { offerClicks, offers, retailers } from "@/server/db/schema";
-import { buildAffiliateUrl, extractIpFromHeaders, hashIp } from "@/server/services/affiliate";
+import {
+  buildAffiliateUrl,
+  extractIpFromHeaders,
+  hashIp,
+  isHostAllowed,
+  isLikelyBotUserAgent,
+} from "@/server/services/affiliate";
 
 export const runtime = "nodejs";
 
@@ -47,10 +53,22 @@ export async function GET(
     affiliateUrl: row.offer.affiliateUrl ?? null,
   });
 
-  // Validate final destination.
+  // Validate final destination + prevent open redirects.
+  let parsed: URL;
   try {
-    const u = new URL(destination);
-    if (u.protocol !== "http:" && u.protocol !== "https:") {
+    parsed = new URL(destination);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return new NextResponse("Bad destination", { status: 400 });
+    }
+    if (parsed.username || parsed.password) {
+      return new NextResponse("Bad destination", { status: 400 });
+    }
+    if (
+      !isHostAllowed({
+        hostname: parsed.hostname,
+        allowedHosts: (row.retailer as { allowedHosts?: unknown }).allowedHosts,
+      })
+    ) {
       return new NextResponse("Bad destination", { status: 400 });
     }
   } catch {
@@ -62,19 +80,40 @@ export async function GET(
   const ua = h.get("user-agent");
   const ref = h.get("referer");
 
+  const ipHash = hashIp(ip);
+  const isBot = isLikelyBotUserAgent(ua);
+
   // Best-effort logging: do not fail redirect on logging errors.
-  try {
-    await db.insert(offerClicks).values({
-      offerId: row.offer.id,
-      productId: row.offer.productId,
-      retailerId: row.offer.retailerId,
-      ipHash: hashIp(ip),
-      userAgent: ua ? ua.slice(0, 500) : null,
-      referer: ref ? ref.slice(0, 1000) : null,
-    });
-  } catch {
-    // ignore
+  // We also dedupe repeated clicks for the same offer+IP to reduce bot spam.
+  if (ipHash && !isBot) {
+    try {
+      const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const recent = await db
+        .select({ id: offerClicks.id })
+        .from(offerClicks)
+        .where(
+          and(
+            eq(offerClicks.offerId, row.offer.id),
+            eq(offerClicks.ipHash, ipHash),
+            gt(offerClicks.createdAt, tenMinAgo),
+          ),
+        )
+        .limit(1);
+
+      if (!recent[0]?.id) {
+        await db.insert(offerClicks).values({
+          offerId: row.offer.id,
+          productId: row.offer.productId,
+          retailerId: row.offer.retailerId,
+          ipHash,
+          userAgent: ua ? ua.slice(0, 500) : null,
+          referer: ref ? ref.slice(0, 1000) : null,
+        });
+      }
+    } catch {
+      // ignore
+    }
   }
 
-  return NextResponse.redirect(destination, { status: 302 });
+  return NextResponse.redirect(parsed.toString(), { status: 302 });
 }

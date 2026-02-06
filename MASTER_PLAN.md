@@ -68,7 +68,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 - [x] P4.01 Retailer model finalized: affiliate networks, retailer metadata, logo handling.
 - [x] P4.02 Offer ingestion (manual): manual offers for core categories until automated ingestion exists.
 - [x] P4.03 Offer ingestion (refresh): scheduled refresh job system (cron) and a clear “last checked” UI.
-- [ ] P4.04 Affiliate redirect hardening: validation, allow-listing, bot protections, click attribution.
+- [x] P4.04 Affiliate redirect hardening: validation, allow-listing, bot protections, click attribution.
 - [ ] P4.05 Price history UI: show “price over time” for popular items (optional before launch).
 - [ ] P4.06 Legal/UX: clear affiliate disclosure near all purchase links; cookie policy accuracy.
 

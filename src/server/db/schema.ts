@@ -301,6 +301,8 @@ export const offerClicks = pgTable(
   (t) => [
     index("idx_offer_clicks_offer").on(t.offerId, t.createdAt),
     index("idx_offer_clicks_product").on(t.productId, t.createdAt),
+    index("idx_offer_clicks_offer_ip").on(t.offerId, t.ipHash, t.createdAt),
+    index("idx_offer_clicks_ip").on(t.ipHash, t.createdAt),
   ],
 );
 

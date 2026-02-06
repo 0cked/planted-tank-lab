@@ -1,0 +1,2 @@
+CREATE INDEX "idx_offer_clicks_offer_ip" ON "offer_clicks" USING btree ("offer_id","ip_hash","created_at");--> statement-breakpoint
+CREATE INDEX "idx_offer_clicks_ip" ON "offer_clicks" USING btree ("ip_hash","created_at");
