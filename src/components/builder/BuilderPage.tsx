@@ -374,12 +374,16 @@ function ProductPicker(props: {
 
     if (!props.compatibilityEnabled || blockingRules.length === 0) {
       return {
-        items: baseRows.map((row) => ({ row, blocked: false, reason: null })),
+        items: baseRows.map((row) => ({ row, blocked: false, reasons: [] })),
         hiddenCount: 0,
       };
     }
 
-    const out: Array<{ row: ProductRow; blocked: boolean; reason: string | null }> = [];
+    const out: Array<{
+      row: ProductRow;
+      blocked: boolean;
+      reasons: Array<{ message: string; fixSuggestion: string | null }>;
+    }> = [];
 
     for (const r of baseRows) {
       const candidate = toProductSnapshot(props.categorySlug, r);
@@ -398,7 +402,10 @@ function ProductPicker(props: {
       out.push({
         row: r,
         blocked: blocks,
-        reason: relevant[0]?.message ?? null,
+        reasons: relevant.slice(0, 2).map((e) => ({
+          message: e.message,
+          fixSuggestion: e.fixSuggestion ?? null,
+        })),
       });
     }
 
@@ -505,9 +512,17 @@ function ProductPicker(props: {
                           </span>
                         ) : null}{" "}
                         <span className="text-neutral-600">
-                          {x.blocked ? x.reason ?? "Doesn’t fit the current setup." : r.slug}
+                          {x.blocked
+                            ? x.reasons[0]?.message ?? "Doesn’t fit the current setup."
+                            : r.slug}
                         </span>
                       </div>
+                      {x.blocked && x.reasons[0]?.fixSuggestion ? (
+                        <div className="mt-0.5 line-clamp-2 text-xs text-neutral-600">
+                          <span className="font-semibold">Fix:</span>{" "}
+                          {x.reasons[0].fixSuggestion}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   <button
@@ -567,12 +582,16 @@ function PlantPicker(props: {
   const { items, hiddenCount } = useMemo(() => {
     if (!props.compatibilityEnabled || blockingRules.length === 0) {
       return {
-        items: filtered.map((row) => ({ row, blocked: false, reason: null })),
+        items: filtered.map((row) => ({ row, blocked: false, reasons: [] })),
         hiddenCount: 0,
       };
     }
 
-    const out: Array<{ row: PlantRow; blocked: boolean; reason: string | null }> = [];
+    const out: Array<{
+      row: PlantRow;
+      blocked: boolean;
+      reasons: Array<{ message: string; fixSuggestion: string | null }>;
+    }> = [];
 
     for (const p of filtered) {
       const candidate = toPlantSnapshot(p);
@@ -585,7 +604,14 @@ function PlantPicker(props: {
       const evals = evaluateBuild(blockingRules, snapshotCandidate);
       const relevant = evals.filter((e) => e.categoriesInvolved.includes("plants"));
       const blocks = relevant.length > 0;
-      out.push({ row: p, blocked: blocks, reason: relevant[0]?.message ?? null });
+      out.push({
+        row: p,
+        blocked: blocks,
+        reasons: relevant.slice(0, 2).map((e) => ({
+          message: e.message,
+          fixSuggestion: e.fixSuggestion ?? null,
+        })),
+      });
     }
 
     const hiddenCount = out.filter((x) => x.blocked).length;
@@ -692,10 +718,16 @@ function PlantPicker(props: {
                         ) : null}{" "}
                         <span className="text-neutral-600">
                           {x.blocked
-                            ? x.reason ?? "Doesn’t fit the current setup."
+                            ? x.reasons[0]?.message ?? "Doesn’t fit the current setup."
                             : `${p.difficulty} · ${p.lightDemand} light · ${p.co2Demand} CO2 · ${p.placement}`}
                         </span>
                       </div>
+                      {x.blocked && x.reasons[0]?.fixSuggestion ? (
+                        <div className="mt-0.5 line-clamp-2 text-xs text-neutral-600">
+                          <span className="font-semibold">Fix:</span>{" "}
+                          {x.reasons[0].fixSuggestion}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   <button
