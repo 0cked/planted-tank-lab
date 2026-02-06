@@ -164,5 +164,174 @@
     "fix_suggestion": "Consider using inert stone or adjusting your water change routine.",
     "active": true,
     "version": 1
+  },
+  {
+    "code": "RULE_011",
+    "name": "Planting Density",
+    "description": "Recommend adding more plant mass for stability and algae prevention.",
+    "severity": "recommendation",
+    "categories_involved": ["tank", "plants"],
+    "condition_logic": {
+      "type": "planting_density_min_species",
+      "tank_volume_key": "volume_gal",
+      "min_tank_volume_gal": 10,
+      "min_species_count": 3
+    },
+    "message_template": "Lightly planted tanks are more prone to algae. You have {plant_count} plant(s) in a {tank_volume} gallon tank. Consider adding more plant mass.",
+    "fix_suggestion": "Add 3–5 more easy species (stems, floaters, fast growers) to stabilize the tank early.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_012",
+    "name": "Inline CO2 Diffuser + Canister Filter",
+    "description": "Positive recommendation for an effective CO2 setup when applicable.",
+    "severity": "recommendation",
+    "categories_involved": ["co2", "filter"],
+    "condition_logic": {
+      "type": "co2_inline_diffuser_with_canister",
+      "filter_type_key": "type",
+      "filter_type_value": "canister",
+      "co2_diffuser_type_key": "diffuser_type",
+      "co2_diffuser_type_value": "inline"
+    },
+    "message_template": "Inline diffusers paired with canister filters can give excellent CO2 dissolution. Make sure tubing diameters match.",
+    "fix_suggestion": "Verify your filter hose diameter and choose an inline diffuser/reactor sized for it.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_013",
+    "name": "Nano Tank + Canister Filter",
+    "description": "Warn when a tiny tank uses a canister filter category/type.",
+    "severity": "warning",
+    "categories_involved": ["tank", "filter"],
+    "condition_logic": {
+      "type": "nano_tank_filter_type_warning",
+      "tank_volume_key": "volume_gal",
+      "max_tank_volume_gal": 5,
+      "filter_type_key": "type",
+      "filter_type_value": "canister"
+    },
+    "message_template": "Canister filters can be overkill for nano tanks. Consider a small sponge filter or a gentle HOB instead.",
+    "fix_suggestion": "Pick a nano-appropriate filter with adjustable flow and easy maintenance.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_014",
+    "name": "Temperature Range Mismatch",
+    "description": "Warn when selected plants have non-overlapping temperature ranges.",
+    "severity": "warning",
+    "categories_involved": ["plants"],
+    "condition_logic": {
+      "type": "plant_temperature_overlap",
+      "temp_min_key": "tempMinF",
+      "temp_max_key": "tempMaxF"
+    },
+    "message_template": "Temperature preferences for {plant_a} ({range_a}°F) and {plant_b} ({range_b}°F) don't overlap well. One or both may struggle.",
+    "fix_suggestion": "Swap one of the plants or keep the tank temperature within the overlap range when possible.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_015",
+    "name": "Active Substrate + Hard Water Plants",
+    "description": "Recommend caution when buffering substrates are used with hard-water-preferring plants.",
+    "severity": "recommendation",
+    "categories_involved": ["substrate", "plants"],
+    "condition_logic": {
+      "type": "active_substrate_hard_water_plants",
+      "substrate_type_key": "type",
+      "active_value": "active_buffering",
+      "plant_hard_water_key": "prefers_hard_water"
+    },
+    "message_template": "Buffering substrates lower pH and KH. {plant_name} prefers harder, more alkaline water.",
+    "fix_suggestion": "Consider an inert substrate or choose plants tolerant of softer, more acidic water.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_016",
+    "name": "Missing Heater",
+    "description": "Completeness note when heater is missing (context: tropical plants).",
+    "severity": "completeness",
+    "categories_involved": ["heater", "plants"],
+    "condition_logic": {
+      "type": "missing_category",
+      "category_slug": "heater",
+      "requires_plants": true
+    },
+    "message_template": "Your build doesn't include a heater. If your room temperature drops below ~70°F, many tropical plants may slow down or decline.",
+    "fix_suggestion": "Add a heater sized for your tank volume if your space isn’t consistently warm.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_017",
+    "name": "Inert Substrate + Root Feeders",
+    "description": "Recommend root tabs when inert substrates are paired with heavy root feeders.",
+    "severity": "recommendation",
+    "categories_involved": ["substrate", "plants"],
+    "condition_logic": {
+      "type": "inert_substrate_root_feeders",
+      "substrate_type_key": "type",
+      "inert_value": "inert",
+      "plant_root_feeder_key": "root_feeder"
+    },
+    "message_template": "Your substrate is inert, but root-feeding plants like {plant_name} get most nutrition through their roots. Plan to use root tabs.",
+    "fix_suggestion": "Use root tabs consistently, or choose an active/nutrient-rich substrate for easier long-term growth.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_018",
+    "name": "Nano Tank Filter Overpowered",
+    "description": "Warn when turnover is extremely high for nano tanks.",
+    "severity": "warning",
+    "categories_involved": ["tank", "filter"],
+    "condition_logic": {
+      "type": "nano_turnover_max",
+      "tank_volume_key": "volume_gal",
+      "filter_flow_key": "flow_rate_gph",
+      "max_tank_volume_gal": 5,
+      "max_turnover": 20
+    },
+    "message_template": "This filter may be too powerful for a nano tank. Your setup is around {turnover}× turnover, which can stress plants and livestock.",
+    "fix_suggestion": "Choose a gentler filter, reduce flow, or add a spray bar to diffuse output.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_019",
+    "name": "High PAR Without CO2",
+    "description": "Warn when very high light is selected without CO2 injection.",
+    "severity": "warning",
+    "categories_involved": ["light", "co2"],
+    "condition_logic": {
+      "type": "high_par_without_co2",
+      "light_par_key": "par_at_substrate",
+      "min_par": 100
+    },
+    "message_template": "This light outputs very high PAR (~{par} µmol at substrate). Without CO2 injection, you may fight algae and struggle to balance nutrients.",
+    "fix_suggestion": "Add CO2, reduce intensity/photoperiod, or choose a lower-output light for low-tech setups.",
+    "active": true,
+    "version": 1
+  },
+  {
+    "code": "RULE_020",
+    "name": "Plant Light Conflict (Low vs High)",
+    "description": "Warn when both low-light and high-light plants are mixed without a plan.",
+    "severity": "warning",
+    "categories_involved": ["plants", "light"],
+    "condition_logic": {
+      "type": "mixed_light_demand",
+      "requires_low": "low",
+      "requires_high": "high"
+    },
+    "message_template": "You’ve selected both low-light and high-light plants. This can work, but you may need to place low-light species in shade while giving high-light plants strong PAR.",
+    "fix_suggestion": "Either simplify your plant list (all low-tech or all high-tech), or plan placement so low-light plants stay sheltered.",
+    "active": true,
+    "version": 1
   }
 ]

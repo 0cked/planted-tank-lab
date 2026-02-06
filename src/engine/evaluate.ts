@@ -381,6 +381,341 @@ function evaluateHardscapeRaisesHardness(
   return evals;
 }
 
+function evaluatePlantingDensityMinSpecies(
+  rule: CompatibilityRule,
+  snapshot: BuildSnapshot,
+  logic: ConditionLogic,
+): Evaluation[] {
+  const tank = snapshot.productsByCategory["tank"];
+  if (!tank) return [];
+
+  const tankVolumeKey = String(logic.tank_volume_key ?? "");
+  const minTankVolume = asNumber(logic.min_tank_volume_gal) ?? null;
+  const minSpeciesCount = asNumber(logic.min_species_count) ?? null;
+  if (!tankVolumeKey || minTankVolume == null || minSpeciesCount == null) return [];
+
+  const volume = asNumber(tank.specs[tankVolumeKey]);
+  if (volume == null) return [];
+
+  const plantCount = snapshot.plants.length;
+  if (volume <= minTankVolume) return [];
+  if (plantCount >= minSpeciesCount) return [];
+
+  return [
+    {
+      ruleCode: rule.code,
+      severity: rule.severity,
+      categoriesInvolved: rule.categoriesInvolved,
+      fixSuggestion: rule.fixSuggestion ?? null,
+      message: renderTemplate(rule.messageTemplate, {
+        plant_count: plantCount,
+        tank_volume: Number(formatNumber(volume, 0)),
+      }),
+    },
+  ];
+}
+
+function evaluateCo2InlineDiffuserWithCanister(
+  rule: CompatibilityRule,
+  snapshot: BuildSnapshot,
+  logic: ConditionLogic,
+): Evaluation[] {
+  const co2 = snapshot.productsByCategory["co2"];
+  const filter = snapshot.productsByCategory["filter"];
+  if (!co2 || !filter) return [];
+
+  const filterTypeKey = String(logic.filter_type_key ?? "");
+  const filterTypeValue = String(logic.filter_type_value ?? "");
+  const diffuserTypeKey = String(logic.co2_diffuser_type_key ?? "");
+  const diffuserTypeValue = String(logic.co2_diffuser_type_value ?? "");
+  if (!filterTypeKey || !filterTypeValue || !diffuserTypeKey || !diffuserTypeValue) return [];
+
+  const filterType = String(filter.specs[filterTypeKey] ?? "");
+  const diffuserType = String(co2.specs[diffuserTypeKey] ?? "");
+  if (filterType !== filterTypeValue) return [];
+  if (diffuserType !== diffuserTypeValue) return [];
+
+  return [
+    {
+      ruleCode: rule.code,
+      severity: rule.severity,
+      categoriesInvolved: rule.categoriesInvolved,
+      fixSuggestion: rule.fixSuggestion ?? null,
+      message: rule.messageTemplate,
+    },
+  ];
+}
+
+function evaluateNanoTankFilterTypeWarning(
+  rule: CompatibilityRule,
+  snapshot: BuildSnapshot,
+  logic: ConditionLogic,
+): Evaluation[] {
+  const tank = snapshot.productsByCategory["tank"];
+  const filter = snapshot.productsByCategory["filter"];
+  if (!tank || !filter) return [];
+
+  const tankVolumeKey = String(logic.tank_volume_key ?? "");
+  const maxTankVolume = asNumber(logic.max_tank_volume_gal) ?? null;
+  const filterTypeKey = String(logic.filter_type_key ?? "");
+  const filterTypeValue = String(logic.filter_type_value ?? "");
+  if (!tankVolumeKey || maxTankVolume == null || !filterTypeKey || !filterTypeValue) return [];
+
+  const volume = asNumber(tank.specs[tankVolumeKey]);
+  if (volume == null) return [];
+  if (volume > maxTankVolume) return [];
+
+  const filterType = String(filter.specs[filterTypeKey] ?? "");
+  if (filterType !== filterTypeValue) return [];
+
+  return [
+    {
+      ruleCode: rule.code,
+      severity: rule.severity,
+      categoriesInvolved: rule.categoriesInvolved,
+      fixSuggestion: rule.fixSuggestion ?? null,
+      message: rule.messageTemplate,
+    },
+  ];
+}
+
+function formatTempRange(p: PlantSnapshot): string | null {
+  const min = p.tempMinF ?? null;
+  const max = p.tempMaxF ?? null;
+  if (min == null || max == null) return null;
+  return `${formatNumber(min, 0)}–${formatNumber(max, 0)}`;
+}
+
+function evaluatePlantTemperatureOverlap(
+  rule: CompatibilityRule,
+  snapshot: BuildSnapshot,
+  _logic: ConditionLogic,
+): Evaluation[] {
+  void _logic;
+  const plants = snapshot.plants;
+  if (plants.length < 2) return [];
+
+  // Use the snapshot fields directly (key indirection is for forward-compat).
+  const getMin = (p: PlantSnapshot): number | null => p.tempMinF ?? null;
+  const getMax = (p: PlantSnapshot): number | null => p.tempMaxF ?? null;
+
+  for (let i = 0; i < plants.length; i += 1) {
+    for (let j = i + 1; j < plants.length; j += 1) {
+      const a = plants[i]!;
+      const b = plants[j]!;
+      const amin = getMin(a);
+      const amax = getMax(a);
+      const bmin = getMin(b);
+      const bmax = getMax(b);
+      if (amin == null || amax == null || bmin == null || bmax == null) continue;
+
+      const mismatch = amax < bmin || bmax < amin;
+      if (!mismatch) continue;
+
+      const rangeA = formatTempRange(a) ?? "—";
+      const rangeB = formatTempRange(b) ?? "—";
+
+      return [
+        {
+          ruleCode: rule.code,
+          severity: rule.severity,
+          categoriesInvolved: rule.categoriesInvolved,
+          fixSuggestion: rule.fixSuggestion ?? null,
+          message: renderTemplate(rule.messageTemplate, {
+            plant_a: a.commonName,
+            plant_b: b.commonName,
+            range_a: rangeA,
+            range_b: rangeB,
+          }),
+        },
+      ];
+    }
+  }
+
+  return [];
+}
+
+function evaluateActiveSubstrateHardWaterPlants(
+  rule: CompatibilityRule,
+  snapshot: BuildSnapshot,
+  logic: ConditionLogic,
+): Evaluation[] {
+  const substrate = snapshot.productsByCategory["substrate"];
+  if (!substrate) return [];
+
+  const substrateTypeKey = String(logic.substrate_type_key ?? "");
+  const activeValue = String(logic.active_value ?? "");
+  const plantHardKey = String(logic.plant_hard_water_key ?? "");
+  if (!substrateTypeKey || !activeValue || !plantHardKey) return [];
+
+  const substrateType = String(substrate.specs[substrateTypeKey] ?? "");
+  if (substrateType !== activeValue) return [];
+
+  const evals: Evaluation[] = [];
+  for (const plant of snapshot.plants) {
+    const prefersHard = plantExtraBoolean(plant, plantHardKey);
+    if (prefersHard !== true) continue;
+
+    evals.push({
+      ruleCode: rule.code,
+      severity: rule.severity,
+      categoriesInvolved: rule.categoriesInvolved,
+      fixSuggestion: rule.fixSuggestion ?? null,
+      message: renderTemplate(rule.messageTemplate, { plant_name: plant.commonName }),
+    });
+  }
+  return evals;
+}
+
+function evaluateMissingCategory(
+  rule: CompatibilityRule,
+  snapshot: BuildSnapshot,
+  logic: ConditionLogic,
+): Evaluation[] {
+  const categorySlug = String(logic.category_slug ?? "");
+  if (!categorySlug) return [];
+
+  const requiresPlants = asBoolean(logic.requires_plants) ?? false;
+  if (requiresPlants && snapshot.plants.length === 0) return [];
+
+  if (snapshot.productsByCategory[categorySlug]) return [];
+
+  return [
+    {
+      ruleCode: rule.code,
+      severity: rule.severity,
+      categoriesInvolved: rule.categoriesInvolved,
+      fixSuggestion: rule.fixSuggestion ?? null,
+      message: rule.messageTemplate,
+    },
+  ];
+}
+
+function evaluateInertSubstrateRootFeeders(
+  rule: CompatibilityRule,
+  snapshot: BuildSnapshot,
+  logic: ConditionLogic,
+): Evaluation[] {
+  const substrate = snapshot.productsByCategory["substrate"];
+  if (!substrate) return [];
+
+  const substrateTypeKey = String(logic.substrate_type_key ?? "");
+  const inertValue = String(logic.inert_value ?? "");
+  const plantRootKey = String(logic.plant_root_feeder_key ?? "");
+  if (!substrateTypeKey || !inertValue || !plantRootKey) return [];
+
+  const substrateType = String(substrate.specs[substrateTypeKey] ?? "");
+  if (substrateType !== inertValue) return [];
+
+  const evals: Evaluation[] = [];
+  for (const plant of snapshot.plants) {
+    const rootFeeder = plantExtraBoolean(plant, plantRootKey);
+    if (rootFeeder !== true) continue;
+    evals.push({
+      ruleCode: rule.code,
+      severity: rule.severity,
+      categoriesInvolved: rule.categoriesInvolved,
+      fixSuggestion: rule.fixSuggestion ?? null,
+      message: renderTemplate(rule.messageTemplate, { plant_name: plant.commonName }),
+    });
+  }
+  return evals;
+}
+
+function evaluateNanoTurnoverMax(
+  rule: CompatibilityRule,
+  snapshot: BuildSnapshot,
+  logic: ConditionLogic,
+): Evaluation[] {
+  const tank = snapshot.productsByCategory["tank"];
+  const filter = snapshot.productsByCategory["filter"];
+  if (!tank || !filter) return [];
+
+  const tankVolumeKey = String(logic.tank_volume_key ?? "");
+  const filterFlowKey = String(logic.filter_flow_key ?? "");
+  const maxTankVolume = asNumber(logic.max_tank_volume_gal) ?? null;
+  const maxTurnover = asNumber(logic.max_turnover) ?? null;
+  if (!tankVolumeKey || !filterFlowKey || maxTankVolume == null || maxTurnover == null) return [];
+
+  const volume = asNumber(tank.specs[tankVolumeKey]);
+  const flow = asNumber(filter.specs[filterFlowKey]);
+  if (volume == null || flow == null || volume <= 0) return [];
+  if (volume > maxTankVolume) return [];
+
+  const turnover = flow / volume;
+  if (turnover <= maxTurnover) return [];
+
+  return [
+    {
+      ruleCode: rule.code,
+      severity: rule.severity,
+      categoriesInvolved: rule.categoriesInvolved,
+      fixSuggestion: rule.fixSuggestion ?? null,
+      message: renderTemplate(rule.messageTemplate, {
+        turnover: Number(formatNumber(turnover, 1)),
+      }),
+    },
+  ];
+}
+
+function evaluateHighParWithoutCo2(
+  rule: CompatibilityRule,
+  snapshot: BuildSnapshot,
+  logic: ConditionLogic,
+): Evaluation[] {
+  const light = snapshot.productsByCategory["light"];
+  const co2 = snapshot.productsByCategory["co2"];
+  if (!light) return [];
+  if (co2) return [];
+
+  const parKey = String(logic.light_par_key ?? "");
+  const minPar = asNumber(logic.min_par) ?? null;
+  if (!parKey || minPar == null) return [];
+
+  const par = asNumber(light.specs[parKey]);
+  if (par == null) return [];
+  if (par < minPar) return [];
+
+  return [
+    {
+      ruleCode: rule.code,
+      severity: rule.severity,
+      categoriesInvolved: rule.categoriesInvolved,
+      fixSuggestion: rule.fixSuggestion ?? null,
+      message: renderTemplate(rule.messageTemplate, { par: Number(formatNumber(par, 0)) }),
+    },
+  ];
+}
+
+function evaluateMixedLightDemand(
+  rule: CompatibilityRule,
+  snapshot: BuildSnapshot,
+  logic: ConditionLogic,
+): Evaluation[] {
+  const lowValue = String(logic.requires_low ?? "low");
+  const highValue = String(logic.requires_high ?? "high");
+  if (!lowValue || !highValue) return [];
+
+  let hasLow = false;
+  let hasHigh = false;
+  for (const plant of snapshot.plants) {
+    if (plant.lightDemand === lowValue) hasLow = true;
+    if (plant.lightDemand === highValue) hasHigh = true;
+  }
+
+  if (!hasLow || !hasHigh) return [];
+
+  return [
+    {
+      ruleCode: rule.code,
+      severity: rule.severity,
+      categoriesInvolved: rule.categoriesInvolved,
+      fixSuggestion: rule.fixSuggestion ?? null,
+      message: rule.messageTemplate,
+    },
+  ];
+}
+
 export function evaluateBuild(
   rules: CompatibilityRule[],
   snapshot: BuildSnapshot,
@@ -423,6 +758,36 @@ export function evaluateBuild(
         break;
       case "hardscape_raises_hardness":
         out.push(...evaluateHardscapeRaisesHardness(rule, snapshot, logic));
+        break;
+      case "planting_density_min_species":
+        out.push(...evaluatePlantingDensityMinSpecies(rule, snapshot, logic));
+        break;
+      case "co2_inline_diffuser_with_canister":
+        out.push(...evaluateCo2InlineDiffuserWithCanister(rule, snapshot, logic));
+        break;
+      case "nano_tank_filter_type_warning":
+        out.push(...evaluateNanoTankFilterTypeWarning(rule, snapshot, logic));
+        break;
+      case "plant_temperature_overlap":
+        out.push(...evaluatePlantTemperatureOverlap(rule, snapshot, logic));
+        break;
+      case "active_substrate_hard_water_plants":
+        out.push(...evaluateActiveSubstrateHardWaterPlants(rule, snapshot, logic));
+        break;
+      case "missing_category":
+        out.push(...evaluateMissingCategory(rule, snapshot, logic));
+        break;
+      case "inert_substrate_root_feeders":
+        out.push(...evaluateInertSubstrateRootFeeders(rule, snapshot, logic));
+        break;
+      case "nano_turnover_max":
+        out.push(...evaluateNanoTurnoverMax(rule, snapshot, logic));
+        break;
+      case "high_par_without_co2":
+        out.push(...evaluateHighParWithoutCo2(rule, snapshot, logic));
+        break;
+      case "mixed_light_demand":
+        out.push(...evaluateMixedLightDemand(rule, snapshot, logic));
         break;
       default:
         // Forward-compatible: ignore unknown rule types.

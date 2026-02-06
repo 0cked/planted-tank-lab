@@ -42,9 +42,9 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 - [x] P1.07 Offer selection: allow choosing a specific retailer offer per product (default: lowest in-stock).
 - [x] P1.08 Build persistence v1a: anonymous builds saved locally with explicit versioning and migrations (Zustand persist already exists; harden it).
 - [x] P1.09 Build persistence v1b: share links always load correctly (server route fetch + hydrate) and do not break after rule updates.
-- [ ] P1.10 Rule set expansion (seed): expand DB-seeded rules to the “Starter 20” from `PLAN.md`.
-- [ ] P1.11 Rule engine support: implement the operators/condition shapes required by those 20 rules (client-side engine).
-- [ ] P1.12 Rule tests: add unit tests for every shipped rule (engine + fixtures).
+- [x] P1.10 Rule set expansion (seed): expand DB-seeded rules to the “Starter 20” from `PLAN.md`.
+- [x] P1.11 Rule engine support: implement the operators/condition shapes required by those 20 rules (client-side engine).
+- [x] P1.12 Rule tests: add unit tests for every shipped rule (engine + fixtures).
 - [ ] P1.13 Builder E2E: add Playwright tests covering gating behavior (tank length filters lights; low-tech hides required-CO2 plants; “Show incompatible” reveals hidden).
 
 ### Phase 2 — Accounts + Saved Builds + Sharing (Production Auth)

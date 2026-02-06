@@ -353,7 +353,357 @@ describe("compatibility engine (seeded rule types)", () => {
     expect(evals[0]?.message).toContain("Soft Plant");
   });
 
+  test("planting_density_min_species triggers when tank is > min volume and plant count is low", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_011",
+        name: "Planting density",
+        severity: "recommendation",
+        categoriesInvolved: ["tank", "plants"],
+        conditionLogic: {
+          type: "planting_density_min_species",
+          tank_volume_key: "volume_gal",
+          min_tank_volume_gal: 10,
+          min_species_count: 3,
+        },
+        messageTemplate: "count {plant_count} vol {tank_volume}",
+      },
+    ];
+
+    const s = snapshot({
+      productsByCategory: { tank: product("tank", { volume_gal: 20 }) },
+      plants: [
+        {
+          id: "p1",
+          commonName: "Java Fern",
+          slug: "java-fern",
+          difficulty: "easy",
+          lightDemand: "low",
+          co2Demand: "none",
+          placement: "epiphyte",
+        },
+      ],
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.message).toContain("1");
+  });
+
+  test("co2_inline_diffuser_with_canister triggers when both types match", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_012",
+        name: "Inline diffuser + canister",
+        severity: "recommendation",
+        categoriesInvolved: ["co2", "filter"],
+        conditionLogic: {
+          type: "co2_inline_diffuser_with_canister",
+          filter_type_key: "type",
+          filter_type_value: "canister",
+          co2_diffuser_type_key: "diffuser_type",
+          co2_diffuser_type_value: "inline",
+        },
+        messageTemplate: "Nice",
+      },
+    ];
+
+    const s = snapshot({
+      productsByCategory: {
+        filter: product("filter", { type: "canister" }),
+        co2: product("co2", { diffuser_type: "inline" }),
+      },
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+  });
+
+  test("nano_tank_filter_type_warning triggers when nano tank uses canister filter type", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_013",
+        name: "Nano + canister",
+        severity: "warning",
+        categoriesInvolved: ["tank", "filter"],
+        conditionLogic: {
+          type: "nano_tank_filter_type_warning",
+          tank_volume_key: "volume_gal",
+          max_tank_volume_gal: 5,
+          filter_type_key: "type",
+          filter_type_value: "canister",
+        },
+        messageTemplate: "Overkill",
+      },
+    ];
+
+    const s = snapshot({
+      productsByCategory: {
+        tank: product("tank", { volume_gal: 5 }),
+        filter: product("filter", { type: "canister" }),
+      },
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+  });
+
+  test("plant_temperature_overlap triggers when two plants have non-overlapping temp ranges", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_014",
+        name: "Temp overlap",
+        severity: "warning",
+        categoriesInvolved: ["plants"],
+        conditionLogic: { type: "plant_temperature_overlap" },
+        messageTemplate: "{plant_a} {range_a} {plant_b} {range_b}",
+      },
+    ];
+
+    const s = snapshot({
+      plants: [
+        {
+          id: "p1",
+          commonName: "Cold Plant",
+          slug: "cold",
+          difficulty: "easy",
+          lightDemand: "low",
+          co2Demand: "none",
+          placement: "floating",
+          tempMinF: 60,
+          tempMaxF: 66,
+        },
+        {
+          id: "p2",
+          commonName: "Warm Plant",
+          slug: "warm",
+          difficulty: "easy",
+          lightDemand: "low",
+          co2Demand: "none",
+          placement: "midground",
+          tempMinF: 74,
+          tempMaxF: 80,
+        },
+      ],
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.message).toContain("Cold Plant");
+    expect(evals[0]?.message).toContain("Warm Plant");
+  });
+
+  test("active_substrate_hard_water_plants triggers for hard-water plants on active buffering substrate", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_015",
+        name: "Active substrate + hard water plants",
+        severity: "recommendation",
+        categoriesInvolved: ["substrate", "plants"],
+        conditionLogic: {
+          type: "active_substrate_hard_water_plants",
+          substrate_type_key: "type",
+          active_value: "active_buffering",
+          plant_hard_water_key: "prefers_hard_water",
+        },
+        messageTemplate: "{plant_name}",
+      },
+    ];
+
+    const s = snapshot({
+      productsByCategory: {
+        substrate: product("substrate", { type: "active_buffering" }),
+      },
+      plants: [
+        {
+          id: "p1",
+          commonName: "Hard Water Plant",
+          slug: "hard",
+          difficulty: "easy",
+          lightDemand: "low",
+          co2Demand: "none",
+          placement: "midground",
+          extra: { prefers_hard_water: true },
+        },
+      ],
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+  });
+
+  test("missing_category triggers completeness note when category is missing and plants exist", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_016",
+        name: "Missing heater",
+        severity: "completeness",
+        categoriesInvolved: ["heater", "plants"],
+        conditionLogic: {
+          type: "missing_category",
+          category_slug: "heater",
+          requires_plants: true,
+        },
+        messageTemplate: "Missing heater",
+      },
+    ];
+
+    const s = snapshot({
+      plants: [
+        {
+          id: "p1",
+          commonName: "Java Fern",
+          slug: "java-fern",
+          difficulty: "easy",
+          lightDemand: "low",
+          co2Demand: "none",
+          placement: "epiphyte",
+        },
+      ],
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.message).toContain("Missing heater");
+  });
+
+  test("inert_substrate_root_feeders triggers when inert substrate is paired with root feeders", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_017",
+        name: "Root feeders on inert",
+        severity: "recommendation",
+        categoriesInvolved: ["substrate", "plants"],
+        conditionLogic: {
+          type: "inert_substrate_root_feeders",
+          substrate_type_key: "type",
+          inert_value: "inert",
+          plant_root_feeder_key: "root_feeder",
+        },
+        messageTemplate: "{plant_name}",
+      },
+    ];
+
+    const s = snapshot({
+      productsByCategory: { substrate: product("substrate", { type: "inert" }) },
+      plants: [
+        {
+          id: "p1",
+          commonName: "Amazon Sword",
+          slug: "amazon-sword",
+          difficulty: "easy",
+          lightDemand: "medium",
+          co2Demand: "none",
+          placement: "background",
+          extra: { root_feeder: true },
+        },
+      ],
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+  });
+
+  test("nano_turnover_max triggers when nano turnover exceeds threshold", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_018",
+        name: "Nano turnover max",
+        severity: "warning",
+        categoriesInvolved: ["tank", "filter"],
+        conditionLogic: {
+          type: "nano_turnover_max",
+          tank_volume_key: "volume_gal",
+          filter_flow_key: "flow_rate_gph",
+          max_tank_volume_gal: 5,
+          max_turnover: 20,
+        },
+        messageTemplate: "{turnover}",
+      },
+    ];
+
+    const s = snapshot({
+      productsByCategory: {
+        tank: product("tank", { volume_gal: 5 }),
+        filter: product("filter", { flow_rate_gph: 200 }),
+      },
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.message).toContain("40");
+  });
+
+  test("high_par_without_co2 triggers when PAR is high and CO2 is missing", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_019",
+        name: "High PAR no CO2",
+        severity: "warning",
+        categoriesInvolved: ["light", "co2"],
+        conditionLogic: {
+          type: "high_par_without_co2",
+          light_par_key: "par_at_substrate",
+          min_par: 100,
+        },
+        messageTemplate: "{par}",
+      },
+    ];
+
+    const s = snapshot({
+      productsByCategory: { light: product("light", { par_at_substrate: 140 }) },
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.message).toContain("140");
+  });
+
+  test("mixed_light_demand triggers when low and high light plants are both selected", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_020",
+        name: "Mixed light demand",
+        severity: "warning",
+        categoriesInvolved: ["plants", "light"],
+        conditionLogic: {
+          type: "mixed_light_demand",
+          requires_low: "low",
+          requires_high: "high",
+        },
+        messageTemplate: "Mixed demands",
+      },
+    ];
+
+    const s = snapshot({
+      plants: [
+        {
+          id: "p1",
+          commonName: "Java Fern",
+          slug: "java-fern",
+          difficulty: "easy",
+          lightDemand: "low",
+          co2Demand: "none",
+          placement: "epiphyte",
+        },
+        {
+          id: "p2",
+          commonName: "Rotala",
+          slug: "rotala",
+          difficulty: "moderate",
+          lightDemand: "high",
+          co2Demand: "beneficial",
+          placement: "background",
+        },
+      ],
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+  });
+
   test("evaluations are sorted by severity order (error before warning before recommendation)", () => {
+    // (Remaining rule-type tests are above; keep this at the end.)
     const rules: CompatibilityRule[] = [
       {
         code: "R_WARN",
@@ -406,4 +756,3 @@ describe("compatibility engine (seeded rule types)", () => {
     expect(evals.map((e) => e.ruleCode)).toEqual(["R_ERR", "R_WARN", "R_REC"]);
   });
 });
-
