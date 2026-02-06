@@ -50,7 +50,7 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 ### Phase 2 — Accounts + Saved Builds + Sharing (Production Auth)
 
 - [x] P2.01 Auth providers: Google OAuth + email magic links (remove dev-only provider from production builds).
-- [ ] P2.02 User profile: view builds, favorites, settings.
+- [x] P2.02 User profile: view builds, favorites, settings.
 - [ ] P2.03 Save builds to DB (API): create/update build, items, and cached totals.
 - [ ] P2.04 Save builds to DB (migration): auto-migrate local build into account on first login.
 - [ ] P2.05 Public builds: publish/unpublish; canonical share pages; basic moderation hooks.
