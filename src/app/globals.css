@@ -48,6 +48,31 @@ body {
     linear-gradient(to bottom, var(--ptl-bg), var(--ptl-bg-2) 40%, #f3f7f0);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ptlFadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .ptl-reveal {
+    animation: ptlFadeUp 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--ptl-delay, 0ms);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ptl-reveal {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
 /* Ensure interactive controls feel interactive, even without utility classes. */
 a,
 button,
@@ -75,6 +100,105 @@ label:has(input) {
 }
 
 @layer components {
+  .ptl-kicker {
+    @apply text-xs font-semibold uppercase tracking-wide;
+    color: rgba(11, 31, 22, 0.62);
+  }
+
+  .ptl-hero-title {
+    font-family: var(--font-display);
+    @apply text-balance text-5xl font-semibold leading-[0.95] tracking-tight sm:text-7xl;
+  }
+
+  .ptl-page-title {
+    font-family: var(--font-display);
+    @apply text-balance text-4xl font-semibold tracking-tight sm:text-5xl;
+  }
+
+  .ptl-section-title {
+    font-family: var(--font-display);
+    @apply text-balance text-3xl font-semibold tracking-tight;
+  }
+
+  .ptl-card-title {
+    font-family: var(--font-display);
+    @apply text-balance text-lg font-semibold tracking-tight;
+  }
+
+  .ptl-hero-lede {
+    @apply text-pretty text-base text-neutral-800/85 sm:text-lg;
+  }
+
+  .ptl-lede {
+    @apply text-pretty text-sm text-neutral-800/85 sm:text-base;
+  }
+
+  .ptl-prose {
+    max-width: 72ch;
+    color: rgba(11, 31, 22, 0.82);
+    line-height: 1.75;
+    font-size: 0.95rem;
+  }
+
+  .ptl-prose p + p {
+    margin-top: 0.9rem;
+  }
+
+  .ptl-prose ul {
+    margin-top: 0.9rem;
+    padding-left: 1.2rem;
+    list-style: disc;
+  }
+
+  .ptl-prose li + li {
+    margin-top: 0.35rem;
+  }
+
+  .ptl-prose a {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(27, 127, 90, 0.35);
+  }
+
+  .ptl-prose a:hover {
+    color: rgba(11, 31, 22, 0.95);
+    text-decoration-color: rgba(27, 127, 90, 0.6);
+  }
+
+  .ptl-image-ph {
+    background: radial-gradient(
+        circle at 30% 20%,
+        rgba(21, 128, 61, 0.22),
+        transparent 55%
+      ),
+      radial-gradient(circle at 70% 80%, rgba(13, 148, 136, 0.18), transparent 55%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.35));
+  }
+
+  .ptl-hover-lift {
+    @apply transition;
+    transition-property: transform, filter;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ptl-hover-lift:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.015);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ptl-hover-lift {
+      transition: none !important;
+    }
+
+    .ptl-hover-lift:hover {
+      transform: none !important;
+      filter: none !important;
+    }
+  }
+
   .ptl-surface-glass {
     @apply rounded-3xl border shadow-sm backdrop-blur-md;
     border-color: var(--ptl-border);

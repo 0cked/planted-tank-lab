@@ -81,14 +81,13 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex items-start justify-between gap-6">
         <div className="min-w-0">
-          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+          <div className="ptl-kicker">
             <Link href="/plants" className="hover:text-neutral-900 hover:underline">
               Plants
             </Link>
           </div>
           <h1
-            className="mt-2 text-4xl font-semibold tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="mt-2 ptl-page-title"
           >
             {p.commonName}
           </h1>
@@ -96,7 +95,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
             <div className="mt-1 text-sm italic text-neutral-600">{p.scientificName}</div>
           ) : null}
           {p.description ? (
-            <p className="mt-3 max-w-2xl text-sm text-neutral-700">{p.description}</p>
+            <p className="mt-3 max-w-2xl ptl-lede text-neutral-700">{p.description}</p>
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -130,13 +129,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
                   className="object-cover"
                 />
               ) : (
-                <div
-                  className="h-full w-full"
-                  style={{
-                    background:
-                      "radial-gradient(220px 180px at 20% 20%, rgba(122, 163, 66, 0.28), transparent 60%), radial-gradient(280px 220px at 70% 70%, rgba(27, 127, 90, 0.18), transparent 60%), linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,255,255,0.25))",
-                  }}
-                />
+                <div className="ptl-image-ph h-full w-full" />
               )}
             </div>
             {p.imageUrl ? (

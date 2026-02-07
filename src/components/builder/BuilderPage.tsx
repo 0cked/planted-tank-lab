@@ -644,7 +644,7 @@ function ProductPicker(props: {
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div
-                      className="h-11 w-11 overflow-hidden rounded-xl border bg-[radial-gradient(circle_at_30%_20%,rgba(21,128,61,.22),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(13,148,136,.18),transparent_55%),linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.35))]"
+                      className="ptl-image-ph h-11 w-11 overflow-hidden rounded-xl border"
                       style={{ borderColor: "var(--ptl-border)" }}
                     >
                       {(() => {
@@ -879,7 +879,7 @@ function PlantPicker(props: {
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div
-                      className="h-11 w-11 overflow-hidden rounded-xl border bg-[radial-gradient(circle_at_30%_20%,rgba(21,128,61,.22),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(13,148,136,.18),transparent_55%),linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.35))]"
+                      className="ptl-image-ph h-11 w-11 overflow-hidden rounded-xl border"
                       style={{ borderColor: "var(--ptl-border)" }}
                     >
                       {(() => {
@@ -1519,12 +1519,11 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       <div className="flex items-start justify-between gap-6">
         <div>
           <h1
-            className="text-4xl font-semibold tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="ptl-page-title"
           >
             Builder
           </h1>
-          <p className="mt-3 text-sm text-neutral-700">
+          <p className="mt-3 ptl-lede text-neutral-700">
             Choose parts category-by-category. Warnings update instantly.
           </p>
           {shareStatus ? (

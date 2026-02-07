@@ -24,12 +24,11 @@ export default async function ProfilePage() {
       <main className="mx-auto max-w-6xl px-6 py-14">
         <div className="ptl-surface-strong p-7 sm:p-10">
           <h1
-            className="text-4xl font-semibold tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="ptl-page-title"
           >
             Your profile
           </h1>
-          <p className="mt-3 text-sm text-neutral-700">
+          <p className="mt-3 ptl-lede text-neutral-700">
             Sign in to save builds, sync across devices, and manage favorites.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
@@ -91,8 +90,7 @@ export default async function ProfilePage() {
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1
-            className="text-4xl font-semibold tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="ptl-page-title"
           >
             Your profile
           </h1>

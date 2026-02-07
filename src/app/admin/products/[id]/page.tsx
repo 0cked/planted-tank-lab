@@ -18,7 +18,7 @@ function isUuid(v: string): boolean {
 
 export default async function AdminProductEditPage(props: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string; uploaded?: string }>;
 }) {
   const { id } = await props.params;
   const sp = await props.searchParams;
@@ -67,6 +67,7 @@ export default async function AdminProductEditPage(props: {
 
   const error = (sp.error ?? "").trim();
   const saved = sp.saved === "1";
+  const uploaded = sp.uploaded === "1";
 
   const publicHref = `/products/${p.category.slug}/${p.slug}`;
 
@@ -107,99 +108,147 @@ export default async function AdminProductEditPage(props: {
             Saved.
           </div>
         ) : null}
+        {uploaded ? (
+          <div
+            className="mt-6 rounded-xl border bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+            style={{ borderColor: "rgba(16,185,129,.25)" }}
+          >
+            Photo uploaded.
+          </div>
+        ) : null}
         {error ? (
           <div className="mt-6 rounded-xl border bg-red-50 px-4 py-3 text-sm text-red-900">
             {error}
           </div>
         ) : null}
 
-        <form
-          className="mt-8 grid grid-cols-1 gap-5"
-          method="post"
-          action={`/admin/products/${p.id}/save`}
-        >
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <label className="block">
-              <div className="text-sm font-semibold text-neutral-900">Name</div>
-              <input
-                name="name"
-                defaultValue={p.name}
-                className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              />
-            </label>
-            <label className="block">
-              <div className="text-sm font-semibold text-neutral-900">Slug</div>
-              <input
-                name="slug"
-                defaultValue={p.slug}
-                className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              />
-            </label>
-          </div>
-
-          <label className="block">
-            <div className="text-sm font-semibold text-neutral-900">Description</div>
-            <textarea
-              name="description"
-              defaultValue={p.description ?? ""}
-              rows={4}
-              className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
+          <aside className="rounded-2xl border bg-white/70 p-5" style={{ borderColor: "var(--ptl-border)" }}>
+            <div className="text-sm font-semibold text-neutral-900">Photo</div>
+            <div
+              className="mt-3 overflow-hidden rounded-2xl border bg-white/70"
               style={{ borderColor: "var(--ptl-border)" }}
-            />
-          </label>
+            >
+              {p.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={p.imageUrl} alt="" className="aspect-square w-full object-cover" />
+              ) : (
+                <div className="ptl-image-ph aspect-square w-full" />
+              )}
+            </div>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-            <label className="block">
-              <div className="text-sm font-semibold text-neutral-900">Status</div>
-              <select
-                name="status"
-                defaultValue={p.status}
-                className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              >
-                <option value="active">active</option>
-                <option value="inactive">inactive</option>
-                <option value="archived">archived</option>
-              </select>
-            </label>
-            <label className="block">
-              <div className="text-sm font-semibold text-neutral-900">Image URL</div>
-              <input
-                name="imageUrl"
-                defaultValue={p.imageUrl ?? ""}
-                className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              />
-            </label>
-            <label className="mt-7 flex items-center gap-3 text-sm font-semibold text-neutral-900">
-              <input type="checkbox" name="verified" defaultChecked={p.verified} />
-              Verified
-            </label>
-          </div>
+            <form
+              className="mt-4 grid gap-3"
+              method="post"
+              encType="multipart/form-data"
+              action={`/admin/products/${p.id}/upload`}
+            >
+              <input type="file" name="file" accept="image/*" className="text-sm" required />
+              <label className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
+                <input type="checkbox" name="setPrimary" defaultChecked />
+                Set as primary
+              </label>
+              <button type="submit" className="ptl-btn-primary w-full">
+                Upload
+              </button>
+              <div className="text-xs text-neutral-600">
+                Uploads go to Supabase Storage when configured.
+              </div>
+            </form>
 
-          <label className="block">
-            <div className="text-sm font-semibold text-neutral-900">Image URLs (JSON)</div>
-            <textarea
-              name="imageUrlsJson"
-              defaultValue={JSON.stringify(p.imageUrls ?? [], null, 2)}
-              rows={4}
-              className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 font-mono text-xs outline-none focus:border-[color:var(--ptl-accent)]"
-              style={{ borderColor: "var(--ptl-border)" }}
-            />
-          </label>
+            <div className="mt-5 text-xs text-neutral-600">
+              Tip: keep photos square-ish for best results in the grid.
+            </div>
+          </aside>
 
-          <label className="block">
-            <div className="text-sm font-semibold text-neutral-900">Specs (JSON)</div>
-            <textarea
-              name="specsJson"
-              defaultValue={JSON.stringify(p.specs ?? {}, null, 2)}
-              rows={10}
-              className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 font-mono text-xs outline-none focus:border-[color:var(--ptl-accent)]"
-              style={{ borderColor: "var(--ptl-border)" }}
-            />
-          </label>
+          <section>
+            <form
+              className="grid grid-cols-1 gap-5"
+              method="post"
+              action={`/admin/products/${p.id}/save`}
+            >
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <label className="block">
+                  <div className="text-sm font-semibold text-neutral-900">Name</div>
+                  <input
+                    name="name"
+                    defaultValue={p.name}
+                    className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                    style={{ borderColor: "var(--ptl-border)" }}
+                  />
+                </label>
+                <label className="block">
+                  <div className="text-sm font-semibold text-neutral-900">Slug</div>
+                  <input
+                    name="slug"
+                    defaultValue={p.slug}
+                    className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                    style={{ borderColor: "var(--ptl-border)" }}
+                  />
+                </label>
+              </div>
+
+              <label className="block">
+                <div className="text-sm font-semibold text-neutral-900">Description</div>
+                <textarea
+                  name="description"
+                  defaultValue={p.description ?? ""}
+                  rows={4}
+                  className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                />
+              </label>
+
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                <label className="block">
+                  <div className="text-sm font-semibold text-neutral-900">Status</div>
+                  <select
+                    name="status"
+                    defaultValue={p.status}
+                    className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                    style={{ borderColor: "var(--ptl-border)" }}
+                  >
+                    <option value="active">active</option>
+                    <option value="inactive">inactive</option>
+                    <option value="archived">archived</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <div className="text-sm font-semibold text-neutral-900">Image URL</div>
+                  <input
+                    name="imageUrl"
+                    defaultValue={p.imageUrl ?? ""}
+                    className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+                    style={{ borderColor: "var(--ptl-border)" }}
+                  />
+                </label>
+                <label className="mt-7 flex items-center gap-3 text-sm font-semibold text-neutral-900">
+                  <input type="checkbox" name="verified" defaultChecked={p.verified} />
+                  Verified
+                </label>
+              </div>
+
+              <label className="block">
+                <div className="text-sm font-semibold text-neutral-900">Image URLs (JSON)</div>
+                <textarea
+                  name="imageUrlsJson"
+                  defaultValue={JSON.stringify(p.imageUrls ?? [], null, 2)}
+                  rows={4}
+                  className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 font-mono text-xs outline-none focus:border-[color:var(--ptl-accent)]"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                />
+              </label>
+
+              <label className="block">
+                <div className="text-sm font-semibold text-neutral-900">Specs (JSON)</div>
+                <textarea
+                  name="specsJson"
+                  defaultValue={JSON.stringify(p.specs ?? {}, null, 2)}
+                  rows={10}
+                  className="mt-2 w-full rounded-xl border bg-white/70 px-3 py-2 font-mono text-xs outline-none focus:border-[color:var(--ptl-accent)]"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                />
+              </label>
 
           {defs.length > 0 ? (
             <div
@@ -294,7 +343,9 @@ export default async function AdminProductEditPage(props: {
               Save
             </button>
           </div>
-        </form>
+            </form>
+          </section>
+        </div>
       </div>
     </main>
   );

@@ -147,7 +147,7 @@ export default async function AdminPlantEditPage(props: {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.imageUrl} alt="" className="aspect-square w-full object-cover" />
               ) : (
-                <div className="aspect-square w-full bg-[radial-gradient(circle_at_30%_20%,rgba(21,128,61,.22),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(13,148,136,.18),transparent_55%),linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.35))]" />
+                <div className="ptl-image-ph aspect-square w-full" />
               )}
             </div>
 
@@ -539,4 +539,3 @@ export default async function AdminPlantEditPage(props: {
     </main>
   );
 }
-

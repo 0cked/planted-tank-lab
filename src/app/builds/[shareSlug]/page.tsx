@@ -49,17 +49,14 @@ export default async function BuildSharePage(props: {
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-            Build snapshot
-          </div>
+          <div className="ptl-kicker">Build snapshot</div>
           <h1
-            className="mt-2 text-4xl font-semibold tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="mt-2 ptl-page-title"
           >
             {data.build.name}
           </h1>
           {data.build.description ? (
-            <p className="mt-3 max-w-[70ch] text-sm text-neutral-700">
+            <p className="mt-3 max-w-[70ch] ptl-lede text-neutral-700">
               {data.build.description}
             </p>
           ) : null}

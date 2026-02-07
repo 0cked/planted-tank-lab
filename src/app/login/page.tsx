@@ -4,7 +4,7 @@ import { LoginPanel } from "./LoginPanel";
 
 export const metadata: Metadata = {
   title: "Login | PlantedTankLab",
-  description: "Sign in to save builds and sync across devices.",
+  description: "Sign in to save builds to your profile and sync across devices.",
 };
 
 function allowGoogle(): boolean {
@@ -21,20 +21,29 @@ function allowDev(): boolean {
 }
 
 export default function LoginPage() {
+  const allowG = allowGoogle();
+  const allowE = allowEmail();
+  const allowD = allowDev();
+  const hasAuth = allowG || allowE || allowD;
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
-        <LoginPanel allowGoogle={allowGoogle()} allowEmail={allowEmail()} allowDev={allowDev()} />
+        <LoginPanel allowGoogle={allowG} allowEmail={allowE} allowDev={allowD} />
         <div className="ptl-surface p-7 sm:p-10">
-          <div className="text-sm font-semibold">What you get</div>
-          <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-neutral-700">
-            <li>Save builds to your account (coming next)</li>
-            <li>Sync across devices</li>
-            <li>Share links that stay up to date</li>
-          </ul>
-          <div className="mt-6 rounded-2xl border bg-white/60 p-4 text-xs text-neutral-600" style={{ borderColor: "var(--ptl-border)" }}>
-            Note: account-backed builds will land after auth is live in production.
-          </div>
+          <div className="text-sm font-semibold">{hasAuth ? "Why sign in" : "No account needed"}</div>
+          {hasAuth ? (
+            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-neutral-700">
+              <li>Save builds to your profile</li>
+              <li>Sync your in-progress build across devices</li>
+              <li>Keep share links up to date as you refine</li>
+            </ul>
+          ) : (
+            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-neutral-700">
+              <li>Build a setup and share a link</li>
+              <li>Bookmark the share link to come back later</li>
+              <li>Browse plants and gear without signing in</li>
+            </ul>
+          )}
         </div>
       </div>
     </main>

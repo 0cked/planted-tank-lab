@@ -1,24 +1,44 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { useState } from "react";
 
 export function LoginPanel(props: { allowGoogle: boolean; allowEmail: boolean; allowDev: boolean }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
+  const hasAnyProvider = props.allowEmail || props.allowGoogle || props.allowDev;
 
   return (
     <div className="ptl-surface-strong p-7 sm:p-10">
       <h1
-        className="text-4xl font-semibold tracking-tight"
-        style={{ fontFamily: "var(--font-display)" }}
+        className="ptl-page-title"
       >
         Sign in
       </h1>
-      <p className="mt-3 text-sm text-neutral-700">
-        Create an account to save builds, sync across devices, and share links.
+      <p className="mt-3 ptl-lede text-neutral-700">
+        {hasAnyProvider
+          ? "Sign in to save builds to your profile and sync across devices."
+          : "Sign in is temporarily unavailable right now. You can still build and share without an account."}
       </p>
+
+      {!hasAnyProvider ? (
+        <div className="mt-8 rounded-3xl border bg-white/70 p-5 text-sm text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
+          <div className="font-semibold text-neutral-900">No problem</div>
+          <div className="mt-2 text-neutral-700">
+            Accounts are optional. Build a setup, then use the Share button to get a link you can bookmark.
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link href="/builder" className="ptl-btn-primary">
+              Open the builder
+            </Link>
+            <Link href="/plants" className="ptl-btn-secondary">
+              Browse plants
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-8 space-y-3">
         {props.allowEmail ? (
@@ -54,14 +74,7 @@ export function LoginPanel(props: { allowGoogle: boolean; allowEmail: boolean; a
             </div>
             {emailStatus ? <div className="mt-2 text-xs text-neutral-700">{emailStatus}</div> : null}
           </form>
-        ) : (
-          <div
-            className="rounded-2xl border bg-white/55 px-4 py-3 text-sm text-neutral-700"
-            style={{ borderColor: "var(--ptl-border)" }}
-          >
-            Email sign-in is not configured yet.
-          </div>
-        )}
+        ) : null}
 
         {props.allowGoogle ? (
           <button
@@ -72,11 +85,7 @@ export function LoginPanel(props: { allowGoogle: boolean; allowEmail: boolean; a
           >
             Continue with Google
           </button>
-        ) : (
-          <div className="rounded-2xl border bg-white/55 px-4 py-3 text-sm text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
-            Google sign-in is not configured yet.
-          </div>
-        )}
+        ) : null}
 
         {props.allowDev ? (
           <form

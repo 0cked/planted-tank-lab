@@ -15,12 +15,11 @@ export default async function ProductsPage() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <h1
-        className="text-4xl font-semibold tracking-tight"
-        style={{ fontFamily: "var(--font-display)" }}
+        className="ptl-page-title"
       >
         Products
       </h1>
-      <p className="mt-3 text-sm text-neutral-700">
+      <p className="mt-3 ptl-lede text-neutral-700">
         Browse equipment categories and compare compatible options.
       </p>
 
@@ -31,7 +30,7 @@ export default async function ProductsPage() {
             <Link
               key={c.id}
               href={`/products/${c.slug}`}
-              className="ptl-surface-sand p-6 transition hover:brightness-[1.02]"
+              className="ptl-surface-sand p-6 ptl-hover-lift transition hover:brightness-[1.02]"
             >
               <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
                 Category

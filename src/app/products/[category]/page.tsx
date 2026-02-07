@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SmartImage } from "@/components/SmartImage";
+import { ProductCategoryFilters } from "@/components/products/ProductCategoryFilters";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -196,17 +197,14 @@ export default async function ProductCategoryPage(props: {
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-            Products
-          </div>
+          <div className="ptl-kicker">Products</div>
           <h1
-            className="mt-2 text-4xl font-semibold tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="mt-2 ptl-page-title"
           >
             {category.name}
           </h1>
-          <p className="mt-3 text-sm text-neutral-700">
-            Filters are query-param based (shareable URLs).
+          <p className="mt-3 ptl-lede text-neutral-700">
+            Filter by specs to find the right fit, then share your shortlist with a link.
           </p>
         </div>
         <Link href="/products" className="text-sm text-neutral-700 hover:text-neutral-900">
@@ -215,173 +213,24 @@ export default async function ProductCategoryPage(props: {
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <section className="ptl-surface p-5">
-          <div className="text-sm font-medium">Filters</div>
-          <form className="mt-4 space-y-4" method="GET">
-            <div>
-              <label className="text-xs font-medium text-neutral-700">Search</label>
-              <input
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="Name contains..."
-                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-neutral-700">Brand</label>
-              <select
-                name="brand"
-                defaultValue={brandSlug ?? ""}
-                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              >
-                <option value="">Any</option>
-                {brands.map((b) => (
-                  <option key={b.id} value={b.slug}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {categorySlug === "tank" ? (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-neutral-700">Min gal</label>
-                    <input
-                      name="volumeMin"
-                      inputMode="numeric"
-                      defaultValue={volumeMin ?? ""}
-                      className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                      style={{ borderColor: "var(--ptl-border)" }}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-neutral-700">Max gal</label>
-                    <input
-                      name="volumeMax"
-                      inputMode="numeric"
-                      defaultValue={volumeMax ?? ""}
-                      className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                      style={{ borderColor: "var(--ptl-border)" }}
-                    />
-                  </div>
-                </div>
-
-                <label className="flex items-center gap-2 text-sm text-neutral-700">
-                  <input
-                    type="checkbox"
-                    name="rimless"
-                    value="1"
-                    defaultChecked={rimless}
-                    className="h-4 w-4 rounded border-neutral-300"
-                  />
-                  Rimless only
-                </label>
-
-                <div>
-                  <label className="text-xs font-medium text-neutral-700">Material</label>
-                  <select
-                    name="material"
-                    defaultValue={material ?? ""}
-                    className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                    style={{ borderColor: "var(--ptl-border)" }}
-                  >
-                    <option value="">Any</option>
-                    <option value="glass">Glass</option>
-                    <option value="acrylic">Acrylic</option>
-                  </select>
-                </div>
-              </>
-            ) : null}
-
-            {categorySlug === "light" ? (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-neutral-700">Min PAR</label>
-                    <input
-                      name="parMin"
-                      inputMode="numeric"
-                      defaultValue={parMin ?? ""}
-                      className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                      style={{ borderColor: "var(--ptl-border)" }}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-neutral-700">Max PAR</label>
-                    <input
-                      name="parMax"
-                      inputMode="numeric"
-                      defaultValue={parMax ?? ""}
-                      className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                      style={{ borderColor: "var(--ptl-border)" }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-neutral-700">Tank length (in)</label>
-                  <input
-                    name="tankLength"
-                    inputMode="numeric"
-                    defaultValue={tankLength ?? ""}
-                    placeholder="e.g. 24"
-                    className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                    style={{ borderColor: "var(--ptl-border)" }}
-                  />
-                  <div className="mt-1 text-xs text-neutral-500">
-                    Filters lights that fit this tank length.
-                  </div>
-                </div>
-
-                <label className="flex items-center gap-2 text-sm text-neutral-700">
-                  <input
-                    type="checkbox"
-                    name="dimmable"
-                    value="1"
-                    defaultChecked={dimmable}
-                    className="h-4 w-4 rounded border-neutral-300"
-                  />
-                  Dimmable only
-                </label>
-
-                <label className="flex items-center gap-2 text-sm text-neutral-700">
-                  <input
-                    type="checkbox"
-                    name="app"
-                    value="1"
-                    defaultChecked={app}
-                    className="h-4 w-4 rounded border-neutral-300"
-                  />
-                  App-controlled only
-                </label>
-              </>
-            ) : (
-              <div className="text-sm text-neutral-600">
-                Parametric filters for this category are coming soon.
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="ptl-btn-primary"
-              >
-                Apply
-              </button>
-              <Link
-                href={`/products/${categorySlug}`}
-                className="ptl-btn-secondary"
-              >
-                Reset
-              </Link>
-            </div>
-          </form>
-        </section>
+        <ProductCategoryFilters
+          categorySlug={categorySlug}
+          brands={brands}
+          defaults={{
+            q: q ?? "",
+            brandSlug: brandSlug ?? "",
+            volumeMin: volumeMin == null ? "" : String(volumeMin),
+            volumeMax: volumeMax == null ? "" : String(volumeMax),
+            rimless,
+            material: material ?? "",
+            parMin: parMin == null ? "" : String(parMin),
+            parMax: parMax == null ? "" : String(parMax),
+            tankLength: tankLength == null ? "" : String(tankLength),
+            dimmable,
+            app,
+          }}
+          resultsCount={filtered.length}
+        />
 
         <section>
           <div className="flex items-center justify-between">
@@ -413,7 +262,7 @@ export default async function ProductCategoryPage(props: {
                     <li key={p.id} className="px-5 py-4">
                       <div className="flex items-start gap-4">
                         <div
-                          className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border bg-[radial-gradient(circle_at_30%_20%,rgba(21,128,61,.22),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(13,148,136,.18),transparent_55%),linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.35))]"
+                          className="ptl-image-ph h-16 w-16 shrink-0 overflow-hidden rounded-2xl border"
                           style={{ borderColor: "var(--ptl-border)" }}
                         >
                           {img ? (

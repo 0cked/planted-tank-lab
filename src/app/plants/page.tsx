@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 
+import { PlantsFilters } from "@/components/plants/PlantsFilters";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 export const metadata: Metadata = {
@@ -54,12 +55,11 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1
-            className="text-4xl font-semibold tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="ptl-page-title"
           >
             Plants
           </h1>
-          <p className="mt-3 max-w-[70ch] text-sm text-neutral-700">
+          <p className="mt-3 max-w-[70ch] ptl-lede text-neutral-700">
             Image-forward browsing with fast filters. Start with curated beginner picks, then
             widen as you refine your scape.
           </p>
@@ -73,122 +73,18 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <section className="ptl-surface-stone sticky top-24 self-start p-5">
-          <div className="text-sm font-medium">Filters</div>
-          <form className="mt-4 space-y-4" method="GET">
-            <div>
-              <label className="text-xs font-medium text-neutral-700">Browse mode</label>
-              <select
-                name="curated"
-                defaultValue={curatedOnly ? "1" : "0"}
-                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm font-semibold text-neutral-900 outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              >
-                <option value="1">Curated picks</option>
-                <option value="0">All plants</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-neutral-700">Search</label>
-              <input
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="Common or scientific name..."
-                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-neutral-700">Difficulty</label>
-              <select
-                name="difficulty"
-                defaultValue={difficulty ?? ""}
-                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              >
-                <option value="">Any</option>
-                <option value="easy">Easy</option>
-                <option value="moderate">Moderate</option>
-                <option value="hard">Hard</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-neutral-700">Light demand</label>
-              <select
-                name="light"
-                defaultValue={lightDemand ?? ""}
-                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              >
-                <option value="">Any</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-neutral-700">CO2 demand</label>
-              <select
-                name="co2"
-                defaultValue={co2Demand ?? ""}
-                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              >
-                <option value="">Any</option>
-                <option value="none">None</option>
-                <option value="beneficial">Beneficial</option>
-                <option value="required">Required</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-neutral-700">Placement</label>
-              <select
-                name="placement"
-                defaultValue={placement ?? ""}
-                className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-                style={{ borderColor: "var(--ptl-border)" }}
-              >
-                <option value="">Any</option>
-                <option value="foreground">Foreground</option>
-                <option value="midground">Midground</option>
-                <option value="background">Background</option>
-                <option value="carpet">Carpet</option>
-                <option value="epiphyte">Epiphyte</option>
-              </select>
-            </div>
-
-            <label className="flex items-center gap-2 text-sm text-neutral-700">
-              <input
-                type="checkbox"
-                name="shrimpSafe"
-                value="1"
-                defaultChecked={shrimpSafe}
-                className="h-4 w-4 rounded border-neutral-300"
-              />
-              Shrimp-safe
-            </label>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="ptl-btn-primary"
-              >
-                Apply
-              </button>
-              <Link
-                href="/plants"
-                className="ptl-btn-secondary"
-              >
-                Reset
-              </Link>
-            </div>
-          </form>
-        </section>
+        <PlantsFilters
+          defaults={{
+            curatedOnly,
+            q: q ?? "",
+            difficulty: difficulty ?? "",
+            lightDemand: lightDemand ?? "",
+            co2Demand: co2Demand ?? "",
+            placement: placement ?? "",
+            shrimpSafe,
+          }}
+          resultsCount={plants.length}
+        />
 
         <section>
           {plants.length === 0 ? (
@@ -201,7 +97,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                   <li key={p.id}>
                     <Link
                       href={`/plants/${p.slug}`}
-                      className="group block overflow-hidden rounded-3xl border bg-white/60 shadow-sm backdrop-blur-sm transition hover:bg-white/75"
+                      className="group block overflow-hidden rounded-3xl border bg-white/60 shadow-sm backdrop-blur-sm transition hover:bg-white/75 ptl-hover-lift"
                       style={{ borderColor: "var(--ptl-border)" }}
                     >
                       <div className="relative aspect-[4/3] overflow-hidden">
@@ -215,13 +111,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                             className="object-cover transition duration-500 group-hover:scale-[1.04]"
                           />
                         ) : (
-                          <div
-                            className="absolute inset-0"
-                            style={{
-                              background:
-                                "radial-gradient(160px 120px at 20% 20%, rgba(34,197,94,.24), transparent 60%), radial-gradient(220px 160px at 80% 70%, rgba(13,148,136,.18), transparent 65%), linear-gradient(135deg, rgba(255,255,255,0.72), rgba(255,255,255,0.28))",
-                            }}
-                          />
+                          <div className="ptl-image-ph absolute inset-0" />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-black/0" />
                         <div className="absolute bottom-3 left-3 right-3">

@@ -137,7 +137,7 @@ export default async function ProductDetailPage(props: {
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+          <div className="ptl-kicker">
             <Link
               href={`/products/${p.category.slug}`}
               className="hover:text-neutral-900 hover:underline"
@@ -146,13 +146,12 @@ export default async function ProductDetailPage(props: {
             </Link>
           </div>
           <h1
-            className="mt-2 text-4xl font-semibold tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="mt-2 ptl-page-title"
           >
             {title}
           </h1>
           {p.description ? (
-            <p className="mt-3 max-w-2xl text-sm text-neutral-700">{p.description}</p>
+            <p className="mt-3 max-w-2xl ptl-lede text-neutral-700">{p.description}</p>
           ) : null}
         </div>
         <div className="ptl-surface px-5 py-4 text-right">
@@ -182,7 +181,7 @@ export default async function ProductDetailPage(props: {
                 className="aspect-square w-full object-cover"
               />
             ) : (
-              <div className="aspect-square w-full bg-[radial-gradient(circle_at_30%_20%,rgba(21,128,61,.22),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(13,148,136,.18),transparent_55%),linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.35))]" />
+              <div className="ptl-image-ph aspect-square w-full" />
             )}
           </div>
 
@@ -330,7 +329,7 @@ export default async function ProductDetailPage(props: {
                 <Link
                   key={x.id}
                   href={`/products/${x.category.slug}/${x.slug}`}
-                  className="group overflow-hidden rounded-2xl border bg-white/60 transition hover:bg-white/80"
+                  className="group overflow-hidden rounded-2xl border bg-white/60 transition hover:bg-white/80 ptl-hover-lift"
                   style={{ borderColor: "var(--ptl-border)" }}
                 >
                   <div className="relative">
@@ -343,7 +342,7 @@ export default async function ProductDetailPage(props: {
                         className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                       />
                     ) : (
-                      <div className="aspect-[4/3] w-full bg-[radial-gradient(circle_at_30%_20%,rgba(21,128,61,.22),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(13,148,136,.18),transparent_55%),linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.35))]" />
+                      <div className="ptl-image-ph aspect-[4/3] w-full" />
                     )}
                   </div>
                   <div className="p-4">
