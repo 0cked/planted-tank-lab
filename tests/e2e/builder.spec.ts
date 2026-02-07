@@ -40,6 +40,11 @@ test("builder compatibility: tank length filters lights; show incompatible revea
   await page.getByLabel("Show incompatible").check();
   await expect(page.getByText("Chihiros WRGB II 60")).toBeVisible();
   await expect(page.getByText(/Incompatible:/)).toBeVisible();
+  await expect(
+    page
+      .locator("li", { hasText: "Chihiros WRGB II 60" })
+      .getByRole("button", { name: "Incompatible" }),
+  ).toBeDisabled();
 });
 
 test("builder compatibility: low-tech hides CO2-required plants; show incompatible reveals hidden", async ({ page }) => {
@@ -76,4 +81,9 @@ test("builder compatibility: low-tech hides CO2-required plants; show incompatib
   await page.getByLabel("Show incompatible").check();
   await expect(monte).toBeVisible();
   await expect(page.getByText(/Incompatible:/)).toBeVisible();
+  await expect(
+    plantsDialog
+      .locator("li", { hasText: "Monte Carlo (Micranthemum tweediei)" })
+      .getByRole("button", { name: "Incompatible" }),
+  ).toBeDisabled();
 });
