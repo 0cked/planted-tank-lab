@@ -41,7 +41,9 @@ export const sql =
   globalForDb.__plantedTankSql ??
   postgres(databaseUrl, {
     ssl: "require",
-    max: 10,
+    // Supabase poolers enforce low connection limits; Vitest runs many files in parallel,
+    // so keep the pool tiny in tests to avoid "Max client connections reached".
+    max: process.env.NODE_ENV === "test" ? 1 : 10,
   });
 
 if (process.env.NODE_ENV !== "production") globalForDb.__plantedTankSql = sql;

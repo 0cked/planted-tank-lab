@@ -48,9 +48,12 @@ export function CookieBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-4 z-50 px-4">
+    <div
+      data-ptl-cookie-banner
+      className="fixed inset-x-0 bottom-4 z-50 px-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:px-0"
+    >
       <div
-        className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border bg-white/85 p-4 shadow-lg backdrop-blur-md sm:flex-row sm:items-center sm:justify-between"
+        className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border bg-white/85 p-4 shadow-lg backdrop-blur-md sm:mx-0 sm:max-w-[520px] sm:flex-row sm:items-center sm:justify-between"
         style={{ borderColor: "var(--ptl-border)" }}
         role="dialog"
         aria-live="polite"

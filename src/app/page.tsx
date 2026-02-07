@@ -13,7 +13,7 @@ export default function HomePage() {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[70%_45%] scale-[1.12]"
+            className="object-cover object-[62%_56%] scale-[1.22] sm:object-[66%_46%] sm:scale-[1.16]"
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(246,250,244,0.98),rgba(246,250,244,0.82)_42%,rgba(246,250,244,0.18))]" />
           <div className="absolute inset-0 bg-[radial-gradient(900px_520px_at_18%_12%,rgba(27,127,90,0.22),transparent_60%),radial-gradient(740px_560px_at_55%_6%,rgba(122,163,66,0.18),transparent_62%),radial-gradient(900px_600px_at_88%_90%,rgba(239,231,208,0.32),transparent_60%)]" />
@@ -55,7 +55,7 @@ export default function HomePage() {
               </div>
 
               <div className="mt-8 flex flex-wrap gap-2">
-                <span className="ptl-pill">124 gear options</span>
+                <span className="ptl-pill">124 gear picks</span>
                 <span className="ptl-pill">70 plant profiles</span>
                 <span className="ptl-pill">Beginner-friendly defaults</span>
               </div>
@@ -141,18 +141,18 @@ export default function HomePage() {
 
           <div className="ptl-surface-slate p-7">
             <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
-              This week
+              What’s inside
             </div>
             <h2
               className="mt-3 text-3xl font-semibold tracking-tight"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Live now, improving daily.
+              Curated gear, grounded plant care.
             </h2>
             <p className="mt-4 text-sm text-white/85">
-              We are prioritizing visual browsing, curated gear, and reliable plant care
-              sources. If you do not see your exact product yet, pick the closest match and
-              use warnings as guidance.
+              Explore compatibility-checked gear and practical plant profiles. If you do not
+              see your exact product yet, pick the closest match and use warnings as
+              guidance.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link href="/builder" className="ptl-btn-primary">
