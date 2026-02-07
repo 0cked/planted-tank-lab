@@ -9,9 +9,15 @@ export function UserMenu() {
 
   if (status === "loading") {
     return (
-      <div className="rounded-full border bg-white/60 px-3 py-1.5 text-sm font-semibold text-neutral-800" style={{ borderColor: "var(--ptl-border)" }}>
-        …
-      </div>
+      <button
+        type="button"
+        disabled
+        aria-busy="true"
+        className="rounded-full border bg-white/60 px-3 py-1.5 text-sm font-semibold text-neutral-800 disabled:cursor-wait disabled:opacity-60"
+        style={{ borderColor: "var(--ptl-border)" }}
+      >
+        Account
+      </button>
     );
   }
 

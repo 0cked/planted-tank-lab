@@ -693,10 +693,16 @@ function ProductPicker(props: {
                     }}
                     disabled={x.blocked}
                     className={
-                      "shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95 " +
-                      (x.blocked ? "bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-60" : "")
+                      "shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 " +
+                      (x.blocked
+                        ? "border-red-200 bg-red-50 text-red-900"
+                        : "text-white hover:brightness-95")
                     }
-                    style={x.blocked ? undefined : { background: "var(--ptl-accent)" }}
+                    style={
+                      x.blocked
+                        ? undefined
+                        : { background: "var(--ptl-accent)", borderColor: "transparent" }
+                    }
                     title={
                       x.blocked
                         ? "This option is incompatible with your current selections. Turn off Compatibility to add it anyway."
@@ -919,10 +925,16 @@ function PlantPicker(props: {
                     onClick={() => props.onAdd(toPlantSnapshot(p))}
                     disabled={x.blocked}
                     className={
-                      "shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95 " +
-                      (x.blocked ? "bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-60" : "")
+                      "shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 " +
+                      (x.blocked
+                        ? "border-red-200 bg-red-50 text-red-900"
+                        : "text-white hover:brightness-95")
                     }
-                    style={x.blocked ? undefined : { background: "var(--ptl-accent)" }}
+                    style={
+                      x.blocked
+                        ? undefined
+                        : { background: "var(--ptl-accent)", borderColor: "transparent" }
+                    }
                     title={
                       x.blocked
                         ? "This plant is incompatible with your current selections. Turn off Compatibility to add it anyway."
