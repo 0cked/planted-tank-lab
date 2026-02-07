@@ -77,10 +77,10 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 - [x] P5.01 Admin auth + role-based access control.
 - [x] P5.02 Admin CRUD (products): spec-driven forms via `spec_definitions`.
 - [x] P5.03 Admin CRUD (plants): care fields + sources + image upload.
-- [ ] P5.04 Admin CRUD (rules): create/edit/disable + preview evaluator.
-- [ ] P5.05 Admin CRUD (offers): edit offers, trigger refresh, manage affiliate templates.
-- [ ] P5.06 Moderation tools: public builds review and takedown.
-- [ ] P5.07 Audit log: admin actions recorded.
+- [x] P5.04 Admin CRUD (rules): create/edit/disable + preview evaluator.
+- [x] P5.05 Admin CRUD (offers): edit offers, trigger refresh, manage affiliate templates.
+- [x] P5.06 Moderation tools: public builds review and takedown.
+- [x] P5.07 Audit log: admin actions recorded.
 
 ### Phase 6 — Visual Identity + Brand Polish (Aquascape “Lush Jungle”)
 

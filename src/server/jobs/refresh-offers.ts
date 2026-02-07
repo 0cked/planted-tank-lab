@@ -92,3 +92,58 @@ export async function refreshOffersJob(params: {
 
   return { scanned: rows.length, updated, failed };
 }
+
+export async function refreshOfferUrl(params: {
+  db: DbClient;
+  offerId: string;
+  timeoutMs: number;
+}): Promise<{ ok: boolean }> {
+  const rows = await params.db
+    .select({ id: offers.id, url: offers.url, priceCents: offers.priceCents })
+    .from(offers)
+    .where(eq(offers.id, params.offerId))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return { ok: false };
+
+  let ok = false;
+  try {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), params.timeoutMs);
+    try {
+      const res = await fetch(row.url, {
+        method: "HEAD",
+        redirect: "follow",
+        signal: controller.signal,
+        headers: {
+          "user-agent": "PlantedTankLabOfferChecker/1.0",
+          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+      });
+      ok = res.status >= 200 && res.status < 400;
+    } catch {
+      ok = false;
+    } finally {
+      clearTimeout(t);
+    }
+  } catch {
+    ok = false;
+  }
+
+  await params.db
+    .update(offers)
+    .set({ inStock: ok, lastCheckedAt: new Date(), updatedAt: new Date() })
+    .where(eq(offers.id, row.id));
+
+  if (row.priceCents != null) {
+    await params.db.insert(priceHistory).values({
+      offerId: row.id,
+      priceCents: row.priceCents,
+      inStock: ok,
+      recordedAt: new Date(),
+    });
+  }
+
+  return { ok };
+}

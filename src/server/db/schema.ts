@@ -491,11 +491,42 @@ export const buildReports = pgTable(
       onDelete: "set null",
     }),
     reason: text("reason"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedByUserId: uuid("resolved_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    resolution: varchar("resolution", { length: 20 }),
+    resolutionNote: text("resolution_note"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("idx_build_reports_build").on(t.buildId)],
+  (t) => [
+    index("idx_build_reports_build").on(t.buildId),
+    index("idx_build_reports_open").on(t.resolvedAt, t.createdAt),
+  ],
+);
+
+export const adminLogs = pgTable(
+  "admin_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    action: varchar("action", { length: 80 }).notNull(),
+    targetType: varchar("target_type", { length: 50 }).notNull(),
+    targetId: varchar("target_id", { length: 80 }),
+    meta: jsonb("meta").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_admin_logs_created").on(t.createdAt),
+    index("idx_admin_logs_actor").on(t.actorUserId, t.createdAt),
+    index("idx_admin_logs_target").on(t.targetType, t.targetId, t.createdAt),
+  ],
 );
 
 export const userFavorites = pgTable(

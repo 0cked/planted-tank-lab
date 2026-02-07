@@ -64,6 +64,14 @@ export default function AdminHomePage() {
             <div className="text-sm font-semibold text-neutral-900">Builds</div>
             <div className="mt-1 text-sm text-neutral-700">Moderation and reports.</div>
           </Link>
+          <Link
+            href="/admin/logs"
+            className="rounded-2xl border bg-white/70 p-5 transition hover:bg-white/85"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
+            <div className="text-sm font-semibold text-neutral-900">Logs</div>
+            <div className="mt-1 text-sm text-neutral-700">Admin actions and audits.</div>
+          </Link>
         </div>
 
         <div className="mt-8 text-xs text-neutral-600">
@@ -74,4 +82,3 @@ export default function AdminHomePage() {
     </main>
   );
 }
-
