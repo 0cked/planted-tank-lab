@@ -13,7 +13,7 @@ export default function HomePage() {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[70%_45%]"
+            className="object-cover object-[70%_45%] scale-[1.12]"
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(246,250,244,0.98),rgba(246,250,244,0.82)_42%,rgba(246,250,244,0.18))]" />
           <div className="absolute inset-0 bg-[radial-gradient(900px_520px_at_18%_12%,rgba(27,127,90,0.22),transparent_60%),radial-gradient(740px_560px_at_55%_6%,rgba(122,163,66,0.18),transparent_62%),radial-gradient(900px_600px_at_88%_90%,rgba(239,231,208,0.32),transparent_60%)]" />
@@ -55,9 +55,9 @@ export default function HomePage() {
               </div>
 
               <div className="mt-8 flex flex-wrap gap-2">
-                <span className="ptl-pill">124 products ready</span>
-                <span className="ptl-pill">70 plants with care data</span>
-                <span className="ptl-pill">Curated picks on by default</span>
+                <span className="ptl-pill">124 gear options</span>
+                <span className="ptl-pill">70 plant profiles</span>
+                <span className="ptl-pill">Beginner-friendly defaults</span>
               </div>
             </div>
           </div>

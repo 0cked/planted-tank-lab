@@ -691,13 +691,19 @@ function ProductPicker(props: {
                       props.onPick(toProductSnapshot(props.categorySlug, r));
                       props.onOpenChange(false);
                     }}
+                    disabled={x.blocked}
                     className={
                       "shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95 " +
-                      (x.blocked ? "bg-neutral-700" : "")
+                      (x.blocked ? "bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-60" : "")
                     }
                     style={x.blocked ? undefined : { background: "var(--ptl-accent)" }}
+                    title={
+                      x.blocked
+                        ? "This option is incompatible with your current selections. Turn off Compatibility to add it anyway."
+                        : "Add"
+                    }
                   >
-                    {x.blocked ? "Add anyway" : "Add"}
+                    {x.blocked ? "Incompatible" : "Add"}
                   </button>
                 </li>
               );
@@ -911,13 +917,19 @@ function PlantPicker(props: {
                   <button
                     type="button"
                     onClick={() => props.onAdd(toPlantSnapshot(p))}
+                    disabled={x.blocked}
                     className={
                       "shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95 " +
-                      (x.blocked ? "bg-neutral-700" : "")
+                      (x.blocked ? "bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-60" : "")
                     }
                     style={x.blocked ? undefined : { background: "var(--ptl-accent)" }}
+                    title={
+                      x.blocked
+                        ? "This plant is incompatible with your current selections. Turn off Compatibility to add it anyway."
+                        : "Add"
+                    }
                   >
-                    {x.blocked ? "Add anyway" : "Add"}
+                    {x.blocked ? "Incompatible" : "Add"}
                   </button>
                 </li>
               );
