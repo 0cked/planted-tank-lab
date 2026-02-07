@@ -31,7 +31,7 @@ export default async function ProductsPage() {
             <Link
               key={c.id}
               href={`/products/${c.slug}`}
-              className="ptl-surface p-6 transition hover:bg-white/80"
+              className="ptl-surface-sand p-6 transition hover:brightness-[1.02]"
             >
               <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
                 Category

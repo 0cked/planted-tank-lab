@@ -64,7 +64,7 @@ export default function HomePage() {
 
           <div className="mx-auto max-w-6xl px-6 pb-14">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="ptl-surface p-5">
+              <div className="ptl-surface-glass p-5">
                 <div className="text-xs font-semibold uppercase tracking-wide text-neutral-700">
                   Compatibility
                 </div>
@@ -78,7 +78,7 @@ export default function HomePage() {
                   Wrong-size lights, missing CO2 for carpets, stand capacity, and more.
                 </div>
               </div>
-              <div className="ptl-surface p-5">
+              <div className="ptl-surface-stone p-5">
                 <div className="text-xs font-semibold uppercase tracking-wide text-neutral-700">
                   Compare
                 </div>
@@ -92,7 +92,7 @@ export default function HomePage() {
                   PAR, tank length fit, flow, heater watts-per-gallon, and plant demands.
                 </div>
               </div>
-              <div className="ptl-surface p-5">
+              <div className="ptl-surface-sand p-5">
                 <div className="text-xs font-semibold uppercase tracking-wide text-neutral-700">
                   Share
                 </div>
@@ -113,7 +113,7 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-6xl px-6 py-14 sm:py-16">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1fr] lg:items-start">
-          <div className="ptl-surface p-7">
+          <div className="ptl-surface-stone p-7">
             <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
               How it works
             </div>
@@ -139,8 +139,8 @@ export default function HomePage() {
             </ol>
           </div>
 
-          <div className="ptl-surface p-7">
-            <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+          <div className="ptl-surface-slate p-7">
+            <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
               This week
             </div>
             <h2
@@ -149,7 +149,7 @@ export default function HomePage() {
             >
               Live now, improving daily.
             </h2>
-            <p className="mt-4 text-sm text-neutral-800/85">
+            <p className="mt-4 text-sm text-white/85">
               We are prioritizing visual browsing, curated gear, and reliable plant care
               sources. If you do not see your exact product yet, pick the closest match and
               use warnings as guidance.
@@ -158,7 +158,7 @@ export default function HomePage() {
               <Link href="/builder" className="ptl-btn-primary">
                 Open the builder
               </Link>
-              <Link href="/plants" className="ptl-btn-secondary">
+              <Link href="/plants" className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur-md transition hover:bg-white/15">
                 Browse plant care
               </Link>
             </div>

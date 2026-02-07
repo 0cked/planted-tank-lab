@@ -15,6 +15,8 @@
   --ptl-accent-2: #7aa342; /* leaf */
   --ptl-sand: #efe7d0;
   --ptl-stone: #d8ded6;
+  --ptl-slate: #2b332f;
+  --ptl-slate-2: #1d2320;
 
   --ptl-shadow: 0 1px 0 rgba(11, 31, 22, 0.06), 0 12px 30px rgba(11, 31, 22, 0.08);
 }
@@ -73,6 +75,56 @@ label:has(input) {
 }
 
 @layer components {
+  .ptl-surface-glass {
+    @apply rounded-3xl border shadow-sm backdrop-blur-md;
+    border-color: var(--ptl-border);
+    box-shadow: var(--ptl-shadow);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.86),
+      rgba(255, 255, 255, 0.62)
+    );
+  }
+
+  .ptl-surface-slate {
+    @apply rounded-3xl border shadow-sm;
+    border-color: rgba(11, 31, 22, 0.16);
+    box-shadow: 0 1px 0 rgba(11, 31, 22, 0.08), 0 16px 34px rgba(11, 31, 22, 0.14);
+    color: rgba(255, 255, 255, 0.92);
+    background: radial-gradient(
+        900px 500px at 20% 0%,
+        rgba(34, 197, 94, 0.18),
+        transparent 60%
+      ),
+      radial-gradient(800px 480px at 120% 30%, rgba(14, 165, 233, 0.14), transparent 55%),
+      linear-gradient(140deg, var(--ptl-slate), var(--ptl-slate-2));
+  }
+
+  .ptl-surface-sand {
+    @apply rounded-3xl border shadow-sm;
+    border-color: rgba(11, 31, 22, 0.14);
+    box-shadow: 0 1px 0 rgba(11, 31, 22, 0.06), 0 14px 28px rgba(11, 31, 22, 0.1);
+    background: radial-gradient(
+        700px 380px at 12% 20%,
+        rgba(255, 255, 255, 0.55),
+        transparent 60%
+      ),
+      radial-gradient(600px 360px at 90% 70%, rgba(27, 127, 90, 0.14), transparent 60%),
+      linear-gradient(180deg, rgba(239, 231, 208, 0.92), rgba(239, 231, 208, 0.72));
+  }
+
+  .ptl-surface-stone {
+    @apply rounded-3xl border shadow-sm;
+    border-color: rgba(11, 31, 22, 0.14);
+    box-shadow: 0 1px 0 rgba(11, 31, 22, 0.06), 0 14px 28px rgba(11, 31, 22, 0.1);
+    background: radial-gradient(
+        900px 520px at 20% -10%,
+        rgba(255, 255, 255, 0.62),
+        transparent 60%
+      ),
+      linear-gradient(180deg, rgba(216, 222, 214, 0.92), rgba(216, 222, 214, 0.74));
+  }
+
   .ptl-surface {
     @apply rounded-3xl border shadow-sm backdrop-blur-md;
     border-color: var(--ptl-border);

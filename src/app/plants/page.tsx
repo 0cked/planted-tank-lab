@@ -64,7 +64,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
             widen as you refine your scape.
           </p>
         </div>
-        <div className="ptl-surface-strong flex items-center gap-3 px-4 py-3">
+        <div className="ptl-surface-sand flex items-center gap-3 px-4 py-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
             Showing
           </div>
@@ -73,7 +73,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <section className="ptl-surface sticky top-24 self-start p-5">
+        <section className="ptl-surface-stone sticky top-24 self-start p-5">
           <div className="text-sm font-medium">Filters</div>
           <form className="mt-4 space-y-4" method="GET">
             <div>
