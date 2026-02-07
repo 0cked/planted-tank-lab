@@ -87,11 +87,11 @@ Goal: A user can build a credible shopping list that feels curated, explains tra
 - [x] P6.01 Theme tokens and background atmosphere are in place.
 - [x] P6.02 Home hero is full-bleed and brand wordmark is used correctly.
 - [x] P6.03 Replace “SaaS card grid” feel (surfaces): introduce 2-3 signature surfaces (glass, slate, sand) and use intentionally across key pages.
-- [ ] P6.04 Replace “SaaS card grid” feel (type): typography system for editorial vs utility text, with consistent hierarchy.
-- [ ] P6.05 Image system (hosting): host key media (hero + curated product/plant images) in Supabase Storage.
-- [ ] P6.06 Image system (standards): standardize aspect ratios, cropping, and responsive sizes.
-- [ ] P6.07 Motion pass: page-load reveal, list stagger, dialog transitions, and respect reduced-motion.
-- [ ] P6.08 Content pass: rewrite all UI copy to be hobby-native (no “seeded”, no “MVP”, no internal jargon).
+- [x] P6.04 Replace “SaaS card grid” feel (type): typography system for editorial vs utility text, with consistent hierarchy.
+- [x] P6.05 Image system (hosting): host key media (hero + curated product/plant images) in Supabase Storage.
+- [x] P6.06 Image system (standards): standardize aspect ratios, cropping, and responsive sizes.
+- [x] P6.07 Motion pass: page-load reveal, list stagger, dialog transitions, and respect reduced-motion.
+- [x] P6.08 Content pass: rewrite all UI copy to be hobby-native (no “seeded”, no “MVP”, no internal jargon).
 
 ### Phase 7 — Reliability, Security, Performance, Observability
 
