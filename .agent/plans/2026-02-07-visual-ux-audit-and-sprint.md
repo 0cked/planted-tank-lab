@@ -53,5 +53,5 @@ Primary UX/design issues found (customer-facing):
 
 ### Phase F (Verify + Ship)
 - [x] F1 `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e`.
-- [ ] F2 Commit, push `origin/main`, deploy `vercel --prod --yes`.
-- [ ] F3 Refresh Playwright audit screenshots for key pages.
+- [x] F2 Commit, push `origin/main`, deploy `vercel --prod --yes`.
+- [x] F3 Refresh Playwright audit screenshots for key pages.
