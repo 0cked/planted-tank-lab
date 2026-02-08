@@ -49,3 +49,9 @@ test("builds index renders", async ({ page }) => {
   await page.goto("/builds");
   await expect(page.getByRole("heading", { name: "Builds" })).toBeVisible();
 });
+
+test("not found renders a friendly page", async ({ page }) => {
+  await page.goto("/plants/this-plant-does-not-exist");
+  await expect(page.getByRole("heading", { name: "Plant not found" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Browse plants" })).toBeVisible();
+});
