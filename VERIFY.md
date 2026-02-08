@@ -1,6 +1,6 @@
-# VERIFY — Launch Readiness Playbook
+# VERIFY - Launch Readiness Playbook
 
-This document defines what “launch-ready” means and the commands to prove it.
+This document defines what "launch-ready" means and the commands to prove it.
 
 ## Definition Of Done (v1 launch-ready)
 
@@ -19,7 +19,7 @@ Runs lint + typecheck + unit tests + e2e smoke + build.
 
 ### `pnpm verify:gates`
 
-Prints G0–G11 pass/fail/unknown from `config/gates.json` plus verification guidance.
+Prints G0-G11 pass/fail/unknown from `config/gates.json` plus verification guidance.
 
 ## Local Setup (when needed)
 
@@ -44,4 +44,3 @@ Prints G0–G11 pass/fail/unknown from `config/gates.json` plus verification gui
 - `curl -I https://plantedtanklab.com` confirms security headers (see `PLAN_EXEC.md` A-02).
 - `curl -I https://plantedtanklab.com/sitemap.xml` returns 200.
 - Verify `/go/{offerId}` rejects disallowed hosts (open redirect protection).
-

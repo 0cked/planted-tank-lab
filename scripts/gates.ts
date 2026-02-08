@@ -44,7 +44,7 @@ function readGates(path: string): GatesFile {
 }
 
 function formatWhen(value: string | null): string {
-  if (!value) return "—";
+  if (!value) return "-";
   return value;
 }
 
@@ -59,7 +59,7 @@ function main(): void {
     process.exit(2);
   }
 
-  console.log(`Launch Gates (G0–G11) — ${path}`);
+  console.log(`Launch Gates (G0-G11) - ${path}`);
   console.log(`Last updated: ${gatesFile.lastUpdatedAt}`);
   console.log("");
 

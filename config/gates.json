@@ -11,7 +11,7 @@
       "verification": {
         "commands": ["pnpm test:e2e"],
         "manualChecklist": [
-          "Complete a full build in /builder (tank → light → filter → CO2/substrate → plants).",
+          "Complete a full build in /builder (tank -> light -> filter -> CO2/substrate -> plants).",
           "Generate a share link; open it in a fresh session.",
           "Click a Buy link and confirm it routes through /go/{offerId} and lands on the retailer page."
         ]
@@ -185,4 +185,3 @@
     }
   ]
 }
-

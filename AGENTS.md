@@ -30,7 +30,7 @@ Supporting artifacts:
 1. Implement the task end-to-end (code + tests).
 2. Verify with `pnpm verify` (or the closest applicable subset if blocked).
 3. Update tracking artifacts:
-   - `AUTOPILOT.md` (status, “what changed last”, next 3 tasks)
+   - `AUTOPILOT.md` (status, "what changed last", next 3 tasks)
    - `PROGRESS.md` (append a dated entry)
    - `TODO.md` (if ready-now queue changes)
    - `config/gates.json` (if gate status changes; set `lastVerifiedAt`)
