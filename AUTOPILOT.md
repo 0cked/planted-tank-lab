@@ -23,15 +23,16 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Repository operating system created (AUTOPILOT/PLAN_EXEC/VERIFY/TODO/PROGRESS + gates dashboard). (`3d56cf5`)
 - Route error boundaries + not-found pages added (root + core segments). (`e71605f`)
 - Typecheck stabilized with `next typegen` for typed routes. (`ae3f8ea`)
+- Baseline security headers added (HSTS in prod + nosniff/referrer/permissions/x-frame-options). (`aa7f24a`)
 
 ## Next 3 Tasks (do these in order)
 
-1. A-02 (P0) Add baseline security headers (non-breaking).
-   Entry points: `src/middleware.ts` (preferred) or `next.config.ts` headers.
-2. A-03 (P0) Add rate limiting for hot endpoints (`/go/*`, `/api/trpc`, share/build routes).
+1. A-03 (P0) Add rate limiting for hot endpoints (`/go/*`, `/api/trpc`, share/build routes).
    Entry points: `src/middleware.ts`, `src/app/go/[offerId]/route.ts`, `src/app/api/trpc/[trpc]/route.ts`, plus ADR.
-3. A-04 (P0) Structured server logging + request IDs.
+2. A-04 (P0) Structured server logging + request IDs.
    Entry points: `src/app/api/trpc/[trpc]/route.ts`, `src/app/go/[offerId]/route.ts`, plus shared logger helper.
+3. A-05 (P0) Error reporting + alerting.
+   Entry points: vendor SDK wiring + server/client capture hooks, plus ADR.
 
 ## Known Risks / Blockers
 

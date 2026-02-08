@@ -56,7 +56,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: `pnpm test:e2e`; manual: force a throw in a page and confirm error UI appears.
   Dependencies: OPS-04
 
-- [ ] A-02 (P0) Baseline security headers (non-breaking).
+- [x] A-02 (P0) Baseline security headers (non-breaking).
   Gates: G5, G1, G9
   Acceptance: responses include HSTS (prod), X-Content-Type-Options, Referrer-Policy, Permissions-Policy; CSP deferred unless proven safe.
   Verify: `curl -I https://plantedtanklab.com | rg -n \"strict-transport|x-content-type|referrer-policy|permissions-policy\"`

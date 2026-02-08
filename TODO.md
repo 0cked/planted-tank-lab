@@ -6,8 +6,8 @@ Do not add tasks here unless they already exist in `PLAN_EXEC.md`.
 
 ## Ready Now (work top to bottom)
 
-1. A-02 Baseline security headers (non-breaking).
-2. A-03 Rate limiting for hot endpoints.
-3. A-04 Structured server logging + request IDs.
-4. A-05 Error reporting + alerting.
-5. B-01 Compatibility rules required-specs contracts + missing-data UX.
+1. A-03 Rate limiting for hot endpoints.
+2. A-04 Structured server logging + request IDs.
+3. A-05 Error reporting + alerting.
+4. B-01 Compatibility rules required-specs contracts + missing-data UX.
+5. B-02 Admin categories CRUD + reorder.

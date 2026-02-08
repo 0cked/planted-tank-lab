@@ -20,3 +20,9 @@ Each work session must add a new dated entry that includes:
 - Work: Completed repo operating system (Autopilot tracking + gates dashboard) and archived legacy planning (`3d56cf5`). Added route error boundaries + not-found UX (root + builder/products/plants/builds) and e2e coverage (`e71605f`). Stabilized typecheck by generating typed routes before `tsc` (`ae3f8ea`).
 - Verified: `pnpm verify` (lint + typecheck + unit + e2e + build) passed. `pnpm verify:gates` prints gates dashboard.
 - Next: A-02, A-03, A-04 (see `TODO.md`).
+
+## 2026-02-08 18:50
+
+- Work: Added baseline security headers via `next.config.ts` (`aa7f24a`).
+- Verified: `curl -I http://localhost:3000` shows nosniff/referrer/permissions/x-frame-options in dev. `pnpm verify` passed.
+- Next: A-03, A-04, A-05 (see `TODO.md`).
