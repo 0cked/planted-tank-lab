@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:e2e": "playwright test --pass-with-no-tests",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm build",
+    "verify:gates": "tsx scripts/gates.ts",
     "seed": "tsx scripts/seed.ts",
     "format": "prettier -w ."
   },

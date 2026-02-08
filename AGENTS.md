@@ -1,8 +1,54 @@
 # PlantedTankLab — Agent Instructions
 
+## Operating System (Single Source Of Truth)
+
+This repo is run via a small set of tracking artifacts so work is resumable across
+sessions without relying on chat history.
+
+Authoritative status + next actions:
+- `AUTOPILOT.md`
+
+Supporting artifacts:
+- `PLAN_EXEC.md` (execution checklist; tasks link to launch gates)
+- `TODO.md` (ready-now queue derived from `PLAN_EXEC.md`)
+- `PROGRESS.md` (append-only work log; every session must append)
+- `VERIFY.md` (verification playbook + definition of done)
+- Gate dashboard: `config/gates.json` + `scripts/gates.ts` (run `pnpm verify:gates`)
+- ADRs: `decisions/*`
+- Historical planning: `archive/planning/*` (not authoritative)
+
+### Session Startup Ritual (required)
+
+1. Read: `AUTOPILOT.md`, `PLAN_EXEC.md`, `TODO.md`, `PROGRESS.md`.
+2. Run:
+   - `pnpm verify:gates`
+   - `pnpm verify`
+3. Start work on the top item in `TODO.md`.
+
+### Execution Loop (required)
+
+1. Implement the task end-to-end (code + tests).
+2. Verify with `pnpm verify` (or the closest applicable subset if blocked).
+3. Update tracking artifacts:
+   - `AUTOPILOT.md` (status, “what changed last”, next 3 tasks)
+   - `PROGRESS.md` (append a dated entry)
+   - `TODO.md` (if ready-now queue changes)
+   - `config/gates.json` (if gate status changes; set `lastVerifiedAt`)
+   - `decisions/*` (if a high-impact decision was made)
+4. Commit with a conventional commit message.
+
+### No-Conflicts Rule (strict)
+
+Do not create new planning/checkpoint/roadmap files outside the Autopilot system.
+If a new doc is needed, it must be linked from `AUTOPILOT.md` and must not duplicate
+task tracking.
+
 ## Project Overview
 
-PlantedTankLab is "PCPartPicker for planted aquariums." Users build a planted aquarium setup by selecting compatible equipment (tank, light, filter, CO2, substrate, plants, ferts, heater, etc.) with real-time compatibility checking, price comparison, and affiliate monetization. The full product plan lives in `PLAN.md` at the repo root — read it before any implementation work.
+PlantedTankLab is "PCPartPicker for planted aquariums." Users build a planted aquarium setup by selecting compatible equipment (tank, light, filter, CO2, substrate, plants, ferts, heater, etc.) with real-time compatibility checking, price comparison, and affiliate monetization.
+
+Product specification:
+- `PLAN.md` (spec only; not authoritative for current progress)
 
 ## Secrets & Credentials
 
@@ -174,10 +220,16 @@ After setup is complete, verify:
 ```
 planted-tank-lab/
 ├── AGENTS.md                 ← You are here
-├── PLAN.md                   ← Full product plan (READ THIS FIRST)
-├── .agent/
-│   ├── PLANS.md              ← ExecPlan template for complex tasks
-│   └── plans/                ← ExecPlans written by the agent go here
+├── AUTOPILOT.md              ← Single source of truth (status + next actions)
+├── PLAN_EXEC.md              ← Execution checklist (tasks + launch gates)
+├── TODO.md                   ← Ready-now queue (derived from PLAN_EXEC)
+├── PROGRESS.md               ← Append-only work log
+├── VERIFY.md                 ← Verification playbook
+├── PLAN.md                   ← Product specification (not progress tracking)
+├── config/
+│   └── gates.json            ← Launch gate status (read by scripts/gates.ts)
+├── decisions/                ← Architecture Decision Records (ADRs)
+├── archive/planning/         ← Historical planning artifacts (non-authoritative)
 ├── .secrets/                 ← GITIGNORED — credentials (never commit)
 │   ├── cloudflare/
 │   │   ├── account-id.txt
@@ -241,10 +293,8 @@ planted-tank-lab/
 │   │   └── validators.ts    ← Zod schemas (shared between client/server)
 │   └── hooks/                ← Custom React hooks
 ├── scripts/                  ← Seed scripts, data import
-│   ├── seed-categories.ts
-│   ├── seed-products.ts
-│   ├── seed-plants.ts
-│   └── seed-rules.ts
+│   ├── seed.ts
+│   └── gates.ts
 ├── data/                     ← Raw seed data (JSON)
 │   ├── categories.json
 │   ├── products/
@@ -325,6 +375,12 @@ pnpm test
 # Run e2e tests
 pnpm test:e2e
 
+# Run full verification (lint + typecheck + unit + e2e + build)
+pnpm verify
+
+# Print launch gates (pass/fail/unknown) from config
+pnpm verify:gates
+
 # Generate Drizzle migration
 pnpm drizzle-kit generate
 
@@ -387,9 +443,12 @@ The builder at `/builder` is the heart of the app. Read `PLAN.md` Section 5.2 fo
 - Push to any other branch → Vercel creates a preview deployment
 - Domain: plantedtanklab.com (DNS via Cloudflare DNS-only → Vercel)
 
-## ExecPlans
+## Planning / Tracking
 
-When implementing complex features (anything touching 5+ files or requiring multi-step work), create an ExecPlan following the template in `.agent/PLANS.md`. Write the plan first, then implement it milestone by milestone. Keep the plan updated as you work. Save ExecPlans to `.agent/plans/`.
+- Use `AUTOPILOT.md` for status and next actions.
+- Use `PLAN_EXEC.md` as the execution checklist.
+- Use `TODO.md` as the ready-now queue (derived from `PLAN_EXEC.md`).
+- Record decisions in `decisions/*` (ADRs) and progress in `PROGRESS.md`.
 
 ## What NOT To Do
 

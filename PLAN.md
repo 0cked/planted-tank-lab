@@ -2,6 +2,8 @@
 
 > *"The PCPartPicker for Planted Aquariums"*
 
+Note: This file is a product/spec reference. For current execution status and next steps, see `AUTOPILOT.md`.
+
 ## Infrastructure & Hosting
 
 - **Domain**: plantedtanklab.com

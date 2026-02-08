@@ -1,0 +1,188 @@
+{
+  "version": 1,
+  "lastUpdatedAt": "2026-02-08",
+  "gates": [
+    {
+      "id": "G0",
+      "name": "Core Value Works",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": ["pnpm test:e2e"],
+        "manualChecklist": [
+          "Complete a full build in /builder (tank → light → filter → CO2/substrate → plants).",
+          "Generate a share link; open it in a fresh session.",
+          "Click a Buy link and confirm it routes through /go/{offerId} and lands on the retailer page."
+        ]
+      }
+    },
+    {
+      "id": "G1",
+      "name": "Auth Correctness",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": ["pnpm test:e2e"],
+        "manualChecklist": [
+          "Google login works in production; session persists on refresh.",
+          "Sign-out works and returns to signed-out state.",
+          "No dev-only login provider is exposed in production UI."
+        ]
+      }
+    },
+    {
+      "id": "G2",
+      "name": "Admin Access Control",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": ["pnpm test", "pnpm test:e2e"],
+        "manualChecklist": [
+          "/admin returns 404 for signed-out and non-admin users.",
+          "Admin routes require a session and cannot be bypassed client-side.",
+          "No secrets are present in client bundles or rendered HTML."
+        ]
+      }
+    },
+    {
+      "id": "G3",
+      "name": "Affiliate/Redirect Safety",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": ["pnpm test"],
+        "manualChecklist": [
+          "All purchase links use /go/{offerId}.",
+          "Disallowed hosts are rejected (no open redirects).",
+          "Click logging is best-effort and never breaks redirects."
+        ]
+      }
+    },
+    {
+      "id": "G4",
+      "name": "Data Integrity",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": ["pnpm drizzle-kit push", "pnpm seed"],
+        "manualChecklist": [
+          "Migrations apply cleanly in a fresh DB.",
+          "Seed is idempotent (running twice does not create duplicates).",
+          "Curated picks have required specs for shipped compatibility rules."
+        ]
+      }
+    },
+    {
+      "id": "G5",
+      "name": "Reliability & Failure UX",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": ["pnpm test:e2e"],
+        "manualChecklist": [
+          "Route-level error UI exists (no blank screens).",
+          "Empty states are intentional and actionable.",
+          "Network errors are surfaced without trapping navigation."
+        ]
+      }
+    },
+    {
+      "id": "G6",
+      "name": "Abuse Protection",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": ["pnpm verify:gates"],
+        "manualChecklist": [
+          "Rate limiting exists for /api/trpc, /go/*, and share/build endpoints.",
+          "Abuse returns 429 and does not blow up DB.",
+          "Limits are documented."
+        ]
+      }
+    },
+    {
+      "id": "G7",
+      "name": "Observability",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": ["pnpm verify:gates"],
+        "manualChecklist": [
+          "Structured logs include request IDs for key routes.",
+          "Error reporting captures server and client exceptions.",
+          "Cron/offers refresh failures are visible."
+        ]
+      }
+    },
+    {
+      "id": "G8",
+      "name": "Performance",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": ["pnpm build"],
+        "manualChecklist": [
+          "Home and builder LCP are acceptable on mobile profiles (target < 2.5s).",
+          "Plants/products scrolling stays smooth.",
+          "No obvious client bundle regressions."
+        ]
+      }
+    },
+    {
+      "id": "G9",
+      "name": "Trust & Compliance",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": [],
+        "manualChecklist": [
+          "Affiliate disclosure is present near purchase links and in footer.",
+          "Privacy page matches actual data collection.",
+          "Cookie consent is honored; optional analytics off by default.",
+          "No internal jargon appears on customer-facing pages."
+        ]
+      }
+    },
+    {
+      "id": "G10",
+      "name": "SEO Basics",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": [],
+        "manualChecklist": [
+          "/sitemap.xml returns 200 and contains core routes.",
+          "/robots.txt allows indexing and references sitemap.",
+          "Canonical metadata and OG image render on core pages."
+        ]
+      }
+    },
+    {
+      "id": "G11",
+      "name": "Support & Escalation",
+      "status": "unknown",
+      "lastVerifiedAt": null,
+      "notes": "",
+      "verification": {
+        "commands": [],
+        "manualChecklist": [
+          "A real contact path exists (contact page + email).",
+          "Users can report bad data; admin can triage and resolve.",
+          "Basic runbook exists for broken links/prices/data."
+        ]
+      }
+    }
+  ]
+}
+
