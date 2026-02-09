@@ -1,6 +1,6 @@
 # AUTOPILOT - PlantedTankLab (Single Source Of Truth)
 
-Last updated: 2026-02-08
+Last updated: 2026-02-09
 
 This file is the single source of truth for: current status, what's next, and how to resume.
 
@@ -9,7 +9,7 @@ If anything disagrees with chat history or archived docs, **this file wins**.
 ## Current Milestone (14-day v1 plan)
 
 - Milestone: A (Days 1-3) - Safe To Be Public
-- Day: 1
+- Day: 2
 - Current objective: baseline reliability + security + observability so we can safely invite users.
 
 ## Launch Gates (G0-G11)
@@ -26,20 +26,21 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Baseline security headers added (HSTS in prod + nosniff/referrer/permissions/x-frame-options). (`aa7f24a`)
 - Rate limiting added for `/api/trpc/*` and `/go/*` via `src/proxy.ts` (ADR 0001). (`0400772`)
 - Request IDs + structured server logs added for `/api/trpc/*` and `/go/*`. (`ed8e558`)
+- Sentry error reporting wired (server + client + instrumentation hooks). (`621d635`)
 
 ## Next 3 Tasks (do these in order)
 
-1. A-05 (P0) Error reporting + alerting.
-   Entry points: vendor SDK wiring + server/client capture hooks, plus ADR.
-2. B-01 (P0) Required-specs contracts + missing-data UX for compatibility rules.
+1. B-01 (P0) Required-specs contracts + missing-data UX for compatibility rules.
    Entry points: `src/engine/evaluate.ts`, `src/engine/types.ts`, `src/components/builder/BuilderPage.tsx`, plus unit tests in `tests/engine/*`.
-3. B-02 (P0) Admin categories CRUD + reorder.
+2. B-02 (P0) Admin categories CRUD + reorder.
    Entry points: `src/app/admin/*` and tRPC admin routers for categories.
+3. B-03 (P0) CSV exports (products, plants, offers).
+   Entry points: `src/server/services/admin/*`, `src/app/admin/*`, plus unit tests for CSV formatting.
 
 ## Known Risks / Blockers
 
 - Rate limiting is best-effort in-memory. If traffic warrants, migrate to Redis/KV (see `decisions/0001-rate-limiting-store.md`).
-- Error reporting vendor choice (Sentry vs Vercel only) is undecided; requires an ADR before wiring alerts.
+- Sentry is wired in code but requires `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` in Vercel and basic alert rules configured in Sentry UI (manual gate check).
 - Data completeness can silently undermine trust; must fail closed for curated picks and surface missing-data states.
 
 ## How To Resume (target: <2 minutes)

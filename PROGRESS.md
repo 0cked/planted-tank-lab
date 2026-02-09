@@ -44,3 +44,9 @@ Each work session must add a new dated entry that includes:
 - Work: Added request IDs and structured server logs for `/api/trpc/*` and `/go/*` (`ed8e558`).
 - Verified: `pnpm verify` passed.
 - Next: A-05, B-01 (see `TODO.md`).
+
+## 2026-02-09 20:05
+
+- Work: Wired Sentry error reporting for server + client (Next instrumentation hooks + route/global error boundaries) and added ADR 0002 (`621d635`).
+- Verified: `pnpm verify` passed (lint + typecheck + unit + e2e + build).
+- Next: B-01, B-02, B-03 (see `TODO.md`).

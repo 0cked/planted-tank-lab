@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdatedAt": "2026-02-08",
+  "lastUpdatedAt": "2026-02-09",
   "gates": [
     {
       "id": "G0",
@@ -111,8 +111,8 @@
       "id": "G7",
       "name": "Observability",
       "status": "unknown",
-      "lastVerifiedAt": null,
-      "notes": "",
+      "lastVerifiedAt": "2026-02-09",
+      "notes": "Structured logs + request IDs wired (A-04). Sentry error reporting wired (A-05), pending DSN + manual verification in production.",
       "verification": {
         "commands": ["pnpm verify:gates"],
         "manualChecklist": [

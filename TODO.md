@@ -6,6 +6,6 @@ Do not add tasks here unless they already exist in `PLAN_EXEC.md`.
 
 ## Ready Now (work top to bottom)
 
-1. A-05 Error reporting + alerting.
-2. B-01 Compatibility rules required-specs contracts + missing-data UX.
-3. B-02 Admin categories CRUD + reorder.
+1. B-01 Compatibility rules required-specs contracts + missing-data UX.
+2. B-02 Admin categories CRUD + reorder.
+3. B-03 CSV exports (products, plants, offers).

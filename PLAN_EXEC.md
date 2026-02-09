@@ -74,7 +74,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual: hit key routes and inspect logs (Vercel + local).
   Dependencies: A-02
 
-- [ ] A-05 (P0) Error reporting + alerting.
+- [x] A-05 (P0) Error reporting + alerting.
   Gates: G7
   Acceptance: production captures server and client exceptions with route context; alerting enabled for spikes; PII scrubbed.
   Verify: manual: trigger a controlled error and confirm capture.
