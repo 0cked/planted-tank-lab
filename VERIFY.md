@@ -30,6 +30,17 @@ Prints G0-G11 pass/fail/unknown from `config/gates.json` plus verification guida
 
 ## Manual QA Checklist (minimum)
 
+### Plant Content Baseline (C-02)
+
+For the current “top 30” plants in `data/plants.json`:
+- Each plant has **description** (at least 1–2 sentences).
+- Each plant has at least **one source/citation** (`sources[0]` present).
+- Each plant has an **image_url** (remote URL or public path under `/public`).
+- Sanity-check a handful in the UI:
+  - `/plants` renders, images load.
+  - Click through 5–10 plant detail pages; confirm sources render and no broken layouts.
+
+
 - Home: loads fast, hero looks correct, nav works, no internal jargon.
 - Builder: complete a build; compatibility hides incompatible items; Share works; Buy links go through `/go/*`.
 - Products: category list works; product detail renders; offers show expected messaging when missing.

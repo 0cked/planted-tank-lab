@@ -6,5 +6,4 @@ Do not add tasks here unless they already exist in `PLAN_EXEC.md`.
 
 ## Ready Now (work top to bottom)
 
-1. C-02 Plant content baseline for top 30 plants.
-2. C-03 Builder completion UX + empty/offers-empty UX.
+1. C-03 Builder completion UX + empty/offers-empty UX.

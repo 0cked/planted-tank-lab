@@ -6,6 +6,10 @@ import { builds, categories, plants, products } from "@/server/db/schema";
 
 const BASE_URL = "https://plantedtanklab.com";
 
+// This route queries the DB; force it to be dynamic so `next build` does not
+// prerender it with many parallel workers (which can exhaust DB pooler clients).
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 

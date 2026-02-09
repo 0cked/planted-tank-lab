@@ -120,7 +120,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: `pnpm catalog:check`; manual spot-check.
   Dependencies: B-03
 
-- [ ] C-02 (P0) Plant content baseline for top 30 plants.
+- [x] C-02 (P0) Plant content baseline for top 30 plants.
   Gates: G9, G0
   Acceptance: top plants have description + key fields + at least 1 citation; images consistent.
   Verify: manual review checklist (in `VERIFY.md`).

@@ -86,3 +86,7 @@ Each work session must add a new dated entry that includes:
 - Work: Completed C-01 curated catalog completeness for core builder categories (tank/light/filter/substrate). Added `scripts/catalog-check.ts` + `pnpm catalog:check`; seeded placeholder `image_url` for curated core items and filled required substrate/filter spec keys for compatibility rules.
 - Verified: `pnpm catalog:check`; `pnpm verify`.
 - Next: C-02, C-03 (see `TODO.md`).
+
+- Work: Completed C-02 plant content baseline for the top 30 plants in `data/plants.json` by adding missing citations (`sources`) and filling missing `image_url` where absent.
+- Verified: spot-check list integrity (first 30 have sources + image_url); `pnpm verify`.
+- Next: C-03 (see `TODO.md`).

@@ -49,7 +49,11 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Narrow-leaf variety of Java fern; good for smaller scapes and detail work."
+    "description": "Narrow-leaf variety of Java fern; good for smaller scapes and detail work.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Leptochilus_pteropus"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Microsorum_pteropus.jpg/330px-Microsorum_pteropus.jpg"
   },
   {
     "common_name": "Java Fern 'Windelov'",
@@ -73,7 +77,11 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Decorative Java fern variant with forked leaf tips."
+    "description": "Decorative Java fern variant with forked leaf tips.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Leptochilus_pteropus"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Microsorum_pteropus.jpg/330px-Microsorum_pteropus.jpg"
   },
   {
     "common_name": "African Water Fern",
@@ -97,9 +105,12 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Fern-like epiphyte that prefers stable, soft water and good flow."
+    "description": "Fern-like epiphyte that prefers stable, soft water and good flow.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Bolbitis_heudelotii"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Kongo_Wasserfarn.jpg/330px-Kongo_Wasserfarn.jpg"
   },
-
   {
     "common_name": "Anubias Nana",
     "scientific_name": "Anubias barteri var. nana",
@@ -150,7 +161,11 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Larger anubias with broad leaves; slow and algae-resistant in low light."
+    "description": "Larger anubias with broad leaves; slow and algae-resistant in low light.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Anubias_barteri"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Anubias_barteri_var_glabra.jpg/330px-Anubias_barteri_var_glabra.jpg"
   },
   {
     "common_name": "Anubias 'Petite'",
@@ -174,7 +189,11 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Very small anubias variant ideal for nano tanks and detailed hardscape."
+    "description": "Very small anubias variant ideal for nano tanks and detailed hardscape.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Anubias_barteri"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Anubias_barteri_var_glabra.jpg/330px-Anubias_barteri_var_glabra.jpg"
   },
   {
     "common_name": "Anubias 'Coffeefolia'",
@@ -198,9 +217,12 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Textured anubias variety with ruffled leaves and slow growth."
+    "description": "Textured anubias variety with ruffled leaves and slow growth.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Anubias_barteri"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Anubias_barteri_var_glabra.jpg/330px-Anubias_barteri_var_glabra.jpg"
   },
-
   {
     "common_name": "Java Moss",
     "scientific_name": "Taxiphyllum barbieri",
@@ -251,7 +273,11 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Moss with triangular fronds that resemble Christmas tree branches."
+    "description": "Moss with triangular fronds that resemble Christmas tree branches.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Vesicularia_montagnei"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Christmas_moss_and_riccia_%2814441185564%29.jpg/330px-Christmas_moss_and_riccia_%2814441185564%29.jpg"
   },
   {
     "common_name": "Flame Moss",
@@ -275,7 +301,11 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Upright-growing moss with a flame-like shape in good conditions."
+    "description": "Upright-growing moss with a flame-like shape in good conditions.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Taxiphyllum"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Taxiphyllum_wissgrillii_%28b%2C_144820-480959%29_8472.JPG/330px-Taxiphyllum_wissgrillii_%28b%2C_144820-480959%29_8472.JPG"
   },
   {
     "common_name": "Weeping Moss",
@@ -299,9 +329,12 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Moss that grows downward in a weeping pattern when attached to wood or stone."
+    "description": "Moss that grows downward in a weeping pattern when attached to wood or stone.",
+    "image_url": "/images/aquascape-hero-2400.jpg",
+    "sources": [
+      "https://www.aquariumcoop.com/blogs/aquarium/weeping-moss"
+    ]
   },
-
   {
     "common_name": "Bucephalandra 'Green Wavy'",
     "scientific_name": "Bucephalandra sp.",
@@ -324,7 +357,11 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Slow-growing premium epiphyte with wavy green leaves. Benefits from stable conditions and good flow."
+    "description": "Slow-growing premium epiphyte with wavy green leaves. Benefits from stable conditions and good flow.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Bucephalandra"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Bucephalandra_botanical_drawing.png/330px-Bucephalandra_botanical_drawing.png"
   },
   {
     "common_name": "Bucephalandra 'Kedagang'",
@@ -348,7 +385,11 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Compact buce variety with narrow leaves."
+    "description": "Compact buce variety with narrow leaves.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Bucephalandra"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Bucephalandra_botanical_drawing.png/330px-Bucephalandra_botanical_drawing.png"
   },
   {
     "common_name": "Bucephalandra 'Brownie'",
@@ -372,9 +413,12 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Sensitive buce variety; prefers stability and clean water."
+    "description": "Sensitive buce variety; prefers stability and clean water.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Bucephalandra"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Bucephalandra_botanical_drawing.png/330px-Bucephalandra_botanical_drawing.png"
   },
-
   {
     "common_name": "Amazon Sword",
     "scientific_name": "Echinodorus grisebachii",
@@ -425,9 +469,12 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Smaller sword plant for midground placement; heavy root feeder."
+    "description": "Smaller sword plant for midground placement; heavy root feeder.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Echinodorus_grisebachii"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Echinodorus_bleheri.jpg"
   },
-
   {
     "common_name": "Cryptocoryne wendtii",
     "scientific_name": "Cryptocoryne wendtii",
@@ -478,7 +525,11 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Hardy crypt often used for midground; tolerates low light."
+    "description": "Hardy crypt often used for midground; tolerates low light.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Cryptocoryne_walkeri"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Cryptocoryne_walkeri.jpg/330px-Cryptocoryne_walkeri.jpg"
   },
   {
     "common_name": "Cryptocoryne parva",
@@ -502,7 +553,11 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Small crypt that stays short; growth is slow and improves with CO2."
+    "description": "Small crypt that stays short; growth is slow and improves with CO2.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Cryptocoryne_parva"
+    ],
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "common_name": "Cryptocoryne balansae",
@@ -526,9 +581,12 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Tall crypt with long, ribbon-like leaves; likes stable conditions and root nutrition."
+    "description": "Tall crypt with long, ribbon-like leaves; likes stable conditions and root nutrition.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Cryptocoryne"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Cryptocoryne_wendtii_Green.jpg/330px-Cryptocoryne_wendtii_Green.jpg"
   },
-
   {
     "common_name": "Dwarf Sagittaria",
     "scientific_name": "Sagittaria subulata",
@@ -579,7 +637,11 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Foreground runner plant that can form a short lawn under decent light."
+    "description": "Foreground runner plant that can form a short lawn under decent light.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Helanthium_tenellum"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Echinodorus_tenellus_BB-1913.jpg/330px-Echinodorus_tenellus_BB-1913.jpg"
   },
   {
     "common_name": "Staurogyne repens",
@@ -637,7 +699,6 @@
     ],
     "description": "Textured rosette-like plant; needs strong light and CO2 to stay compact."
   },
-
   {
     "common_name": "Monte Carlo",
     "scientific_name": "Micranthemum tweediei",
@@ -716,7 +777,11 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Shorter hairgrass variant; typically needs CO2 and strong light to carpet tightly."
+    "description": "Shorter hairgrass variant; typically needs CO2 and strong light to carpet tightly.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Eleocharis_acicularis"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Eleocharis_acicularis.jpeg/330px-Eleocharis_acicularis.jpeg"
   },
   {
     "common_name": "Marsilea hirsuta",
@@ -740,7 +805,11 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Creeping plant that can form a low carpet; may show clover-like leaves at first."
+    "description": "Creeping plant that can form a low carpet; may show clover-like leaves at first.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Marsilea_hirsuta"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Marsilea_hirsuta_kz01.jpg/330px-Marsilea_hirsuta_kz01.jpg"
   },
   {
     "common_name": "Glossostigma",
@@ -764,7 +833,11 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Classic high-tech carpeting plant; will grow upward without enough light."
+    "description": "Classic high-tech carpeting plant; will grow upward without enough light.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Glossostigma_elatinoides"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Glossostigma_elatinoides_flower.jpg/330px-Glossostigma_elatinoides_flower.jpg"
   },
   {
     "common_name": "HC Cuba",
@@ -822,7 +895,6 @@
     ],
     "description": "Fast creeping plant with clover-like leaves; can overtake scapes if not trimmed."
   },
-
   {
     "common_name": "Water Wisteria",
     "scientific_name": "Hygrophila difformis",
@@ -873,7 +945,11 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Extremely fast-growing stem plant; great for new tanks and algae control."
+    "description": "Extremely fast-growing stem plant; great for new tanks and algae control.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Hygrophila_polysperma"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Hygrophila_polysperma.JPG/330px-Hygrophila_polysperma.JPG"
   },
   {
     "common_name": "Limnophila sessiliflora",
@@ -897,7 +973,11 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Feathery fast-growing stem plant that responds well to trimming."
+    "description": "Feathery fast-growing stem plant that responds well to trimming.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Limnophila_sessiliflora"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Limnophila_sessiliflora.jpg/330px-Limnophila_sessiliflora.jpg"
   },
   {
     "common_name": "Bacopa caroliniana",
@@ -921,7 +1001,11 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Thick-stemmed plant with rounded leaves; slower than many stems but hardy."
+    "description": "Thick-stemmed plant with rounded leaves; slower than many stems but hardy.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Bacopa_caroliniana"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Bacopa_caroliniana_BotGardBln07122011D.JPG/330px-Bacopa_caroliniana_BotGardBln07122011D.JPG"
   },
   {
     "common_name": "Brazilian Pennywort",
@@ -947,7 +1031,6 @@
     "beginner_friendly": true,
     "description": "Fast grower that can be planted or floated; tolerates a wide range of conditions."
   },
-
   {
     "common_name": "Rotala rotundifolia",
     "scientific_name": "Rotala rotundifolia",
@@ -998,7 +1081,11 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "High-tech rotala variant that colors best under strong light and CO2."
+    "description": "High-tech rotala variant that colors best under strong light and CO2.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Rotala_rotundifolia"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Rotala_rotundifolia.jpg/330px-Rotala_rotundifolia.jpg"
   },
   {
     "common_name": "Rotala macrandra",
@@ -1024,7 +1111,6 @@
     "beginner_friendly": false,
     "description": "Demanding red stem plant; sensitive to CO2 stability and water hardness."
   },
-
   {
     "common_name": "Ludwigia repens",
     "scientific_name": "Ludwigia repens",
@@ -1075,9 +1161,12 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Vibrant red stem plant; strong light helps maintain deep color."
+    "description": "Vibrant red stem plant; strong light helps maintain deep color.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Ludwigia_palustris"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Starr_070515-7067_Ludwigia_palustris.jpg/330px-Starr_070515-7067_Ludwigia_palustris.jpg"
   },
-
   {
     "common_name": "Alternanthera reineckii 'Mini'",
     "scientific_name": "Alternanthera reineckii",
@@ -1100,9 +1189,12 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Compact red stem plant that needs strong light and CO2 to stay low and dense."
+    "description": "Compact red stem plant that needs strong light and CO2 to stay low and dense.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Alternanthera_reineckii"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Alternanthera_reineckii.jpg"
   },
-
   {
     "common_name": "Vallisneria spiralis",
     "scientific_name": "Vallisneria spiralis",
@@ -1154,9 +1246,12 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Tall val for large tanks; can quickly fill in the background."
+    "description": "Tall val for large tanks; can quickly fill in the background.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Vallisneria_americana"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Vallisneria_americana-schmid01.jpg/330px-Vallisneria_americana-schmid01.jpg"
   },
-
   {
     "common_name": "Hornwort",
     "scientific_name": "Ceratophyllum demersum",
@@ -1213,7 +1308,6 @@
     ],
     "description": "Hardy oxygenating plant; grows quickly under moderate light."
   },
-
   {
     "common_name": "Pogostemon stellatus 'Octopus'",
     "scientific_name": "Pogostemon stellatus",
@@ -1236,7 +1330,11 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Fast-growing stem plant with thin leaves; easy and forgiving."
+    "description": "Fast-growing stem plant with thin leaves; easy and forgiving.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Pogostemon_stellatus"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/en/thumb/2/29/Pogostemon_stellatus_in_aquarium.jpeg/330px-Pogostemon_stellatus_in_aquarium.jpeg"
   },
   {
     "common_name": "Pogostemon erectus",
@@ -1262,7 +1360,6 @@
     "beginner_friendly": false,
     "description": "Fine, conifer-like stem plant with tight growth under strong light and CO2."
   },
-
   {
     "common_name": "Blyxa japonica",
     "scientific_name": "Blyxa japonica",
@@ -1285,9 +1382,12 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Grass-like rosette plant; strong light and CO2 help maintain compact form."
+    "description": "Grass-like rosette plant; strong light and CO2 help maintain compact form.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Blyxa_japonica"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Blyxa_japonica.png/330px-Blyxa_japonica.png"
   },
-
   {
     "common_name": "Marimo Moss Ball",
     "scientific_name": "Aegagropila linnaei",
@@ -1318,7 +1418,6 @@
     "native_region": "Cosmopolitan (freshwater lakes)",
     "notes": "Not really a plant: it is a ball of algae. Turn it periodically for even light and shape."
   },
-
   {
     "common_name": "Eriocaulon quinquangulare",
     "scientific_name": "Eriocaulon quinquangulare",
@@ -1365,9 +1464,12 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "High-demand stem plant that prefers soft, acidic water; sensitive to instability."
+    "description": "High-demand stem plant that prefers soft, acidic water; sensitive to instability.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Tonina_fluviatilis"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Tonina_fluviatilis_Aublet_1775_pl_330.jpg/330px-Tonina_fluviatilis_Aublet_1775_pl_330.jpg"
   },
-
   {
     "common_name": "Riccia fluitans",
     "scientific_name": "Riccia fluitans",
@@ -1390,9 +1492,12 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Floating liverwort often tied to mesh or stones to create a bright green carpet effect."
+    "description": "Floating liverwort often tied to mesh or stones to create a bright green carpet effect.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Riccia_fluitans"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/RicciaFluitans1.jpg/330px-RicciaFluitans1.jpg"
   },
-
   {
     "common_name": "Mini Pellia",
     "scientific_name": "Riccardia chamedryfolia",
@@ -1415,9 +1520,12 @@
     "substrate_type": "epiphyte",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Fine-textured epiphyte/liverwort that grows slowly; benefits from CO2 and clean water."
+    "description": "Fine-textured epiphyte/liverwort that grows slowly; benefits from CO2 and clean water.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Riccardia_chamedryfolia"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Riccardia_chamedryfolia.jpeg/330px-Riccardia_chamedryfolia.jpeg"
   },
-
   {
     "common_name": "Dwarf Water Lettuce",
     "scientific_name": "Pistia stratiotes",
@@ -1440,9 +1548,12 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Floating plant that reduces nitrates and shades the tank; may be messy in high flow."
+    "description": "Floating plant that reduces nitrates and shades the tank; may be messy in high flow.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Pistia"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Pistia_stratiotes0.jpg/330px-Pistia_stratiotes0.jpg"
   },
-
   {
     "common_name": "Amazon Frogbit",
     "scientific_name": "Limnobium laevigatum",
@@ -1465,9 +1576,12 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Floating plant with long roots; great nitrate sponge and fish/shrimp cover."
+    "description": "Floating plant with long roots; great nitrate sponge and fish/shrimp cover.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Hydrocharis_laevigata"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Limnobium_laevigatum.JPG/330px-Limnobium_laevigatum.JPG"
   },
-
   {
     "common_name": "Salvinia minima",
     "scientific_name": "Salvinia minima",
@@ -1490,9 +1604,12 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Small floating fern that spreads quickly; easy to remove by scooping."
+    "description": "Small floating fern that spreads quickly; easy to remove by scooping.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Salvinia_minima"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Starr_031108-3177_Salvinia_minima.jpg/330px-Starr_031108-3177_Salvinia_minima.jpg"
   },
-
   {
     "common_name": "Duckweed",
     "scientific_name": "Lemna minor",
@@ -1515,9 +1632,12 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": true,
-    "description": "Tiny floating plant that grows extremely fast; excellent nutrient export but hard to fully remove."
+    "description": "Tiny floating plant that grows extremely fast; excellent nutrient export but hard to fully remove.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Lemna_minor"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/Eendekroos_dicht_bijeen.JPG/330px-Eendekroos_dicht_bijeen.JPG"
   },
-
   {
     "common_name": "Hygrophila pinnatifida",
     "scientific_name": "Hygrophila pinnatifida",
@@ -1592,7 +1712,11 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Grass-like carpet plant that spreads slowly; CO2 improves density."
+    "description": "Grass-like carpet plant that spreads slowly; CO2 improves density.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Lilaeopsis_brasiliensis"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Lilaeopsis_brasiliensis_flower_%283%29.jpg/330px-Lilaeopsis_brasiliensis_flower_%283%29.jpg"
   },
   {
     "common_name": "Red Tiger Lotus",
@@ -1616,7 +1740,11 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Bulb plant with red leaves; can send floating leaves if allowed. Benefits from root nutrition."
+    "description": "Bulb plant with red leaves; can send floating leaves if allowed. Benefits from root nutrition.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Nymphaea_lotus"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Nymphaea_lotus_1.jpg/330px-Nymphaea_lotus_1.jpg"
   },
   {
     "common_name": "Limnophila aromatica",
@@ -1640,7 +1768,11 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Colorful stem plant with aromatic leaves; best in soft water with strong light and CO2."
+    "description": "Colorful stem plant with aromatic leaves; best in soft water with strong light and CO2.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Limnophila_aromatica"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Limnophila_aromatica_09.JPG/330px-Limnophila_aromatica_09.JPG"
   },
   {
     "common_name": "Rotala wallichii",
@@ -1736,7 +1868,11 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Delicate feathery stem plant; needs cleaner water and stronger light than many easy stems."
+    "description": "Delicate feathery stem plant; needs cleaner water and stronger light than many easy stems.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Cabomba_caroliniana"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/Cabomba_caroliniana_5447100.jpg/330px-Cabomba_caroliniana_5447100.jpg"
   },
   {
     "common_name": "Cryptocoryne undulata",
@@ -1760,7 +1896,10 @@
     "substrate_type": "root_feeder",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "Wavy-leaf crypt that tolerates low light; can melt when moved but often recovers."
+    "description": "Wavy-leaf crypt that tolerates low light; can melt when moved but often recovers.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Cryptocoryne_undulata"
+    ]
   },
   {
     "common_name": "Pogostemon stellatus",
@@ -1784,6 +1923,10 @@
     "substrate_type": "water_column",
     "shrimp_safe": true,
     "beginner_friendly": false,
-    "description": "High-tech stem plant with narrow leaves; needs strong light, CO2, and consistent nutrients for best color."
+    "description": "High-tech stem plant with narrow leaves; needs strong light, CO2, and consistent nutrients for best color.",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Pogostemon_stellatus"
+    ],
+    "image_url": "https://upload.wikimedia.org/wikipedia/en/thumb/2/29/Pogostemon_stellatus_in_aquarium.jpeg/330px-Pogostemon_stellatus_in_aquarium.jpeg"
   }
 ]

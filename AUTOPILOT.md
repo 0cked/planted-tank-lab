@@ -36,12 +36,12 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 
 ## Next 3 Tasks (do these in order)
 
-1. C-01 (P0) Curated catalog completeness pass (core flow).
-   Entry points: `scripts/*`, `src/app/admin/*`, `data/*`.
-2. C-02 (P0) Plant content baseline for top 30 plants.
-   Entry points: `data/*`, `scripts/*`, `src/app/admin/plants/*`.
-3. C-03 (P0) Builder completion UX + empty/offers-empty UX.
+1. C-03 (P0) Builder completion UX + empty/offers-empty UX.
    Entry points: `src/components/builder/*`, `src/app/builder/*`.
+2. D-01 (P0) Consent-respecting analytics/events (minimal).
+   Entry points: likely `src/app/*`, cookie banner/consent, and DB/event wiring.
+3. D-02 (P0) Report-a-problem intake + admin triage.
+   Entry points: `src/app/*`, `src/server/*`, `src/app/admin/*`.
 
 ## Known Risks / Blockers
 
