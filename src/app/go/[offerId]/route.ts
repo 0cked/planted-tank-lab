@@ -4,6 +4,7 @@ import { and, eq, gt } from "drizzle-orm";
 
 import { db } from "@/server/db";
 import { offerClicks, offers, retailers } from "@/server/db/schema";
+import { logEvent } from "@/server/log";
 import {
   buildAffiliateUrl,
   extractIpFromHeaders,
@@ -14,6 +15,14 @@ import {
 
 export const runtime = "nodejs";
 
+function newRequestId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
 function isUuid(v: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     v,
@@ -21,14 +30,15 @@ function isUuid(v: string): boolean {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ offerId: string }> },
 ) {
+  const requestId = req.headers.get("x-request-id")?.slice(0, 200) ?? newRequestId();
   const params = await ctx.params;
   const offerId = params.offerId;
 
   if (!isUuid(offerId)) {
-    return new NextResponse("Not found", { status: 404 });
+    return new NextResponse("Not found", { status: 404, headers: { "x-request-id": requestId } });
   }
 
   const rows = await db
@@ -42,7 +52,9 @@ export async function GET(
     .limit(1);
 
   const row = rows[0];
-  if (!row) return new NextResponse("Not found", { status: 404 });
+  if (!row) {
+    return new NextResponse("Not found", { status: 404, headers: { "x-request-id": requestId } });
+  }
 
   const destination = buildAffiliateUrl({
     retailerSlug: row.retailer.slug,
@@ -58,10 +70,10 @@ export async function GET(
   try {
     parsed = new URL(destination);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return new NextResponse("Bad destination", { status: 400 });
+      return new NextResponse("Bad destination", { status: 400, headers: { "x-request-id": requestId } });
     }
     if (parsed.username || parsed.password) {
-      return new NextResponse("Bad destination", { status: 400 });
+      return new NextResponse("Bad destination", { status: 400, headers: { "x-request-id": requestId } });
     }
     if (
       !isHostAllowed({
@@ -69,10 +81,10 @@ export async function GET(
         allowedHosts: (row.retailer as { allowedHosts?: unknown }).allowedHosts,
       })
     ) {
-      return new NextResponse("Bad destination", { status: 400 });
+      return new NextResponse("Bad destination", { status: 400, headers: { "x-request-id": requestId } });
     }
   } catch {
-    return new NextResponse("Bad destination", { status: 400 });
+    return new NextResponse("Bad destination", { status: 400, headers: { "x-request-id": requestId } });
   }
 
   const h = await headers();
@@ -115,5 +127,15 @@ export async function GET(
     }
   }
 
-  return NextResponse.redirect(parsed.toString(), { status: 302 });
+  logEvent("info", {
+    msg: "affiliate_redirect",
+    requestId,
+    route: "/go/[offerId]",
+    offerId: row.offer.id,
+    retailer: row.retailer.slug,
+  });
+
+  const res = NextResponse.redirect(parsed.toString(), { status: 302 });
+  res.headers.set("x-request-id", requestId);
+  return res;
 }

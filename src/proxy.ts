@@ -16,6 +16,14 @@ const limiter =
   globalForRateLimit.__ptlRateLimiter ??
   (globalForRateLimit.__ptlRateLimiter = createFixedWindowRateLimiter());
 
+function newRequestId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
 function firstIpFromXff(xff: string | null): string | null {
   if (!xff) return null;
   const first = xff.split(",")[0]?.trim();
@@ -38,11 +46,24 @@ function pickRule(pathname: string): Rule | null {
 
 export function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+  const requestId = req.headers.get("x-request-id")?.slice(0, 200) ?? newRequestId();
+
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-request-id", requestId);
+
   const rule = pickRule(pathname);
-  if (!rule) return NextResponse.next();
+  if (!rule) {
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
+    res.headers.set("x-request-id", requestId);
+    return res;
+  }
 
   const ip = getClientIp(req);
-  if (!ip) return NextResponse.next();
+  if (!ip) {
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
+    res.headers.set("x-request-id", requestId);
+    return res;
+  }
 
   const nowMs = Date.now();
   const decision = limiter.check(`${rule.id}:${ip}`, {
@@ -52,6 +73,7 @@ export function proxy(req: NextRequest) {
   });
 
   const rlHeaders = getRateLimitHeaders(decision, { nowMs });
+  rlHeaders["x-request-id"] = requestId;
 
   if (!decision.allowed) {
     // Keep the body short; clients should treat this as a retryable failure.
@@ -65,7 +87,7 @@ export function proxy(req: NextRequest) {
     return new NextResponse("Too many requests", { status: 429, headers });
   }
 
-  const res = NextResponse.next();
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
   for (const [k, v] of Object.entries(rlHeaders)) {
     res.headers.set(k, v);
   }
@@ -75,4 +97,3 @@ export function proxy(req: NextRequest) {
 export const config = {
   matcher: ["/go/:path*", "/api/trpc/:path*"],
 };
-
