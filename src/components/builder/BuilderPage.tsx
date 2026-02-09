@@ -264,18 +264,9 @@ function CategoryRowView(props: {
       </div>
 
       <div className="min-w-0">
-        {props.hasSelection ? (
-          <div className="truncate text-sm text-neutral-700">{props.selectionLabel}</div>
-        ) : (
-          <button
-            type="button"
-            onClick={props.onChoose}
-            className="text-left text-sm font-semibold text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-500"
-            title={`Choose a ${props.categoryName}`}
-          >
-            {`Choose a ${props.categoryName}`}
-          </button>
-        )}
+        <div className="truncate text-sm text-neutral-700">
+          {props.hasSelection ? props.selectionLabel : "Not selected"}
+        </div>
       </div>
 
       <div className="text-right">
@@ -1705,18 +1696,16 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
           <div className="flex shrink-0 flex-col gap-2 sm:items-end">
             {nextCoreStep ? (
               <>
-                <div className="text-xs font-medium text-neutral-600">
-                  Next recommended
-                </div>
+                <div className="text-xs font-medium text-neutral-600">Next</div>
                 <button
                   type="button"
                   onClick={() => openWorkflowStep(nextCoreStep.id)}
-                  className="ptl-btn-primary"
+                  className="text-sm font-semibold text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-500"
+                  title={`Jump to ${nextCoreStep.label}`}
                 >
-                  {isStepComplete(nextCoreStep, workflowState)
-                    ? `Review ${nextCoreStep.label}`
-                    : `Choose ${nextCoreStep.label}`}
+                  {nextCoreStep.label}
                 </button>
+                <div className="text-xs text-neutral-600">Use the row’s Choose button.</div>
               </>
             ) : (
               <>
