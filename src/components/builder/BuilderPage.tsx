@@ -593,9 +593,20 @@ function ProductPicker(props: {
     return rows.map((x) => x.snap).slice(0, 10);
   }, [props.categorySlug, props.currentSelection, props.mode, visibleItems]);
 
+  const pickerTitle = (() => {
+    const name = props.categoryName.trim();
+    // Handle simple plural category names like "Accessories".
+    if (name.toLowerCase().endsWith("s")) return `Choose ${name}`;
+
+    // Handle "a" vs "an" for singular names.
+    const first = name[0]?.toLowerCase() ?? "";
+    const article = ["a", "e", "i", "o", "u"].includes(first) ? "an" : "a";
+    return `Choose ${article} ${name}`;
+  })();
+
   return (
     <PickerDialog
-      title={`Choose a ${props.categoryName}`}
+      title={pickerTitle}
       description={
         hiddenCount > 0
           ? `${hiddenCount} option(s) hidden (incompatible or missing specs).`
