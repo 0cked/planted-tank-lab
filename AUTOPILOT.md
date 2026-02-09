@@ -36,12 +36,12 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 
 ## Next 3 Tasks (do these in order)
 
-1. C-03 (P0) Builder completion UX + empty/offers-empty UX.
-   Entry points: `src/components/builder/*`, `src/app/builder/*`.
-2. D-01 (P0) Consent-respecting analytics/events (minimal).
-   Entry points: likely `src/app/*`, cookie banner/consent, and DB/event wiring.
-3. D-02 (P0) Report-a-problem intake + admin triage.
-   Entry points: `src/app/*`, `src/server/*`, `src/app/admin/*`.
+1. C-04 (P0) Auth entrypoint is non-broken (Sign in doesn’t 404).
+   Entry points: top-nav auth CTA, auth routes (`src/app/*`), auth config (`src/server/auth.ts`).
+2. C-03 (P0) Builder completion UX + empty/offers-empty UX.
+   Entry points: `src/components/builder/*`, `src/app/builder/*`, product detail offers panels.
+3. C-05 (P1) Shared build snapshot page: nav state + CTA clarity.
+   Entry points: `/builds/:id` route, share/open-in-builder behavior.
 
 ## Known Risks / Blockers
 

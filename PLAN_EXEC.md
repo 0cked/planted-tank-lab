@@ -132,6 +132,22 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: `pnpm test:e2e`; manual build completion on mobile.
   Dependencies: C-01
 
+- [ ] C-04 (P0) Auth entrypoint is non-broken (Sign in doesn’t 404).
+  Gates: G0, G9
+  Acceptance: clicking the top-nav "Sign in" never lands on a 404. Either:
+    - implement the sign-in page/flow, OR
+    - hide/disable the CTA with a clear "Sign in coming soon" explanation.
+  Verify: manual: click "Sign in" from Home/Builder/Products/Plants/Builds; confirm non-404 recovery path.
+  Dependencies: A-01
+
+- [ ] C-05 (P1) Shared build snapshot page: nav state + CTA clarity.
+  Gates: G0
+  Acceptance:
+    - Top nav highlights the correct section when viewing `/builds/:id`.
+    - "Open in builder" consistently opens the builder (and preserves build state), and copy makes it clear what will happen.
+  Verify: manual: create a share link; open it in a fresh session; click Products/Plants/Builder in nav; ensure no confusing active-state.
+  Dependencies: C-03
+
 ## Milestone D (Days 11-14) - Launchable
 
 - [ ] D-01 (P0) Consent-respecting analytics/events (minimal).

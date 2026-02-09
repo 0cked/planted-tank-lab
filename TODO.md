@@ -6,4 +6,6 @@ Do not add tasks here unless they already exist in `PLAN_EXEC.md`.
 
 ## Ready Now (work top to bottom)
 
-1. C-03 Builder completion UX + empty/offers-empty UX.
+1. C-04 Auth entrypoint is non-broken (Sign in doesn’t 404).
+2. C-03 Builder completion UX + empty/offers-empty UX.
+3. C-05 Shared build snapshot page: nav state + CTA clarity.
