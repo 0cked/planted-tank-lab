@@ -25,6 +25,16 @@ export default function AdminHomePage() {
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link
+            href="/admin/categories"
+            className="rounded-2xl border bg-white/70 p-5 transition hover:bg-white/85"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
+            <div className="text-sm font-semibold text-neutral-900">Categories</div>
+            <div className="mt-1 text-sm text-neutral-700">
+              Builder ordering and required steps.
+            </div>
+          </Link>
+          <Link
             href="/admin/products"
             className="rounded-2xl border bg-white/70 p-5 transition hover:bg-white/85"
             style={{ borderColor: "var(--ptl-border)" }}

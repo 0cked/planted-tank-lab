@@ -28,22 +28,10 @@ export type BuilderWorkflowState = {
   lowTechNoCo2: boolean;
 };
 
-const CORE_ORDER: Array<{ slug: string; label?: string }> = [
-  { slug: "tank" },
-  { slug: "light" },
-  { slug: "filter" },
-  { slug: "co2", label: "CO2" },
-  { slug: "substrate" },
-];
-
-const EXTRAS_ORDER: string[] = [
-  "stand",
-  "hardscape",
-  "fertilizer",
-  "heater",
-  "test_kit",
-  "accessories",
-];
+// Core builder steps are a curated subset of categories. The order comes from
+// the DB `categories.display_order` (admin-controlled), but the grouping is a UX rule.
+const CORE_STEP_SLUGS = ["tank", "light", "filter", "co2", "substrate"] as const;
+const CORE_STEP_SET = new Set<string>(CORE_STEP_SLUGS);
 
 function labelForCategory(c: CategoryLike): string {
   if (c.slug === "co2") return "CO2";
@@ -53,19 +41,20 @@ function labelForCategory(c: CategoryLike): string {
 export function buildWorkflow(params: {
   categories: CategoryLike[];
 }): { core: BuilderWorkflowStep[]; extras: BuilderWorkflowStep[] } {
-  const bySlug = new Map(params.categories.map((c) => [c.slug, c]));
-
   const core: BuilderWorkflowStep[] = [];
-  for (const entry of CORE_ORDER) {
-    const c = bySlug.get(entry.slug);
-    if (!c) continue;
-    core.push({
+  const extras: BuilderWorkflowStep[] = [];
+
+  for (const c of params.categories) {
+    if (c.slug === "plants") continue;
+    const step: BuilderWorkflowStep = {
       kind: "product",
       id: c.slug,
       categorySlug: c.slug,
-      label: entry.label ?? labelForCategory(c),
+      label: labelForCategory(c),
       required: c.builderRequired,
-    });
+    };
+    if (CORE_STEP_SET.has(c.slug)) core.push(step);
+    else extras.push(step);
   }
 
   // Plants are a first-class step even though they're not a product picker.
@@ -75,37 +64,6 @@ export function buildWorkflow(params: {
     label: "Plants",
     required: false,
   });
-
-  const extras: BuilderWorkflowStep[] = [];
-  for (const slug of EXTRAS_ORDER) {
-    const c = bySlug.get(slug);
-    if (!c) continue;
-    extras.push({
-      kind: "product",
-      id: c.slug,
-      categorySlug: c.slug,
-      label: labelForCategory(c),
-      required: c.builderRequired,
-    });
-  }
-
-  // Any remaining categories (unknown/new) are treated as extras at the end.
-  const seen = new Set<string>([
-    ...core.filter((s) => s.kind === "product").map((s) => s.categorySlug),
-    ...extras.map((s) => (s.kind === "product" ? s.categorySlug : "")),
-    "plants",
-  ]);
-  for (const c of params.categories) {
-    if (c.slug === "plants") continue;
-    if (seen.has(c.slug)) continue;
-    extras.push({
-      kind: "product",
-      id: c.slug,
-      categorySlug: c.slug,
-      label: labelForCategory(c),
-      required: c.builderRequired,
-    });
-  }
 
   return { core, extras };
 }
@@ -135,4 +93,3 @@ export function coreProgress(
   for (const s of coreSteps) if (isStepComplete(s, state)) done += 1;
   return { done, total };
 }
-
