@@ -94,7 +94,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual via `/admin/categories`; `pnpm test:e2e` smoke (optional).
   Dependencies: A-01
 
-- [ ] B-03 (P0) CSV exports (products, plants, offers).
+- [x] B-03 (P0) CSV exports (products, plants, offers).
   Gates: G4, G7
   Acceptance: admin can export CSV; exports include stable IDs; exports are auditable.
   Verify: manual download; open in Sheets; unit test CSV formatting.
