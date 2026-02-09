@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { authOptions } from "@/server/auth";
 import { db } from "@/server/db";
 import { plants } from "@/server/db/schema";
+import { logAdminAction } from "@/server/services/admin-log";
 
 export const runtime = "nodejs";
 
@@ -42,7 +43,13 @@ export async function POST(req: Request) {
     .returning({ id: plants.id });
 
   const id = rows[0]?.id;
+  await logAdminAction({
+    actorUserId: session.user.id ?? null,
+    action: "plant.create",
+    targetType: "plant",
+    targetId: id ?? null,
+    meta: { slug },
+  });
   const u = new URL(`/admin/plants/${id}`, req.url);
   return NextResponse.redirect(u.toString(), { status: 303 });
 }
-

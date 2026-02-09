@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { authOptions } from "@/server/auth";
 import { db } from "@/server/db";
 import { products } from "@/server/db/schema";
+import { logAdminAction } from "@/server/services/admin-log";
 
 export const runtime = "nodejs";
 
@@ -128,8 +129,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     })
     .where(eq(products.id, id));
 
+  await logAdminAction({
+    actorUserId: session.user.id ?? null,
+    action: "product.upload_image",
+    targetType: "product",
+    targetId: id,
+    meta: { key, url: publicUrl, setPrimary },
+  });
+
   const u = new URL(`/admin/products/${id}`, req.url);
   u.searchParams.set("uploaded", "1");
   return NextResponse.redirect(u.toString(), { status: 303 });
 }
-

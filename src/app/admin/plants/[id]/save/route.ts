@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { authOptions } from "@/server/auth";
 import { db } from "@/server/db";
 import { plants } from "@/server/db/schema";
+import { logAdminAction } from "@/server/services/admin-log";
 
 export const runtime = "nodejs";
 
@@ -160,6 +161,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         updatedAt: new Date(),
       })
       .where(eq(plants.id, id));
+
+    await logAdminAction({
+      actorUserId: session.user.id ?? null,
+      action: "plant.update",
+      targetType: "plant",
+      targetId: id,
+      meta: { slug: safe.slug, commonName: safe.commonName, status: safe.status, verified },
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Save failed.";
     redirectBase.searchParams.set("error", msg.slice(0, 200));
