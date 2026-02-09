@@ -30,7 +30,7 @@ export default function OpenGraphImage() {
           PlantedTankLab
         </div>
         <div style={{ marginTop: 16, fontSize: 30, color: "#404040" }}>
-          PCPartPicker for planted aquariums
+          Compatibility-first planning for planted aquariums
         </div>
         <div style={{ marginTop: 40, fontSize: 20, color: "#525252" }}>
           Build, compare, and verify compatibility.

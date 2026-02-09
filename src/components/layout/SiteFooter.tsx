@@ -23,7 +23,7 @@ export function SiteFooter() {
               </div>
             </div>
             <p className="mt-3 max-w-md text-sm text-neutral-700">
-              PCPartPicker-style planning for planted aquariums: pick compatible gear,
+              Compatibility-first planning for planted aquariums: pick gear,
               choose plants that match your light and CO2, and share builds.
             </p>
             <p className="mt-4 text-xs text-neutral-600">

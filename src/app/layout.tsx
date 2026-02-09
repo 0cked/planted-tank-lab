@@ -30,10 +30,10 @@ export const metadata: Metadata = {
     default: "PlantedTankLab",
     template: "%s | PlantedTankLab",
   },
-  description: "PCPartPicker for planted aquariums.",
+  description: "Compatibility-first planning for planted aquariums.",
   openGraph: {
     title: "PlantedTankLab",
-    description: "PCPartPicker for planted aquariums.",
+    description: "Compatibility-first planning for planted aquariums.",
     url: "https://plantedtanklab.com",
     siteName: "PlantedTankLab",
     type: "website",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "PlantedTankLab",
-    description: "PCPartPicker for planted aquariums.",
+    description: "Compatibility-first planning for planted aquariums.",
   },
   icons: {
     icon: [
