@@ -82,6 +82,14 @@ export default function AdminHomePage() {
             <div className="text-sm font-semibold text-neutral-900">Logs</div>
             <div className="mt-1 text-sm text-neutral-700">Admin actions and audits.</div>
           </Link>
+          <Link
+            href="/admin/quality"
+            className="rounded-2xl border bg-white/70 p-5 transition hover:bg-white/85"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
+            <div className="text-sm font-semibold text-neutral-900">Data quality</div>
+            <div className="mt-1 text-sm text-neutral-700">Missing photos, offers, specs.</div>
+          </Link>
         </div>
 
         <div className="mt-8 text-xs text-neutral-600">
