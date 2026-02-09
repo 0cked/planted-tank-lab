@@ -181,7 +181,22 @@ export default async function ProductDetailPage(props: {
                 className="aspect-square w-full object-cover"
               />
             ) : (
-              <div className="ptl-image-ph aspect-square w-full" />
+              <div className="ptl-image-ph flex aspect-square w-full items-center justify-center">
+                <div className="px-6 text-center">
+                  <div className="text-sm font-semibold text-neutral-800">No photo yet</div>
+                  <div className="mt-1 text-xs text-neutral-600">
+                    We’re still filling in product photos. If this is a core pick, it’ll get one soon.
+                  </div>
+                  <div className="mt-3">
+                    <Link
+                      href={`/products/${p.category.slug}`}
+                      className="text-xs font-semibold text-[color:var(--ptl-accent)] hover:underline"
+                    >
+                      Browse more {p.category.name.toLowerCase()}
+                    </Link>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 

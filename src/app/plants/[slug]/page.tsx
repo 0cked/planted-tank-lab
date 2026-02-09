@@ -129,7 +129,19 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
                   className="object-cover"
                 />
               ) : (
-                <div className="ptl-image-ph h-full w-full" />
+                <div className="ptl-image-ph flex h-full w-full items-center justify-center">
+                  <div className="px-6 text-center">
+                    <div className="text-sm font-semibold text-neutral-800">No photo yet</div>
+                    <div className="mt-1 text-xs text-neutral-600">
+                      We’re still filling in the catalog. If you’ve got a solid reference photo, we’ll take it.
+                    </div>
+                    <div className="mt-3">
+                      <Link href="/plants" className="text-xs font-semibold text-[color:var(--ptl-accent)] hover:underline">
+                        Browse other plants
+                      </Link>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
             {p.imageUrl ? (
