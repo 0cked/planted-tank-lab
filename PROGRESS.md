@@ -50,3 +50,9 @@ Each work session must add a new dated entry that includes:
 - Work: Wired Sentry error reporting for server + client (Next instrumentation hooks + route/global error boundaries) and added ADR 0002 (`621d635`).
 - Verified: `pnpm verify` passed (lint + typecheck + unit + e2e + build).
 - Next: B-01, B-02, B-03 (see `TODO.md`).
+
+## 2026-02-09 20:55
+
+- Work: Completed B-01 required-specs contracts + missing-data UX. Added `src/engine/required-specs.ts`, surfaced "insufficient data" notes in the engine, and updated builder pickers to distinguish incompatible vs missing-data with a "Show hidden" toggle (`e50f638`).
+- Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
+- Next: B-02, B-03, B-04 (see `TODO.md`).

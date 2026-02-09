@@ -8,15 +8,15 @@ If anything disagrees with chat history or archived docs, **this file wins**.
 
 ## Current Milestone (14-day v1 plan)
 
-- Milestone: A (Days 1-3) - Safe To Be Public
-- Day: 2
-- Current objective: baseline reliability + security + observability so we can safely invite users.
+- Milestone: B (Days 4-7) - Trust & Ops
+- Day: 4
+- Current objective: tighten data integrity + admin ops so the builder feels trustworthy and maintainable.
 
 ## Launch Gates (G0-G11)
 
 Source: `config/gates.json` (run: `pnpm verify:gates`)
 
-- Current focus gates: G5 (Failure UX), G7 (Observability), G6 (Abuse Protection)
+- Current focus gates: G4 (Data Integrity), G2 (Admin Access Control), G9 (Trust & Compliance)
 
 ## What Changed Last
 
@@ -27,21 +27,22 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Rate limiting added for `/api/trpc/*` and `/go/*` via `src/proxy.ts` (ADR 0001). (`0400772`)
 - Request IDs + structured server logs added for `/api/trpc/*` and `/go/*`. (`ed8e558`)
 - Sentry error reporting wired (server + client + instrumentation hooks). (`621d635`)
+- Required-specs contracts + missing-data UX added (engine emits insufficient-data notes; curated mode fails closed; picker UI distinguishes incompatible vs missing data). (`e50f638`)
 
 ## Next 3 Tasks (do these in order)
 
-1. B-01 (P0) Required-specs contracts + missing-data UX for compatibility rules.
-   Entry points: `src/engine/evaluate.ts`, `src/engine/types.ts`, `src/components/builder/BuilderPage.tsx`, plus unit tests in `tests/engine/*`.
-2. B-02 (P0) Admin categories CRUD + reorder.
+1. B-02 (P0) Admin categories CRUD + reorder.
    Entry points: `src/app/admin/*` and tRPC admin routers for categories.
-3. B-03 (P0) CSV exports (products, plants, offers).
+2. B-03 (P0) CSV exports (products, plants, offers).
    Entry points: `src/server/services/admin/*`, `src/app/admin/*`, plus unit tests for CSV formatting.
+3. B-04 (P1) Expand audit logging coverage.
+   Entry points: `src/server/services/admin/*`, `src/server/db/schema.ts`, `src/app/admin/logs`.
 
 ## Known Risks / Blockers
 
 - Rate limiting is best-effort in-memory. If traffic warrants, migrate to Redis/KV (see `decisions/0001-rate-limiting-store.md`).
 - Sentry is wired in code but requires `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` in Vercel and basic alert rules configured in Sentry UI (manual gate check).
-- Data completeness can silently undermine trust; must fail closed for curated picks and surface missing-data states.
+- Required-specs gating is now enforced; next risk is filling missing specs/images/offers so curated picks remain usable.
 
 ## How To Resume (target: <2 minutes)
 

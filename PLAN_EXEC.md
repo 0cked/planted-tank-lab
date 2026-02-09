@@ -82,7 +82,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
 
 ## Milestone B (Days 4-7) - Trust & Ops
 
-- [ ] B-01 (P0) Compatibility rules "required specs" contracts + missing-data UX.
+- [x] B-01 (P0) Compatibility rules "required specs" contracts + missing-data UX.
   Gates: G4, G9
   Acceptance: each shipped rule declares required spec keys; engine emits "insufficient data" when missing; curated mode fails closed.
   Verify: `pnpm test`; add unit tests for at least 3 missing-data scenarios.
