@@ -56,3 +56,9 @@ Each work session must add a new dated entry that includes:
 - Work: Completed B-01 required-specs contracts + missing-data UX. Added `src/engine/required-specs.ts`, surfaced "insufficient data" notes in the engine, and updated builder pickers to distinguish incompatible vs missing-data with a "Show hidden" toggle (`e50f638`).
 - Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
 - Next: B-02, B-03, B-04 (see `TODO.md`).
+
+## 2026-02-09 21:25
+
+- Work: Completed B-02 admin categories CRUD + reorder at `/admin/categories` (create, edit, move up/down) and wired builder stepper ordering to follow `categories.display_order` for core/extras grouping (`c27e483`).
+- Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
+- Next: B-03, B-04, B-05 (see `TODO.md`).

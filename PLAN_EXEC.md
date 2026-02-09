@@ -88,7 +88,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: `pnpm test`; add unit tests for at least 3 missing-data scenarios.
   Dependencies: none
 
-- [ ] B-02 (P0) Admin categories CRUD + reorder.
+- [x] B-02 (P0) Admin categories CRUD + reorder.
   Gates: G4
   Acceptance: admin can edit and reorder categories; builder step order reflects `display_order`/workflow rules.
   Verify: manual via `/admin/categories`; `pnpm test:e2e` smoke (optional).

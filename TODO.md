@@ -6,6 +6,6 @@ Do not add tasks here unless they already exist in `PLAN_EXEC.md`.
 
 ## Ready Now (work top to bottom)
 
-1. B-02 Admin categories CRUD + reorder.
-2. B-03 CSV exports (products, plants, offers).
-3. B-04 Expand audit logging coverage.
+1. B-03 CSV exports (products, plants, offers).
+2. B-04 Expand audit logging coverage.
+3. B-05 Data quality dashboard (missing images/offers/specs).
