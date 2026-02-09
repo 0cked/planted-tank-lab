@@ -55,9 +55,14 @@ export default async function AdminProductsPage(props: {
               Edit specs, images, and status. Changes affect compatibility and search.
             </p>
           </div>
-          <Link href="/admin" className="ptl-btn-secondary">
-            Back to admin
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href="/admin/exports/products" className="ptl-btn-secondary">
+              Export CSV
+            </a>
+            <Link href="/admin" className="ptl-btn-secondary">
+              Back to admin
+            </Link>
+          </div>
         </div>
 
         <form className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

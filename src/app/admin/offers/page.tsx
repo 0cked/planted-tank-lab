@@ -93,6 +93,9 @@ export default async function AdminOffersPage(props: {
             <Link href="/admin/offers/retailers" className="ptl-btn-secondary">
               Edit retailers
             </Link>
+            <a href="/admin/exports/offers" className="ptl-btn-secondary">
+              Export CSV
+            </a>
             <form method="post" action="/admin/offers/refresh">
               <input type="hidden" name="olderThanDays" value="0" />
               <input type="hidden" name="limit" value="30" />

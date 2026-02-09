@@ -66,6 +66,9 @@ export default async function AdminPlantsPage(props: {
             <Link href="/admin" className="ptl-btn-secondary">
               Back to admin
             </Link>
+            <a href="/admin/exports/plants" className="ptl-btn-secondary">
+              Export CSV
+            </a>
             <form method="post" action="/admin/plants/new">
               <button type="submit" className="ptl-btn-primary">
                 New plant
