@@ -68,7 +68,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: `pnpm verify:gates`; manual: run a quick loop with `curl` and observe 429s.
   Dependencies: OPS-05
 
-- [ ] A-04 (P0) Structured server logging + request IDs.
+- [x] A-04 (P0) Structured server logging + request IDs.
   Gates: G7
   Acceptance: server logs include request ID and route; errors include request ID; no PII in logs by default.
   Verify: manual: hit key routes and inspect logs (Vercel + local).

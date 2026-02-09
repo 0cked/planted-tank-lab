@@ -38,3 +38,9 @@ Each work session must add a new dated entry that includes:
 - Work: Verified rate limiting in production and marked Gate G6 as PASS in `config/gates.json`.
 - Verified: `pnpm verify:gates` prints G6 as PASS.
 - Next: A-04, A-05 (see `TODO.md`).
+
+## 2026-02-08 19:40
+
+- Work: Added request IDs and structured server logs for `/api/trpc/*` and `/go/*` (`ed8e558`).
+- Verified: `pnpm verify` passed.
+- Next: A-05, B-01 (see `TODO.md`).

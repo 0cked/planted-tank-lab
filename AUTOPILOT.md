@@ -25,15 +25,16 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Typecheck stabilized with `next typegen` for typed routes. (`ae3f8ea`)
 - Baseline security headers added (HSTS in prod + nosniff/referrer/permissions/x-frame-options). (`aa7f24a`)
 - Rate limiting added for `/api/trpc/*` and `/go/*` via `src/proxy.ts` (ADR 0001). (`0400772`)
+- Request IDs + structured server logs added for `/api/trpc/*` and `/go/*`. (`ed8e558`)
 
 ## Next 3 Tasks (do these in order)
 
-1. A-04 (P0) Structured server logging + request IDs.
-   Entry points: `src/app/api/trpc/[trpc]/route.ts`, `src/app/go/[offerId]/route.ts`, plus shared logger helper.
-2. A-05 (P0) Error reporting + alerting.
+1. A-05 (P0) Error reporting + alerting.
    Entry points: vendor SDK wiring + server/client capture hooks, plus ADR.
-3. B-01 (P0) Required-specs contracts + missing-data UX for compatibility rules.
+2. B-01 (P0) Required-specs contracts + missing-data UX for compatibility rules.
    Entry points: `src/engine/evaluate.ts`, `src/engine/types.ts`, `src/components/builder/BuilderPage.tsx`, plus unit tests in `tests/engine/*`.
+3. B-02 (P0) Admin categories CRUD + reorder.
+   Entry points: `src/app/admin/*` and tRPC admin routers for categories.
 
 ## Known Risks / Blockers
 
