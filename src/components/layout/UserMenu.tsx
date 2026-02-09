@@ -1,7 +1,7 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 
 export function UserMenu() {
@@ -22,15 +22,16 @@ export function UserMenu() {
   }
 
   if (!data?.user) {
+    // Keep the top-nav CTA stable and non-broken even when auth providers are not configured.
+    // NextAuth is configured to use a custom sign-in page at `/login`.
     return (
-      <button
-        type="button"
-        onClick={() => void signIn()}
+      <Link
+        href="/login"
         className="rounded-full border bg-white/60 px-3 py-1.5 text-sm font-semibold text-neutral-800 transition hover:bg-white/80"
         style={{ borderColor: "var(--ptl-border)" }}
       >
         Sign in / Sign up
-      </button>
+      </Link>
     );
   }
 
