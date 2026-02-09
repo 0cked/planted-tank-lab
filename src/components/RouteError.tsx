@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 type Action = {
   href: string;
@@ -22,8 +23,22 @@ export function RouteError(props: {
     "Try again. If this keeps happening, it's probably a bug on our side.";
 
   useEffect(() => {
-    // Avoid noisy logs in production; surface errors via a proper reporter (P7).
-    if (process.env.NODE_ENV !== "production") {
+    const dsn = (process.env.NEXT_PUBLIC_SENTRY_DSN ?? "").trim();
+
+    if (dsn) {
+      try {
+        const route =
+          typeof window !== "undefined" ? window.location.pathname : undefined;
+        Sentry.withScope((scope) => {
+          scope.setTag("error_boundary", "route");
+          if (route) scope.setTag("route", route);
+          if (props.error?.digest) scope.setTag("digest", props.error.digest);
+          Sentry.captureException(props.error);
+        });
+      } catch {
+        // ignore
+      }
+    } else if (process.env.NODE_ENV !== "production") {
       console.error(props.error);
     }
   }, [props.error]);

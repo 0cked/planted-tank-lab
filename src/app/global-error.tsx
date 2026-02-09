@@ -2,11 +2,26 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 export default function GlobalError(props: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    // Avoid noisy logs in production; surface errors via a proper reporter (A-05).
-    if (process.env.NODE_ENV !== "production") {
+    const dsn = (process.env.NEXT_PUBLIC_SENTRY_DSN ?? "").trim();
+
+    if (dsn) {
+      try {
+        const route =
+          typeof window !== "undefined" ? window.location.pathname : undefined;
+        Sentry.withScope((scope) => {
+          scope.setTag("error_boundary", "global");
+          if (route) scope.setTag("route", route);
+          if (props.error?.digest) scope.setTag("digest", props.error.digest);
+          Sentry.captureException(props.error);
+        });
+      } catch {
+        // ignore
+      }
+    } else if (process.env.NODE_ENV !== "production") {
       console.error(props.error);
     }
   }, [props.error]);
