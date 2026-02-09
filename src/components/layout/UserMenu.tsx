@@ -29,7 +29,7 @@ export function UserMenu() {
         className="rounded-full border bg-white/60 px-3 py-1.5 text-sm font-semibold text-neutral-800 transition hover:bg-white/80"
         style={{ borderColor: "var(--ptl-border)" }}
       >
-        Sign in
+        Sign in / Sign up
       </button>
     );
   }

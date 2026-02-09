@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { LoginPanel } from "./LoginPanel";
 
 export const metadata: Metadata = {
-  title: "Login | PlantedTankLab",
-  description: "Sign in to save builds to your profile and sync across devices.",
+  title: "Sign in | PlantedTankLab",
+  description: "Sign in or create an account to save builds and sync across devices.",
 };
 
 function allowGoogle(): boolean {

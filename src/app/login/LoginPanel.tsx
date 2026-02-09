@@ -12,16 +12,17 @@ export function LoginPanel(props: { allowGoogle: boolean; allowEmail: boolean; a
 
   return (
     <div className="ptl-surface-strong p-7 sm:p-10">
-      <h1
-        className="ptl-page-title"
-      >
-        Sign in
-      </h1>
+      <h1 className="ptl-page-title">Sign in</h1>
       <p className="mt-3 ptl-lede text-neutral-700">
         {hasAnyProvider
-          ? "Sign in to save builds to your profile and sync across devices."
+          ? "Sign in or create an account to save builds and sync across devices."
           : "Sign in is temporarily unavailable right now. You can still build and share without an account."}
       </p>
+      {props.allowEmail ? (
+        <div className="mt-4 text-xs text-neutral-700">
+          New here? No problem — we’ll create your account automatically when you use a magic link.
+        </div>
+      ) : null}
 
       {!hasAnyProvider ? (
         <div className="mt-8 rounded-3xl border bg-white/70 p-5 text-sm text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
