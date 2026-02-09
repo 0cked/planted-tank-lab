@@ -95,9 +95,9 @@
     {
       "id": "G6",
       "name": "Abuse Protection",
-      "status": "unknown",
-      "lastVerifiedAt": null,
-      "notes": "",
+      "status": "pass",
+      "lastVerifiedAt": "2026-02-08",
+      "notes": "Best-effort in-memory rate limiting via src/proxy.ts (ADR 0001). 429 observed on /go/* and /api/trpc/* under loops.",
       "verification": {
         "commands": ["pnpm verify:gates"],
         "manualChecklist": [

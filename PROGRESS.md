@@ -32,3 +32,9 @@ Each work session must add a new dated entry that includes:
 - Work: Added best-effort rate limiting for `/api/trpc/*` and `/go/*` via `src/proxy.ts` (`0400772`). Added ADR `decisions/0001-rate-limiting-store.md`.
 - Verified: `pnpm verify` passed. Manual local loop returned 429s after exceeding the per-minute limit.
 - Next: A-04, A-05 (see `TODO.md`).
+
+## 2026-02-08 19:20
+
+- Work: Verified rate limiting in production and marked Gate G6 as PASS in `config/gates.json`.
+- Verified: `pnpm verify:gates` prints G6 as PASS.
+- Next: A-04, A-05 (see `TODO.md`).
