@@ -56,6 +56,12 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
    - `pnpm verify`
 3. Start work on the top unchecked item in `TODO.md`.
 
+## Admin Access (prod)
+
+- `/admin/*` intentionally returns **404** unless `session.user.role === "admin"` (see `src/app/admin/layout.tsx`).
+- Admins are bootstrapped by env: set Vercel `ADMIN_EMAILS` (Production) to a comma-separated list of allowed emails (see `src/server/auth.ts`).
+- After changing `ADMIN_EMAILS`, trigger a new deploy and sign out/in to refresh the JWT role.
+
 ## No-Conflicts Rule (strict)
 
 - Do not create new planning/checkpoint/roadmap files outside this system.

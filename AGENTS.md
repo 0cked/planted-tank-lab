@@ -88,6 +88,8 @@ The system has these CLIs pre-authenticated and ready to use:
 
 ## Platform Setup (Must Be Done First)
 
+This repo’s production infrastructure is already bootstrapped. The steps below are retained as a runbook for re-provisioning a new environment, but **do not re-run Cloudflare/Vercel setup** unless you intend to change production infrastructure.
+
 Before any application code is written, the full infrastructure must be bootstrapped. This is Milestone 0.
 
 ### Step 1: GitHub Repository

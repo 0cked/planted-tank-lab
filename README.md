@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+PlantedTankLab is “PCPartPicker for planted aquariums.” Build a planted tank setup by selecting compatible gear and plants, with instant compatibility feedback and price comparisons.
 
-## Getting Started
+## Start Here (Humans + Agents)
 
-First, run the development server:
+- **Single source of truth (status + next work):** `AUTOPILOT.md`
+- **Execution checklist (task IDs + acceptance criteria):** `PLAN_EXEC.md`
+- **Ready-now queue:** `TODO.md`
+- **Verification playbook:** `VERIFY.md`
+- **Append-only session log:** `PROGRESS.md`
+- **Launch gates dashboard:** `pnpm verify:gates` (reads `config/gates.json`)
+
+If anything conflicts with chat history or older docs, `AUTOPILOT.md` wins.
+
+## Quickstart (Local Dev)
+
+1) Install deps:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2) Configure env:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Copy `.env.example` to `.env.local` and fill values (never commit `.env.local`).
+- DB is Supabase Postgres (see `DATABASE_URL`).
+- Auth is NextAuth (Google + optional email magic links).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3) Apply schema + seed:
 
-## Learn More
+```bash
+pnpm drizzle-kit push
+pnpm seed
+```
 
-To learn more about Next.js, take a look at the following resources:
+4) Run:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Commands
 
-## Deploy on Vercel
+- `pnpm verify` lint + typecheck + unit + e2e smoke + build
+- `pnpm verify:gates` prints launch gates (G0–G11) pass/fail/unknown
+- `pnpm test` unit tests (Vitest)
+- `pnpm test:e2e` e2e smoke tests (Playwright)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Auth + Admin
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Login
+
+Login UI is at `/login`. Auth providers are enabled only if env vars are present:
+
+- Google SSO: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- Email magic links (optional): `EMAIL_SERVER`, `EMAIL_FROM` (SMTP via Nodemailer)
+
+Google OAuth redirect URIs must include:
+
+- `https://plantedtanklab.com/api/auth/callback/google`
+- `http://localhost:3000/api/auth/callback/google`
+
+### Admin Dashboard
+
+Admin routes live under `/admin` and intentionally return **404** for signed-out and non-admin users.
+
+To grant admin access, set `ADMIN_EMAILS` (comma-separated list) to include the exact email you sign in with, then sign out/in so the JWT role refreshes.
+
+## Key URLs
+
+- `/` home
+- `/builder` builder
+- `/products` and `/products/[category]` product browse
+- `/plants` and `/plants/[slug]` plant browse/detail
+- `/builds` community builds
+- `/admin` admin dashboard (admin-only)
