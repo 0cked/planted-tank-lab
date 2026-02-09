@@ -15,6 +15,9 @@ export type CompatibilityRule = {
 };
 
 export type Evaluation = {
+  // Optional discriminator for UI and filtering.
+  // When omitted, treat as "rule_triggered".
+  kind?: "rule_triggered" | "insufficient_data";
   ruleCode: string;
   severity: Severity;
   message: string;

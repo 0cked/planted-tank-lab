@@ -49,6 +49,27 @@ function plantExtraBoolean(plant: PlantSnapshot, key: string): boolean | null {
   return asBoolean(extra[key]);
 }
 
+function missingDataEval(rule: CompatibilityRule, missing: string[]): Evaluation[] {
+  const uniq = Array.from(new Set(missing)).filter((k) => Boolean(k));
+  if (uniq.length === 0) return [];
+  uniq.sort((a, b) => a.localeCompare(b));
+
+  const shown = uniq.slice(0, 3).join(", ");
+  const more = uniq.length > 3 ? ` +${uniq.length - 3} more` : "";
+
+  return [
+    {
+      kind: "insufficient_data",
+      ruleCode: rule.code,
+      severity: "completeness",
+      categoriesInvolved: rule.categoriesInvolved,
+      fixSuggestion:
+        "Try another option, or turn off Compatibility if you want to pick anyway.",
+      message: `We can't verify this yet (missing: ${shown}${more}).`,
+    },
+  ];
+}
+
 function evaluateTurnoverRange(
   rule: CompatibilityRule,
   snapshot: BuildSnapshot,
@@ -65,8 +86,12 @@ function evaluateTurnoverRange(
   if (!tankVolumeKey || !filterFlowKey || minTurnover == null || maxTurnover == null)
     return [];
 
+  const missing: string[] = [];
   const volume = asNumber(tank.specs[tankVolumeKey]);
   const flow = asNumber(filter.specs[filterFlowKey]);
+  if (volume == null || volume <= 0) missing.push(`tank.${tankVolumeKey}`);
+  if (flow == null) missing.push(`filter.${filterFlowKey}`);
+  if (missing.length > 0) return missingDataEval(rule, missing);
   if (volume == null || flow == null || volume <= 0) return [];
 
   const turnover = flow / volume;
@@ -97,8 +122,12 @@ function evaluatePlantLightDemandMinPar(
   const minParForHigh = asNumber(logic.min_par_for_high) ?? null;
   if (!parKey || minParForHigh == null) return [];
 
+  // Only evaluate once the rule can actually apply (a high-light plant is present).
+  const hasHigh = snapshot.plants.some((p) => p.lightDemand === "high");
+  if (!hasHigh) return [];
+
   const par = asNumber(light.specs[parKey]);
-  if (par == null) return [];
+  if (par == null) return missingDataEval(rule, [`light.${parKey}`]);
 
   const evals: Evaluation[] = [];
   for (const plant of snapshot.plants) {
@@ -165,6 +194,11 @@ function evaluateLightFitRange(
   const tankLen = asNumber(tank.specs[tankLengthKey]);
   const minLen = asNumber(light.specs[minKey]);
   const maxLen = asNumber(light.specs[maxKey]);
+  const missing: string[] = [];
+  if (tankLen == null) missing.push(`tank.${tankLengthKey}`);
+  if (minLen == null) missing.push(`light.${minKey}`);
+  if (maxLen == null) missing.push(`light.${maxKey}`);
+  if (missing.length > 0) return missingDataEval(rule, missing);
   if (tankLen == null || minLen == null || maxLen == null) return [];
 
   if (tankLen >= minLen && tankLen <= maxLen) return [];
@@ -190,12 +224,14 @@ function evaluateSubstrateBuffersPh(
 ): Evaluation[] {
   const substrate = snapshot.productsByCategory["substrate"];
   if (!substrate) return [];
+  if (snapshot.plants.length === 0) return [];
 
   const substrateKey = String(logic.substrate_key ?? "");
   const plantPhMinThreshold = asNumber(logic.plant_ph_min_threshold) ?? null;
   if (!substrateKey || plantPhMinThreshold == null) return [];
 
   const buffers = asBoolean(substrate.specs[substrateKey]);
+  if (buffers == null) return missingDataEval(rule, [`substrate.${substrateKey}`]);
   if (buffers !== true) return [];
 
   const evals: Evaluation[] = [];
@@ -234,8 +270,12 @@ function evaluateHeaterWattsPerGallon(
   if (!tankVolumeKey || !heaterWattageKey || minWpg == null || maxWpg == null)
     return [];
 
+  const missing: string[] = [];
   const volume = asNumber(tank.specs[tankVolumeKey]);
   const watts = asNumber(heater.specs[heaterWattageKey]);
+  if (volume == null || volume <= 0) missing.push(`tank.${tankVolumeKey}`);
+  if (watts == null) missing.push(`heater.${heaterWattageKey}`);
+  if (missing.length > 0) return missingDataEval(rule, missing);
   if (volume == null || watts == null || volume <= 0) return [];
 
   const wpg = watts / volume;
@@ -267,7 +307,7 @@ function evaluateShrimpCopperCheck(
   const copper = asNumber(fert.specs["copper_content"]);
   const shrimpSafe = asBoolean(fert.specs["shrimp_safe"]);
 
-  if (copper == null) return [];
+  if (copper == null) return missingDataEval(rule, ["fertilizer.copper_content"]);
   if (copper <= 0) return [];
   if (shrimpSafe === true) return [];
 
@@ -294,9 +334,11 @@ function evaluateCarpetNeedsLightAndCo2(
   const co2 = snapshot.productsByCategory["co2"];
   if (!light) return [];
 
+  const hasCarpet = snapshot.plants.some((p) => p.placement === carpetValue);
+  if (!hasCarpet) return [];
+
   const par = asNumber(light.specs["par_at_substrate"]);
-  // If no PAR is available, skip. (We can't confidently warn.)
-  if (par == null) return [];
+  if (par == null) return missingDataEval(rule, ["light.par_at_substrate"]);
 
   const hasCo2 = Boolean(co2);
   const evals: Evaluation[] = [];
@@ -333,6 +375,10 @@ function evaluateStandWeightCapacity(
 
   const weight = asNumber(tank.specs[tankWeightKey]);
   const capacity = asNumber(stand.specs[standCapacityKey]);
+  const missing: string[] = [];
+  if (weight == null) missing.push(`tank.${tankWeightKey}`);
+  if (capacity == null) missing.push(`stand.${standCapacityKey}`);
+  if (missing.length > 0) return missingDataEval(rule, missing);
   if (weight == null || capacity == null) return [];
 
   if (weight <= capacity) return [];
@@ -358,12 +404,14 @@ function evaluateHardscapeRaisesHardness(
 ): Evaluation[] {
   const hardscape = snapshot.productsByCategory["hardscape"];
   if (!hardscape) return [];
+  if (snapshot.plants.length === 0) return [];
 
   const hardscapeKey = String(logic.hardscape_key ?? "");
   const plantSoftKey = String(logic.plant_soft_water_key ?? "");
   if (!hardscapeKey || !plantSoftKey) return [];
 
   const raises = asBoolean(hardscape.specs[hardscapeKey]);
+  if (raises == null) return missingDataEval(rule, [`hardscape.${hardscapeKey}`]);
   if (raises !== true) return [];
 
   const evals: Evaluation[] = [];
@@ -399,7 +447,7 @@ function evaluatePlantingDensityMinSpecies(
   if (!tankVolumeKey || minTankVolume == null || minSpeciesCount == null) return [];
 
   const volume = asNumber(tank.specs[tankVolumeKey]);
-  if (volume == null) return [];
+  if (volume == null) return missingDataEval(rule, [`tank.${tankVolumeKey}`]);
 
   const plantCount = snapshot.plants.length;
   if (volume <= minTankVolume) return [];
@@ -466,10 +514,11 @@ function evaluateNanoTankFilterTypeWarning(
   if (!tankVolumeKey || maxTankVolume == null || !filterTypeKey || !filterTypeValue) return [];
 
   const volume = asNumber(tank.specs[tankVolumeKey]);
-  if (volume == null) return [];
+  if (volume == null) return missingDataEval(rule, [`tank.${tankVolumeKey}`]);
   if (volume > maxTankVolume) return [];
 
   const filterType = String(filter.specs[filterTypeKey] ?? "");
+  if (!filterType) return missingDataEval(rule, [`filter.${filterTypeKey}`]);
   if (filterType !== filterTypeValue) return [];
 
   return [
@@ -553,6 +602,7 @@ function evaluateActiveSubstrateHardWaterPlants(
   if (!substrateTypeKey || !activeValue || !plantHardKey) return [];
 
   const substrateType = String(substrate.specs[substrateTypeKey] ?? "");
+  if (!substrateType) return missingDataEval(rule, [`substrate.${substrateTypeKey}`]);
   if (substrateType !== activeValue) return [];
 
   const evals: Evaluation[] = [];
@@ -609,6 +659,7 @@ function evaluateInertSubstrateRootFeeders(
   if (!substrateTypeKey || !inertValue || !plantRootKey) return [];
 
   const substrateType = String(substrate.specs[substrateTypeKey] ?? "");
+  if (!substrateType) return missingDataEval(rule, [`substrate.${substrateTypeKey}`]);
   if (substrateType !== inertValue) return [];
 
   const evals: Evaluation[] = [];
@@ -641,8 +692,12 @@ function evaluateNanoTurnoverMax(
   const maxTurnover = asNumber(logic.max_turnover) ?? null;
   if (!tankVolumeKey || !filterFlowKey || maxTankVolume == null || maxTurnover == null) return [];
 
+  const missing: string[] = [];
   const volume = asNumber(tank.specs[tankVolumeKey]);
   const flow = asNumber(filter.specs[filterFlowKey]);
+  if (volume == null || volume <= 0) missing.push(`tank.${tankVolumeKey}`);
+  if (flow == null) missing.push(`filter.${filterFlowKey}`);
+  if (missing.length > 0) return missingDataEval(rule, missing);
   if (volume == null || flow == null || volume <= 0) return [];
   if (volume > maxTankVolume) return [];
 
@@ -677,7 +732,7 @@ function evaluateHighParWithoutCo2(
   if (!parKey || minPar == null) return [];
 
   const par = asNumber(light.specs[parKey]);
-  if (par == null) return [];
+  if (par == null) return missingDataEval(rule, [`light.${parKey}`]);
   if (par < minPar) return [];
 
   return [

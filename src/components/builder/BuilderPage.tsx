@@ -16,6 +16,7 @@ import {
   nextRecommendedCoreStep,
 } from "@/components/builder/builder-workflow";
 import { evaluateBuild } from "@/engine/evaluate";
+import { missingRequiredSpecs, requiredSpecsForCategory } from "@/engine/required-specs";
 import type {
   BuildFlags,
   BuildSnapshot,
@@ -388,6 +389,11 @@ function ProductPicker(props: {
     [props.rules],
   );
 
+  const requiredKeys = useMemo(
+    () => requiredSpecsForCategory(props.rules, props.categorySlug),
+    [props.categorySlug, props.rules],
+  );
+
   const filtered = useMemo(() => {
     const rows = q.data ?? [];
     const t = query.trim().toLowerCase();
@@ -400,6 +406,13 @@ function ProductPicker(props: {
   }, [q.data, query]);
 
   const { items, hiddenCount } = useMemo(() => {
+    type Item = {
+      row: ProductRow;
+      blocked: boolean;
+      blockedKind: "incompatible" | "missing_data" | null;
+      reasons: Array<{ message: string; fixSuggestion: string | null }>;
+    };
+
     // Optionally show only curated picks to reduce choice overload.
     const curated = props.curatedOnly
       ? filtered
@@ -422,19 +435,51 @@ function ProductPicker(props: {
 
     if (!props.compatibilityEnabled || blockingRules.length === 0) {
       return {
-        items: baseRows.map((row) => ({ row, blocked: false, reasons: [] })),
+        items: baseRows.map(
+          (row) =>
+            ({
+              row,
+              blocked: false,
+              blockedKind: null,
+              reasons: [],
+            }) satisfies Item,
+        ),
         hiddenCount: 0,
       };
     }
 
-    const out: Array<{
-      row: ProductRow;
-      blocked: boolean;
-      reasons: Array<{ message: string; fixSuggestion: string | null }>;
-    }> = [];
+    const out: Item[] = [];
 
     for (const r of baseRows) {
       const candidate = toProductSnapshot(props.categorySlug, r);
+
+      // Curated mode should "fail closed": only show items we have enough spec data to verify later.
+      if (props.curatedOnly && requiredKeys.length > 0) {
+        const missing = missingRequiredSpecs(candidate.specs, requiredKeys);
+        if (missing.length > 0) {
+          const uniq = Array.from(new Set(missing)).filter(Boolean).sort((a, b) => a.localeCompare(b));
+          const shown = uniq
+            .slice(0, 3)
+            .map((k) => `${props.categorySlug}.${k}`)
+            .join(", ");
+          const more = uniq.length > 3 ? ` +${uniq.length - 3} more` : "";
+
+          out.push({
+            row: r,
+            blocked: true,
+            blockedKind: "missing_data",
+            reasons: [
+              {
+                message: `We can't verify this yet (missing: ${shown}${more}).`,
+                fixSuggestion:
+                  "Try another option, or turn off Curated picks / Compatibility to pick anyway.",
+              },
+            ],
+          });
+          continue;
+        }
+      }
+
       const snapshotCandidate = buildSnapshot({
         productsByCategory: {
           ...props.currentProductsByCategory,
@@ -447,9 +492,17 @@ function ProductPicker(props: {
       const evals = evaluateBuild(blockingRules, snapshotCandidate);
       const relevant = evals.filter((e) => e.categoriesInvolved.includes(props.categorySlug));
       const blocks = relevant.length > 0;
+
+      const blockedKind: Item["blockedKind"] = !blocks
+        ? null
+        : relevant.some((e) => (e.kind ?? "rule_triggered") === "rule_triggered")
+          ? "incompatible"
+          : "missing_data";
+
       out.push({
         row: r,
         blocked: blocks,
+        blockedKind,
         reasons: relevant.slice(0, 2).map((e) => ({
           message: e.message,
           fixSuggestion: e.fixSuggestion ?? null,
@@ -468,6 +521,7 @@ function ProductPicker(props: {
     props.currentFlags,
     props.currentPlants,
     props.currentProductsByCategory,
+    requiredKeys,
   ]);
 
   const visibleItems = useMemo(() => items.filter((x) => !x.blocked), [items]);
@@ -540,7 +594,7 @@ function ProductPicker(props: {
       title={`Choose a ${props.categoryName}`}
       description={
         hiddenCount > 0
-          ? `${hiddenCount} option(s) hidden by compatibility.`
+          ? `${hiddenCount} option(s) hidden (incompatible or missing specs).`
           : "A limited catalog is available right now."
       }
       open={props.open}
@@ -562,7 +616,7 @@ function ProductPicker(props: {
               onChange={(e) => setShowIncompatible(e.target.checked)}
               className="h-4 w-4 rounded border-neutral-300"
             />
-            <span>Show incompatible</span>
+            <span>Show hidden options</span>
           </label>
         ) : null}
       </div>
@@ -627,7 +681,7 @@ function ProductPicker(props: {
           <div className="px-4 py-3 text-sm text-neutral-600">
             {filtered.length === 0
               ? "No products available for this category yet."
-              : "No compatible results. Turn off Compatibility to see all options."}
+              : "No visible results. Show hidden options, or turn off Compatibility to pick anyway."}
           </div>
         ) : (
           <ul className="divide-y divide-neutral-200">
@@ -667,9 +721,11 @@ function ProductPicker(props: {
                       <div className="truncate text-sm font-medium">{label}</div>
                       <div className="truncate text-xs text-neutral-600">
                         {x.blocked ? (
-                          <span className="font-semibold text-red-700">
-                            Incompatible:
-                          </span>
+                          x.blockedKind === "missing_data" ? (
+                            <span className="font-semibold text-amber-800">Cannot verify:</span>
+                          ) : (
+                            <span className="font-semibold text-red-700">Incompatible:</span>
+                          )
                         ) : null}{" "}
                         <span className="text-neutral-600">
                           {x.blocked
@@ -693,9 +749,11 @@ function ProductPicker(props: {
                     }}
                     disabled={x.blocked}
                     className={
-                      "shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 " +
+                      "shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 " +
                       (x.blocked
-                        ? "border-red-200 bg-red-50 text-red-900"
+                        ? x.blockedKind === "missing_data"
+                          ? "border-amber-200 bg-amber-50 text-amber-900"
+                          : "border-red-200 bg-red-50 text-red-900"
                         : "text-white hover:brightness-95")
                     }
                     style={
@@ -705,11 +763,17 @@ function ProductPicker(props: {
                     }
                     title={
                       x.blocked
-                        ? "This option is incompatible with your current selections. Turn off Compatibility to add it anyway."
+                        ? x.blockedKind === "missing_data"
+                          ? "We don't have enough specs to verify this option yet. Turn off Compatibility to pick it anyway."
+                          : "This option is incompatible with your current selections. Turn off Compatibility to pick it anyway."
                         : "Add"
                     }
                   >
-                    {x.blocked ? "Incompatible" : "Add"}
+                    {x.blocked
+                      ? x.blockedKind === "missing_data"
+                        ? "Cannot verify"
+                        : "Incompatible"
+                      : "Add"}
                   </button>
                 </li>
               );
@@ -753,18 +817,29 @@ function PlantPicker(props: {
   }, [q.data, query]);
 
   const { items, hiddenCount } = useMemo(() => {
+    type Item = {
+      row: PlantRow;
+      blocked: boolean;
+      blockedKind: "incompatible" | "missing_data" | null;
+      reasons: Array<{ message: string; fixSuggestion: string | null }>;
+    };
+
     if (!props.compatibilityEnabled || blockingRules.length === 0) {
       return {
-        items: filtered.map((row) => ({ row, blocked: false, reasons: [] })),
+        items: filtered.map(
+          (row) =>
+            ({
+              row,
+              blocked: false,
+              blockedKind: null,
+              reasons: [],
+            }) satisfies Item,
+        ),
         hiddenCount: 0,
       };
     }
 
-    const out: Array<{
-      row: PlantRow;
-      blocked: boolean;
-      reasons: Array<{ message: string; fixSuggestion: string | null }>;
-    }> = [];
+    const out: Item[] = [];
 
     for (const p of filtered) {
       // Explicit user decision: low-tech means "no CO2", so hide CO2-required plants.
@@ -773,6 +848,7 @@ function PlantPicker(props: {
         out.push({
           row: p,
           blocked: true,
+          blockedKind: "incompatible",
           reasons: [
             {
               message: `Plants like ${p.commonName} require CO2 injection to thrive.`,
@@ -793,9 +869,15 @@ function PlantPicker(props: {
       const evals = evaluateBuild(blockingRules, snapshotCandidate);
       const relevant = evals.filter((e) => e.categoriesInvolved.includes("plants"));
       const blocks = relevant.length > 0;
+      const blockedKind: Item["blockedKind"] = !blocks
+        ? null
+        : relevant.some((e) => (e.kind ?? "rule_triggered") === "rule_triggered")
+          ? "incompatible"
+          : "missing_data";
       out.push({
         row: p,
         blocked: blocks,
+        blockedKind,
         reasons: relevant.slice(0, 2).map((e) => ({
           message: e.message,
           fixSuggestion: e.fixSuggestion ?? null,
@@ -823,7 +905,7 @@ function PlantPicker(props: {
       title="Add Plants"
       description={
         hiddenCount > 0
-          ? `${hiddenCount} plant(s) hidden by compatibility.`
+          ? `${hiddenCount} plant(s) hidden (incompatible or missing data).`
           : "Plants are multi-select. Add as many as you want."
       }
       open={props.open}
@@ -845,7 +927,7 @@ function PlantPicker(props: {
               onChange={(e) => setShowIncompatible(e.target.checked)}
               className="h-4 w-4 rounded border-neutral-300"
             />
-            <span>Show incompatible</span>
+            <span>Show hidden plants</span>
           </label>
         ) : null}
       </div>
@@ -860,7 +942,7 @@ function PlantPicker(props: {
           <div className="px-4 py-3 text-sm text-neutral-600">
             {filtered.length === 0
               ? "No plants found."
-              : "No compatible results. Turn off Compatibility to see all plants."}
+              : "No visible results. Show hidden plants, or turn off Compatibility to add anyway."}
           </div>
         ) : (
           <ul className="divide-y divide-neutral-200">
@@ -902,9 +984,11 @@ function PlantPicker(props: {
                       <div className="truncate text-sm font-medium">{label}</div>
                       <div className="truncate text-xs text-neutral-600">
                         {x.blocked ? (
-                          <span className="font-semibold text-red-700">
-                            Incompatible:
-                          </span>
+                          x.blockedKind === "missing_data" ? (
+                            <span className="font-semibold text-amber-800">Cannot verify:</span>
+                          ) : (
+                            <span className="font-semibold text-red-700">Incompatible:</span>
+                          )
                         ) : null}{" "}
                         <span className="text-neutral-600">
                           {x.blocked
@@ -925,9 +1009,11 @@ function PlantPicker(props: {
                     onClick={() => props.onAdd(toPlantSnapshot(p))}
                     disabled={x.blocked}
                     className={
-                      "shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 " +
+                      "shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 " +
                       (x.blocked
-                        ? "border-red-200 bg-red-50 text-red-900"
+                        ? x.blockedKind === "missing_data"
+                          ? "border-amber-200 bg-amber-50 text-amber-900"
+                          : "border-red-200 bg-red-50 text-red-900"
                         : "text-white hover:brightness-95")
                     }
                     style={
@@ -937,11 +1023,17 @@ function PlantPicker(props: {
                     }
                     title={
                       x.blocked
-                        ? "This plant is incompatible with your current selections. Turn off Compatibility to add it anyway."
+                        ? x.blockedKind === "missing_data"
+                          ? "We don't have enough data to verify this plant yet. Turn off Compatibility to add it anyway."
+                          : "This plant is incompatible with your current selections. Turn off Compatibility to add it anyway."
                         : "Add"
                     }
                   >
-                    {x.blocked ? "Incompatible" : "Add"}
+                    {x.blocked
+                      ? x.blockedKind === "missing_data"
+                        ? "Cannot verify"
+                        : "Incompatible"
+                      : "Add"}
                   </button>
                 </li>
               );

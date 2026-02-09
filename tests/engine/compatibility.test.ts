@@ -168,6 +168,37 @@ describe("compatibility engine (seeded rule types)", () => {
     expect(evals[0]?.message).toContain("36");
   });
 
+  test("light_fit_range emits a completeness note when required specs are missing", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_004",
+        name: "Light fit",
+        severity: "error",
+        categoriesInvolved: ["tank", "light"],
+        conditionLogic: {
+          type: "light_fit_range",
+          tank_length_key: "length_in",
+          light_min_key: "min_tank_length_in",
+          light_max_key: "max_tank_length_in",
+        },
+        messageTemplate: "range {light_range} tank {tank_length}",
+      },
+    ];
+
+    const s = snapshot({
+      productsByCategory: {
+        tank: product("tank", { length_in: 36 }),
+        light: product("light", { min_tank_length_in: 24 }), // max_tank_length_in missing
+      },
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.severity).toBe("completeness");
+    expect(evals[0]?.kind).toBe("insufficient_data");
+    expect(evals[0]?.message).toContain("light.max_tank_length_in");
+  });
+
   test("substrate_buffers_ph triggers when substrate buffers and plant phMin is high", () => {
     const rules: CompatibilityRule[] = [
       {
@@ -261,6 +292,32 @@ describe("compatibility engine (seeded rule types)", () => {
     expect(evals[0]?.severity).toBe("error");
   });
 
+  test("shrimp_copper_check emits a completeness note when copper is missing", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_007",
+        name: "Shrimp copper",
+        severity: "error",
+        categoriesInvolved: ["fertilizer"],
+        conditionLogic: { type: "shrimp_copper_check", requires_shrimp_flag: true },
+        messageTemplate: "Copper is not ok",
+      },
+    ];
+
+    const s = snapshot({
+      flags: { hasShrimp: true },
+      productsByCategory: {
+        fertilizer: product("fertilizer", { shrimp_safe: false }),
+      },
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.severity).toBe("completeness");
+    expect(evals[0]?.kind).toBe("insufficient_data");
+    expect(evals[0]?.message).toContain("fertilizer.copper_content");
+  });
+
   test("carpet_needs_light_and_co2 triggers when carpet plant and missing CO2 or low PAR", () => {
     const rules: CompatibilityRule[] = [
       {
@@ -293,6 +350,42 @@ describe("compatibility engine (seeded rule types)", () => {
     const evals = evaluateBuild(rules, s);
     expect(evals).toHaveLength(1);
     expect(evals[0]?.message).toContain("Monte Carlo");
+  });
+
+  test("carpet_needs_light_and_co2 emits a completeness note when PAR is missing", () => {
+    const rules: CompatibilityRule[] = [
+      {
+        code: "RULE_008",
+        name: "Carpet",
+        severity: "recommendation",
+        categoriesInvolved: ["plants", "light", "co2"],
+        conditionLogic: { type: "carpet_needs_light_and_co2", carpet_value: "carpet", min_par: 80 },
+        messageTemplate: "{plant_name} needs CO2",
+      },
+    ];
+
+    const s = snapshot({
+      productsByCategory: {
+        light: product("light", {}),
+      },
+      plants: [
+        {
+          id: "p1",
+          commonName: "Monte Carlo",
+          slug: "monte-carlo",
+          difficulty: "moderate",
+          lightDemand: "high",
+          co2Demand: "required",
+          placement: "carpet",
+        },
+      ],
+    });
+
+    const evals = evaluateBuild(rules, s);
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.severity).toBe("completeness");
+    expect(evals[0]?.kind).toBe("insufficient_data");
+    expect(evals[0]?.message).toContain("light.par_at_substrate");
   });
 
   test("stand_weight_capacity triggers when tank weight exceeds stand capacity", () => {
