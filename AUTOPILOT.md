@@ -24,19 +24,20 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Route error boundaries + not-found pages added (root + core segments). (`e71605f`)
 - Typecheck stabilized with `next typegen` for typed routes. (`ae3f8ea`)
 - Baseline security headers added (HSTS in prod + nosniff/referrer/permissions/x-frame-options). (`aa7f24a`)
+- Rate limiting added for `/api/trpc/*` and `/go/*` via `src/proxy.ts` (ADR 0001). (`0400772`)
 
 ## Next 3 Tasks (do these in order)
 
-1. A-03 (P0) Add rate limiting for hot endpoints (`/go/*`, `/api/trpc`, share/build routes).
-   Entry points: `src/middleware.ts`, `src/app/go/[offerId]/route.ts`, `src/app/api/trpc/[trpc]/route.ts`, plus ADR.
-2. A-04 (P0) Structured server logging + request IDs.
+1. A-04 (P0) Structured server logging + request IDs.
    Entry points: `src/app/api/trpc/[trpc]/route.ts`, `src/app/go/[offerId]/route.ts`, plus shared logger helper.
-3. A-05 (P0) Error reporting + alerting.
+2. A-05 (P0) Error reporting + alerting.
    Entry points: vendor SDK wiring + server/client capture hooks, plus ADR.
+3. B-01 (P0) Required-specs contracts + missing-data UX for compatibility rules.
+   Entry points: `src/engine/evaluate.ts`, `src/engine/types.ts`, `src/components/builder/BuilderPage.tsx`, plus unit tests in `tests/engine/*`.
 
 ## Known Risks / Blockers
 
-- Rate limiting store choice (KV vs DB vs edge-in-memory) is undecided; requires an ADR before implementation.
+- Rate limiting is best-effort in-memory. If traffic warrants, migrate to Redis/KV (see `decisions/0001-rate-limiting-store.md`).
 - Error reporting vendor choice (Sentry vs Vercel only) is undecided; requires an ADR before wiring alerts.
 - Data completeness can silently undermine trust; must fail closed for curated picks and surface missing-data states.
 

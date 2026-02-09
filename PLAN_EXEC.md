@@ -62,7 +62,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: `curl -I https://plantedtanklab.com | rg -n \"strict-transport|x-content-type|referrer-policy|permissions-policy\"`
   Dependencies: OPS-04
 
-- [ ] A-03 (P0) Rate limiting for hot endpoints.
+- [x] A-03 (P0) Rate limiting for hot endpoints.
   Gates: G6
   Acceptance: `/go/*`, `/api/trpc/*`, and build/share endpoints return 429 under abuse; limits are documented; implementation recorded in an ADR.
   Verify: `pnpm verify:gates`; manual: run a quick loop with `curl` and observe 429s.

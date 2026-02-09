@@ -26,3 +26,9 @@ Each work session must add a new dated entry that includes:
 - Work: Added baseline security headers via `next.config.ts` (`aa7f24a`).
 - Verified: `curl -I http://localhost:3000` shows nosniff/referrer/permissions/x-frame-options in dev. `pnpm verify` passed.
 - Next: A-03, A-04, A-05 (see `TODO.md`).
+
+## 2026-02-08 19:10
+
+- Work: Added best-effort rate limiting for `/api/trpc/*` and `/go/*` via `src/proxy.ts` (`0400772`). Added ADR `decisions/0001-rate-limiting-store.md`.
+- Verified: `pnpm verify` passed. Manual local loop returned 429s after exceeding the per-minute limit.
+- Next: A-04, A-05 (see `TODO.md`).
