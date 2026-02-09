@@ -40,8 +40,8 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
    Entry points: top-nav auth CTA, auth routes (`src/app/*`), auth config (`src/server/auth.ts`).
 2. C-03 (P0) Builder completion UX + empty/offers-empty UX.
    Entry points: `src/components/builder/*`, `src/app/builder/*`, product detail offers panels.
-3. C-05 (P1) Shared build snapshot page: nav state + CTA clarity.
-   Entry points: `/builds/:id` route, share/open-in-builder behavior.
+3. C-06 (P0) Content + imagery baseline (products + plants + hardscape).
+   Focus: real images, category gaps (hardscape), missing product/plant content, and intentional empty states.
 
 ## Known Risks / Blockers
 

@@ -148,6 +148,16 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual: create a share link; open it in a fresh session; click Products/Plants/Builder in nav; ensure no confusing active-state.
   Dependencies: C-03
 
+- [ ] C-06 (P0) Content + imagery baseline (products + plants + hardscape).
+  Gates: G0, G9
+  Acceptance:
+    - Core product categories have real images (no obvious placeholders) for curated picks.
+    - Add missing categories/data needed for real builds (e.g., hardscape) OR hide them intentionally with "coming soon" copy.
+    - Top plants and core products show credible images + key fields; obvious gaps are reduced.
+    - "No offers yet" and other empty states feel intentional and help users move forward.
+  Verify: daily visual QA checklist + spot-check on mobile.
+  Dependencies: C-01, C-02
+
 ## Milestone D (Days 11-14) - Launchable
 
 - [ ] D-01 (P0) Consent-respecting analytics/events (minimal).
