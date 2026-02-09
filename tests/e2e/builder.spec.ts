@@ -18,18 +18,12 @@ test("builder compatibility: tank length filters lights; show incompatible revea
   await dismissCookies(page);
   await waitBuilderReady(page);
 
-  await page
-    .getByTestId("category-row-tank")
-    .getByRole("button", { name: /Choose|Swap/i })
-    .click();
+  await page.getByTestId("category-row-tank-action").click();
 
   await page.getByPlaceholder("Search...").fill("UNS 90U");
   await page.getByRole("button", { name: "Add" }).first().click();
 
-  await page
-    .getByTestId("category-row-light")
-    .getByRole("button", { name: /Choose|Swap/i })
-    .click();
+  await page.getByTestId("category-row-light-action").click();
 
   await page.getByPlaceholder("Search...").fill("Chihiros WRGB II 60");
 

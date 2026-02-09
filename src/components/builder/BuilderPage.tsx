@@ -225,6 +225,7 @@ function CategoryRowView(props: {
   testId?: string;
   categoryName: string;
   required: boolean;
+  hasSelection: boolean;
   selectionLabel: string;
   priceLabel: string;
   priceSubLabel?: string | null;
@@ -263,7 +264,18 @@ function CategoryRowView(props: {
       </div>
 
       <div className="min-w-0">
-        <div className="truncate text-sm text-neutral-700">{props.selectionLabel}</div>
+        {props.hasSelection ? (
+          <div className="truncate text-sm text-neutral-700">{props.selectionLabel}</div>
+        ) : (
+          <button
+            type="button"
+            onClick={props.onChoose}
+            className="text-left text-sm font-semibold text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-500"
+            title={`Choose a ${props.categoryName}`}
+          >
+            {`Choose a ${props.categoryName}`}
+          </button>
+        )}
       </div>
 
       <div className="text-right">
@@ -277,10 +289,11 @@ function CategoryRowView(props: {
         <button
           type="button"
           onClick={props.onChoose}
+          data-testid={props.testId ? `${props.testId}-action` : undefined}
           className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
           style={{ borderColor: "var(--ptl-border)" }}
         >
-          {props.selectionLabel.startsWith("+") ? "Choose" : "Swap"}
+          {props.hasSelection ? "Swap" : "Choose"}
         </button>
         {props.onOffers ? (
           <button
@@ -1909,10 +1922,14 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                     ? "No CO2 (low-tech)"
                     : effectiveSelected
                       ? effectiveSelected.name
-                      : `+ Choose a ${c.name}`
+                      : `No ${c.name} selected`
                   : effectiveSelected
                     ? effectiveSelected.name
-                    : `+ Choose a ${c.name}`;
+                    : `No ${c.name} selected`;
+
+                const hasSelection = Boolean(effectiveSelected) ||
+                  (isCo2Category && lowTechNoCo2);
+
                 const catEvals = evalsByCat[c.slug] ?? [];
 
                 return (
@@ -1921,6 +1938,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                     testId={`category-row-${c.slug}`}
                     categoryName={c.name}
                     required={c.builderRequired}
+                    hasSelection={hasSelection}
                     selectionLabel={selectionLabel}
                     priceLabel={formatMoney(priceCents)}
                     priceSubLabel={

@@ -90,3 +90,13 @@ Each work session must add a new dated entry that includes:
 - Work: Completed C-02 plant content baseline for the top 30 plants in `data/plants.json` by adding missing citations (`sources`) and filling missing `image_url` where absent.
 - Verified: spot-check list integrity (first 30 have sources + image_url); `pnpm verify`.
 - Next: C-03 (see `TODO.md`).
+
+## 2026-02-09 10:45
+
+- Work: Began C-03 builder UX cleanup:
+  - Removed confusing “+ Choose a X” non-clickable label; replaced empty selection state with a clickable “Choose a X” link.
+  - Button label logic now uses `hasSelection` instead of string prefix checks.
+  - Added stable `data-testid="category-row-*-action"` for the row action button; updated builder Playwright tests.
+  - Stabilized local DB usage against Supabase pooler by disabling prepared statements when `DATABASE_URL` is the pooler (`prepare: false`) + conservative pooling.
+- Verified: `pnpm verify`.
+- Next: continue C-03 (completion panel + offers-empty UX).

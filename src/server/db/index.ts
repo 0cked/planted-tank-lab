@@ -40,16 +40,21 @@ const globalForDb = globalThis as unknown as {
 const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
 const isProd = process.env.NODE_ENV === "production";
 
+const isPooler = databaseUrl.includes("pooler.supabase.com");
+
 export const sql =
   globalForDb.__plantedTankSql ??
   postgres(databaseUrl, {
     ssl: "require",
-    // Supabase poolers enforce low connection limits (especially in Session mode).
+    // Supabase poolers enforce low connection limits (especially in Transaction/Session mode).
     // On Vercel, many concurrent lambda invocations can exhaust the pool quickly.
-    // Keep this intentionally tiny in production.
-    max: isTest ? 1 : isProd ? 1 : 10,
-    // Close idle connections promptly (seconds). Helps avoid “max clients reached” in prod.
-    idle_timeout: isProd ? 10 : undefined,
+    // Keep this intentionally tiny in production AND when using the Supabase pooler.
+    max: isTest ? 1 : isProd || isPooler ? 1 : 10,
+    // Close idle connections promptly (seconds). Helps avoid “max clients reached”.
+    idle_timeout: isProd || isPooler ? 10 : undefined,
+    // Supabase pooler + prepared statements can be a bad mix (depending on mode).
+    // Safer to disable prepared statements when we're on the pooler.
+    prepare: isPooler ? false : undefined,
   });
 
 // Cache the client across hot reloads AND across serverless warm invocations.
