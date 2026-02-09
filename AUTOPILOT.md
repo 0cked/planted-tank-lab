@@ -43,6 +43,16 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 3. C-06 (P0) Content + imagery baseline (products + plants + hardscape).
    Focus: real images, category gaps (hardscape), missing product/plant content, and intentional empty states.
 
+## Daily Visual QA Notes (2026-02-09)
+
+Observed from a fresh-session walkthrough (Home → Builder → Products → Plants → Builds → Sign-in):
+
+- Builder: copy bug: “Choose a Accessories” (should be “Choose Accessories” / “Choose an accessory”).
+- Plants list: page positions itself as “image-forward”, but many curated picks render with no image.
+- Plant detail pages: “Photo” section is an empty header (no image, no placeholder copy). Feels broken.
+- Plant specs formatting: `Type` shows `Water_column` (underscore leak). Also several fields show `—` (Origin/Family), which reads like missing data rather than intentional.
+- Products: category landing has no imagery per category (feels text-only), and many hardscape items show no price and product detail pages show “No offers yet” (fine, but needs a more intentional UX + sourcing plan).
+
 ## Known Risks / Blockers
 
 - Rate limiting is best-effort in-memory. If traffic warrants, migrate to Redis/KV (see `decisions/0001-rate-limiting-store.md`).

@@ -100,3 +100,14 @@ Each work session must add a new dated entry that includes:
   - Stabilized local DB usage against Supabase pooler by disabling prepared statements when `DATABASE_URL` is the pooler (`prepare: false`) + conservative pooling.
 - Verified: `pnpm verify`.
 - Next: continue C-03 (completion panel + offers-empty UX).
+
+## 2026-02-09 12:15
+
+- Work: Daily visual QA walkthrough on plantedtanklab.com (Home → Builder → Products → Plants → Builds → Sign-in).
+  Findings:
+  - Builder: grammar bug “Choose a Accessories”.
+  - Plants: curated list is pitched as image-forward but many cards render without images; plant detail “Photo” section is an empty header.
+  - Plant data: enum formatting leak (`Water_column`), and several fields show raw `—` (Origin/Family).
+  - Products/hardscape: many items show missing price/offers; detail pages rely on “No offers yet” messaging.
+- Verified: manual walkthrough in a fresh browser session.
+- Next: fold fixes into C-03 (empty states + copy) and C-06 (images/offers/content completeness).

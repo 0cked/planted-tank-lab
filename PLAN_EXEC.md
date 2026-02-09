@@ -129,6 +129,10 @@ For current status and what to do next, see `AUTOPILOT.md`.
 - [ ] C-03 (P0) Builder completion UX + empty/offers-empty UX.
   Gates: G0, G9
   Acceptance: completion panel + next actions; "no offers yet" states are helpful, not broken.
+  Visual QA punchlist (2026-02-09):
+    - Fix builder row action label grammar: “Choose a Accessories”.
+    - Make “Photo” blocks across detail pages (plants/products) have an intentional empty state (icon + copy + CTA to browse similar).
+    - Ensure any missing/unknown specs use intentional copy (“Unknown”/hide row) vs raw `—`.
   Verify: `pnpm test:e2e`; manual build completion on mobile.
   Dependencies: C-01
 
@@ -155,6 +159,11 @@ For current status and what to do next, see `AUTOPILOT.md`.
     - Add missing categories/data needed for real builds (e.g., hardscape) OR hide them intentionally with "coming soon" copy.
     - Top plants and core products show credible images + key fields; obvious gaps are reduced.
     - "No offers yet" and other empty states feel intentional and help users move forward.
+  Visual QA punchlist (2026-02-09):
+    - Plants index: actually show images for curated picks (or add consistent placeholders + a near-term fill plan).
+    - Plant detail pages: fill missing fields or hide rows (Origin/Family), and format enum labels (e.g., `Water_column` → “Water column”).
+    - Product category pages: consider light imagery for categories (currently very text-only).
+    - Hardscape: many items show no price/offers; decide whether to hide price column when missing vs show `—`, and prioritize adding at least 1 offer for top N.
   Verify: daily visual QA checklist + spot-check on mobile.
   Dependencies: C-01, C-02
 
