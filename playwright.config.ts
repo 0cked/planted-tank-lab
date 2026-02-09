@@ -5,12 +5,12 @@ export default defineConfig({
   timeout: 30_000,
   retries: process.env.CI ? 2 : 0,
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3011",
     trace: "on-first-retry",
   },
   webServer: {
-    command: "PORT=3000 pnpm dev",
-    url: "http://localhost:3000",
+    command: "PORT=3011 pnpm dev",
+    url: "http://localhost:3011",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
