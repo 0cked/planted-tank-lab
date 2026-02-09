@@ -30,15 +30,16 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Required-specs contracts + missing-data UX added (engine emits insufficient-data notes; curated mode fails closed; picker UI distinguishes incompatible vs missing data). (`e50f638`)
 - Admin categories CRUD + reorder added at `/admin/categories`; builder stepper now follows `categories.display_order` for core/extras ordering. (`c27e483`)
 - Admin CSV exports added for products/plants/offers with audit logging + unit tests. (`b37bd37`)
+- Expanded admin audit logging coverage for product/plant saves and uploads. (`7533133`)
 
 ## Next 3 Tasks (do these in order)
 
-1. B-04 (P1) Expand audit logging coverage.
-   Entry points: `src/server/services/admin/*`, `src/server/db/schema.ts`, `src/app/admin/logs`.
-2. B-05 (P1) Data quality dashboard (missing images/offers/specs).
+1. B-05 (P1) Data quality dashboard (missing images/offers/specs).
    Entry points: `src/app/admin/*`, `src/server/services/admin/*`.
-3. C-01 (P0) Curated catalog completeness pass (core flow).
+2. C-01 (P0) Curated catalog completeness pass (core flow).
    Entry points: `scripts/*`, `src/app/admin/*`, `data/*`.
+3. C-02 (P0) Plant content baseline for top 30 plants.
+   Entry points: `data/*`, `scripts/*`, `src/app/admin/plants/*`.
 
 ## Known Risks / Blockers
 

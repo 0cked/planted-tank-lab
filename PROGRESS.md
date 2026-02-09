@@ -68,3 +68,9 @@ Each work session must add a new dated entry that includes:
 - Work: Completed B-03 CSV exports for products/plants/offers via `/admin/exports/*` and added CSV formatting utilities + unit tests (`b37bd37`).
 - Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
 - Next: B-04, B-05, C-01 (see `TODO.md`).
+
+## 2026-02-09 22:30
+
+- Work: Completed B-04 audit logging expansion for product + plant save/upload routes (actions now visible in `/admin/logs`) (`7533133`).
+- Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
+- Next: B-05, C-01, C-02 (see `TODO.md`).

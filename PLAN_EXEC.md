@@ -100,7 +100,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual download; open in Sheets; unit test CSV formatting.
   Dependencies: B-02
 
-- [ ] B-04 (P1) Expand audit logging coverage.
+- [x] B-04 (P1) Expand audit logging coverage.
   Gates: G7
   Acceptance: product save/upload, plant save/upload, categories edits, offer edits log to `admin_logs`.
   Verify: manual: perform actions and check `/admin/logs`.

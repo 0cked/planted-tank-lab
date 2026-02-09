@@ -6,6 +6,6 @@ Do not add tasks here unless they already exist in `PLAN_EXEC.md`.
 
 ## Ready Now (work top to bottom)
 
-1. B-04 Expand audit logging coverage.
-2. B-05 Data quality dashboard (missing images/offers/specs).
-3. C-01 Curated catalog completeness pass (core flow).
+1. B-05 Data quality dashboard (missing images/offers/specs).
+2. C-01 Curated catalog completeness pass (core flow).
+3. C-02 Plant content baseline for top 30 plants.
