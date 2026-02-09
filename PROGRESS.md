@@ -111,3 +111,9 @@ Each work session must add a new dated entry that includes:
   - Products/hardscape: many items show missing price/offers; detail pages rely on “No offers yet” messaging.
 - Verified: manual walkthrough in a fresh browser session.
 - Next: fold fixes into C-03 (empty states + copy) and C-06 (images/offers/content completeness).
+
+## 2026-02-09 16:05
+
+- Work: Fixed builder picker dialog title grammar for plural category names (e.g. “Choose Accessories” instead of “Choose a Accessories”) (`5808a1c`).
+- Verified: `pnpm verify:gates`; `pnpm test`.
+- Next: continue C-03 (completion panel + offers-empty UX + intentional Photo empty states).
