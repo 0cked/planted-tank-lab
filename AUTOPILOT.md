@@ -32,6 +32,7 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Admin CSV exports added for products/plants/offers with audit logging + unit tests. (`b37bd37`)
 - Expanded admin audit logging coverage for product/plant saves and uploads. (`7533133`)
 - Data quality dashboard added at `/admin/quality` to surface missing images/offers/required specs. (`5487f7f`)
+- Added `pnpm catalog:check` and seeded placeholder images + required substrate/filter specs so curated *core* catalog passes completeness checks. (C-01)
 
 ## Next 3 Tasks (do these in order)
 

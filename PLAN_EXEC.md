@@ -114,10 +114,10 @@ For current status and what to do next, see `AUTOPILOT.md`.
 
 ## Milestone C (Days 8-10) - Feels Complete
 
-- [ ] C-01 (P0) Curated catalog completeness pass (core flow).
+- [x] C-01 (P0) Curated catalog completeness pass (core flow).
   Gates: G4, G0, G9
   Acceptance: every curated core item has photo + key specs + at least 1 offer; builder completion feels coherent.
-  Verify: run a scripted "catalog completeness" check (add `scripts/catalog-check.ts`); manual spot-check.
+  Verify: `pnpm catalog:check`; manual spot-check.
   Dependencies: B-03
 
 - [ ] C-02 (P0) Plant content baseline for top 30 plants.

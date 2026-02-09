@@ -18,7 +18,8 @@
     "sources": [
       "https://www.oase.com/en/products-a-z/family/product/p/94690-biomaster2-thermo-250-gb.html"
     ],
-    "curated_rank": 1
+    "curated_rank": 1,
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "category_slug": "filter",
@@ -95,7 +96,8 @@
     "sources": [
       "https://aqualabaquaria.com/products/classic-external-canister-filter-eheim"
     ],
-    "curated_rank": 4
+    "curated_rank": 4,
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "category_slug": "filter",
@@ -170,7 +172,8 @@
     "sources": [
       "https://fluvalaquatics.com/us/shop/product/07-series"
     ],
-    "curated_rank": 2
+    "curated_rank": 2,
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "category_slug": "filter",
@@ -245,7 +248,8 @@
     "sources": [
       "https://catalog.elmersaquarium.com/products/aquaclear-50-power-filter%7CL1%7CC3%7C110610.html"
     ],
-    "curated_rank": 3
+    "curated_rank": 3,
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "category_slug": "filter",
@@ -289,12 +293,14 @@
     "description": "Air-driven sponge filter.",
     "specs": {
       "type": "sponge",
-      "rated_volume_gal_min": 20
+      "rated_volume_gal_min": 20,
+      "flow_rate_gph": 80
     },
     "sources": [
       "https://www.aquariumcoop.com/blogs/faqs/sponge-filter-sizes"
     ],
-    "curated_rank": 5
+    "curated_rank": 5,
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "category_slug": "filter",

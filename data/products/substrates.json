@@ -10,12 +10,14 @@
       "substrate_type": "active_soil",
       "buffers_ph": true,
       "grain_size_mm": 3,
-      "color": "black"
+      "color": "black",
+      "type": "active_buffering"
     },
     "sources": [
       "https://www.adana.co.jp/en/"
     ],
-    "curated_rank": 1
+    "curated_rank": 1,
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "category_slug": "substrate",
@@ -28,12 +30,14 @@
       "substrate_type": "active_soil",
       "buffers_ph": true,
       "grain_size_mm": 3,
-      "color": "black"
+      "color": "black",
+      "type": "active_buffering"
     },
     "sources": [
       "https://ultumnaturesystems.com/"
     ],
-    "curated_rank": 2
+    "curated_rank": 2,
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "category_slug": "substrate",
@@ -46,12 +50,14 @@
       "substrate_type": "active_soil",
       "buffers_ph": true,
       "grain_size_mm": 2,
-      "color": "dark_brown"
+      "color": "dark_brown",
+      "type": "active_buffering"
     },
     "sources": [
       "https://fluvalaquatics.com/"
     ],
-    "curated_rank": 3
+    "curated_rank": 3,
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "category_slug": "substrate",
@@ -81,12 +87,14 @@
       "substrate_type": "inert_gravel",
       "buffers_ph": false,
       "grain_size_mm": 3,
-      "color": "black"
+      "color": "black",
+      "type": "inert"
     },
     "sources": [
       "https://caribsea.com/"
     ],
-    "curated_rank": 5
+    "curated_rank": 5,
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "category_slug": "substrate",
@@ -133,13 +141,15 @@
       "substrate_type": "sand",
       "buffers_ph": false,
       "grain_size_mm": 0.6,
-      "color": "tan"
+      "color": "tan",
+      "type": "inert"
     },
     "sources": [
       "https://www.amazon.com/s?k=pool+filter+sand"
     ],
     "source_notes": "Generic commodity; seeded from Amazon search URL.",
-    "curated_rank": 4
+    "curated_rank": 4,
+    "image_url": "/images/aquascape-hero-2400.jpg"
   },
   {
     "category_slug": "substrate",

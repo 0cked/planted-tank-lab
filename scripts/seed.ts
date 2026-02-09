@@ -30,8 +30,28 @@ const productSeedSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   description: z.string().optional(),
-  image_url: z.string().url().optional(),
-  image_urls: z.array(z.string().url()).optional(),
+  // Allow either absolute URLs (preferred) or public-paths under /public ("/images/..."),
+  // so we can ship placeholder/catalog images without relying on external hotlinks.
+  image_url: z
+    .string()
+    .min(1)
+    .refine((v) => v.startsWith("/") || v.startsWith("http://") || v.startsWith("https://"), {
+      message: "image_url must be an absolute URL or a public-path starting with '/'",
+    })
+    .optional(),
+  image_urls: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .refine(
+          (v) => v.startsWith("/") || v.startsWith("http://") || v.startsWith("https://"),
+          {
+            message: "image_urls entries must be absolute URLs or public-paths starting with '/'",
+          },
+        ),
+    )
+    .optional(),
   specs: z.record(z.string(), z.unknown()),
   sources: z.array(z.string().url()).optional(),
   source_notes: z.string().max(2000).optional(),
