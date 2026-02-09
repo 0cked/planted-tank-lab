@@ -8,15 +8,15 @@ If anything disagrees with chat history or archived docs, **this file wins**.
 
 ## Current Milestone (14-day v1 plan)
 
-- Milestone: B (Days 4-7) - Trust & Ops
-- Day: 4
-- Current objective: tighten data integrity + admin ops so the builder feels trustworthy and maintainable.
+- Milestone: C (Days 8-10) - Feels Complete
+- Day: 8
+- Current objective: make the core builder flow feel complete with a coherent curated catalog + plant content.
 
 ## Launch Gates (G0-G11)
 
 Source: `config/gates.json` (run: `pnpm verify:gates`)
 
-- Current focus gates: G4 (Data Integrity), G2 (Admin Access Control), G9 (Trust & Compliance)
+- Current focus gates: G0 (Core Value Works), G4 (Data Integrity), G9 (Trust & Compliance)
 
 ## What Changed Last
 
@@ -31,15 +31,16 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Admin categories CRUD + reorder added at `/admin/categories`; builder stepper now follows `categories.display_order` for core/extras ordering. (`c27e483`)
 - Admin CSV exports added for products/plants/offers with audit logging + unit tests. (`b37bd37`)
 - Expanded admin audit logging coverage for product/plant saves and uploads. (`7533133`)
+- Data quality dashboard added at `/admin/quality` to surface missing images/offers/required specs. (`5487f7f`)
 
 ## Next 3 Tasks (do these in order)
 
-1. B-05 (P1) Data quality dashboard (missing images/offers/specs).
-   Entry points: `src/app/admin/*`, `src/server/services/admin/*`.
-2. C-01 (P0) Curated catalog completeness pass (core flow).
+1. C-01 (P0) Curated catalog completeness pass (core flow).
    Entry points: `scripts/*`, `src/app/admin/*`, `data/*`.
-3. C-02 (P0) Plant content baseline for top 30 plants.
+2. C-02 (P0) Plant content baseline for top 30 plants.
    Entry points: `data/*`, `scripts/*`, `src/app/admin/plants/*`.
+3. C-03 (P0) Builder completion UX + empty/offers-empty UX.
+   Entry points: `src/components/builder/*`, `src/app/builder/*`.
 
 ## Known Risks / Blockers
 

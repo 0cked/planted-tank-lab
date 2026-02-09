@@ -106,7 +106,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual: perform actions and check `/admin/logs`.
   Dependencies: B-02
 
-- [ ] B-05 (P1) Data quality dashboard (missing images/offers/specs).
+- [x] B-05 (P1) Data quality dashboard (missing images/offers/specs).
   Gates: G4, G7
   Acceptance: admin page lists missing-data hot spots and links to edit pages.
   Verify: manual.
