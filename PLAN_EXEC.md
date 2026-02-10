@@ -126,15 +126,21 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual review checklist (in `VERIFY.md`).
   Dependencies: none
 
-- [ ] C-03 (P0) Builder completion UX + empty/offers-empty UX.
-  Gates: G0, G9
-  Acceptance: completion panel + next actions; "no offers yet" states are helpful, not broken.
-  Visual QA punchlist (2026-02-09):
-    - Fix builder row action label grammar: “Choose a Accessories”.
-    - Make “Photo” blocks across detail pages (plants/products) have an intentional empty state (icon + copy + CTA to browse similar).
-    - Ensure any missing/unknown specs use intentional copy (“Unknown”/hide row) vs raw `—`.
-  Verify: `pnpm test:e2e`; manual build completion on mobile.
-  Dependencies: C-01
+- [ ] C-03 (P0) Builder Phase A UX overhaul (drawer/bottom sheet picker + compatibility-first flow).
+  Gates: G0, G5, G9
+  Acceptance:
+    - Picking an item uses a scroll-safe full-height drawer (desktop) / bottom sheet (mobile).
+    - No picker content can go off-screen without a scrollbar (fix the current “modal goes off screen” issue).
+    - Compatibility shapes what’s selectable: incompatible options are hidden by default with a clear “Show hidden” toggle.
+    - “Next step” CTA is obvious and takes users directly into the next picker (no “use the row’s Choose button” copy).
+  Visual QA punchlist (2026-02-10):
+    - Fix builder row action label grammar: “Choose an accessory”/“Choose accessories” (no “a Accessories”).
+    - Ensure cursor/hover states exist on all interactive row actions.
+    - Empty pricing states read intentionally (“No offers yet”) and don’t feel broken.
+  Verify:
+    - `pnpm test:e2e` (builder smoke includes opening a picker, scrolling, selecting, and proceeding).
+    - Manual QA on mobile: open picker, scroll list, select, proceed to next step.
+  Dependencies: B-01
 
 - [ ] C-04 (P0) Auth entrypoint is non-broken (Sign in doesn’t 404).
   Gates: G0, G9
@@ -166,6 +172,24 @@ For current status and what to do next, see `AUTOPILOT.md`.
     - Hardscape: many items show no price/offers; decide whether to hide price column when missing vs show `—`, and prioritize adding at least 1 offer for top N.
   Verify: daily visual QA checklist + spot-check on mobile.
   Dependencies: C-01, C-02
+
+- [ ] C-07 (P1) Builder Phase B polish (selection cards + warnings clarity + mobile pass).
+  Gates: G0, G9
+  Acceptance:
+    - Picker list items are photo-forward and show 2-4 key specs + badges (Fits / Incompatible / Can’t verify).
+    - Warnings panel is grouped by severity and reads as “what to fix next”.
+    - Mobile builder layout remains fast and ergonomic (no cramped tables; key actions reachable).
+  Verify: `pnpm test:e2e`; manual on mobile.
+  Dependencies: C-03
+
+- [ ] C-08 (P1) Phase C browsing polish (products + plants feel like a hobby catalog).
+  Gates: G0, G9, G10
+  Acceptance:
+    - Products and Plants lists are image-forward with meaningful preview chips.
+    - Copy pass: remove internal jargon everywhere (no “seeded”, “MVP”, etc).
+    - Hero treatments (home) are properly cropped/overlaid; key CTAs look intentional.
+  Verify: manual; `pnpm test:e2e` smoke.
+  Dependencies: C-06
 
 ## Milestone D (Days 11-14) - Launchable
 

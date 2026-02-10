@@ -1,6 +1,6 @@
 # AUTOPILOT - PlantedTankLab (Single Source Of Truth)
 
-Last updated: 2026-02-09
+Last updated: 2026-02-10
 
 This file is the single source of truth for: current status, what's next, and how to resume.
 
@@ -10,7 +10,7 @@ If anything disagrees with chat history or archived docs, **this file wins**.
 
 - Milestone: C (Days 8-10) - Feels Complete
 - Day: 8
-- Current objective: make the core builder flow feel complete with a coherent curated catalog + plant content.
+- Current objective: ship Phase A builder UX (drawer/bottom sheet picker + compatibility-first flow) so the builder feels guided, visual, and fast.
 
 ## Launch Gates (G0-G11)
 
@@ -36,10 +36,10 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 
 ## Next 3 Tasks (do these in order)
 
-1. C-04 (P0) Auth entrypoint is non-broken (Sign in doesn’t 404).
+1. C-03 (P0) Builder Phase A UX overhaul (drawer/bottom sheet picker + compatibility-first flow).
+   Entry points: `src/components/builder/BuilderPage.tsx`, `tests/e2e/builder.spec.ts`, `src/components/layout/*`.
+2. C-04 (P0) Auth entrypoint is non-broken (Sign in doesn’t 404).
    Entry points: top-nav auth CTA, auth routes (`src/app/*`), auth config (`src/server/auth.ts`).
-2. C-03 (P0) Builder completion UX + empty/offers-empty UX.
-   Entry points: `src/components/builder/*`, `src/app/builder/*`, product detail offers panels.
 3. C-06 (P0) Content + imagery baseline (products + plants + hardscape).
    Focus: real images, category gaps (hardscape), missing product/plant content, and intentional empty states.
 

@@ -81,6 +81,12 @@ Each work session must add a new dated entry that includes:
 - Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
 - Next: C-01, C-02, C-03 (see `TODO.md`).
 
+## 2026-02-10
+
+- Work: Updated execution plan to align with the public-launch UX overhaul proposal (Phase A/B/C), with Phase A folded into C-03. Updated `AUTOPILOT.md` + `TODO.md` accordingly.
+- Verified: pending (run `pnpm verify` after implementing C-03 changes).
+- Next: C-03 (Phase A builder UX: drawer/bottom sheet picker + compatibility-first flow).
+
 ## 2026-02-09
 
 - Work: Completed C-01 curated catalog completeness for core builder categories (tank/light/filter/substrate). Added `scripts/catalog-check.ts` + `pnpm catalog:check`; seeded placeholder `image_url` for curated core items and filled required substrate/filter spec keys for compatibility rules.
