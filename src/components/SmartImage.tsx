@@ -1,14 +1,24 @@
 import Image from "next/image";
 
-type SmartImageProps = {
+type SmartImageBaseProps = {
   src: string;
   alt: string;
-  width: number;
-  height: number;
   className?: string;
   sizes?: string;
   priority?: boolean;
 };
+
+type SmartImageProps =
+  | (SmartImageBaseProps & {
+      fill: true;
+      width?: never;
+      height?: never;
+    })
+  | (SmartImageBaseProps & {
+      fill?: false;
+      width: number;
+      height: number;
+    });
 
 function isRemoteSrc(src: string): boolean {
   return src.startsWith("http://") || src.startsWith("https://");
@@ -41,18 +51,28 @@ function shouldOptimizeRemote(src: string): boolean {
 }
 
 export function SmartImage(props: SmartImageProps) {
-  const { src, alt, width, height, className, sizes, priority } = props;
+  const { src, alt, className, sizes, priority } = props;
+  const fill = "fill" in props && props.fill === true;
 
   if (isRemoteSrc(src)) {
     // Only optimize remote images from known allow-listed hosts; fall back to <img>
     // for everything else while iterating quickly on seed data sources.
     if (shouldOptimizeRemote(src)) {
-      return (
+      return fill ? (
         <Image
           src={src}
           alt={alt}
-          width={width}
-          height={height}
+          fill
+          className={className}
+          sizes={sizes}
+          priority={priority}
+        />
+      ) : (
+        <Image
+          src={src}
+          alt={alt}
+          width={props.width}
+          height={props.height}
           className={className}
           sizes={sizes}
           priority={priority}
@@ -65,20 +85,21 @@ export function SmartImage(props: SmartImageProps) {
       <img
         src={src}
         alt={alt}
-        width={width}
-        height={height}
+        {...(fill ? {} : { width: props.width, height: props.height })}
         loading={priority ? "eager" : "lazy"}
         className={className}
       />
     );
   }
 
-  return (
+  return fill ? (
+    <Image src={src} alt={alt} fill className={className} sizes={sizes} priority={priority} />
+  ) : (
     <Image
       src={src}
       alt={alt}
-      width={width}
-      height={height}
+      width={props.width}
+      height={props.height}
       className={className}
       sizes={sizes}
       priority={priority}

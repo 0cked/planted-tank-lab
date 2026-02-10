@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { SmartImage } from "@/components/SmartImage";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 function sourcesList(value: unknown): string[] {
@@ -120,10 +120,9 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
               style={{ borderColor: "var(--ptl-border)" }}
             >
               {p.imageUrl ? (
-                <Image
+                <SmartImage
                   src={p.imageUrl}
                   alt=""
-                  aria-hidden="true"
                   fill
                   sizes="(min-width: 1024px) 560px, 100vw"
                   className="object-cover"

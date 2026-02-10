@@ -281,7 +281,7 @@ function CategoryRowView(props: {
           type="button"
           onClick={props.onChoose}
           data-testid={props.testId ? `${props.testId}-action` : undefined}
-          className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+          className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
           style={{ borderColor: "var(--ptl-border)" }}
         >
           {props.hasSelection ? "Swap" : "Choose"}
@@ -290,7 +290,7 @@ function CategoryRowView(props: {
           <button
             type="button"
             onClick={props.onOffers}
-            className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+            className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
             style={{ borderColor: "var(--ptl-border)" }}
           >
             Offers
@@ -311,7 +311,7 @@ function CategoryRowView(props: {
           <button
             type="button"
             onClick={props.onRemove}
-            className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+            className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
             style={{ borderColor: "var(--ptl-border)" }}
           >
             Remove
@@ -332,11 +332,15 @@ function PickerDialog(props: {
   return (
     <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/40" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-[1px]" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 flex max-h-[85dvh] w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border bg-white/90 p-5 shadow-xl backdrop-blur-md"
+          className="fixed inset-x-0 bottom-0 flex max-h-[92dvh] w-full translate-y-full flex-col overflow-hidden rounded-t-3xl border bg-white/92 p-5 shadow-2xl backdrop-blur-md transition-transform duration-200 ease-out data-[state=open]:translate-y-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-dvh sm:max-h-none sm:w-[min(560px,calc(100vw-1rem))] sm:rounded-l-3xl sm:rounded-t-none sm:translate-y-0 sm:translate-x-full sm:data-[state=open]:translate-x-0"
           style={{ borderColor: "var(--ptl-border)" }}
         >
+          <div className="sm:hidden -mt-1 mb-3 flex justify-center" aria-hidden="true">
+            <div className="h-1.5 w-12 rounded-full bg-neutral-300/70" />
+          </div>
+
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <Dialog.Title className="text-lg font-semibold tracking-tight">
@@ -351,7 +355,7 @@ function PickerDialog(props: {
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+                className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
                 style={{ borderColor: "var(--ptl-border)" }}
               >
                 Close
@@ -615,25 +619,27 @@ function ProductPicker(props: {
       open={props.open}
       onOpenChange={props.onOpenChange}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search..."
-          className="w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-          style={{ borderColor: "var(--ptl-border)" }}
-        />
-        {props.compatibilityEnabled && hiddenCount > 0 ? (
-          <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-neutral-800">
-            <input
-              type="checkbox"
-              checked={showIncompatible}
-              onChange={(e) => setShowIncompatible(e.target.checked)}
-              className="h-4 w-4 rounded border-neutral-300"
-            />
-            <span>Show hidden options</span>
-          </label>
-        ) : null}
+      <div className="sticky top-0 z-10 -mx-1 rounded-2xl bg-white/85 px-1 py-1.5 backdrop-blur-md">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search..."
+            className="w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+            style={{ borderColor: "var(--ptl-border)" }}
+          />
+          {props.compatibilityEnabled && hiddenCount > 0 ? (
+            <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-neutral-800">
+              <input
+                type="checkbox"
+                checked={showIncompatible}
+                onChange={(e) => setShowIncompatible(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300"
+              />
+              <span>Show hidden options</span>
+            </label>
+          ) : null}
+        </div>
       </div>
 
       {props.mode === "swap" && props.currentSelection ? (
@@ -926,25 +932,27 @@ function PlantPicker(props: {
       open={props.open}
       onOpenChange={props.onOpenChange}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search plants..."
-          className="w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-          style={{ borderColor: "var(--ptl-border)" }}
-        />
-        {props.compatibilityEnabled && hiddenCount > 0 ? (
-          <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-neutral-800">
-            <input
-              type="checkbox"
-              checked={showIncompatible}
-              onChange={(e) => setShowIncompatible(e.target.checked)}
-              className="h-4 w-4 rounded border-neutral-300"
-            />
-            <span>Show hidden plants</span>
-          </label>
-        ) : null}
+      <div className="sticky top-0 z-10 -mx-1 rounded-2xl bg-white/85 px-1 py-1.5 backdrop-blur-md">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search plants..."
+            className="w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
+            style={{ borderColor: "var(--ptl-border)" }}
+          />
+          {props.compatibilityEnabled && hiddenCount > 0 ? (
+            <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-neutral-800">
+              <input
+                type="checkbox"
+                checked={showIncompatible}
+                onChange={(e) => setShowIncompatible(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300"
+              />
+              <span>Show hidden plants</span>
+            </label>
+          ) : null}
+        </div>
       </div>
 
       <div
@@ -1707,16 +1715,18 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
           <div className="flex shrink-0 flex-col gap-2 sm:items-end">
             {nextCoreStep ? (
               <>
-                <div className="text-xs font-medium text-neutral-600">Next</div>
+                <div className="text-xs font-medium text-neutral-600">Next recommended</div>
                 <button
                   type="button"
                   onClick={() => openWorkflowStep(nextCoreStep.id)}
-                  className="text-sm font-semibold text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition hover:decoration-neutral-500"
-                  title={`Jump to ${nextCoreStep.label}`}
+                  className="ptl-btn-primary"
+                  title={`Choose ${nextCoreStep.label}`}
                 >
-                  {nextCoreStep.label}
+                  {nextCoreStep.kind === "plants" ? "Add plants" : `Choose ${nextCoreStep.label}`}
                 </button>
-                <div className="text-xs text-neutral-600">Use the row’s Choose button.</div>
+                <div className="text-xs text-neutral-600">
+                  Filters update automatically as you build.
+                </div>
               </>
             ) : (
               <>
@@ -2018,7 +2028,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                     setFocusedStepId("plants");
                     setActivePicker({ type: "plants" });
                   }}
-                  className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+                  className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
                   style={{ borderColor: "var(--ptl-border)" }}
                 >
                   {plants.length === 0 ? "Add" : "Manage"}
@@ -2027,7 +2037,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                   <button
                     type="button"
                     onClick={() => clearPlants()}
-                    className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+                    className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
                     style={{ borderColor: "var(--ptl-border)" }}
                   >
                     Clear
@@ -2044,7 +2054,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                       key={p.id}
                       type="button"
                       onClick={() => removePlantById(p.id)}
-                      className="rounded-full border bg-white/80 px-3 py-1 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+                      className="rounded-full border bg-white/80 px-3 py-1 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
                       style={{ borderColor: "var(--ptl-border)" }}
                       title="Remove"
                     >
@@ -2076,9 +2086,32 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
             }
           }}
           onPick={(p) => {
-            if (activePicker.categorySlug === "co2") setLowTechNoCo2(false);
-            setProduct(activePicker.categorySlug, p);
+            const pickedCategory = activePicker.categorySlug;
+            const wasSelected = Boolean(productsByCategory[pickedCategory]);
+            const isCore = workflow.core.some(
+              (s) => s.kind === "product" && s.categorySlug === pickedCategory,
+            );
+
+            // Compute next step based on the post-pick state. We do this before
+            // the store update lands so the "continue" action feels instant.
+            const nextProductsByCategory = { ...productsByCategory, [pickedCategory]: p };
+            const nextState = {
+              productsByCategory: nextProductsByCategory,
+              plants,
+              flags,
+              lowTechNoCo2: pickedCategory === "co2" ? false : lowTechNoCo2,
+            };
+            const next = nextRecommendedCoreStep(workflow.core, nextState);
+
+            if (pickedCategory === "co2") setLowTechNoCo2(false);
+            setProduct(pickedCategory, p);
             setFocusedStepId(null);
+
+            // Auto-advance only when users are moving through the core steps
+            // for the first time (not when swapping).
+            if (isCore && !wasSelected && next && next.id !== pickedCategory) {
+              setTimeout(() => openWorkflowStep(next.id), 50);
+            }
           }}
           compatibilityEnabled={compatibilityEnabled}
           curatedOnly={curatedOnly}

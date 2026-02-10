@@ -23,7 +23,16 @@ test("builder compatibility: tank length filters lights; show incompatible revea
   await page.getByPlaceholder("Search...").fill("UNS 90U");
   await page.getByRole("button", { name: "Add" }).first().click();
 
-  await page.getByTestId("category-row-light-action").click();
+  // Phase A builder UX auto-advances to the next core step. If it doesn't, open manually.
+  const lightDialog = page.getByRole("dialog", { name: /Light/i });
+  try {
+    await expect(lightDialog).toBeVisible({ timeout: 5_000 });
+  } catch {
+    const close = page.getByRole("button", { name: "Close" });
+    if (await close.isVisible().catch(() => false)) await close.click();
+    await page.getByTestId("category-row-light-action").click();
+    await expect(lightDialog).toBeVisible();
+  }
 
   await page.getByPlaceholder("Search...").fill("Chihiros WRGB II 60");
 

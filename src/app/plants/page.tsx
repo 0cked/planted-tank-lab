@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 
+import { SmartImage } from "@/components/SmartImage";
 import { PlantsFilters } from "@/components/plants/PlantsFilters";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
@@ -102,10 +102,9 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                     >
                       <div className="relative aspect-[4/3] overflow-hidden">
                         {hasImg ? (
-                          <Image
+                          <SmartImage
                             src={p.imageUrl as string}
                             alt=""
-                            aria-hidden="true"
                             fill
                             sizes="(max-width: 1024px) 50vw, 33vw"
                             className="object-cover transition duration-500 group-hover:scale-[1.04]"
