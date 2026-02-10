@@ -150,3 +150,12 @@ Each work session must add a new dated entry that includes:
 - Work: Fixed `pnpm build` failing on `/login` by wrapping `LoginPanel` (uses `useSearchParams`) in a Suspense boundary.
 - Verified: `pnpm build`.
 - Next: C-06, C-07, D-01.
+
+## 2026-02-09 22:10
+
+- Work: Completed C-06 content + imagery baseline:
+  - Plants: filled missing images and sources in `data/plants.json` (added helper scripts to keep this repeatable) and reseeded.
+  - Plants detail: made Plant info rows hide missing fields and humanize enum labels (no more `water_column` underscore leak).
+  - Products: made category browsing more image-forward and ensured lists/details show a graceful photo fallback when product photos are missing.
+- Verified: `pnpm seed`; `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
+- Next: C-07, C-08, D-01.

@@ -158,7 +158,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual: create a share link; open it in a fresh session; click Products/Plants/Builder in nav; ensure no confusing active-state.
   Dependencies: C-03
 
-- [ ] C-06 (P0) Content + imagery baseline (products + plants + hardscape) + big-brand catalog depth.
+- [x] C-06 (P0) Content + imagery baseline (products + plants + hardscape) + big-brand catalog depth.
   Gates: G0, G9
   Acceptance:
     - Core product categories have real images (no obvious placeholders) for curated picks.
