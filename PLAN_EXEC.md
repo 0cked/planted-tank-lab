@@ -158,17 +158,19 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual: create a share link; open it in a fresh session; click Products/Plants/Builder in nav; ensure no confusing active-state.
   Dependencies: C-03
 
-- [ ] C-06 (P0) Content + imagery baseline (products + plants + hardscape).
+- [ ] C-06 (P0) Content + imagery baseline (products + plants + hardscape) + big-brand catalog depth.
   Gates: G0, G9
   Acceptance:
     - Core product categories have real images (no obvious placeholders) for curated picks.
+    - For big-name brands (starting with tanks): catalog coverage feels "PCPartPicker-complete" within the brand.
+      - Examples: UNS + ADA tank lineups include the standard sizes/variants people expect.
     - Add missing categories/data needed for real builds (e.g., hardscape) OR hide them intentionally with "coming soon" copy.
     - Top plants and core products show credible images + key fields; obvious gaps are reduced.
     - "No offers yet" and other empty states feel intentional and help users move forward.
   Visual QA punchlist (2026-02-09):
     - Plants index: actually show images for curated picks (or add consistent placeholders + a near-term fill plan).
     - Plant detail pages: fill missing fields or hide rows (Origin/Family), and format enum labels (e.g., `Water_column` → “Water column”).
-    - Product category pages: consider light imagery for categories (currently very text-only).
+    - Product category pages: add light imagery for categories (currently very text-only).
     - Hardscape: many items show no price/offers; decide whether to hide price column when missing vs show `—`, and prioritize adding at least 1 offer for top N.
   Verify: daily visual QA checklist + spot-check on mobile.
   Dependencies: C-01, C-02
