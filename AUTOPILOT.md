@@ -34,15 +34,16 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Data quality dashboard added at `/admin/quality` to surface missing images/offers/required specs. (`5487f7f`)
 - Added `pnpm catalog:check` and seeded placeholder images + required substrate/filter specs so curated *core* catalog passes completeness checks. (C-01)
 - Builder picker UX upgraded to a drawer/bottom sheet with sticky search + “Next recommended” CTA. (C-03) (`9818700`)
+- Auth entrypoint stabilized: top-nav now has a prominent Sign up CTA and a Sign in link that always lands on `/login`; Google OAuth env fixed in Vercel production. (C-04)
 
 ## Next 3 Tasks (do these in order)
 
-1. C-04 (P0) Auth entrypoint is non-broken (Sign in doesn’t 404).
-   Entry points: top-nav auth CTA, auth routes (`src/app/*`), auth config (`src/server/auth.ts`).
-2. C-05 (P1) Shared build snapshot page: nav state + CTA clarity.
+1. C-05 (P1) Shared build snapshot page: nav state + CTA clarity.
    Entry points: `src/app/builds/[shareSlug]/page.tsx`, `src/components/layout/*`, builder share flow.
-3. C-06 (P0) Content + imagery baseline (products + plants + hardscape).
+2. C-06 (P0) Content + imagery baseline (products + plants + hardscape).
    Focus: real images, category gaps (hardscape), missing product/plant content, and intentional empty states.
+3. D-01 (P0) Consent-respecting analytics/events (minimal).
+   Entry points: cookie banner/consent storage, analytics/event service, `/go/*` click events.
 
 ## Daily Visual QA Notes (2026-02-09)
 

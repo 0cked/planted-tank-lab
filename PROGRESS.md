@@ -93,6 +93,12 @@ Each work session must add a new dated entry that includes:
 - Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
 - Next: C-04, C-05, C-06.
 
+## 2026-02-10 21:15
+
+- Work: Completed C-04 auth entrypoint. Added a prominent top-nav “Sign up” CTA + “Sign in” link (stable, never 404). `/sign-up` and `/sign-in` redirect to `/login` with mode hints. Added friendly error messaging on `/login`. Fixed Google OAuth env on Vercel Production (removed newline from `NEXTAUTH_URL`, set `GOOGLE_CLIENT_SECRET`) and redeployed.
+- Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`. Manual: POST to `/api/auth/signin/google` returns Google auth URL.
+- Next: C-05, C-06, D-01.
+
 ## 2026-02-09
 
 - Work: Completed C-01 curated catalog completeness for core builder categories (tank/light/filter/substrate). Added `scripts/catalog-check.ts` + `pnpm catalog:check`; seeded placeholder `image_url` for curated core items and filled required substrate/filter spec keys for compatibility rules.

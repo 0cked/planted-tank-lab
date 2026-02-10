@@ -142,7 +142,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
     - Manual QA on mobile: open picker, scroll list, select, proceed to next step.
   Dependencies: B-01
 
-- [ ] C-04 (P0) Auth entrypoint is non-broken (Sign in doesn’t 404).
+- [x] C-04 (P0) Auth entrypoint is non-broken (Sign in doesn’t 404).
   Gates: G0, G9
   Acceptance: clicking the top-nav "Sign in" never lands on a 404. Either:
     - implement the sign-in page/flow, OR
