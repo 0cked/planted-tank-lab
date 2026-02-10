@@ -257,3 +257,9 @@ Each work session must add a new dated entry that includes:
   - Hardened CI verification: e2e now runs against a production build (`pnpm test:e2e` builds first; Playwright uses `pnpm start`).
 - Verified: `pnpm verify` PASS.
 - Next: F-04 deploy to Fly (web + worker + scheduler), then F-05 DNS cutover, then resume E-04 seed-through-ingestion.
+
+## 2026-02-10 16:15
+
+- Work: Added optional GitHub Actions auto-deploy for Fly (`.github/workflows/fly-deploy.yml`) and updated docs/plans to reference `FLY_API_TOKEN`.
+- Verified: `pnpm verify` PASS; `docker build -t plantedtanklab .` PASS.
+- Next: F-04 (Fly deploy), F-05 (DNS cutover).

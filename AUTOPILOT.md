@@ -25,6 +25,7 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
   - `pnpm ingest daemon` (worker loop)
   - `pnpm ingest schedule --loop` (scheduler loop that enqueues periodic ingestion jobs)
 - Updated agent contract + docs for Fly hosting (ADR 0004): `AGENTS.md`, `README.md`.
+- Added optional CI deploy workflow: `.github/workflows/fly-deploy.yml` (requires `FLY_API_TOKEN`).
 - Hardened verification: Playwright now runs against a production build (`pnpm test:e2e` builds then runs tests); `pnpm verify` PASS.
 
 ## Next 3 Tasks (do these in order)
