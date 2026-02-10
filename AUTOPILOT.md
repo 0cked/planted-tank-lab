@@ -10,7 +10,7 @@ If anything disagrees with chat history or archived docs, **this file wins**.
 
 - Milestone: D (Days 11-14) - Launchable
 - Day: 11
-- Current objective: finish the remaining launchable P0s (terms/legal copy sweep) and then run final QA (D-04).
+- Current objective: run final QA + performance checks and complete the "go/no-go" verification (D-04).
 
 ## Launch Gates (G0-G11)
 
@@ -20,17 +20,15 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 
 ## What Changed Last
 
-- D-02 report-a-problem intake shipped: `/report` form → `problem_reports` DB table + admin triage at `/admin/reports` with resolve/dismiss actions.
-- Report-a-problem link added to the site footer.
+- D-03 terms/legal baseline: added `/terms`, linked it in the footer, and added `/terms` to the sitemap.
 - Verified: `pnpm verify`.
 
 ## Next 3 Tasks (do these in order)
 
-1. D-03 (P0) Terms page + final copy/legal sweep.
-   Entry points: `/terms` page, privacy + affiliate disclosure copy pass.
-2. D-04 (P0) Final QA + performance checks + "go/no-go" gate verification.
+1. D-04 (P0) Final QA + performance checks + "go/no-go" gate verification.
    Entry points: `pnpm verify`, `pnpm verify:gates`, manual QA checklist.
-3. (Stretch) G0/G1/G9 manual verification pass in production (core flow + auth + compliance spot-checks).
+2. (Stretch) G0/G1/G9 manual verification pass in production (core flow + auth + compliance spot-checks).
+3. (Stretch) G10 SEO spot-checks in production (sitemap/robots, OG + canonical).
 
 ## Daily Visual QA Notes (2026-02-09)
 

@@ -207,7 +207,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual end-to-end submission + admin view.
   Dependencies: B-02
 
-- [ ] D-03 (P0) Terms page + final copy/legal sweep.
+- [x] D-03 (P0) Terms page + final copy/legal sweep.
   Gates: G9
   Acceptance: `/terms` exists; affiliate disclosure consistent; privacy reflects actual collection.
   Verify: manual.

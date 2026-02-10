@@ -198,3 +198,12 @@ Each work session must add a new dated entry that includes:
   - Added footer link to "Report a problem".
 - Verified: `pnpm verify`.
 - Next: D-03, D-04.
+
+## 2026-02-10 04:45
+
+- Work: Completed D-03 terms + copy/legal baseline:
+  - Added `/terms` page.
+  - Linked Terms in the site footer.
+  - Added `/terms` to the sitemap.
+- Verified: `pnpm verify`.
+- Next: D-04.
