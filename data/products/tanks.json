@@ -66,6 +66,138 @@
   },
   {
     "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 60L Rimless Aquarium",
+    "slug": "uns-60l",
+    "description": "UNS 60L - 6.3 Gallon Ultra Clear Rimless Aquarium",
+    "specs": {
+      "length_in": 23.62,
+      "width_in": 7.87,
+      "height_in": 7.87,
+      "glass_thickness_mm": 5,
+      "volume_gal": 6.3,
+      "volume_liters": 24,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://buceplant.com/products/uns-60l-6-gallon-ultra-clear-rimless-aquarium"
+    ],
+    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-60l-6-3-gallon-ultra-clear-rimless-aquarium-1219639403.jpg?v=1770424475"
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 75P Rimless Aquarium",
+    "slug": "uns-75p",
+    "description": "UNS 75P - 40.1 Gallon Ultra Clear Rimless Aquarium",
+    "specs": {
+      "length_in": 29.52,
+      "width_in": 17.72,
+      "height_in": 17.72,
+      "glass_thickness_mm": 8,
+      "volume_gal": 40.1,
+      "volume_liters": 151.8,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://buceplant.com/products/uns-75p-36gallon-ultra-clear-rimless-aquarium"
+    ],
+    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-75p-40-1-gallon-ultra-clear-rimless-aquarium-1219184530.jpg?v=1770142655"
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 120P Rimless Aquarium",
+    "slug": "uns-120p",
+    "description": "UNS 120P - 79.2 Gallon Ultra Clear Rimless Aquarium",
+    "specs": {
+      "length_in": 47.24,
+      "width_in": 19.69,
+      "height_in": 19.69,
+      "glass_thickness_mm": 12,
+      "volume_gal": 79.2,
+      "volume_liters": 300,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://buceplant.com/products/uns-120p-78-gallon-ultra-clear-rimless-aquarium"
+    ],
+    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-120p-79-2-gallon-ultra-clear-rimless-aquarium-1219184516.jpg?v=1770142418"
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 120M Rimless Aquarium",
+    "slug": "uns-120m",
+    "description": "UNS 120M - 85.5 Gallon Ultra Clear Rimless Aquarium",
+    "specs": {
+      "length_in": 47.24,
+      "width_in": 23.62,
+      "height_in": 17.72,
+      "glass_thickness_mm": 12,
+      "volume_gal": 85.5,
+      "volume_liters": 324,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://buceplant.com/products/uns-120m-85-gallon-ultra-clear-rimless-aquarium"
+    ],
+    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-120m-85-5-gallon-ultra-clear-rimless-aquarium-1219184508.jpg?v=1770142028"
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 25T Rimless Aquarium",
+    "slug": "uns-25t",
+    "description": "UNS 25T - 5.9 Gallon Ultra Clear Rimless Aquarium",
+    "specs": {
+      "length_in": 9.84,
+      "width_in": 9.84,
+      "height_in": 14.17,
+      "glass_thickness_mm": 5,
+      "volume_gal": 5.9,
+      "volume_liters": 22.5,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://buceplant.com/products/25t-5-5-gallon-ultra-clear-rimless-aquarium"
+    ],
+    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-25t-5-9-gallon-ultra-clear-rimless-aquarium-1219184543.jpg?v=1770142268"
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 3N Rimless Aquarium",
+    "slug": "uns-3n",
+    "description": "UNS 3N - 2.9 Gallon Ultra Clear Rimless Aquarium",
+    "specs": {
+      "length_in": 12.2,
+      "width_in": 7.48,
+      "height_in": 7.48,
+      "glass_thickness_mm": 5,
+      "volume_gal": 2.9,
+      "volume_liters": 11.1,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://buceplant.com/products/uns-3n-3-gallon-ultra-clear-rimless-aquarium"
+    ],
+    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-3n-2-9-gallon-ultra-clear-rimless-aquarium-1219111702.jpg?v=1770109987"
+  },
+  {
+    "category_slug": "tank",
     "brand_slug": "waterbox",
     "brand_name": "Waterbox",
     "name": "Waterbox Clear 6",
