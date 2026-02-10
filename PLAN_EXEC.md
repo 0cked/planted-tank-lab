@@ -374,3 +374,12 @@ Reference: ADR `decisions/0004-fly-io-hosting.md`.
   Verify:
     - manual: Vercel no longer receives prod traffic; production URL is Fly.
   Dependencies: F-05
+
+- [ ] F-07 (P1) Add CI auto-deploy to Fly on `main`.
+  Gates: G7
+  Acceptance:
+    - GitHub Actions deploys to Fly on push to `main`.
+    - Secret `FLY_API_TOKEN` is documented and required.
+  Verify:
+    - manual: push a no-op commit; confirm GitHub Actions deploy job succeeds.
+  Dependencies: F-04

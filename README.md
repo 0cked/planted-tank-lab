@@ -96,6 +96,12 @@ fly deploy
 fly scale count app=1 worker=1 scheduler=1
 ```
 
+### GitHub Actions Auto-Deploy (optional)
+
+The repo includes `.github/workflows/fly-deploy.yml`. To enable it, add a GitHub Actions secret:
+
+- `FLY_API_TOKEN` (Fly API token with deploy permissions)
+
 ### Custom Domain (Cloudflare DNS-only)
 
 1) Add certs:
