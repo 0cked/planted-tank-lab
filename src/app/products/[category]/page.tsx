@@ -256,6 +256,13 @@ export default async function ProductCategoryPage(props: {
                       : categorySlug === "light"
                         ? lightSummary(p.specs)
                         : "";
+                  const chips = summary
+                    ? summary
+                        .split(" · ")
+                        .map((s) => s.trim())
+                        .filter(Boolean)
+                        .slice(0, 4)
+                    : [];
                   const brandName = p.brand?.name ?? null;
                   const productImg = firstImageUrl(p.imageUrl ?? null, p.imageUrls);
                   const img = productImg ?? "/images/aquascape-hero-2400.jpg";
@@ -288,9 +295,17 @@ export default async function ProductCategoryPage(props: {
                               >
                                 {brandName ? `${brandName} ${p.name}` : p.name}
                               </Link>
-                              {summary ? (
-                                <div className="mt-1 text-xs text-neutral-600">
-                                  {summary}
+                              {chips.length > 0 ? (
+                                <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] font-semibold text-neutral-800">
+                                  {chips.map((c) => (
+                                    <span
+                                      key={c}
+                                      className="rounded-full border bg-white/70 px-2 py-0.5"
+                                      style={{ borderColor: "var(--ptl-border)" }}
+                                    >
+                                      {c}
+                                    </span>
+                                  ))}
                                 </div>
                               ) : null}
                             </div>
