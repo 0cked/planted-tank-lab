@@ -4,6 +4,7 @@
  *
  * Strategy:
  * - Try Wikipedia REST summary for the scientific name, then common name.
+ * - If that fails, use Wikipedia search API to find a likely page title, then retry summary.
  * - If we get a thumbnail, use it.
  * - Otherwise, fall back to a local placeholder image path.
  */
@@ -61,10 +62,35 @@ async function wikiThumb(title: string): Promise<string | null> {
   return null;
 }
 
+async function wikiSearch(query: string): Promise<string | null> {
+  const url =
+    "https://en.wikipedia.org/w/api.php?" +
+    new URLSearchParams({
+      action: "query",
+      list: "search",
+      srsearch: query,
+      srlimit: "1",
+      format: "json",
+    }).toString();
+
+  const res = await fetch(url, {
+    headers: {
+      "user-agent": "planted-tank-lab (plants-fill-images)",
+      accept: "application/json",
+    },
+  });
+  if (!res.ok) return null;
+  const json = (await res.json()) as unknown;
+  const title = (json as { query?: { search?: Array<{ title?: unknown }> } } | null)?.query
+    ?.search?.[0]?.title;
+  if (typeof title === "string" && title.trim() !== "") return title.trim();
+  return null;
+}
+
 async function main() {
   const plants = JSON.parse(fs.readFileSync(plantsPath, "utf8")) as Plant[];
 
-  const missing = plants.filter((p) => !p.image_url);
+  const missing = plants.filter((p) => !p.image_url || p.image_url === placeholder);
   if (missing.length === 0) {
     console.log("No missing image_url entries.");
     return;
@@ -85,6 +111,12 @@ async function main() {
     if (!looksNonSpecific) {
       for (const cand of titleCandidates(p)) {
         found = await wikiThumb(cand);
+        if (!found) {
+          const suggested = await wikiSearch(cand);
+          if (suggested && suggested.toLowerCase() !== cand.toLowerCase()) {
+            found = await wikiThumb(suggested);
+          }
+        }
         if (found) break;
         // Gentle pacing.
         await new Promise((r) => setTimeout(r, 150));

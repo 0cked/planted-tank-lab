@@ -330,7 +330,7 @@
     "shrimp_safe": true,
     "beginner_friendly": false,
     "description": "Moss that grows downward in a weeping pattern when attached to wood or stone.",
-    "image_url": "/images/aquascape-hero-2400.jpg",
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/%D0%AF%D0%B2%D0%B0%D0%BD%D1%81%D0%BA%D0%B8%D0%B9_%D0%BC%D0%BE%D1%85.jpg/330px-%D0%AF%D0%B2%D0%B0%D0%BD%D1%81%D0%BA%D0%B8%D0%B9_%D0%BC%D0%BE%D1%85.jpg",
     "sources": [
       "https://www.aquariumcoop.com/blogs/aquarium/weeping-moss"
     ]
@@ -1030,7 +1030,10 @@
     "shrimp_safe": true,
     "beginner_friendly": true,
     "description": "Fast grower that can be planted or floated; tolerates a wide range of conditions.",
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Starr_010424-9001_Hydrocotyle_bowlesioides.jpg/330px-Starr_010424-9001_Hydrocotyle_bowlesioides.jpg",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Hydrocotyle"
+    ]
   },
   {
     "common_name": "Rotala rotundifolia",
@@ -1111,7 +1114,10 @@
     "shrimp_safe": true,
     "beginner_friendly": false,
     "description": "Demanding red stem plant; sensitive to CO2 stability and water hardness.",
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Rotala_densiflora_%28Jalmukhi%29_in_Narshapur_forest%2C_AP_W_IMG_0943.jpg/330px-Rotala_densiflora_%28Jalmukhi%29_in_Narshapur_forest%2C_AP_W_IMG_0943.jpg",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Rotala_(plant)"
+    ]
   },
   {
     "common_name": "Ludwigia repens",
@@ -1361,7 +1367,10 @@
     "shrimp_safe": true,
     "beginner_friendly": false,
     "description": "Fine, conifer-like stem plant with tight growth under strong light and CO2.",
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Pogostemon_cablin_001.jpg/330px-Pogostemon_cablin_001.jpg",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Pogostemon"
+    ]
   },
   {
     "common_name": "Blyxa japonica",
@@ -1444,7 +1453,10 @@
     "shrimp_safe": true,
     "beginner_friendly": false,
     "description": "Very demanding rosette plant that prefers soft, acidic water and strong light.",
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Eriocaulon_nudicuspe.JPG/330px-Eriocaulon_nudicuspe.JPG",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Eriocaulon"
+    ]
   },
   {
     "common_name": "Tonina fluviatilis",
@@ -1693,7 +1705,10 @@
     "shrimp_safe": true,
     "beginner_friendly": false,
     "description": "Fast-growing small-leaf stem plant; can be trimmed into a bushy midground.",
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Micranthemum_umbrosum_%28J.F._Gmel.%29_S.F._Blake_%289714579961%29.jpg/330px-Micranthemum_umbrosum_%28J.F._Gmel.%29_S.F._Blake_%289714579961%29.jpg",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Micranthemum"
+    ]
   },
   {
     "common_name": "Lilaeopsis brasiliensis (Micro Sword)",
@@ -1802,7 +1817,10 @@
     "shrimp_safe": true,
     "beginner_friendly": false,
     "description": "Fine-leaved rotala that demands strong light, CO2 stability, and soft water.",
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Rotala_densiflora_%28Jalmukhi%29_in_Narshapur_forest%2C_AP_W_IMG_0943.jpg/330px-Rotala_densiflora_%28Jalmukhi%29_in_Narshapur_forest%2C_AP_W_IMG_0943.jpg",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Rotala_(plant)"
+    ]
   },
   {
     "common_name": "Rotala 'Butterfly'",
@@ -1827,7 +1845,10 @@
     "shrimp_safe": true,
     "beginner_friendly": false,
     "description": "Showy rotala variant with compact growth under strong light and CO2.",
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "image_url": "/images/aquascape-hero-2400.jpg",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Aquascaping"
+    ]
   },
   {
     "common_name": "Myriophyllum sp. 'Guyana'",
@@ -1852,7 +1873,10 @@
     "shrimp_safe": true,
     "beginner_friendly": false,
     "description": "Fine feathery stem plant; colors best with CO2 and strong light in softer water.",
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Myriophyllum_aquaticum_-_side_%28aka%29.jpg/330px-Myriophyllum_aquaticum_-_side_%28aka%29.jpg",
+    "sources": [
+      "https://en.wikipedia.org/wiki/Myriophyllum"
+    ]
   },
   {
     "common_name": "Cabomba (Green Cabomba)",

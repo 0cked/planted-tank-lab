@@ -181,19 +181,32 @@ export default async function ProductDetailPage(props: {
                 className="aspect-square w-full object-cover"
               />
             ) : (
-              <div className="ptl-image-ph flex aspect-square w-full items-center justify-center">
-                <div className="px-6 text-center">
-                  <div className="text-sm font-semibold text-neutral-800">No photo yet</div>
-                  <div className="mt-1 text-xs text-neutral-600">
-                    We’re still filling in product photos. If this is a core pick, it’ll get one soon.
-                  </div>
-                  <div className="mt-3">
-                    <Link
-                      href={`/products/${p.category.slug}`}
-                      className="text-xs font-semibold text-[color:var(--ptl-accent)] hover:underline"
-                    >
-                      Browse more {p.category.name.toLowerCase()}
-                    </Link>
+              <div className="relative aspect-square w-full overflow-hidden">
+                <SmartImage
+                  src="/images/aquascape-hero-2400.jpg"
+                  alt=""
+                  width={720}
+                  height={720}
+                  className="h-full w-full object-cover opacity-80"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-black/0" />
+                <div className="absolute left-4 top-4 rounded-full border bg-white/75 px-3 py-1 text-[11px] font-semibold text-neutral-900" style={{ borderColor: "var(--ptl-border)" }}>
+                  Photo coming soon
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="max-w-[34ch] rounded-2xl border bg-white/80 px-5 py-4 text-center" style={{ borderColor: "var(--ptl-border)" }}>
+                    <div className="text-sm font-semibold text-neutral-900">No product photo yet</div>
+                    <div className="mt-1 text-xs text-neutral-700">
+                      We’re still filling in the catalog. Specs and pricing should be correct, even if the photo isn’t here yet.
+                    </div>
+                    <div className="mt-3">
+                      <Link
+                        href={`/products/${p.category.slug}`}
+                        className="text-xs font-semibold text-[color:var(--ptl-accent)] hover:underline"
+                      >
+                        Browse more {p.category.name.toLowerCase()}
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>

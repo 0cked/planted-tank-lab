@@ -23,10 +23,26 @@ function rangeLabel(min: number | null, max: number | null, unit?: string): stri
   return `<=${max}${unit ? ` ${unit}` : ""}`;
 }
 
-function title(v: string | null | undefined): string {
-  const t = (v ?? "").trim();
-  if (!t) return "—";
-  return t.slice(0, 1).toUpperCase() + t.slice(1);
+function titleWords(v: string | null | undefined): string {
+  const raw = String(v ?? "").trim();
+  if (!raw) return "—";
+  const cleaned = raw
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "—";
+  return cleaned
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function optionalText(v: string | null | undefined): string | null {
+  const t = String(v ?? "").trim();
+  if (!t) return null;
+  if (t === "—") return null;
+  return t;
 }
 
 function pill(text: string) {
@@ -76,6 +92,15 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
   const sources = sourcesList((p as { sources?: unknown }).sources);
   const updated = p.updatedAt ? new Date(p.updatedAt).toISOString().slice(0, 10) : null;
   const typeLabel = p.substrateType ?? p.placement;
+
+  const plantInfoRows: Array<{ label: string; value: string }> = [
+    { label: "Type", value: titleWords(typeLabel) },
+    ...(optionalText(p.nativeRegion) ? [{ label: "Origin", value: optionalText(p.nativeRegion)! }] : []),
+    ...(optionalText(p.growthRate) ? [{ label: "Growth rate", value: optionalText(p.growthRate)! }] : []),
+    ...(maxHeight == null ? [] : [{ label: "Height range", value: rangeLabel(null, maxHeight, "in") }]),
+    ...(optionalText(p.propagation) ? [{ label: "Propagation", value: optionalText(p.propagation)! }] : []),
+    ...(optionalText(p.family) ? [{ label: "Family", value: optionalText(p.family)! }] : []),
+  ];
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -205,48 +230,22 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
             className="mt-4 overflow-hidden rounded-xl border bg-white/70"
             style={{ borderColor: "var(--ptl-border)" }}
           >
-            <table className="w-full text-left text-sm">
-              <tbody className="divide-y divide-neutral-200">
-                <tr>
-                  <th className="w-[40%] bg-white/60 px-4 py-2 font-semibold text-neutral-800">
-                    Type
-                  </th>
-                  <td className="px-4 py-2 text-neutral-800">{title(typeLabel)}</td>
-                </tr>
-                <tr>
-                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
-                    Origin
-                  </th>
-                  <td className="px-4 py-2 text-neutral-800">{p.nativeRegion ?? "—"}</td>
-                </tr>
-                <tr>
-                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
-                    Growth rate
-                  </th>
-                  <td className="px-4 py-2 text-neutral-800">{p.growthRate ?? "—"}</td>
-                </tr>
-                <tr>
-                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
-                    Height range
-                  </th>
-                  <td className="px-4 py-2 text-neutral-800">
-                    {rangeLabel(null, maxHeight, "in")}
-                  </td>
-                </tr>
-                <tr>
-                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
-                    Propagation
-                  </th>
-                  <td className="px-4 py-2 text-neutral-800">{p.propagation ?? "—"}</td>
-                </tr>
-                <tr>
-                  <th className="bg-white/60 px-4 py-2 font-semibold text-neutral-800">
-                    Family
-                  </th>
-                  <td className="px-4 py-2 text-neutral-800">{p.family ?? "—"}</td>
-                </tr>
-              </tbody>
-            </table>
+            {plantInfoRows.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-neutral-600">No details yet.</div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <tbody className="divide-y divide-neutral-200">
+                  {plantInfoRows.map((row) => (
+                    <tr key={row.label}>
+                      <th className="w-[40%] bg-white/60 px-4 py-2 font-semibold text-neutral-800">
+                        {row.label}
+                      </th>
+                      <td className="px-4 py-2 text-neutral-800">{row.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {p.notes ? <p className="mt-4 text-sm text-neutral-600">{p.notes}</p> : null}

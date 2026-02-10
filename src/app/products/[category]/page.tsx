@@ -257,7 +257,8 @@ export default async function ProductCategoryPage(props: {
                         ? lightSummary(p.specs)
                         : "";
                   const brandName = p.brand?.name ?? null;
-                  const img = firstImageUrl(p.imageUrl ?? null, p.imageUrls);
+                  const productImg = firstImageUrl(p.imageUrl ?? null, p.imageUrls);
+                  const img = productImg ?? "/images/aquascape-hero-2400.jpg";
                   return (
                     <li key={p.id} className="px-5 py-4">
                       <div className="flex items-start gap-4">
@@ -265,17 +266,17 @@ export default async function ProductCategoryPage(props: {
                           className="ptl-image-ph h-16 w-16 shrink-0 overflow-hidden rounded-2xl border"
                           style={{ borderColor: "var(--ptl-border)" }}
                         >
-                          {img ? (
-                            // `SmartImage` uses next/image for local assets and <img> for remote
-                            // URLs so we can pull photos from multiple sources while iterating.
-                            <SmartImage
-                              src={img}
-                              alt=""
-                              width={256}
-                              height={256}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : null}
+                          {/* `SmartImage` uses next/image for local assets and <img> for remote URLs. */}
+                          <SmartImage
+                            src={img}
+                            alt=""
+                            width={256}
+                            height={256}
+                            className={
+                              "h-full w-full object-cover " +
+                              (productImg ? "" : "opacity-80")
+                            }
+                          />
                         </div>
 
                         <div className="min-w-0 flex-1">
