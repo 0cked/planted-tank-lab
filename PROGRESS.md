@@ -168,3 +168,12 @@ Each work session must add a new dated entry that includes:
   - Made category rows stack cleanly on mobile.
 - Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
 - Next: C-08, D-01, D-02.
+
+## 2026-02-09 22:40
+
+- Work: Completed C-08 browsing polish:
+  - Products: category lists now show spec chips (more scannable, hobby-catalog feel).
+  - Copy pass: confirmed no internal MVP/seed jargon in customer-facing UI.
+  - Hero/CTAs: kept intentional crop/overlay and consistent button hierarchy.
+- Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
+- Next: D-01, D-02, D-03.

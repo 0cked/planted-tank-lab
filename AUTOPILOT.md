@@ -38,15 +38,16 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Shared build snapshot page clarified: active top-nav state + clearer "Open in builder" behavior + product links. (C-05) (`586f82b`)
 - Content + imagery baseline improved for plants/products (more real plant photos + sources; product browsing is more image-forward). (C-06) (`c9b121a`)
 - Builder Phase B polish: pickers are photo-forward with spec chips + badges; new “What to fix next” panel; mobile category rows stack cleanly. (C-07) (`6a681b7`)
+- Phase C browsing polish: product lists show spec chips, and browsing feels more like a hobby catalog. (C-08) (`8662e85`)
 
 ## Next 3 Tasks (do these in order)
 
-1. C-08 (P1) Phase C browsing polish (products + plants feel like a hobby catalog).
-   Entry points: `/products/*`, `/plants/*`, home copy pass, image-forward list layouts.
-2. D-01 (P0) Consent-respecting analytics/events (minimal).
+1. D-01 (P0) Consent-respecting analytics/events (minimal).
    Entry points: cookie banner/consent storage, analytics/event service, `/go/*` click events.
-3. D-02 (P0) Report-a-problem intake + admin triage.
+2. D-02 (P0) Report-a-problem intake + admin triage.
    Entry points: report intake form, DB table, `/admin/*` triage view.
+3. D-03 (P0) Terms page + final copy/legal sweep.
+   Entry points: `/terms` page, privacy + affiliate disclosure copy pass.
 
 ## Daily Visual QA Notes (2026-02-09)
 

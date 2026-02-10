@@ -184,7 +184,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: `pnpm test:e2e`; manual on mobile.
   Dependencies: C-03
 
-- [ ] C-08 (P1) Phase C browsing polish (products + plants feel like a hobby catalog).
+- [x] C-08 (P1) Phase C browsing polish (products + plants feel like a hobby catalog).
   Gates: G0, G9, G10
   Acceptance:
     - Products and Plants lists are image-forward with meaningful preview chips.
