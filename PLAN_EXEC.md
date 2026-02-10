@@ -175,7 +175,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: daily visual QA checklist + spot-check on mobile.
   Dependencies: C-01, C-02
 
-- [ ] C-07 (P1) Builder Phase B polish (selection cards + warnings clarity + mobile pass).
+- [x] C-07 (P1) Builder Phase B polish (selection cards + warnings clarity + mobile pass).
   Gates: G0, G9
   Acceptance:
     - Picker list items are photo-forward and show 2-4 key specs + badges (Fits / Incompatible / Can’t verify).

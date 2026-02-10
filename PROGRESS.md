@@ -159,3 +159,12 @@ Each work session must add a new dated entry that includes:
   - Products: made category browsing more image-forward and ensured lists/details show a graceful photo fallback when product photos are missing.
 - Verified: `pnpm seed`; `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
 - Next: C-07, C-08, D-01.
+
+## 2026-02-09 22:35
+
+- Work: Completed C-07 builder Phase B polish:
+  - Picker lists are now more photo-forward with spec chips and clear Fit/Incompatible/Can’t verify badges.
+  - Added a “What to fix next” panel to make compatibility feedback actionable (jump-to-step).
+  - Made category rows stack cleanly on mobile.
+- Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
+- Next: C-08, D-01, D-02.

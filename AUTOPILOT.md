@@ -37,15 +37,16 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Auth entrypoint stabilized: top-nav now has a prominent Sign up CTA and a Sign in link that always lands on `/login`; Google OAuth env fixed in Vercel production. (C-04)
 - Shared build snapshot page clarified: active top-nav state + clearer "Open in builder" behavior + product links. (C-05) (`586f82b`)
 - Content + imagery baseline improved for plants/products (more real plant photos + sources; product browsing is more image-forward). (C-06) (`c9b121a`)
+- Builder Phase B polish: pickers are photo-forward with spec chips + badges; new “What to fix next” panel; mobile category rows stack cleanly. (C-07) (`6a681b7`)
 
 ## Next 3 Tasks (do these in order)
 
-1. C-07 (P1) Builder Phase B polish (selection cards + warnings clarity + mobile pass).
-   Entry points: builder picker list items, warnings banner, mobile layout.
-2. C-08 (P1) Phase C browsing polish (products + plants feel like a hobby catalog).
+1. C-08 (P1) Phase C browsing polish (products + plants feel like a hobby catalog).
    Entry points: `/products/*`, `/plants/*`, home copy pass, image-forward list layouts.
-3. D-01 (P0) Consent-respecting analytics/events (minimal).
+2. D-01 (P0) Consent-respecting analytics/events (minimal).
    Entry points: cookie banner/consent storage, analytics/event service, `/go/*` click events.
+3. D-02 (P0) Report-a-problem intake + admin triage.
+   Entry points: report intake form, DB table, `/admin/*` triage view.
 
 ## Daily Visual QA Notes (2026-02-09)
 
