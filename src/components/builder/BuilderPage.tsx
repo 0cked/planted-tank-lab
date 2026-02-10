@@ -60,6 +60,105 @@ function formatMoney(cents: number | null | undefined): string {
   return dollars.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
+function numSpec(specs: unknown, key: string): number | null {
+  if (!isRecord(specs)) return null;
+  const v = specs[key];
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v === "string") return numOrNull(v);
+  return null;
+}
+
+function boolSpec(specs: unknown, key: string): boolean | null {
+  if (!isRecord(specs)) return null;
+  const v = specs[key];
+  if (typeof v === "boolean") return v;
+  return null;
+}
+
+function strSpec(specs: unknown, key: string): string | null {
+  if (!isRecord(specs)) return null;
+  const v = specs[key];
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  return t ? t : null;
+}
+
+function titleWords(v: string): string {
+  const cleaned = v
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return v;
+  return cleaned
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function productPreviewChips(params: { categorySlug: string; specs: unknown }): string[] {
+  const chips: string[] = [];
+  const s = params.specs;
+
+  if (params.categorySlug === "tank") {
+    const vol = numSpec(s, "volume_gal");
+    const l = numSpec(s, "length_in");
+    const w = numSpec(s, "width_in");
+    const h = numSpec(s, "height_in");
+    const rimless = boolSpec(s, "rimless");
+
+    if (vol != null) chips.push(`${vol} gal`);
+    if (l != null && w != null && h != null) chips.push(`${l}x${w}x${h} in`);
+    else if (l != null) chips.push(`${l} in length`);
+    if (rimless === true) chips.push("Rimless");
+  }
+
+  if (params.categorySlug === "light") {
+    const par = numSpec(s, "par_at_substrate");
+    const minLen = numSpec(s, "min_tank_length_in");
+    const maxLen = numSpec(s, "max_tank_length_in");
+    const dimmable = boolSpec(s, "dimmable");
+    const app = boolSpec(s, "app_controlled");
+
+    if (par != null) chips.push(`PAR ~${par}`);
+    if (minLen != null && maxLen != null) chips.push(`${minLen}-${maxLen} in tank`);
+    if (dimmable === true) chips.push("Dimmable");
+    if (app === true) chips.push("App");
+  }
+
+  if (params.categorySlug === "filter") {
+    const type = strSpec(s, "type");
+    const flow = numSpec(s, "flow_rate_gph");
+    const upTo = numSpec(s, "rated_volume_gal_max");
+
+    if (type) chips.push(titleWords(type));
+    if (flow != null) chips.push(`${flow} gph`);
+    if (upTo != null) chips.push(`Up to ${upTo} gal`);
+  }
+
+  if (params.categorySlug === "co2") {
+    const kind = strSpec(s, "co2_type");
+    const stages = numSpec(s, "stages");
+    const solenoid = boolSpec(s, "solenoid");
+
+    if (kind) chips.push(titleWords(kind));
+    if (stages === 2) chips.push("Dual-stage");
+    if (solenoid === true) chips.push("Solenoid");
+  }
+
+  if (params.categorySlug === "substrate") {
+    const type = strSpec(s, "substrate_type");
+    const buffers = boolSpec(s, "buffers_ph");
+    const grain = numSpec(s, "grain_size_mm");
+
+    if (type) chips.push(titleWords(type));
+    if (buffers === true) chips.push("Buffers pH");
+    if (grain != null) chips.push(`${grain}mm`);
+  }
+
+  return chips.slice(0, 4);
+}
+
 function severityLabel(sev: Severity): string {
   switch (sev) {
     case "error":
@@ -242,7 +341,7 @@ function CategoryRowView(props: {
     <div
       data-testid={props.testId}
       className={
-        "grid grid-cols-[1fr_1.7fr_0.8fr_auto] items-center gap-3 px-4 py-3 hover:bg-white/35 " +
+        "grid grid-cols-1 gap-3 px-4 py-3 hover:bg-white/35 sm:grid-cols-[1fr_1.7fr_0.8fr_auto] sm:items-center " +
         (props.active ? "bg-white/40" : "")
       }
     >
@@ -269,14 +368,14 @@ function CategoryRowView(props: {
         </div>
       </div>
 
-      <div className="text-right">
+      <div className="text-left sm:text-right">
         <div className="text-sm font-medium text-neutral-900">{props.priceLabel}</div>
         {props.priceSubLabel ? (
           <div className="text-xs text-neutral-600">{props.priceSubLabel}</div>
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:justify-self-end">
         <button
           type="button"
           onClick={props.onChoose}
@@ -709,6 +808,25 @@ function ProductPicker(props: {
             {effectiveItems.map((x) => {
               const r = x.row;
               const label = r.brand?.name ? `${r.brand.name} ${r.name}` : r.name;
+              const img = firstImageUrl({ imageUrl: r.imageUrl ?? null, imageUrls: r.imageUrls });
+              const displayImg = img ?? "/images/aquascape-hero-2400.jpg";
+              const chips = productPreviewChips({ categorySlug: props.categorySlug, specs: r.specs });
+              const badge = x.blocked ? (
+                <span
+                  className={
+                    "rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
+                    (x.blockedKind === "missing_data"
+                      ? "border-amber-200 bg-amber-50 text-amber-900"
+                      : "border-red-200 bg-red-50 text-red-900")
+                  }
+                >
+                  {x.blockedKind === "missing_data" ? "Can’t verify" : "Incompatible"}
+                </span>
+              ) : props.compatibilityEnabled ? (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-900">
+                  Fits
+                </span>
+              ) : null;
               return (
                 <li
                   key={r.id}
@@ -717,30 +835,40 @@ function ProductPicker(props: {
                     (x.blocked ? "opacity-80" : "")
                   }
                 >
-                  <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
                     <div
-                      className="ptl-image-ph h-11 w-11 overflow-hidden rounded-xl border"
+                      className="ptl-image-ph h-14 w-14 overflow-hidden rounded-2xl border"
                       style={{ borderColor: "var(--ptl-border)" }}
                     >
-                      {(() => {
-                        const img = firstImageUrl({
-                          imageUrl: r.imageUrl ?? null,
-                          imageUrls: r.imageUrls,
-                        });
-                        return img ? (
-                          <SmartImage
-                            src={img}
-                            alt=""
-                            width={96}
-                            height={96}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : null;
-                      })()}
+                      <SmartImage
+                        src={displayImg}
+                        alt=""
+                        width={128}
+                        height={128}
+                        className={"h-full w-full object-cover " + (img ? "" : "opacity-80")}
+                      />
                     </div>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">{label}</div>
-                      <div className="truncate text-xs text-neutral-600">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="truncate text-sm font-semibold text-neutral-900">
+                          {label}
+                        </div>
+                        {badge}
+                      </div>
+                      {chips.length > 0 ? (
+                        <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] font-semibold text-neutral-800">
+                          {chips.map((c) => (
+                            <span
+                              key={c}
+                              className="rounded-full border bg-white/70 px-2 py-0.5"
+                              style={{ borderColor: "var(--ptl-border)" }}
+                            >
+                              {c}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                      <div className="mt-1 line-clamp-2 text-xs text-neutral-600">
                         {x.blocked ? (
                           x.blockedKind === "missing_data" ? (
                             <span className="font-semibold text-amber-800">Cannot verify:</span>
@@ -748,11 +876,11 @@ function ProductPicker(props: {
                             <span className="font-semibold text-red-700">Incompatible:</span>
                           )
                         ) : null}{" "}
-                        <span className="text-neutral-600">
-                          {x.blocked
-                            ? x.reasons[0]?.message ?? "Doesn’t fit the current setup."
-                            : r.slug}
-                        </span>
+                            <span className="text-neutral-600">
+                              {x.blocked
+                                ? x.reasons[0]?.message ?? "Doesn’t fit the current setup."
+                                : r.slug}
+                            </span>
                       </div>
                       {x.blocked && x.reasons[0]?.fixSuggestion ? (
                         <div className="mt-0.5 line-clamp-2 text-xs text-neutral-600">
@@ -974,6 +1102,30 @@ function PlantPicker(props: {
               const label = p.scientificName
                 ? `${p.commonName} (${p.scientificName})`
                 : p.commonName;
+              const img = firstImageUrl({ imageUrl: p.imageUrl ?? null, imageUrls: p.imageUrls });
+              const displayImg = img ?? "/images/aquascape-hero-2400.jpg";
+              const chips = [
+                p.difficulty,
+                `${p.lightDemand} light`,
+                `${p.co2Demand} CO2`,
+                p.placement,
+              ].filter(Boolean);
+              const badge = x.blocked ? (
+                <span
+                  className={
+                    "rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
+                    (x.blockedKind === "missing_data"
+                      ? "border-amber-200 bg-amber-50 text-amber-900"
+                      : "border-red-200 bg-red-50 text-red-900")
+                  }
+                >
+                  {x.blockedKind === "missing_data" ? "Can’t verify" : "Incompatible"}
+                </span>
+              ) : props.compatibilityEnabled ? (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-900">
+                  Fits
+                </span>
+              ) : null;
               return (
                 <li
                   key={p.id}
@@ -982,30 +1134,38 @@ function PlantPicker(props: {
                     (x.blocked ? "opacity-80" : "")
                   }
                 >
-                  <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
                     <div
-                      className="ptl-image-ph h-11 w-11 overflow-hidden rounded-xl border"
+                      className="ptl-image-ph h-14 w-14 overflow-hidden rounded-2xl border"
                       style={{ borderColor: "var(--ptl-border)" }}
                     >
-                      {(() => {
-                        const img = firstImageUrl({
-                          imageUrl: p.imageUrl ?? null,
-                          imageUrls: p.imageUrls,
-                        });
-                        return img ? (
-                          <SmartImage
-                            src={img}
-                            alt=""
-                            width={96}
-                            height={96}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : null;
-                      })()}
+                      <SmartImage
+                        src={displayImg}
+                        alt=""
+                        width={128}
+                        height={128}
+                        className={"h-full w-full object-cover " + (img ? "" : "opacity-80")}
+                      />
                     </div>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">{label}</div>
-                      <div className="truncate text-xs text-neutral-600">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="truncate text-sm font-semibold text-neutral-900">
+                          {label}
+                        </div>
+                        {badge}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] font-semibold text-neutral-800">
+                        {chips.map((c) => (
+                          <span
+                            key={c}
+                            className="rounded-full border bg-white/70 px-2 py-0.5"
+                            style={{ borderColor: "var(--ptl-border)" }}
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-1 line-clamp-2 text-xs text-neutral-600">
                         {x.blocked ? (
                           x.blockedKind === "missing_data" ? (
                             <span className="font-semibold text-amber-800">Cannot verify:</span>
@@ -1016,7 +1176,7 @@ function PlantPicker(props: {
                         <span className="text-neutral-600">
                           {x.blocked
                             ? x.reasons[0]?.message ?? "Doesn’t fit the current setup."
-                            : `${p.difficulty} · ${p.lightDemand} light · ${p.co2Demand} CO2 · ${p.placement}`}
+                            : "Good fit for your current setup."}
                         </span>
                       </div>
                       {x.blocked && x.reasons[0]?.fixSuggestion ? (
@@ -1384,6 +1544,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [activeOffers, setActiveOffers] = useState<{ productId: string; productName: string } | null>(null);
+  const [issuesExpanded, setIssuesExpanded] = useState(false);
 
   const workflow = useMemo(() => {
     return buildWorkflow({
@@ -1628,6 +1789,20 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   ]);
 
   const topBannerEval = evals[0] ?? null;
+  const sortedEvals = useMemo(() => {
+    const order: Record<Severity, number> = {
+      error: 0,
+      warning: 1,
+      completeness: 2,
+      recommendation: 3,
+    };
+    return [...evals].sort((a, b) => {
+      const ao = order[a.severity] ?? 9;
+      const bo = order[b.severity] ?? 9;
+      if (ao !== bo) return ao - bo;
+      return a.message.localeCompare(b.message);
+    });
+  }, [evals]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -1908,6 +2083,91 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
               : "Compatibility engine is off. Turn it on to see checks and warnings."}
           </div>
         )}
+
+        {sortedEvals.length > 0 ? (
+          <div className="ptl-surface p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold text-neutral-900">What to fix next</div>
+                <div className="mt-1 text-xs text-neutral-600">
+                  Jump to a step, swap an item, and re-check instantly.
+                </div>
+              </div>
+              {sortedEvals.length > 6 ? (
+                <button
+                  type="button"
+                  className="rounded-full border bg-white/70 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                  onClick={() => setIssuesExpanded((v) => !v)}
+                >
+                  {issuesExpanded ? "Show less" : `Show all (${sortedEvals.length})`}
+                </button>
+              ) : null}
+            </div>
+
+            <ul className="mt-4 space-y-2">
+              {(issuesExpanded ? sortedEvals : sortedEvals.slice(0, 6)).map((e, idx) => {
+                const steps = [...workflow.core, ...workflow.extras];
+                const fixStepId = (() => {
+                  for (const s of steps) {
+                    if (!e.categoriesInvolved.includes(s.id)) continue;
+                    if (!isStepComplete(s, workflowState)) return s.id;
+                  }
+                  for (let i = steps.length - 1; i >= 0; i--) {
+                    const s = steps[i]!;
+                    if (e.categoriesInvolved.includes(s.id)) return s.id;
+                  }
+                  return null;
+                })();
+                const fixStep = fixStepId ? steps.find((s) => s.id === fixStepId) ?? null : null;
+
+                return (
+                  <li
+                    key={`${e.ruleCode}-${idx}`}
+                    className="rounded-2xl border bg-white/70 p-4"
+                    style={{ borderColor: "var(--ptl-border)" }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={
+                              "rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
+                              severityClasses(e.severity)
+                            }
+                          >
+                            {severityLabel(e.severity)}
+                          </span>
+                          {fixStep ? (
+                            <span className="text-xs font-semibold text-neutral-700">
+                              in {fixStep.label}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 text-sm font-semibold text-neutral-900">{e.message}</div>
+                        {e.fixSuggestion ? (
+                          <div className="mt-1 text-xs text-neutral-700">
+                            <span className="font-semibold">Fix:</span> {e.fixSuggestion}
+                          </div>
+                        ) : null}
+                      </div>
+                      {fixStep ? (
+                        <button
+                          type="button"
+                          className="rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
+                          style={{ borderColor: "var(--ptl-border)" }}
+                          onClick={() => openWorkflowStep(fixStep.id)}
+                        >
+                          Fix
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-8 overflow-hidden rounded-2xl border bg-white/70 shadow-sm backdrop-blur-sm" style={{ borderColor: "var(--ptl-border)" }}>
@@ -1988,7 +2248,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
 
             <div
               data-testid="category-row-plants"
-              className="grid grid-cols-[1fr_1.7fr_0.8fr_auto] items-center gap-3 px-4 py-3"
+              className="grid grid-cols-1 gap-3 px-4 py-3 sm:grid-cols-[1fr_1.7fr_0.8fr_auto] sm:items-center"
             >
               <div className="min-w-0">
                 <div className="truncate font-medium">Plants</div>
@@ -2019,9 +2279,9 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                 )}
               </div>
 
-              <div className="text-right text-sm text-neutral-700">—</div>
+              <div className="text-left text-sm text-neutral-700 sm:text-right">—</div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:justify-self-end">
                 <button
                   type="button"
                   onClick={() => {
