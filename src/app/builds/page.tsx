@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { createTRPCContext } from "@/server/trpc/context";
-import { appRouter } from "@/server/trpc/router";
+import { getServerCaller } from "@/server/trpc/server-caller";
 
 export const metadata: Metadata = {
   title: "Builds | PlantedTankLab",
@@ -15,9 +14,7 @@ function formatMoney(cents: number | null | undefined): string {
 }
 
 export default async function BuildsIndexPage() {
-  const caller = appRouter.createCaller(
-    await createTRPCContext({ req: new Request("http://localhost") }),
-  );
+  const caller = await getServerCaller();
 
   const rows = await caller.builds.listPublic({ limit: 50 }).catch(() => []);
 

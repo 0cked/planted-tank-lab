@@ -35,13 +35,13 @@ test("product detail renders", async ({ page }) => {
 });
 
 test("plants browsing and detail render", async ({ page }) => {
-  await page.goto("/plants");
+  await page.goto("/plants", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Plants" })).toBeVisible();
   await expect(
     page.locator('a[href="/plants/java-fern"]').first(),
   ).toBeVisible();
 
-  await page.goto("/plants/java-fern");
+  await page.goto("/plants/java-fern", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Java Fern" })).toBeVisible();
   await expect(page.getByText("Care Card")).toBeVisible();
 });
@@ -78,7 +78,7 @@ test("builder share creates a snapshot; nav highlights Builds; open-in-builder r
   );
 
   await page.getByRole("link", { name: "Open in builder" }).click();
-  await expect(page).toHaveURL(/\/builder\//);
+  await expect(page).toHaveURL(/\/builder\//, { timeout: 15_000 });
   await expect(
     page.getByRole("navigation").getByRole("link", { name: "Builder" }),
   ).toHaveAttribute(

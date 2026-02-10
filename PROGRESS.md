@@ -244,3 +244,16 @@ Each work session must add a new dated entry that includes:
   - Updated docs/gates to use `pnpm drizzle-kit migrate` (avoid interactive `push` drift).
 - Verified: `pnpm verify` PASS; `pnpm ingest run --dry-run` works; migrations applied cleanly.
 - Next: E-04 (seed/import through ingestion+normalization), then E-05 (canonical mapping/duplicates), then E-06 (cache boundaries + invalidation).
+
+## 2026-02-10 15:54
+
+- Work: Pivoted hosting from Vercel to Fly.io (ADR 0004) by adding container + process-group foundations.
+  - Added `Dockerfile`, `.dockerignore`, `fly.toml`.
+  - Added long-running ingestion operations:
+    - `pnpm ingest daemon` (worker loop)
+    - `pnpm ingest schedule --loop` (scheduler loop; enqueues jobs from `ingestion_sources.schedule_every_minutes`)
+  - Added `src/server/ingestion/scheduler.ts` and a scheduler unit test.
+  - Updated docs and agent contract to reflect Fly.io as the production host (`AGENTS.md`, `README.md`).
+  - Hardened CI verification: e2e now runs against a production build (`pnpm test:e2e` builds first; Playwright uses `pnpm start`).
+- Verified: `pnpm verify` PASS.
+- Next: F-04 deploy to Fly (web + worker + scheduler), then F-05 DNS cutover, then resume E-04 seed-through-ingestion.

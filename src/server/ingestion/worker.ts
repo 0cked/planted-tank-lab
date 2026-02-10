@@ -60,7 +60,12 @@ export async function runIngestionWorker(params: {
           name: "Retailer offer HEAD checks",
           kind: "offer_head",
           defaultTrust: "retailer",
-          scheduleEveryMinutes: null,
+          scheduleEveryMinutes: 60,
+          config: {
+            jobKind: "offers.head_refresh.bulk",
+            jobPayload: { olderThanDays: 2, limit: 50, timeoutMs: 6000 },
+            idempotencyPrefix: "schedule:offers-head",
+          },
         });
 
         const runRows = await db
@@ -108,7 +113,12 @@ export async function runIngestionWorker(params: {
           name: "Retailer offer HEAD checks",
           kind: "offer_head",
           defaultTrust: "retailer",
-          scheduleEveryMinutes: null,
+          scheduleEveryMinutes: 60,
+          config: {
+            jobKind: "offers.head_refresh.bulk",
+            jobPayload: { olderThanDays: 2, limit: 50, timeoutMs: 6000 },
+            idempotencyPrefix: "schedule:offers-head",
+          },
         });
 
         const runRows = await db

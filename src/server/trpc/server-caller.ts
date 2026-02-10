@@ -1,16 +1,23 @@
 import { appRouter } from "@/server/trpc/router";
 import { createTRPCContext } from "@/server/trpc/context";
+import { headers } from "next/headers";
 
-function baseUrl(): string {
-  // tRPC context currently only uses Request for future auth/session plumbing.
-  // Use a stable URL so code can run in dev/preview/prod without env coupling.
-  const url = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  return url;
+async function baseUrl(): Promise<string> {
+  // Mark server callers as dynamic so we don't pre-render DB-backed pages at build time.
+  // This keeps container builds free of production secrets (DATABASE_URL) and aligns with
+  // our SSR-first approach for data-heavy views.
+  const h = await headers();
+  const host =
+    h.get("x-forwarded-host")?.trim() ||
+    h.get("host")?.trim() ||
+    null;
+  const proto = h.get("x-forwarded-proto")?.trim() || "http";
+  if (host) return `${proto}://${host}`;
+  return (process.env.NEXTAUTH_URL ?? "http://localhost:3000").trim();
 }
 
 export async function getServerCaller() {
   return appRouter.createCaller(
-    await createTRPCContext({ req: new Request(baseUrl()) }),
+    await createTRPCContext({ req: new Request(await baseUrl()) }),
   );
 }
-

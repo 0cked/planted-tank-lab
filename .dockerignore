@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.vercel
+.secrets
+.env*
+archive
+test-results
+tmp-next
+*.log
+.DS_Store
+

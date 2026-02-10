@@ -45,6 +45,76 @@ pnpm dev
 - `pnpm test` unit tests (Vitest)
 - `pnpm test:e2e` e2e smoke tests (Playwright)
 - `pnpm ingest run` backend-only ingestion worker (processes queued ingestion jobs; no request-path scraping)
+- `pnpm ingest daemon` long-running ingestion worker (for Fly worker process)
+- `pnpm ingest schedule --loop` long-running scheduler (enqueues periodic ingestion jobs)
+
+## Deployment (Fly.io)
+
+This project is designed to run as long-lived services (web + workers) on Fly.io.
+
+### Prereqs
+
+```bash
+brew install flyctl
+fly auth login
+```
+
+### Initial Setup
+
+1) Create the Fly app (name must be globally unique):
+
+```bash
+fly apps create plantedtanklab-web
+```
+
+If you pick a different name, update `fly.toml` (`app = "..."`).
+
+2) Set secrets:
+
+```bash
+fly secrets set \\
+  DATABASE_URL="postgresql://..." \\
+  NEXT_PUBLIC_SUPABASE_URL="https://....supabase.co" \\
+  NEXT_PUBLIC_SUPABASE_ANON_KEY="..." \\
+  SUPABASE_SERVICE_ROLE_KEY="..." \\
+  NEXTAUTH_SECRET="..." \\
+  NEXTAUTH_URL="https://plantedtanklab.com" \\
+  GOOGLE_CLIENT_ID="..." \\
+  GOOGLE_CLIENT_SECRET="..." \\
+  ADMIN_EMAILS="admin@plantedtanklab.com,jtk1014@gmail.com"
+```
+
+3) Deploy:
+
+```bash
+fly deploy
+```
+
+4) Ensure workers are running:
+
+```bash
+fly scale count app=1 worker=1 scheduler=1
+```
+
+### Custom Domain (Cloudflare DNS-only)
+
+1) Add certs:
+
+```bash
+fly certs add plantedtanklab.com
+fly certs add www.plantedtanklab.com
+```
+
+2) Get the app IPs:
+
+```bash
+fly ips list
+```
+
+3) In Cloudflare DNS (DNS-only / not proxied):
+
+- Point apex `plantedtanklab.com` to the Fly IP(s) (A/AAAA).
+- Point `www` to the Fly hostname (`CNAME` to `plantedtanklab-web.fly.dev`) or the IP(s).
 
 ## Auth + Admin
 

@@ -8,9 +8,9 @@ If anything disagrees with chat history or archived docs, **this file wins**.
 
 ## Current Milestone
 
-- Milestone: E - Ingestion + Normalization Foundation (Trust-First Architecture)
+- Milestone: F - Fly.io Migration (Web + Workers)
 - Day: 1
-- Current objective: implement a dedicated ingestion → normalization → canonical → cached-derivatives pipeline (ADR 0003) and refactor any request-path external fetching out of API/admin routes.
+- Current objective: move production hosting from Vercel to Fly.io (ADR 0004) to support long-running ingestion workers and scheduling, while keeping the trust-first architecture contract intact (ADR 0003).
 
 ## Launch Gates (G0-G11)
 
@@ -20,22 +20,21 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 
 ## What Changed Last
 
-- D-04 QA kickoff: ran full automated verification suite.
-- Verified: `pnpm verify` PASS; `pnpm verify:gates` shows no FAIL gates.
-- Architecture contract updated: ingestion/scraping is a dedicated subsystem (ADR 0003) and prohibited in request paths.
-- Ingestion foundations added:
-  - DB schema + migrations for sources/runs/entities/snapshots/job queue/mappings/overrides.
-  - Backend-only ingestion runner: `pnpm ingest run`.
-  - Offer refresh endpoints now enqueue ingestion jobs (no request-path external fetch).
+- Added Fly.io deployment artifacts: `Dockerfile`, `.dockerignore`, `fly.toml`.
+- Added long-running ingestion ops:
+  - `pnpm ingest daemon` (worker loop)
+  - `pnpm ingest schedule --loop` (scheduler loop that enqueues periodic ingestion jobs)
+- Updated agent contract + docs for Fly hosting (ADR 0004): `AGENTS.md`, `README.md`.
+- Hardened verification: Playwright now runs against a production build (`pnpm test:e2e` builds then runs tests); `pnpm verify` PASS.
 
 ## Next 3 Tasks (do these in order)
 
-1. E-04 (P0) Seed/import flows through ingestion → normalization (no bypass).
+1. F-04 (P0) Provision Fly app + deploy (web + worker + scheduler), verify basic health.
+   Entry points: `fly.toml`, `Dockerfile`, `README.md` (Fly deploy steps).
+2. F-05 (P0) Cut DNS from Vercel → Fly (Cloudflare), verify certs + auth callbacks.
+   Entry points: Cloudflare DNS + `fly certs add` / `fly ips list` runbook.
+3. E-04 (P0) Seed/import flows through ingestion → normalization (no bypass).
    Entry points: `scripts/seed.ts`, `src/server/ingestion/*`, `src/server/normalization/*`.
-2. E-05 (P0) Canonical mapping + duplicate resolution foundations.
-   Entry points: `src/server/normalization/*`, admin tooling.
-3. E-06 (P0) Cache boundaries for read-heavy views (keys/TTL/invalidation).
-   Entry points: `src/server/cache/*`, catalog queries, normalization invalidation hooks.
 
 ## Daily Visual QA Notes (2026-02-09)
 
@@ -63,9 +62,10 @@ Observed from a fresh-session walkthrough (Home → Builder → Products → Pla
 ## Known Risks / Blockers
 
 - Rate limiting is best-effort in-memory. If traffic warrants, migrate to Redis/KV (see `decisions/0001-rate-limiting-store.md`).
-- Sentry is wired in code but requires `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` in Vercel and basic alert rules configured in Sentry UI (manual gate check).
+- Sentry is wired in code but requires `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` in production environment and basic alert rules configured in Sentry UI (manual gate check).
 - Required-specs gating is now enforced; next risk is filling missing specs/images/offers so curated picks remain usable.
-- Ingestion runner is backend-only and must be scheduled outside request paths (Milestone E / E-07).
+- Fly.io migration requires `fly auth login` on the machine running deploys. Until Fly is deployed and DNS is cut over, production remains on Vercel.
+- Google OAuth redirect URIs are configured for `https://plantedtanklab.com/api/auth/callback/google`; this will work once the domain is serving from Fly.
 
 ## How To Resume (target: <2 minutes)
 
@@ -78,7 +78,7 @@ Observed from a fresh-session walkthrough (Home → Builder → Products → Pla
 ## Admin Access (prod)
 
 - `/admin/*` intentionally returns **404** unless `session.user.role === "admin"` (see `src/app/admin/layout.tsx`).
-- Admins are bootstrapped by env: set Vercel `ADMIN_EMAILS` (Production) to a comma-separated list of allowed emails (see `src/server/auth.ts`).
+- Admins are bootstrapped by env: set `ADMIN_EMAILS` (production secrets) to a comma-separated list of allowed emails (see `src/server/auth.ts`).
 - After changing `ADMIN_EMAILS`, trigger a new deploy and sign out/in to refresh the JWT role.
 
 ## No-Conflicts Rule (strict)

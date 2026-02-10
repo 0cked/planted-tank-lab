@@ -128,14 +128,18 @@ The `supabaseinfo.txt` file contains the following values. Parse the file to ext
 - Pooler connection string (postgresql://postgres.xxxxx:[YOUR-PASSWORD]@aws-0-us-west-2.pooler.supabase.com:5432/postgres) → after password substitution, use as `DATABASE_URL`
 
 ### Authenticated CLIs Available
-The system has these CLIs pre-authenticated and ready to use:
-- **Vercel CLI** (`vercel`) — logged in. Use `--yes` flag to skip interactive prompts.
+The system has these CLIs available:
+- **Fly.io CLI** (`fly`) — may require `fly auth login` on first use.
 - **GitHub CLI** (`gh`) — authenticated via `gh auth login`. Use for repo creation and management.
 - **pnpm** — available globally.
 
+Legacy (do not use for production): **Vercel CLI** (`vercel`).
+
 ## Platform Setup (Must Be Done First)
 
-This repo’s production infrastructure is already bootstrapped. The steps below are retained as a runbook for re-provisioning a new environment, but **do not re-run Cloudflare/Vercel setup** unless you intend to change production infrastructure.
+Production hosting is **Fly.io** (ADR 0004), with Supabase Postgres for storage and Cloudflare for DNS.
+
+This repo’s infrastructure is already bootstrapped. The steps below are retained as a runbook for re-provisioning a new environment, but **do not change production DNS** unless you intend to cut traffic over.
 
 Before any application code is written, the full infrastructure must be bootstrapped. This is Milestone 0.
 
@@ -178,19 +182,23 @@ NEXTAUTH_SECRET=<generate with: openssl rand -base64 32>
 NEXTAUTH_URL=http://localhost:3000
 ```
 
-### Step 4: Vercel Project Setup
+### Step 4: Fly.io App Setup
 ```bash
-# Create and link Vercel project
-vercel --yes
-# Set environment variables for all environments (production, preview, development)
-# Use: echo "<value>" | vercel env add <NAME> production preview development
-# Set these:
-#   DATABASE_URL
-#   NEXT_PUBLIC_SUPABASE_URL
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY
-#   SUPABASE_SERVICE_ROLE_KEY
-#   NEXTAUTH_SECRET
-#   NEXTAUTH_URL=https://plantedtanklab.com  (for production)
+# Install + login
+brew install flyctl
+fly auth login
+
+# Create app (name must be globally unique)
+fly apps create plantedtanklab-web
+
+# Set required secrets (plus Google + optional email magic links)
+fly secrets set DATABASE_URL="..." NEXTAUTH_SECRET="..." NEXTAUTH_URL="https://plantedtanklab.com"
+
+# Deploy web + worker image
+fly deploy
+
+# Ensure long-running processes are enabled (web + ingestion worker + scheduler)
+fly scale count app=1 worker=1 scheduler=1
 ```
 
 ### Step 5: Cloudflare DNS Configuration
@@ -211,43 +219,31 @@ curl -s -H "Authorization: Bearer $CF_TOKEN" \
 # 3. DELETE any stale A, AAAA, or CNAME records for @ and www
 #    (loop through results and delete by record ID)
 
-# 4. Create new CNAME records (DNS-only mode, NOT proxied)
-# Root (@):
-curl -X POST -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
-  "https://api.cloudflare.com/client/v4/zones/{ZONE_ID}/dns_records" \
-  -d '{"type":"CNAME","name":"plantedtanklab.com","content":"cname.vercel-dns.com","ttl":1,"proxied":false}'
-
-# www:
-curl -X POST -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
-  "https://api.cloudflare.com/client/v4/zones/{ZONE_ID}/dns_records" \
-  -d '{"type":"CNAME","name":"www","content":"cname.vercel-dns.com","ttl":1,"proxied":false}'
+# 4. Configure DNS for Fly.io (DNS-only mode recommended initially)
+#
+# Add certs in Fly:
+#   fly certs add plantedtanklab.com
+#   fly certs add www.plantedtanklab.com
+#
+# Then get Fly IPs:
+#   fly ips list
+#
+# Root (@) should point to the Fly anycast IP(s) via A/AAAA records.
+# www can be a CNAME to `plantedtanklab-web.fly.dev` (or A/AAAA as well).
 ```
 
 **Critical Cloudflare notes:**
-- `proxied: false` (DNS-only / gray cloud) is REQUIRED for Vercel. Vercel manages its own SSL via Let's Encrypt and will fail certificate validation if Cloudflare proxy is enabled.
+- Prefer `proxied: false` (DNS-only / gray cloud) during initial cutover and certificate validation.
 - Delete ALL conflicting records before creating new ones. Previous attempts may have left A records, AAAA records, or proxied CNAMEs.
 - Also check for and clean up any stale Page Rules or Workers Routes from previous attempts.
 - TTL of 1 means "auto" in Cloudflare's system.
 
-### Step 6: Vercel Custom Domain
-```bash
-vercel domains add plantedtanklab.com --yes
-vercel domains add www.plantedtanklab.com --yes
-```
-Vercel will verify DNS is pointing correctly. If verification fails, re-check that Cloudflare records are DNS-only and pointing to `cname.vercel-dns.com`.
-
-### Step 7: Connect Vercel to GitHub
-```bash
-vercel git connect
-```
-This enables automatic deployments: push to `main` → production deploy, push to branch → preview deploy.
-
-### Step 8: Verify Infrastructure
+### Step 6: Verify Infrastructure
 After setup is complete, verify:
 - [ ] `gh repo view planted-tank-lab` shows the repo
-- [ ] `vercel ls` shows the project
-- [ ] `vercel domains ls` shows plantedtanklab.com configured
-- [ ] `curl -I https://plantedtanklab.com` returns a response (even if 404 — proves DNS + Vercel work)
+- [ ] `fly status` shows the app is healthy
+- [ ] `fly logs` shows app + worker processes starting cleanly
+- [ ] `curl -I https://plantedtanklab.com` returns a response (even if 404 — proves DNS + Fly work)
 - [ ] Database connection works: can connect to Supabase via the pooler URL
 
 ## Tech Stack
@@ -259,8 +255,8 @@ After setup is complete, verify:
 - **Database**: PostgreSQL via Supabase (use Drizzle ORM, never raw SQL)
 - **Auth**: NextAuth.js (Auth.js) — Google OAuth + email magic links
 - **Search**: PostgreSQL full-text search (MVP), upgrade to Meilisearch later
-- **Hosting**: Vercel (frontend + API) + Supabase (DB + storage)
-- **DNS**: Cloudflare (DNS-only mode, pointing to Vercel)
+- **Hosting**: Fly.io (web + workers) + Supabase (DB + storage)
+- **DNS**: Cloudflare (DNS-only mode, pointing to Fly)
 - **Testing**: Vitest for unit tests, Playwright for e2e
 - **Package manager**: pnpm (always use pnpm, never npm or yarn)
 
@@ -445,11 +441,11 @@ pnpm ingest run
 # Format code
 pnpm format
 
-# Deploy to Vercel (production)
-vercel --prod --yes
+# Deploy to Fly.io (production)
+fly deploy
 
-# Deploy preview
-vercel --yes
+# Scale processes (web + worker + scheduler)
+fly scale count app=1 worker=1 scheduler=1
 ```
 
 ## Testing Requirements
@@ -491,9 +487,10 @@ The builder at `/builder` is the heart of the app. Read `PLAN.md` Section 5.2 fo
 - See `PLAN.md` Section 3.3 for the complete schema
 
 ### Deployment Pipeline
-- Push to `main` → Vercel auto-deploys to production via GitHub integration
-- Push to any other branch → Vercel creates a preview deployment
-- Domain: plantedtanklab.com (DNS via Cloudflare DNS-only → Vercel)
+- Production deploys are done via Fly:
+  - `fly deploy`
+  - `fly scale count app=1 worker=1 scheduler=1`
+- Domain: plantedtanklab.com (DNS via Cloudflare DNS-only → Fly)
 
 ## Planning / Tracking
 
@@ -513,5 +510,5 @@ The builder at `/builder` is the heart of the app. Read `PLAN.md` Section 5.2 fo
 - Do not bypass the Drizzle ORM with raw SQL
 - Do not commit `.env.local`, `.secrets/`, or any file containing secrets
 - Do not use Supabase CLI for migrations — use Drizzle Kit directly
-- Do not set Cloudflare proxy to orange cloud (proxied) for Vercel CNAME records — use DNS-only (gray cloud)
+- Prefer Cloudflare DNS-only (not proxied) during initial Fly cutover and certificate validation
 - Do not hardcode any credentials anywhere — always read from `.env.local` or `.secrets/`

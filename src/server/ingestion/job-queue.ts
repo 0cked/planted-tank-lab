@@ -5,7 +5,9 @@ import { eq } from "drizzle-orm";
 import { db, sql } from "@/server/db";
 import { ingestionJobs } from "@/server/db/schema";
 
-export type IngestionJobKind = "offers.head_refresh.bulk" | "offers.head_refresh.one";
+export const IngestionJobKinds = ["offers.head_refresh.bulk", "offers.head_refresh.one"] as const;
+export type IngestionJobKind = (typeof IngestionJobKinds)[number];
+export const IngestionJobKindSchema = z.enum(IngestionJobKinds);
 
 export const OffersHeadRefreshBulkPayloadSchema = z.object({
   olderThanDays: z.number().int().min(0).max(365).default(2),

@@ -1,5 +1,6 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { existsSync, readFileSync } from "node:fs";
 
 import * as schema from "./schema";
@@ -30,43 +31,77 @@ function loadEnvLocal(): void {
   }
 }
 
-loadEnvLocal();
-
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  throw new Error(
-    "DATABASE_URL is not set. Ensure .env.local exists (for local dev) or set DATABASE_URL in the environment.",
-  );
+function getDatabaseUrlOrThrow(): string {
+  // Avoid throwing during `next build` (Docker builds, CI) if DATABASE_URL is not present.
+  // The DB connection is created lazily on first query instead.
+  loadEnvLocal();
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error(
+      "DATABASE_URL is not set. Ensure .env.local exists (for local dev) or set DATABASE_URL in the environment.",
+    );
+  }
+  return databaseUrl;
 }
 
 // In dev, avoid creating too many clients during hot reload.
 const globalForDb = globalThis as unknown as {
   __plantedTankSql?: postgres.Sql;
+  __plantedTankDb?: PostgresJsDatabase<typeof schema>;
 };
 
-const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
-const isProd = process.env.NODE_ENV === "production";
+function createSql(): postgres.Sql {
+  const databaseUrl = getDatabaseUrlOrThrow();
+  const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  const isProd = process.env.NODE_ENV === "production";
+  const isPooler = databaseUrl.includes("pooler.supabase.com");
 
-const isPooler = databaseUrl.includes("pooler.supabase.com");
-
-export const sql =
-  globalForDb.__plantedTankSql ??
-  postgres(databaseUrl, {
+  const sql = postgres(databaseUrl, {
     ssl: "require",
     // Supabase poolers enforce low connection limits (especially in Transaction/Session mode).
-    // On Vercel, many concurrent lambda invocations can exhaust the pool quickly.
-    // Keep this intentionally tiny in production AND when using the Supabase pooler.
+    // Keep this tiny in prod and on the pooler.
     max: isTest ? 1 : isProd || isPooler ? 1 : 10,
     // Close idle connections promptly (seconds). Helps avoid “max clients reached”.
     idle_timeout: isProd || isPooler ? 10 : undefined,
-    // Supabase pooler + prepared statements can be a bad mix (depending on mode).
-    // Safer to disable prepared statements when we're on the pooler.
+    // Pooler + prepared statements can be a bad mix (depending on mode).
     prepare: isPooler ? false : undefined,
   });
 
-// Cache the client across hot reloads AND across serverless warm invocations.
-globalForDb.__plantedTankSql = sql;
+  globalForDb.__plantedTankSql = sql;
+  return sql;
+}
 
-export const db = drizzle(sql, { schema });
+function getSql(): postgres.Sql {
+  return globalForDb.__plantedTankSql ?? createSql();
+}
+
+function createDb(): PostgresJsDatabase<typeof schema> {
+  const db = drizzle(getSql(), { schema });
+  globalForDb.__plantedTankDb = db;
+  return db;
+}
+
+function getDb(): PostgresJsDatabase<typeof schema> {
+  return globalForDb.__plantedTankDb ?? createDb();
+}
+
+// Proxy exports to keep call sites unchanged, while avoiding DB init at module-load time.
+export const db: PostgresJsDatabase<typeof schema> = new Proxy(
+  {} as PostgresJsDatabase<typeof schema>,
+  {
+  get(_target, prop, receiver) {
+    return Reflect.get(getDb() as unknown as object, prop, receiver);
+  },
+  },
+);
+
+export const sql: postgres.Sql = new Proxy((() => null) as unknown as postgres.Sql, {
+  apply(_target, thisArg, argArray) {
+    return Reflect.apply(getSql() as unknown as (...args: unknown[]) => unknown, thisArg, argArray);
+  },
+  get(_target, prop, receiver) {
+    return Reflect.get(getSql() as unknown as object, prop, receiver);
+  },
+});
 
 export type DbClient = typeof db;

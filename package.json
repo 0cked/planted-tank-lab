@@ -9,8 +9,8 @@
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "test:e2e": "playwright test --pass-with-no-tests",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm build",
+    "test:e2e": "pnpm build && playwright test --pass-with-no-tests",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e",
     "verify:gates": "tsx scripts/gates.ts",
     "seed": "tsx scripts/seed.ts",
     "ingest": "tsx scripts/ingest.ts",
@@ -35,6 +35,7 @@
     "postgres": "^3.4.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "tsx": "^4.0.0",
     "zod": "^3.23.0",
     "zustand": "^5.0.0"
   },
@@ -51,7 +52,6 @@
     "playwright": "^1.50.0",
     "prettier": "^3.0.0",
     "tailwindcss": "^4",
-    "tsx": "^4.0.0",
     "typescript": "^5",
     "vitest": "^2.0.0"
   },

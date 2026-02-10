@@ -304,3 +304,73 @@ No request-path code may fetch external sources. All downstream features must re
   Verify:
     - manual: confirm schedule triggers and run logs exist.
   Dependencies: E-02
+
+## Milestone F - Fly.io Migration (Web + Workers)
+
+Goal: migrate production hosting from Vercel to Fly.io so the system can run as long-lived services:
+
+- Web/SSR app (pages + API routes)
+- Workers (ingestion/normalization jobs)
+- Scheduler (enqueue periodic ingestion jobs)
+
+Reference: ADR `decisions/0004-fly-io-hosting.md`.
+
+- [x] F-01 (P0) Add Fly deployment artifacts (Dockerfile + fly.toml).
+  Gates: G5, G7
+  Acceptance:
+    - Repo contains `Dockerfile`, `.dockerignore`, and `fly.toml`.
+    - Container starts locally and serves the app on the configured port.
+  Verify:
+    - `docker build -t plantedtanklab .`
+    - `docker run --rm -p 8080:8080 --env-file .env.local plantedtanklab` then open `http://localhost:8080`
+  Dependencies: none
+
+- [x] F-02 (P0) Long-running worker + scheduler commands.
+  Gates: G7
+  Acceptance:
+    - `pnpm ingest daemon` runs a worker loop safely (SIGTERM handling).
+    - `pnpm ingest schedule --loop` enqueues jobs from `ingestion_sources.schedule_every_minutes`.
+  Verify:
+    - `pnpm ingest --help`
+    - `pnpm ingest schedule` (should enqueue or dedupe without crashing)
+  Dependencies: E-01
+
+- [x] F-03 (P0) Update agent contract + docs for Fly hosting.
+  Gates: G7
+  Acceptance:
+    - `AGENTS.md` and `README.md` describe Fly deploy/secrets and stop recommending Vercel.
+    - New ADR exists for hosting pivot.
+  Verify:
+    - read docs; confirm no conflicting instructions.
+  Dependencies: F-01
+
+- [ ] F-04 (P0) Deploy to Fly (web + worker + scheduler) and verify health.
+  Gates: G5, G7
+  Acceptance:
+    - `fly deploy` succeeds.
+    - `fly scale count app=1 worker=1 scheduler=1` succeeds and processes show healthy.
+    - Worker processes scheduled ingestion jobs (e.g., offers head refresh) without request-path scraping.
+  Verify:
+    - `fly status`
+    - `fly logs` (no crash loops)
+    - `pnpm ingest schedule` logs in Fly show jobs being enqueued and processed
+  Dependencies: F-02
+
+- [ ] F-05 (P0) Cut DNS over from Vercel → Fly and verify auth callbacks.
+  Gates: G1, G5
+  Acceptance:
+    - `plantedtanklab.com` and `www.plantedtanklab.com` serve from Fly with valid TLS.
+    - Google OAuth callback works at `https://plantedtanklab.com/api/auth/callback/google`.
+  Verify:
+    - `curl -I https://plantedtanklab.com` (Fly response)
+    - manual: Google sign-in works end-to-end after cutover
+  Dependencies: F-04
+
+- [ ] F-06 (P1) Decommission Vercel production pipeline (prevent drift).
+  Gates: G7
+  Acceptance:
+    - Vercel is no longer the production deploy target; docs and runbooks reflect Fly.
+    - Any Vercel-only cron assumptions are removed from production gates.
+  Verify:
+    - manual: Vercel no longer receives prod traffic; production URL is Fly.
+  Dependencies: F-05
