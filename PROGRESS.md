@@ -213,3 +213,9 @@ Each work session must add a new dated entry that includes:
 - Work: Started D-04 final QA by running the full automated verification suite on a clean working tree.
 - Verified: `pnpm verify` (lint + typecheck + unit tests + e2e smoke + build) **PASS**; `pnpm verify:gates` shows **no FAIL** gates.
 - Next: finish D-04 by completing the manual QA + production spot-check checklist in `VERIFY.md` (desktop + mobile), then update `config/gates.json` (set PASS/lastVerifiedAt where applicable).
+
+## 2026-02-10 12:05
+
+- Work: Re-ran D-04 automated go/no-go verification on a clean tree.
+- Verified: `pnpm verify` **PASS**; `pnpm verify:gates` shows **no FAIL** gates.
+- Next: complete remaining D-04 manual QA checklist (G0/G1/G9 focus) per `VERIFY.md`, then update `config/gates.json` (status + lastVerifiedAt) accordingly.
