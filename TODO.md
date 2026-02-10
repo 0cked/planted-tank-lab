@@ -6,4 +6,6 @@ Do not add tasks here unless they already exist in `PLAN_EXEC.md`.
 
 ## Ready Now (work top to bottom)
 
-1. D-04 Final QA + performance checks + "go/no-go" gate verification.
+1. E-04 Seed/import flows through ingestion → normalization (no bypass).
+2. E-05 Canonical mapping + duplicate resolution foundations.
+3. E-06 Cache boundaries for read-heavy views.

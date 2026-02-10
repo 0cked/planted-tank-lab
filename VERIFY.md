@@ -25,7 +25,7 @@ Prints G0-G11 pass/fail/unknown from `config/gates.json` plus verification guida
 
 1. Install deps: `pnpm install`
 2. Ensure `.env.local` exists (do not commit it). See `.env.example`.
-3. Apply DB schema: `pnpm drizzle-kit push`
+3. Apply DB schema: `pnpm drizzle-kit migrate`
 4. Seed data: `pnpm seed`
 
 ## Manual QA Checklist (minimum)

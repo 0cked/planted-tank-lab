@@ -13,6 +13,7 @@
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm build",
     "verify:gates": "tsx scripts/gates.ts",
     "seed": "tsx scripts/seed.ts",
+    "ingest": "tsx scripts/ingest.ts",
     "catalog:check": "tsx scripts/catalog-check.ts",
     "format": "prettier -w ."
   },

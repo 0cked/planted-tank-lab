@@ -1,6 +1,10 @@
-# PLAN_EXEC - v1 Launch Execution Checklist (14-Day Plan)
+# PLAN_EXEC - Execution Checklist (Authoritative)
 
-This is the authoritative execution checklist for shipping a credible public v1.
+This is the authoritative execution checklist.
+
+As of 2026-02-10, the project’s architectural direction is **trust-first ingestion + normalization**
+(see `AGENTS.md` and ADR `decisions/0003-ingestion-normalization-architecture.md`). Any tasks or
+assumptions that conflict with that contract must be updated or archived.
 
 For current status and what to do next, see `AUTOPILOT.md`.
 
@@ -218,3 +222,85 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Acceptance: `pnpm verify` passes; `pnpm verify:gates` has no `fail`; manual QA checklist complete.
   Verify: `pnpm verify && pnpm verify:gates`
   Dependencies: all prior P0 tasks
+
+## Milestone E - Ingestion + Normalization Foundation (Trust-First)
+
+Goal: enforce the architecture contract from `AGENTS.md` (ADR `decisions/0003-ingestion-normalization-architecture.md`):
+
+Raw ingestion → Normalization → Canonical storage → Cached derivatives → Presentation
+
+No request-path code may fetch external sources. All downstream features must rely on canonical, normalized entities.
+
+- [x] E-01 (P0) Ingestion schema + provenance foundations.
+  Gates: G4, G7, G9
+  Acceptance:
+    - DB tables exist for: sources, ingestion runs, source entities, raw snapshots, canonical mappings, and normalization overrides.
+    - Raw payloads (HTML/JSON) are preserved and linkable to normalized outputs.
+    - Per-field provenance + trust is representable (at minimum in extracted snapshot JSON + canonical provenance fields).
+  Verify:
+    - `pnpm drizzle-kit generate && pnpm drizzle-kit migrate`
+    - manual: inspect tables in DB; confirm unique constraints enforce idempotency.
+  Dependencies: none
+
+- [x] E-02 (P0) Backend-only ingestion runner + deterministic normalization harness.
+  Gates: G4, G7
+  Acceptance:
+    - `pnpm ingest` runs outside request/response and processes due jobs idempotently.
+    - Runs are recorded with status + stats; failures are retry-safe.
+    - Normalization produces deterministic canonical updates with recorded provenance.
+  Verify:
+    - `pnpm ingest --help`
+    - `pnpm ingest run --dry-run`
+    - `pnpm ingest run` (run twice; confirm idempotency)
+  Dependencies: E-01
+
+- [x] E-03 (P0) Remove request-path external fetching; enqueue instead.
+  Gates: G5, G7, G9
+  Acceptance:
+    - No API/admin route performs external fetches for ingestion/scraping.
+    - Existing offer refresh endpoints enqueue ingestion jobs and return quickly.
+    - External network calls occur only inside the ingestion runner subsystem.
+  Verify:
+    - `rg -n \"fetch\\(row\\.url|fetch\\(.*http\" src/app src/server/trpc src/components` returns no ingestion fetches.
+    - manual: trigger offer refresh from admin; confirm a job is queued and later processed by `pnpm ingest run`.
+  Dependencies: E-02
+
+- [ ] E-04 (P0) Seed/import flows through ingestion → normalization (no bypass).
+  Gates: G4, G9
+  Acceptance:
+    - Seed data is ingested as a source with raw snapshots, then normalized into canonical tables.
+    - Seed is idempotent and preserves provenance/trust for seeded fields.
+  Verify:
+    - `pnpm seed` (run twice)
+    - manual: inspect raw snapshots for a seeded product + plant.
+  Dependencies: E-02
+
+- [ ] E-05 (P0) Canonical mapping + duplicate resolution foundations.
+  Gates: G4, G9
+  Acceptance:
+    - Deterministic matching rules exist (e.g., UPC/EAN/ASIN/MPN → exact, then explicit brand+model rules, else new canonical).
+    - Admin can manually map/unmap a source entity to a canonical entity and apply per-field overrides.
+    - Conflicts are explainable: “why this value won” is visible in admin.
+  Verify:
+    - unit tests for matching precedence
+    - manual: map a second source entity to an existing product and confirm canonical remains stable.
+  Dependencies: E-01
+
+- [ ] E-06 (P0) Cache boundaries for read-heavy views.
+  Gates: G8, G0
+  Acceptance:
+    - A caching layer exists with explicit keys + TTLs + invalidation strategy tied to ingestion/normalization updates.
+    - At least one high-traffic view (category list / product list / plant list) uses cached derivatives.
+  Verify:
+    - `pnpm test`
+    - manual: confirm cache hits via logs/admin and correctness with invalidation.
+  Dependencies: E-02
+
+- [ ] E-07 (P1) Scheduler story (outside request paths) + runbook.
+  Gates: G7
+  Acceptance:
+    - A documented, production-ready scheduler invokes `pnpm ingest run` (e.g., GitHub Actions or a dedicated worker).
+    - Secrets are handled correctly; runs are observable.
+  Verify:
+    - manual: confirm schedule triggers and run logs exist.
+  Dependencies: E-02

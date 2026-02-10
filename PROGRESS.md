@@ -219,3 +219,28 @@ Each work session must add a new dated entry that includes:
 - Work: Re-ran D-04 automated go/no-go verification on a clean tree.
 - Verified: `pnpm verify` **PASS**; `pnpm verify:gates` shows **no FAIL** gates.
 - Next: complete remaining D-04 manual QA checklist (G0/G1/G9 focus) per `VERIFY.md`, then update `config/gates.json` (status + lastVerifiedAt) accordingly.
+
+## 2026-02-10 12:15
+
+- Work: Daily visual QA walkthrough on plantedtanklab.com (Home → Builder → Products → Plants → Builds → Sign-in → Profile).
+- Findings (backlog candidates):
+  - Product detail specs show raw snake_case labels (e.g. `hardscape_type`, `raises_gh`) instead of human-friendly labels.
+  - Hardscape list shows price as `—` for items with no offers; consider a more intentional empty pricing state (“No offers yet”, or hide price column when offer count is 0).
+- Verified: primary nav + footer links load; `/profile` unauth state is a clean sign-in prompt.
+- Next: continue D-04 manual QA checklist per `VERIFY.md` and update gates timestamps.
+
+## 2026-02-10 13:50
+
+- Work: Reconciled repo architecture + plans for a trust-first ingestion → normalization pipeline (ADR 0003).
+  - Updated `AGENTS.md` contract: ingestion/scraping is backend-only; no request-path external fetching; normalization is the only reconciliation layer.
+  - Added ingestion foundations to DB schema:
+    - `ingestion_sources`, `ingestion_runs`, `ingestion_jobs`, `ingestion_entities`, `ingestion_entity_snapshots`
+    - `canonical_entity_mappings`, `normalization_overrides`
+  - Generated and applied migration `0009_ingestion_foundation.sql`.
+  - Backfilled `drizzle.__drizzle_migrations` with the latest applied migration so `drizzle-kit migrate` can run forward.
+  - Implemented backend-only ingestion runner: `pnpm ingest run` (job queue + worker + offer HEAD refresh source).
+  - Refactored offer refresh endpoints (admin + cron) to enqueue ingestion jobs (no request-path scraping).
+  - Added unit coverage for ingestion offer refresh job processing + provenance rows.
+  - Updated docs/gates to use `pnpm drizzle-kit migrate` (avoid interactive `push` drift).
+- Verified: `pnpm verify` PASS; `pnpm ingest run --dry-run` works; migrations applied cleanly.
+- Next: E-04 (seed/import through ingestion+normalization), then E-05 (canonical mapping/duplicates), then E-06 (cache boundaries + invalidation).

@@ -69,7 +69,7 @@
       "lastVerifiedAt": null,
       "notes": "",
       "verification": {
-        "commands": ["pnpm drizzle-kit push", "pnpm seed"],
+        "commands": ["pnpm drizzle-kit migrate", "pnpm seed"],
         "manualChecklist": [
           "Migrations apply cleanly in a fresh DB.",
           "Seed is idempotent (running twice does not create duplicates).",

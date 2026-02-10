@@ -43,6 +43,53 @@ Do not create new planning/checkpoint/roadmap files outside the Autopilot system
 If a new doc is needed, it must be linked from `AUTOPILOT.md` and must not duplicate
 task tracking.
 
+## Architecture Contract (Non-Negotiable)
+
+PlantedTankLab is a **trust-first** platform. Correctness, determinism, provenance,
+and long-term maintainability come before speed or novelty.
+
+### Mandatory System Boundaries
+
+Architecture flow (structural, not “by convention”):
+
+Raw ingestion → Normalization → Canonical storage → Cached derivatives → Presentation
+
+Rules:
+- **Ingestion/scraping must be backend-only and must not run in request/response paths.**
+  API routes may enqueue jobs, but may not fetch external sources.
+- **No UI/tRPC/API code may fetch external sources.** Presentation consumes only canonical
+  DB data and cached derivatives.
+- **No reconciliation/duplicate-resolution logic outside normalization.**
+  Presentation must never “guess” or merge entities.
+
+Code ownership:
+- Ingestion sources + job runner: `src/server/ingestion/*` + `scripts/ingest.ts`
+- Normalization + matching + overrides: `src/server/normalization/*`
+- Canonical entities live in `src/server/db/schema.ts` (Drizzle) and are the only tables
+  used by the app UI.
+- Cached derivatives are implemented via `src/server/cache/*` and/or explicit cached tables.
+
+### Provenance + Trust Requirements
+
+- Every ingested field must record:
+  - source (and source entity identifier)
+  - timestamp(s)
+  - trust level (per-field, not just per-record)
+- Raw source payloads must be preserved (HTML/JSON) and linked to canonical outcomes.
+- Conflicts are resolved deterministically via explicit precedence rules and recorded decisions.
+- Manual corrections/overrides must be supported and must win over automated data.
+
+### Caching & SSR Defaults
+
+- Assume read-heavy usage.
+- Cache aggressively at safe boundaries with explicit:
+  - cache keys
+  - TTLs
+  - invalidation rules (triggered by ingestion/normalization updates)
+- Prefer Server Components/SSR for data-heavy views (catalog, details, comparisons).
+  Use client JS only for progressive enhancement. The builder may remain client-driven,
+  but should still SSR a deterministic shell and rely only on canonical data.
+
 ## Project Overview
 
 PlantedTankLab is "PCPartPicker for planted aquariums." Users build a planted aquarium setup by selecting compatible equipment (tank, light, filter, CO2, substrate, plants, ferts, heater, etc.) with real-time compatibility checking, price comparison, and affiliate monetization.
@@ -386,11 +433,14 @@ pnpm verify:gates
 # Generate Drizzle migration
 pnpm drizzle-kit generate
 
-# Push schema to DB (dev only)
-pnpm drizzle-kit push
+# Apply migrations to DB (dev/prod)
+pnpm drizzle-kit migrate
 
 # Run seed scripts
 pnpm seed
+
+# Run ingestion worker (backend-only)
+pnpm ingest run
 
 # Format code
 pnpm format

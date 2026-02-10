@@ -306,6 +306,217 @@ export const offerClicks = pgTable(
   ],
 );
 
+export const ingestionSources = pgTable(
+  "ingestion_sources",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    slug: varchar("slug", { length: 80 }).notNull(),
+    name: varchar("name", { length: 200 }).notNull(),
+    // Examples: manual_seed, http_json, http_html, offer_head, vendor_api
+    kind: varchar("kind", { length: 50 }).notNull(),
+    config: jsonb("config").notNull().default({}),
+    // Null means "manual/triggered only".
+    scheduleEveryMinutes: integer("schedule_every_minutes"),
+    active: boolean("active").notNull().default(true),
+    // Informational default trust level for this source.
+    defaultTrust: varchar("default_trust", { length: 30 })
+      .notNull()
+      .default("unknown"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("ingestion_sources_slug_unique").on(t.slug),
+    index("idx_ingestion_sources_active").on(t.active),
+  ],
+);
+
+export const ingestionRuns = pgTable(
+  "ingestion_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => ingestionSources.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 20 }).notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    stats: jsonb("stats").notNull().default({}),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_ingestion_runs_source_started").on(t.sourceId, t.startedAt),
+    index("idx_ingestion_runs_status_started").on(t.status, t.startedAt),
+  ],
+);
+
+export const ingestionJobs = pgTable(
+  "ingestion_jobs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    kind: varchar("kind", { length: 80 }).notNull(),
+    payload: jsonb("payload").notNull().default({}),
+    idempotencyKey: varchar("idempotency_key", { length: 200 }),
+    priority: integer("priority").notNull().default(0),
+    status: varchar("status", { length: 20 }).notNull().default("queued"),
+    runAfter: timestamp("run_after", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(5),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    lockedBy: varchar("locked_by", { length: 80 }),
+    lastError: text("last_error"),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("ingestion_jobs_idempotency_key_unique").on(t.idempotencyKey),
+    index("idx_ingestion_jobs_status_run_after").on(t.status, t.runAfter),
+    index("idx_ingestion_jobs_kind_status").on(t.kind, t.status, t.runAfter),
+  ],
+);
+
+export const ingestionEntities = pgTable(
+  "ingestion_entities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => ingestionSources.id, { onDelete: "cascade" }),
+    entityType: varchar("entity_type", { length: 30 }).notNull(),
+    sourceEntityId: varchar("source_entity_id", { length: 200 }).notNull(),
+    url: varchar("url", { length: 1500 }),
+    active: boolean("active").notNull().default(true),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    meta: jsonb("meta").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("ingestion_entities_source_type_entity_unique").on(
+      t.sourceId,
+      t.entityType,
+      t.sourceEntityId,
+    ),
+    index("idx_ingestion_entities_type").on(t.entityType),
+    index("idx_ingestion_entities_active").on(t.active),
+  ],
+);
+
+export const ingestionEntitySnapshots = pgTable(
+  "ingestion_entity_snapshots",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    entityId: uuid("entity_id")
+      .notNull()
+      .references(() => ingestionEntities.id, { onDelete: "cascade" }),
+    runId: uuid("run_id").references(() => ingestionRuns.id, { onDelete: "set null" }),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    httpStatus: integer("http_status"),
+    contentType: varchar("content_type", { length: 200 }),
+    rawText: text("raw_text"),
+    rawJson: jsonb("raw_json"),
+    // Extracted structured fields. Recommended shape:
+    // { fields: { path: { value, trust, ... } }, meta: { ... } }
+    extracted: jsonb("extracted").notNull().default({}),
+    // Hex-encoded SHA-256 (64 chars). Used for idempotency.
+    contentHash: varchar("content_hash", { length: 64 }).notNull(),
+    // Optional per-field trust map, if not embedded in `extracted`.
+    trust: jsonb("trust").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("ingestion_entity_snapshots_entity_hash_unique").on(
+      t.entityId,
+      t.contentHash,
+    ),
+    index("idx_ingestion_entity_snapshots_entity_fetched").on(t.entityId, t.fetchedAt),
+    index("idx_ingestion_entity_snapshots_run").on(t.runId, t.fetchedAt),
+  ],
+);
+
+export const canonicalEntityMappings = pgTable(
+  "canonical_entity_mappings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    entityId: uuid("entity_id")
+      .notNull()
+      .references(() => ingestionEntities.id, { onDelete: "cascade" }),
+    canonicalType: varchar("canonical_type", { length: 30 }).notNull(),
+    canonicalId: uuid("canonical_id").notNull(),
+    matchMethod: varchar("match_method", { length: 50 }).notNull(),
+    confidence: integer("confidence").notNull().default(100),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("canonical_entity_mappings_entity_unique").on(t.entityId),
+    index("idx_canonical_entity_mappings_canonical").on(t.canonicalType, t.canonicalId),
+  ],
+);
+
+export const normalizationOverrides = pgTable(
+  "normalization_overrides",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    canonicalType: varchar("canonical_type", { length: 30 }).notNull(),
+    canonicalId: uuid("canonical_id").notNull(),
+    fieldPath: varchar("field_path", { length: 200 }).notNull(),
+    value: jsonb("value").notNull(),
+    reason: text("reason"),
+    actorUserId: uuid("actor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("normalization_overrides_entity_field_unique").on(
+      t.canonicalType,
+      t.canonicalId,
+      t.fieldPath,
+    ),
+    index("idx_normalization_overrides_entity").on(t.canonicalType, t.canonicalId),
+  ],
+);
+
 
 export const priceHistory = pgTable(
   "price_history",

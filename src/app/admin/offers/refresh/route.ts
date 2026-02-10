@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/server/auth";
-import { db } from "@/server/db";
-import { refreshOffersJob } from "@/server/jobs/refresh-offers";
+import { enqueueIngestionJob } from "@/server/ingestion/job-queue";
 import { logAdminAction } from "@/server/services/admin-log";
 
 export const runtime = "nodejs";
@@ -16,11 +15,13 @@ export async function POST(req: Request) {
   const olderThanDays = Number(String(fd.get("olderThanDays") ?? "0"));
   const limit = Number(String(fd.get("limit") ?? "30"));
 
-  const result = await refreshOffersJob({
-    db,
-    olderThanDays: Number.isFinite(olderThanDays) ? Math.max(0, olderThanDays) : 0,
-    limit: Number.isFinite(limit) ? Math.min(200, Math.max(1, limit)) : 30,
-    timeoutMs: 6000,
+  const parsedOlder = Number.isFinite(olderThanDays) ? Math.max(0, olderThanDays) : 0;
+  const parsedLimit = Number.isFinite(limit) ? Math.min(500, Math.max(1, limit)) : 30;
+
+  const queued = await enqueueIngestionJob({
+    kind: "offers.head_refresh.bulk",
+    payload: { olderThanDays: parsedOlder, limit: parsedLimit, timeoutMs: 6000 },
+    priority: 5,
   });
 
   await logAdminAction({
@@ -28,11 +29,10 @@ export async function POST(req: Request) {
     action: "offers.refresh.bulk",
     targetType: "offers",
     targetId: null,
-    meta: result,
+    meta: { jobId: queued.id, deduped: queued.deduped, olderThanDays: parsedOlder, limit: parsedLimit },
   });
 
   const u = new URL("/admin/offers", req.url);
-  u.searchParams.set("refreshed", String(result.updated));
+  u.searchParams.set("queued", queued.id ?? "1");
   return NextResponse.redirect(u.toString(), { status: 303 });
 }
-

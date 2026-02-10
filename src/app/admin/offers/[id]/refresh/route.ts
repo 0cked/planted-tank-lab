@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/server/auth";
-import { db } from "@/server/db";
-import { refreshOfferUrl } from "@/server/jobs/refresh-offers";
+import { enqueueIngestionJob } from "@/server/ingestion/job-queue";
 import { logAdminAction } from "@/server/services/admin-log";
 
 export const runtime = "nodejs";
@@ -21,17 +20,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   if (!isUuid(id)) return new NextResponse("Not found", { status: 404 });
 
-  const result = await refreshOfferUrl({ db, offerId: id, timeoutMs: 6000 });
+  const minuteBucket = Math.floor(Date.now() / 60000);
+  const queued = await enqueueIngestionJob({
+    kind: "offers.head_refresh.one",
+    payload: { offerId: id, timeoutMs: 6000 },
+    idempotencyKey: `offers.head_refresh.one:${id}:${minuteBucket}`,
+    priority: 10,
+  });
 
   await logAdminAction({
     actorUserId: session.user.id ?? null,
     action: "offer.refresh",
     targetType: "offer",
     targetId: id,
-    meta: result,
+    meta: { jobId: queued.id, deduped: queued.deduped },
   });
 
   const u = new URL("/admin/offers", req.url);
   return NextResponse.redirect(u.toString(), { status: 303 });
 }
-

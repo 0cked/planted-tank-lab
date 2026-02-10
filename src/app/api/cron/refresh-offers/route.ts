@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/server/db";
-import { refreshOffersJob } from "@/server/jobs/refresh-offers";
+import { enqueueIngestionJob } from "@/server/ingestion/job-queue";
 
 export const runtime = "nodejs";
 
@@ -26,17 +25,22 @@ export async function GET(req: Request) {
   const olderThanDays = Number(url.searchParams.get("olderThanDays") ?? "2");
   const limit = Number(url.searchParams.get("limit") ?? "30");
 
-  const result = await refreshOffersJob({
-    db,
-    olderThanDays: Number.isFinite(olderThanDays) ? Math.max(1, olderThanDays) : 2,
-    limit: Number.isFinite(limit) ? Math.min(100, Math.max(1, limit)) : 30,
-    timeoutMs: 6000,
+  const parsedOlder = Number.isFinite(olderThanDays) ? Math.max(1, olderThanDays) : 2;
+  const parsedLimit = Number.isFinite(limit) ? Math.min(200, Math.max(1, limit)) : 30;
+
+  const queued = await enqueueIngestionJob({
+    kind: "offers.head_refresh.bulk",
+    payload: { olderThanDays: parsedOlder, limit: parsedLimit, timeoutMs: 6000 },
+    priority: 0,
   });
 
   return NextResponse.json({
     ok: true,
-    ...result,
-    ranAt: new Date().toISOString(),
+    enqueued: true,
+    jobId: queued.id,
+    deduped: queued.deduped,
+    olderThanDays: parsedOlder,
+    limit: parsedLimit,
+    queuedAt: new Date().toISOString(),
   });
 }
-

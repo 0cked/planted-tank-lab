@@ -28,7 +28,7 @@ pnpm install
 3) Apply schema + seed:
 
 ```bash
-pnpm drizzle-kit push
+pnpm drizzle-kit migrate
 pnpm seed
 ```
 
@@ -44,6 +44,7 @@ pnpm dev
 - `pnpm verify:gates` prints launch gates (G0–G11) pass/fail/unknown
 - `pnpm test` unit tests (Vitest)
 - `pnpm test:e2e` e2e smoke tests (Playwright)
+- `pnpm ingest run` backend-only ingestion worker (processes queued ingestion jobs; no request-path scraping)
 
 ## Auth + Admin
 
