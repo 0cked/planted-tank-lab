@@ -135,3 +135,18 @@ Each work session must add a new dated entry that includes:
 - Work: Fixed builder picker dialog title grammar for plural category names (e.g. “Choose Accessories” instead of “Choose a Accessories”) (`5808a1c`).
 - Verified: `pnpm verify:gates`; `pnpm test`.
 - Next: continue C-03 (completion panel + offers-empty UX + intentional Photo empty states).
+
+## 2026-02-09 21:30
+
+- Work: Completed C-05 shared build snapshot polish:
+  - Added active top-nav highlighting via `aria-current="page"` (new `SiteNav` component).
+  - Clarified “Open in builder” behavior and added product links on the snapshot page.
+  - Updated Playwright smoke tests to cover share → snapshot → open-in-builder flow.
+- Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`.
+- Next: C-06, C-07, D-01.
+
+## 2026-02-09 21:45
+
+- Work: Fixed `pnpm build` failing on `/login` by wrapping `LoginPanel` (uses `useSearchParams`) in a Suspense boundary.
+- Verified: `pnpm build`.
+- Next: C-06, C-07, D-01.

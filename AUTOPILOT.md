@@ -35,13 +35,14 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Added `pnpm catalog:check` and seeded placeholder images + required substrate/filter specs so curated *core* catalog passes completeness checks. (C-01)
 - Builder picker UX upgraded to a drawer/bottom sheet with sticky search + “Next recommended” CTA. (C-03) (`9818700`)
 - Auth entrypoint stabilized: top-nav now has a prominent Sign up CTA and a Sign in link that always lands on `/login`; Google OAuth env fixed in Vercel production. (C-04)
+- Shared build snapshot page clarified: active top-nav state + clearer "Open in builder" behavior + product links. (C-05) (`586f82b`)
 
 ## Next 3 Tasks (do these in order)
 
-1. C-05 (P1) Shared build snapshot page: nav state + CTA clarity.
-   Entry points: `src/app/builds/[shareSlug]/page.tsx`, `src/components/layout/*`, builder share flow.
-2. C-06 (P0) Content + imagery baseline (products + plants + hardscape).
+1. C-06 (P0) Content + imagery baseline (products + plants + hardscape).
    Focus: real images, category gaps (hardscape), missing product/plant content, and intentional empty states.
+2. C-07 (P1) Builder Phase B polish (selection cards + warnings clarity + mobile pass).
+   Entry points: builder picker list items, warnings banner, mobile layout.
 3. D-01 (P0) Consent-respecting analytics/events (minimal).
    Entry points: cookie banner/consent storage, analytics/event service, `/go/*` click events.
 

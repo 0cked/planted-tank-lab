@@ -150,7 +150,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual: click "Sign in" from Home/Builder/Products/Plants/Builds; confirm non-404 recovery path.
   Dependencies: A-01
 
-- [ ] C-05 (P1) Shared build snapshot page: nav state + CTA clarity.
+- [x] C-05 (P1) Shared build snapshot page: nav state + CTA clarity.
   Gates: G0
   Acceptance:
     - Top nav highlights the correct section when viewing `/builds/:id`.
