@@ -25,13 +25,14 @@ export function UserMenu() {
     // Keep the top-nav CTA stable and non-broken even when auth providers are not configured.
     // NextAuth is configured to use a custom sign-in page at `/login`.
     return (
-      <Link
-        href="/login"
-        className="rounded-full border bg-white/60 px-3 py-1.5 text-sm font-semibold text-neutral-800 transition hover:bg-white/80"
-        style={{ borderColor: "var(--ptl-border)" }}
-      >
-        Sign in / Sign up
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link href="/sign-up" className="ptl-btn-primary !px-3 !py-1.5">
+          Sign up
+        </Link>
+        <Link href="/login" className="ptl-btn-secondary !px-3 !py-1.5">
+          Sign in
+        </Link>
+      </div>
     );
   }
 
