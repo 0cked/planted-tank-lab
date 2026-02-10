@@ -87,6 +87,12 @@ Each work session must add a new dated entry that includes:
 - Verified: pending (run `pnpm verify` after implementing C-03 changes).
 - Next: C-03 (Phase A builder UX: drawer/bottom sheet picker + compatibility-first flow).
 
+## 2026-02-10 20:30
+
+- Work: Completed C-03 Phase A builder UX. Pickers are now a drawer/bottom sheet with sticky search; builder shows a strong “Next recommended” CTA; row actions have correct hover cursor affordances. Updated plant list/detail to use `SmartImage` so remote images never crash Next/Image in production/tests. (`9818700`)
+- Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
+- Next: C-04, C-05, C-06.
+
 ## 2026-02-09
 
 - Work: Completed C-01 curated catalog completeness for core builder categories (tank/light/filter/substrate). Added `scripts/catalog-check.ts` + `pnpm catalog:check`; seeded placeholder `image_url` for curated core items and filled required substrate/filter spec keys for compatibility rules.

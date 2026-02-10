@@ -10,7 +10,7 @@ If anything disagrees with chat history or archived docs, **this file wins**.
 
 - Milestone: C (Days 8-10) - Feels Complete
 - Day: 8
-- Current objective: ship Phase A builder UX (drawer/bottom sheet picker + compatibility-first flow) so the builder feels guided, visual, and fast.
+- Current objective: finish Milestone C polish work so the app feels complete (auth entrypoint is non-broken, shared builds are clear, and content/imagery gaps feel intentional).
 
 ## Launch Gates (G0-G11)
 
@@ -33,13 +33,14 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Expanded admin audit logging coverage for product/plant saves and uploads. (`7533133`)
 - Data quality dashboard added at `/admin/quality` to surface missing images/offers/required specs. (`5487f7f`)
 - Added `pnpm catalog:check` and seeded placeholder images + required substrate/filter specs so curated *core* catalog passes completeness checks. (C-01)
+- Builder picker UX upgraded to a drawer/bottom sheet with sticky search + “Next recommended” CTA. (C-03) (`9818700`)
 
 ## Next 3 Tasks (do these in order)
 
-1. C-03 (P0) Builder Phase A UX overhaul (drawer/bottom sheet picker + compatibility-first flow).
-   Entry points: `src/components/builder/BuilderPage.tsx`, `tests/e2e/builder.spec.ts`, `src/components/layout/*`.
-2. C-04 (P0) Auth entrypoint is non-broken (Sign in doesn’t 404).
+1. C-04 (P0) Auth entrypoint is non-broken (Sign in doesn’t 404).
    Entry points: top-nav auth CTA, auth routes (`src/app/*`), auth config (`src/server/auth.ts`).
+2. C-05 (P1) Shared build snapshot page: nav state + CTA clarity.
+   Entry points: `src/app/builds/[shareSlug]/page.tsx`, `src/components/layout/*`, builder share flow.
 3. C-06 (P0) Content + imagery baseline (products + plants + hardscape).
    Focus: real images, category gaps (hardscape), missing product/plant content, and intentional empty states.
 

@@ -126,7 +126,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual review checklist (in `VERIFY.md`).
   Dependencies: none
 
-- [ ] C-03 (P0) Builder Phase A UX overhaul (drawer/bottom sheet picker + compatibility-first flow).
+- [x] C-03 (P0) Builder Phase A UX overhaul (drawer/bottom sheet picker + compatibility-first flow).
   Gates: G0, G5, G9
   Acceptance:
     - Picking an item uses a scroll-safe full-height drawer (desktop) / bottom sheet (mobile).
