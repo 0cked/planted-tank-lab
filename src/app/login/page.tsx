@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { LoginPanel } from "./LoginPanel";
 
@@ -28,7 +29,11 @@ export default function LoginPage() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
-        <LoginPanel allowGoogle={allowG} allowEmail={allowE} allowDev={allowD} />
+        <Suspense
+          fallback={<div className="ptl-surface-strong p-7 sm:p-10 text-sm text-neutral-700">Loading…</div>}
+        >
+          <LoginPanel allowGoogle={allowG} allowEmail={allowE} allowDev={allowD} />
+        </Suspense>
         <div className="ptl-surface p-7 sm:p-10">
           <div className="text-sm font-semibold">{hasAuth ? "Why sign in" : "No account needed"}</div>
           {hasAuth ? (

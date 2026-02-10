@@ -1,4 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function dismissCookies(page: Page) {
+  const allow = page.getByRole("button", { name: "Allow" });
+  if (await allow.isVisible().catch(() => false)) {
+    await allow.click();
+  }
+}
 
 test("home renders", async ({ page }) => {
   await page.goto("/");
@@ -42,12 +49,42 @@ test("plants browsing and detail render", async ({ page }) => {
 test("profile renders (signed out)", async ({ page }) => {
   await page.goto("/profile");
   await expect(page.getByRole("heading", { name: "Your profile" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: "Sign in" })).toBeVisible();
 });
 
 test("builds index renders", async ({ page }) => {
   await page.goto("/builds");
   await expect(page.getByRole("heading", { name: "Builds" })).toBeVisible();
+});
+
+test("builder share creates a snapshot; nav highlights Builds; open-in-builder returns to Builder", async ({
+  page,
+}) => {
+  await page.goto("/builder");
+  await dismissCookies(page);
+  await expect(page.getByRole("heading", { name: "Builder" })).toBeVisible();
+  await expect(page.getByTestId("category-row-tank")).toBeVisible();
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("button", { name: "Share" }).click();
+
+  await expect(page.getByText("Build snapshot")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: "Untitled Build" })).toBeVisible();
+  await expect(
+    page.getByRole("navigation").getByRole("link", { name: "Builds" }),
+  ).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+
+  await page.getByRole("link", { name: "Open in builder" }).click();
+  await expect(page).toHaveURL(/\/builder\//);
+  await expect(
+    page.getByRole("navigation").getByRole("link", { name: "Builder" }),
+  ).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
 });
 
 test("not found renders a friendly page", async ({ page }) => {

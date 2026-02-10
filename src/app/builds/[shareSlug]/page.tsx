@@ -29,6 +29,21 @@ function formatMoney(cents: number | null | undefined): string {
   return (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
+function titleCaseSlug(slug: string): string {
+  return slug
+    .split(/[-_]/g)
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function labelForCategory(params: { slug: string; name?: string | null }): string {
+  if (params.slug === "co2") return "CO2";
+  const name = params.name?.trim();
+  if (name) return name;
+  return titleCaseSlug(params.slug);
+}
+
 export default async function BuildSharePage(props: {
   params: Promise<{ shareSlug: string }>;
 }) {
@@ -40,6 +55,9 @@ export default async function BuildSharePage(props: {
 
   const data = await caller.builds.getByShareSlug({ shareSlug }).catch(() => null);
   if (!data) notFound();
+
+  const categoriesList = await caller.products.categoriesList().catch(() => []);
+  const categoryNameBySlug = new Map(categoriesList.map((c) => [c.slug, c.name] as const));
 
   const gear = Object.entries(data.snapshot.productsByCategory)
     .map(([categorySlug, p]) => ({ categorySlug, product: p }))
@@ -79,11 +97,17 @@ export default async function BuildSharePage(props: {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <Link href={`/builder/${shareSlug}`} className="ptl-btn-primary">
-            Open in builder
-          </Link>
-          <ReportBuildDialog shareSlug={shareSlug} />
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <div className="flex gap-2">
+            <Link href={`/builder/${shareSlug}`} className="ptl-btn-primary">
+              Open in builder
+            </Link>
+            <ReportBuildDialog shareSlug={shareSlug} />
+          </div>
+          <div className="text-xs text-neutral-700">
+            This opens the snapshot in the builder so you can tweak it. Sharing again updates this
+            link.
+          </div>
         </div>
       </div>
 
@@ -91,7 +115,9 @@ export default async function BuildSharePage(props: {
         <section className="ptl-surface p-7 sm:p-10">
           <h2 className="text-lg font-semibold">Gear</h2>
           {gear.length === 0 ? (
-            <div className="mt-4 text-sm text-neutral-700">No gear selected.</div>
+            <div className="mt-4 text-sm text-neutral-700">
+              No gear selected yet. Open this build in the builder to start picking gear.
+            </div>
           ) : (
             <ul className="mt-4 space-y-3">
               {gear.map((g) => (
@@ -101,10 +127,22 @@ export default async function BuildSharePage(props: {
                   style={{ borderColor: "var(--ptl-border)" }}
                 >
                   <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-                    {g.categorySlug}
+                    {labelForCategory({
+                      slug: g.categorySlug,
+                      name: categoryNameBySlug.get(g.categorySlug) ?? null,
+                    })}
                   </div>
                   <div className="mt-1 text-sm font-semibold text-neutral-900">
-                    {g.product?.name ?? "—"}
+                    {g.product?.slug ? (
+                      <Link
+                        href={`/products/${g.categorySlug}/${g.product.slug}`}
+                        className="hover:underline"
+                      >
+                        {g.product.name}
+                      </Link>
+                    ) : (
+                      (g.product?.name ?? "—")
+                    )}
                   </div>
                 </li>
               ))}

@@ -1,24 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { SiteNav } from "@/components/layout/SiteNav";
 import { UserMenu } from "@/components/layout/UserMenu";
-
-function NavLink(props: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={props.href}
-      className="relative px-3 py-1.5 text-sm font-semibold text-neutral-800/80 transition hover:text-neutral-950"
-    >
-      <span className="relative">
-        {props.children}
-        <span
-          className="absolute -bottom-1 left-0 h-[2px] w-0 rounded-full transition-all group-hover:w-full"
-          style={{ background: "var(--ptl-accent)" }}
-        />
-      </span>
-    </Link>
-  );
-}
 
 export function SiteHeader() {
   return (
@@ -41,20 +25,7 @@ export function SiteHeader() {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 sm:flex">
-          <div className="group">
-            <NavLink href="/builder">Builder</NavLink>
-          </div>
-          <div className="group">
-            <NavLink href="/products">Products</NavLink>
-          </div>
-          <div className="group">
-            <NavLink href="/plants">Plants</NavLink>
-          </div>
-          <div className="group">
-            <NavLink href="/builds">Builds</NavLink>
-          </div>
-        </nav>
+        <SiteNav />
 
         <div className="flex items-center gap-2">
           <Link
