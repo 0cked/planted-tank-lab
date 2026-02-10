@@ -526,6 +526,34 @@ export const buildReports = pgTable(
   ],
 );
 
+export const problemReports = pgTable(
+  "problem_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    targetType: varchar("target_type", { length: 50 }).notNull(),
+    targetId: uuid("target_id"),
+    targetUrl: varchar("target_url", { length: 1200 }),
+    message: text("message").notNull(),
+    contactEmail: varchar("contact_email", { length: 300 }),
+    reporterUserId: uuid("reporter_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedByUserId: uuid("resolved_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    resolution: varchar("resolution", { length: 20 }),
+    resolutionNote: text("resolution_note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_problem_reports_open").on(t.resolvedAt, t.createdAt),
+    index("idx_problem_reports_target").on(t.targetType, t.targetId, t.createdAt),
+  ],
+);
+
 export const adminLogs = pgTable(
   "admin_logs",
   {

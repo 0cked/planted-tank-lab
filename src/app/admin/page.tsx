@@ -75,6 +75,14 @@ export default function AdminHomePage() {
             <div className="mt-1 text-sm text-neutral-700">Moderation and reports.</div>
           </Link>
           <Link
+            href="/admin/reports"
+            className="rounded-2xl border bg-white/70 p-5 transition hover:bg-white/85"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
+            <div className="text-sm font-semibold text-neutral-900">Problem reports</div>
+            <div className="mt-1 text-sm text-neutral-700">Data issues and broken links.</div>
+          </Link>
+          <Link
             href="/admin/logs"
             className="rounded-2xl border bg-white/70 p-5 transition hover:bg-white/85"
             style={{ borderColor: "var(--ptl-border)" }}

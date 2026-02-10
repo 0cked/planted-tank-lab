@@ -77,6 +77,14 @@ export function SiteFooter() {
                 </li>
                 <li>
                   <Link
+                    href="/report"
+                    className="text-neutral-700 hover:text-neutral-900"
+                  >
+                    Report a problem
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/contact"
                     className="text-neutral-700 hover:text-neutral-900"
                   >

@@ -188,3 +188,13 @@ Each work session must add a new dated entry that includes:
   - Updated `/go/[offerId]` offer click logging to respect analytics consent.
 - Verified: `pnpm verify:gates`, `pnpm typecheck`, `pnpm test`.
 - Next: D-02, D-03.
+
+## 2026-02-10 02:20
+
+- Work: Completed D-02 report-a-problem intake:
+  - Added `problem_reports` table + migration.
+  - Added `/report` form (tRPC `reports.submit`).
+  - Added admin triage at `/admin/reports` with resolve/dismiss.
+  - Added footer link to "Report a problem".
+- Verified: `pnpm verify`.
+- Next: D-03, D-04.

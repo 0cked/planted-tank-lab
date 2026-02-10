@@ -4,6 +4,7 @@ import { offersRouter } from "@/server/trpc/routers/offers";
 import { plantsRouter } from "@/server/trpc/routers/plants";
 import { productsRouter } from "@/server/trpc/routers/products";
 import { rulesRouter } from "@/server/trpc/routers/rules";
+import { reportsRouter } from "@/server/trpc/routers/reports";
 import { usersRouter } from "@/server/trpc/routers/users";
 
 export const appRouter = createTRPCRouter({
@@ -12,6 +13,7 @@ export const appRouter = createTRPCRouter({
   plants: plantsRouter,
   products: productsRouter,
   rules: rulesRouter,
+  reports: reportsRouter,
   users: usersRouter,
 });
 

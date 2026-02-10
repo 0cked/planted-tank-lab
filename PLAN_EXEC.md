@@ -201,7 +201,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
   Verify: manual event generation; inspect DB/provider.
   Dependencies: A-02
 
-- [ ] D-02 (P0) Report-a-problem intake + admin triage.
+- [x] D-02 (P0) Report-a-problem intake + admin triage.
   Gates: G9, G7
   Acceptance: users can report product/plant data issues; stored in DB; admin can review and resolve.
   Verify: manual end-to-end submission + admin view.
