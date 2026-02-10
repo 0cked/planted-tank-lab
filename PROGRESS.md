@@ -207,3 +207,9 @@ Each work session must add a new dated entry that includes:
   - Added `/terms` to the sitemap.
 - Verified: `pnpm verify`.
 - Next: D-04.
+
+## 2026-02-10 08:00
+
+- Work: Started D-04 final QA by running the full automated verification suite on a clean working tree.
+- Verified: `pnpm verify` (lint + typecheck + unit tests + e2e smoke + build) **PASS**; `pnpm verify:gates` shows **no FAIL** gates.
+- Next: finish D-04 by completing the manual QA + production spot-check checklist in `VERIFY.md` (desktop + mobile), then update `config/gates.json` (set PASS/lastVerifiedAt where applicable).

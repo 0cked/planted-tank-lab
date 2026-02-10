@@ -20,8 +20,8 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 
 ## What Changed Last
 
-- D-03 terms/legal baseline: added `/terms`, linked it in the footer, and added `/terms` to the sitemap.
-- Verified: `pnpm verify`.
+- D-04 QA kickoff: ran full automated verification suite.
+- Verified: `pnpm verify` PASS; `pnpm verify:gates` shows no FAIL gates.
 
 ## Next 3 Tasks (do these in order)
 
