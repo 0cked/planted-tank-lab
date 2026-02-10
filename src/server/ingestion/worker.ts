@@ -162,6 +162,16 @@ export async function runIngestionWorker(params: {
       const msg =
         err instanceof Error ? `${err.name}: ${err.message}` : `Error: ${String(err)}`;
 
+      // This is a long-running worker; job-level failures must be visible in logs.
+      // Keep logs free of secrets (URLs are acceptable; no credentials should be embedded).
+      console.error("[ingestion] job failed", {
+        jobId: job.id,
+        kind: job.kind,
+        attempts: job.attempts,
+        maxAttempts: job.maxAttempts,
+        error: msg,
+      });
+
       try {
         await markJobFailure({
           jobId: job.id,
