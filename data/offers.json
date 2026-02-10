@@ -844,5 +844,77 @@
     "url": "https://www.amazon.com/s?k=UNS%203N%20rimless%20aquarium",
     "in_stock": true,
     "last_checked_at": "2026-02-10T04:15:44Z"
+  },
+  {
+    "product_slug": "uns-16t",
+    "retailer_slug": "buceplant",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://buceplant.com/products/uns-16t-2-gallon-ultra-clear-rimless-aquarium",
+    "in_stock": true,
+    "last_checked_at": "2026-02-10T06:45:00Z"
+  },
+  {
+    "product_slug": "uns-16t",
+    "retailer_slug": "amazon",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=UNS%2016T%20rimless%20aquarium",
+    "in_stock": true,
+    "last_checked_at": "2026-02-10T06:45:00Z"
+  },
+  {
+    "product_slug": "uns-20c",
+    "retailer_slug": "buceplant",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://buceplant.com/products/uns-20c-2-gallon-ultra-clear-rimless-aquarium",
+    "in_stock": true,
+    "last_checked_at": "2026-02-10T06:45:00Z"
+  },
+  {
+    "product_slug": "uns-20c",
+    "retailer_slug": "amazon",
+    "price_cents": 3999,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=UNS%2020C%20rimless%20aquarium",
+    "in_stock": true,
+    "last_checked_at": "2026-02-10T06:45:00Z"
+  },
+  {
+    "product_slug": "uns-30c",
+    "retailer_slug": "buceplant",
+    "price_cents": 8799,
+    "currency": "USD",
+    "url": "https://buceplant.com/products/uns-30c-7-gallon-ultra-clear-rimless-aquarium",
+    "in_stock": false,
+    "last_checked_at": "2026-02-10T06:45:00Z"
+  },
+  {
+    "product_slug": "uns-30c",
+    "retailer_slug": "amazon",
+    "price_cents": 8799,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=UNS%2030C%20rimless%20aquarium",
+    "in_stock": true,
+    "last_checked_at": "2026-02-10T06:45:00Z"
+  },
+  {
+    "product_slug": "uns-45l",
+    "retailer_slug": "buceplant",
+    "price_cents": 4899,
+    "currency": "USD",
+    "url": "https://buceplant.com/products/uns-45l-4-gallon-ultra-clear-rimless-aquarium",
+    "in_stock": true,
+    "last_checked_at": "2026-02-10T06:45:00Z"
+  },
+  {
+    "product_slug": "uns-45l",
+    "retailer_slug": "amazon",
+    "price_cents": 4899,
+    "currency": "USD",
+    "url": "https://www.amazon.com/s?k=UNS%2045L%20rimless%20aquarium",
+    "in_stock": true,
+    "last_checked_at": "2026-02-10T06:45:00Z"
   }
 ]
