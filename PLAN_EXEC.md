@@ -195,7 +195,7 @@ For current status and what to do next, see `AUTOPILOT.md`.
 
 ## Milestone D (Days 11-14) - Launchable
 
-- [ ] D-01 (P0) Consent-respecting analytics/events (minimal).
+- [x] D-01 (P0) Consent-respecting analytics/events (minimal).
   Gates: G8, G9
   Acceptance: track builder started, share created, offer click, signup completed; respects cookie consent.
   Verify: manual event generation; inspect DB/provider.

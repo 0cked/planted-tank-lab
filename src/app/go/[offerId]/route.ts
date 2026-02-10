@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { and, eq, gt } from "drizzle-orm";
 
+import { hasAnalyticsConsentFromCookieHeader } from "@/server/services/analytics";
+
 import { db } from "@/server/db";
 import { offerClicks, offers, retailers } from "@/server/db/schema";
 import { logEvent } from "@/server/log";
@@ -95,9 +97,11 @@ export async function GET(
   const ipHash = hashIp(ip);
   const isBot = isLikelyBotUserAgent(ua);
 
-  // Best-effort logging: do not fail redirect on logging errors.
+  const hasConsent = hasAnalyticsConsentFromCookieHeader(req.headers.get("cookie"));
+
+  // Best-effort analytics logging: do not fail redirect on logging errors.
   // We also dedupe repeated clicks for the same offer+IP to reduce bot spam.
-  if (ipHash && !isBot) {
+  if (hasConsent && ipHash && !isBot) {
     try {
       const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
       const recent = await db

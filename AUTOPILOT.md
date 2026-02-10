@@ -8,9 +8,9 @@ If anything disagrees with chat history or archived docs, **this file wins**.
 
 ## Current Milestone (14-day v1 plan)
 
-- Milestone: C (Days 8-10) - Feels Complete
-- Day: 8
-- Current objective: finish Milestone C polish work so the app feels complete (auth entrypoint is non-broken, shared builds are clear, and content/imagery gaps feel intentional).
+- Milestone: D (Days 11-14) - Launchable
+- Day: 11
+- Current objective: finish the remaining launchable P0s (report-a-problem intake, terms/legal copy sweep) and then run final QA (D-04).
 
 ## Launch Gates (G0-G11)
 
@@ -39,15 +39,16 @@ Source: `config/gates.json` (run: `pnpm verify:gates`)
 - Content + imagery baseline improved for plants/products (more real plant photos + sources; product browsing is more image-forward). (C-06) (`c9b121a`)
 - Builder Phase B polish: pickers are photo-forward with spec chips + badges; new “What to fix next” panel; mobile category rows stack cleanly. (C-07) (`6a681b7`)
 - Phase C browsing polish: product lists show spec chips, and browsing feels more like a hobby catalog. (C-08) (`8662e85`)
+- Consent-respecting analytics/events: consent-gated event logging for builder/share/signup + consent-honoring offer click logging. (D-01)
 
 ## Next 3 Tasks (do these in order)
 
-1. D-01 (P0) Consent-respecting analytics/events (minimal).
-   Entry points: cookie banner/consent storage, analytics/event service, `/go/*` click events.
-2. D-02 (P0) Report-a-problem intake + admin triage.
+1. D-02 (P0) Report-a-problem intake + admin triage.
    Entry points: report intake form, DB table, `/admin/*` triage view.
-3. D-03 (P0) Terms page + final copy/legal sweep.
+2. D-03 (P0) Terms page + final copy/legal sweep.
    Entry points: `/terms` page, privacy + affiliate disclosure copy pass.
+3. D-04 (P0) Final QA + performance checks + "go/no-go" gate verification.
+   Entry points: `pnpm verify`, `pnpm verify:gates`, manual QA checklist.
 
 ## Daily Visual QA Notes (2026-02-09)
 

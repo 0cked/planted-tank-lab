@@ -177,3 +177,14 @@ Each work session must add a new dated entry that includes:
   - Hero/CTAs: kept intentional crop/overlay and consistent button hierarchy.
 - Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build`.
 - Next: D-01, D-02, D-03.
+
+## 2026-02-10 01:40
+
+- Work: Completed D-01 consent-respecting analytics/events (minimal):
+  - Added `analytics_events` table + migration.
+  - Added `/api/analytics/event` (best-effort, no-op without consent).
+  - Added client `trackEvent` helper gated by `ptl_cookie_consent=accepted`.
+  - Tracked: builder started, share created, signup completed (client-side) when consent is granted.
+  - Updated `/go/[offerId]` offer click logging to respect analytics consent.
+- Verified: `pnpm verify:gates`, `pnpm typecheck`, `pnpm test`.
+- Next: D-02, D-03.

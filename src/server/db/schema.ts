@@ -306,6 +306,7 @@ export const offerClicks = pgTable(
   ],
 );
 
+
 export const priceHistory = pgTable(
   "price_history",
   {
@@ -403,6 +404,24 @@ export const builds = pgTable(
       .defaultNow(),
   },
   (t) => [uniqueIndex("builds_share_slug_unique").on(t.shareSlug)],
+);
+
+export const analyticsEvents = pgTable(
+  "analytics_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name", { length: 100 }).notNull(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    buildId: uuid("build_id").references(() => builds.id, { onDelete: "set null" }),
+    meta: jsonb("meta").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_analytics_events_name_created").on(t.name, t.createdAt),
+    index("idx_analytics_events_user_created").on(t.userId, t.createdAt),
+  ],
 );
 
 export const compatibilityRules = pgTable(

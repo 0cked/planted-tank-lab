@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
+import { markSignupTracked, trackEvent } from "@/lib/analytics";
+
 import { SmartImage } from "@/components/SmartImage";
 import { RetailerMark } from "@/components/RetailerMark";
 import { trpc } from "@/components/TRPCProvider";
@@ -1373,12 +1375,27 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const reset = useBuilderStore((s) => s.reset);
   const hydrate = useBuilderStore((s) => s.hydrate);
 
+  const builderStartedTracked = useRef(false);
+
   useEffect(() => {
     if (!props.initialState) return;
     if (initialHydrated.current) return;
     initialHydrated.current = true;
     hydrate(props.initialState);
   }, [hydrate, props.initialState]);
+
+  useEffect(() => {
+    if (builderStartedTracked.current) return;
+    builderStartedTracked.current = true;
+    void trackEvent("builder_started", { meta: { signedIn: isSignedIn } });
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    if (!markSignupTracked(userId)) return;
+    void trackEvent("signup_completed");
+  }, [session?.user?.id]);
 
   const categoriesQ = trpc.products.categoriesList.useQuery();
   const rulesQ = trpc.rules.listActive.useQuery({ limit: 200 });
@@ -1646,6 +1663,11 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
 
     const url = `${window.location.origin}/builds/${res.shareSlug}`;
     setShareUrl(url);
+
+    void trackEvent("share_created", {
+      buildId: res.buildId,
+      meta: { itemCount: res.itemCount },
+    });
 
     try {
       await navigator.clipboard.writeText(url);
