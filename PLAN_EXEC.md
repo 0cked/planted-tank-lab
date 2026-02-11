@@ -192,6 +192,28 @@ No direct canonical bypass for import/seed paths.
     - `src/app/products/*`
     - `src/app/builder/*`
 
+- [ ] IN-11A (P0) Catalog production hardening: remove pre-ingestion legacy rows + all placeholders.
+  - Gates: G0, G4, G8, G9
+  - Acceptance:
+    - Define and codify "legacy/pre-ingestion" detection (products/plants/offers/categories/parts lacking ingestion provenance or canonical mapping consistency).
+    - Remove or archive legacy pre-ingestion catalog rows so production surfaces only show ingestion-backed canonical data.
+    - Remove all placeholder content from production catalog surfaces (placeholder images/copy/spec filler/seed-only stand-ins).
+    - Add guardrails/tests so new placeholder rows cannot be reintroduced unnoticed.
+    - Update seed/import tooling so every displayed catalog row is ingestion-normalized and provenance-backed.
+  - Verify:
+    - `pnpm test`
+    - `pnpm verify:gates`
+    - Manual SQL audit: zero placeholder markers; zero displayed catalog rows without ingestion/canonical provenance.
+    - Manual UI audit: Products, Plants, Builder show no placeholder assets/copy.
+  - Dependencies: IN-11
+  - Entry points:
+    - `scripts/seed.ts`
+    - `src/server/normalization/*`
+    - `src/server/db/schema.ts`
+    - `src/app/products/*`
+    - `src/app/plants/*`
+    - `src/components/builder/*`
+
 ### Phase ING-5: Operations + Launch Gate Closeout
 
 - [ ] IN-12 (P0) Add ingestion ops dashboard and runbook checks.
@@ -225,4 +247,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-11`.
+Start with `IN-11`, then execute `IN-11A` immediately after.

@@ -258,6 +258,15 @@ Each work session must add a new dated entry that includes:
     - `pnpm ingest schedule --loop` (scheduler loop; enqueues jobs from `ingestion_sources.schedule_every_minutes`)
   - Added `src/server/ingestion/scheduler.ts` and a scheduler unit test.
   - Updated docs and agent contract to reflect Fly.io as the production host (`AGENTS.md`, `README.md`).
+
+## 2026-02-11 14:07
+
+- Work: Updated planning artifacts per Jacob’s production-readiness directive to remove all pre-ingestion catalog content and all placeholders.
+  - `AUTOPILOT.md`: queue now explicitly prioritizes `IN-11A` immediately after `IN-11`.
+  - `PLAN_EXEC.md`: added `IN-11A (P0)` with acceptance criteria + verification for legacy/placeholder purge and provenance-only catalog policy.
+- Verified: planning docs updated and aligned (`AUTOPILOT.md`, `PLAN_EXEC.md`).
+- Next: execute `IN-11`, then `IN-11A`.
+
   - Hardened CI verification: e2e now runs against a production build (`pnpm test:e2e` builds first; Playwright uses `pnpm start`).
 - Verified: `pnpm verify` PASS.
 - Next: F-04 deploy to Fly (web + worker + scheduler), then F-05 DNS cutover, then resume E-04 seed-through-ingestion.

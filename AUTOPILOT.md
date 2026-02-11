@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-4` (Offer freshness and derived cache) — `IN-10` complete, `IN-11` active next.
+Current phase: `ING-4/5` (read-path + catalog production hardening) — `IN-10` complete, `IN-11` active next, `IN-11A` queued immediately after.
 
 ## Current State Snapshot
 
@@ -56,8 +56,9 @@ Remaining critical gap:
 
 Execute in this order:
 1. `IN-11` Switch product list and builder read-paths to derived summaries.
-2. `IN-12` Ingestion ops dashboard and runbook checks.
-3. `IN-13` Final gate check for data-pipeline readiness.
+2. `IN-11A` Catalog reset: remove all pre-ingestion and placeholder catalog content.
+3. `IN-12` Ingestion ops dashboard and runbook checks.
+4. `IN-13` Final gate check for data-pipeline readiness.
 
 ## Known Risks / Blockers
 
