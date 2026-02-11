@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, max, sql } from "drizzle-orm";
 
 import { db } from "../../src/server/db";
 import {
@@ -8,14 +8,17 @@ import {
   ingestionJobs,
   ingestionSources,
   offers,
+  offerSummaries,
   priceHistory,
   products,
   retailers,
 } from "../../src/server/db/schema";
 import { enqueueIngestionJob } from "../../src/server/ingestion/job-queue";
 import { runIngestionWorker } from "../../src/server/ingestion/worker";
+import { refreshOfferSummaryForProductId } from "../../src/server/services/offer-summaries";
 
 let createdOfferId: string | null = null;
+let createdProductId: string | null = null;
 const createdJobIds: string[] = [];
 const originalFetch = globalThis.fetch;
 
@@ -53,6 +56,7 @@ beforeAll(async () => {
     .where(eq(products.slug, "uns-60u"))
     .limit(1);
   expect(productRow[0]?.id).toBeTruthy();
+  createdProductId = productRow[0]!.id;
 
   const retailerRow = await db
     .select({ id: retailers.id })
@@ -91,6 +95,10 @@ afterAll(async () => {
   await db.delete(priceHistory).where(eq(priceHistory.offerId, createdOfferId));
   await db.delete(ingestionEntities).where(eq(ingestionEntities.sourceEntityId, createdOfferId));
   await db.delete(offers).where(eq(offers.id, createdOfferId));
+
+  if (createdProductId) {
+    await refreshOfferSummaryForProductId({ db, productId: createdProductId });
+  }
 });
 
 describe("ingestion: offers detail refresh", () => {
@@ -125,6 +133,7 @@ describe("ingestion: offers detail refresh", () => {
 
     const refreshed = await db
       .select({
+        productId: offers.productId,
         priceCents: offers.priceCents,
         inStock: offers.inStock,
         lastCheckedAt: offers.lastCheckedAt,
@@ -146,6 +155,40 @@ describe("ingestion: offers detail refresh", () => {
     expect(histAfterFirst.length).toBeGreaterThan(0);
     expect(histAfterFirst[histAfterFirst.length - 1]!.priceCents).toBe(14999);
     expect(histAfterFirst[histAfterFirst.length - 1]!.inStock).toBe(true);
+
+    const aggregateRows = await db
+      .select({
+        minPriceCents: sql<number | null>`
+          min(case when ${offers.inStock} = true and ${offers.priceCents} is not null then ${offers.priceCents} else null end)
+        `.as("min_price_cents"),
+        inStockCount: sql<number>`
+          coalesce(sum(case when ${offers.inStock} = true then 1 else 0 end), 0)::int
+        `.as("in_stock_count"),
+        checkedAt: max(offers.lastCheckedAt).as("checked_at"),
+      })
+      .from(offers)
+      .where(eq(offers.productId, refreshed[0]!.productId))
+      .groupBy(offers.productId)
+      .limit(1);
+
+    const summaryRows = await db
+      .select({
+        minPriceCents: offerSummaries.minPriceCents,
+        inStockCount: offerSummaries.inStockCount,
+        staleFlag: offerSummaries.staleFlag,
+        checkedAt: offerSummaries.checkedAt,
+      })
+      .from(offerSummaries)
+      .where(eq(offerSummaries.productId, refreshed[0]!.productId))
+      .limit(1);
+
+    expect(summaryRows.length).toBe(1);
+    expect(summaryRows[0]!.minPriceCents).toBe(aggregateRows[0]!.minPriceCents);
+    expect(summaryRows[0]!.inStockCount).toBe(Number(aggregateRows[0]!.inStockCount));
+    expect(summaryRows[0]!.checkedAt?.getTime()).toBe(
+      aggregateRows[0]!.checkedAt?.getTime(),
+    );
+    expect(typeof summaryRows[0]!.staleFlag).toBe("boolean");
 
     const enq2 = await enqueueIngestionJob({
       kind: "offers.detail_refresh.one",

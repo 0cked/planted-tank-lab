@@ -276,6 +276,26 @@ export const offers = pgTable(
   (t) => [index("idx_offers_product").on(t.productId)],
 );
 
+export const offerSummaries = pgTable(
+  "offer_summaries",
+  {
+    productId: uuid("product_id")
+      .primaryKey()
+      .references(() => products.id, { onDelete: "cascade" }),
+    minPriceCents: integer("min_price_cents"),
+    inStockCount: integer("in_stock_count").notNull().default(0),
+    staleFlag: boolean("stale_flag").notNull().default(true),
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("idx_offer_summaries_stale_checked").on(t.staleFlag, t.checkedAt)],
+);
+
 export const offerClicks = pgTable(
   "offer_clicks",
   {

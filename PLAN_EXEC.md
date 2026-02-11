@@ -160,7 +160,7 @@ No direct canonical bypass for import/seed paths.
     - Added meaningful-change normalization semantics in `src/server/normalization/offers.ts` (`lastCheckedAt` always updates; `price_history` appends only on meaningful price/stock changes).
     - Switched admin+cron refresh routes to enqueue detail-refresh jobs and updated scheduler coverage + new detail worker regression test.
 
-- [ ] IN-10 (P0) Add derived offer summary cache for read-heavy catalog/builder views.
+- [x] IN-10 (P0) Add derived offer summary cache for read-heavy catalog/builder views.
   - Gates: G0, G8
   - Acceptance:
     - Derived summary table/service exists (`min_price`, `in_stock_count`, `stale_flag`, `checked_at`).
@@ -173,6 +173,11 @@ No direct canonical bypass for import/seed paths.
     - `src/server/db/schema.ts`
     - `src/server/services/*`
     - `src/server/trpc/routers/offers.ts`
+  - Notes (2026-02-11):
+    - Added `offer_summaries` cached-derivative table + migration (`0011_offer_summaries_cache`) with `min_price_cents`, `in_stock_count`, `stale_flag`, `checked_at`.
+    - Added `src/server/services/offer-summaries.ts` for deterministic aggregate refresh/upsert/delete-by-product and summary reads.
+    - Wired summary refresh into normalization updates in both observation path (`src/server/normalization/offers.ts`) and manual-seed offer normalization (`src/server/normalization/manual-seed.ts`).
+    - Added `offers.summaryByProductIds` tRPC read API and coverage updates in `tests/api/offers.test.ts` + `tests/server/ingestion-offers-detail.test.ts`.
 
 - [ ] IN-11 (P0) Switch product list and builder read-paths to derived summaries.
   - Gates: G0, G8
@@ -220,4 +225,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-10`.
+Start with `IN-11`.

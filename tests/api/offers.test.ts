@@ -25,6 +25,23 @@ describe("tRPC offers router", () => {
     expect(best[0]!.retailer.name).toBeTruthy();
   });
 
+  test("summaryByProductIds returns derived offer summaries", async () => {
+    const caller = await getCaller();
+
+    const seeded = await caller.products.getBySlug({ slug: "uns-60u" });
+    const summaries = await caller.offers.summaryByProductIds({ productIds: [seeded.id] });
+
+    expect(summaries.length).toBe(1);
+    expect(summaries[0]!.productId).toBe(seeded.id);
+    expect(summaries[0]!.inStockCount).toBeGreaterThanOrEqual(0);
+    expect(typeof summaries[0]!.staleFlag).toBe("boolean");
+
+    expect(
+      summaries[0]!.minPriceCents == null ||
+        Number.isInteger(summaries[0]!.minPriceCents),
+    ).toBe(true);
+  });
+
   test("priceHistoryByProductId returns history rows (after inserting a point)", async () => {
     const caller = await getCaller();
     const seeded = await caller.products.getBySlug({ slug: "uns-60u" });

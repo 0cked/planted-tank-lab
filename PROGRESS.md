@@ -554,3 +554,40 @@ Each work session must add a new dated entry that includes:
   - Manual DB verification confirms non-null `last_checked_at` presence and populated `price_history`.
 
 - Next: `IN-10` (Derived offer summary cache for read-heavy views).
+
+## 2026-02-11 12:30
+
+- Work: Completed `IN-10` derived offer summary cache for read-heavy offer views.
+  - Added cached derivative table in schema + migration:
+    - `src/server/db/schema.ts` (`offerSummaries` / `offer_summaries`)
+    - `src/server/db/migrations/0011_offer_summaries_cache.sql`
+    - `src/server/db/migrations/meta/0011_snapshot.json`
+  - Added summary service:
+    - `src/server/services/offer-summaries.ts`
+    - supports per-product and batch refresh, stale-flag computation (24h), summary reads, and ensure-missing refresh.
+  - Wired normalization-triggered refresh paths:
+    - `src/server/normalization/offers.ts` now refreshes product summary after each detail/head observation apply.
+    - `src/server/normalization/manual-seed.ts` now tracks touched product IDs in offer normalization and refreshes summaries once per run.
+  - Added tRPC summary read API:
+    - `src/server/trpc/routers/offers.ts` → `offers.summaryByProductIds`.
+  - Added/updated verification coverage:
+    - `tests/api/offers.test.ts` (summary API coverage)
+    - `tests/server/ingestion-offers-detail.test.ts` (asserts derived summary mirrors canonical aggregate after detail refresh)
+  - Minor stability fix during verification:
+    - `tests/server/admin-overrides.test.ts` first test timeout bumped to `15_000` to avoid repeated timeout flake under current DB-backed suite runtime.
+
+- Commands run:
+  - `pnpm drizzle-kit generate --name offer_summaries_cache`
+  - `pnpm test` (initial FAIL before migration apply: `offer_summaries` relation missing)
+  - `pnpm drizzle-kit migrate` (applied `0011_offer_summaries_cache`)
+  - `pnpm test` (rerun; then final PASS after timeout stabilization)
+  - `node --import tsx scripts/gates.ts` (PASS)
+  - Manual acceptance check (scripted):
+    - `pnpm tsx -e "...applyOfferDetailObservation bump+restore..."`
+
+- Results:
+  - `pnpm test` PASS (26 files / 74 tests).
+  - `node --import tsx scripts/gates.ts` PASS.
+  - Manual check PASS: updating an offer via normalization observation refreshed `offer_summaries` (`checkedAt`/`updatedAt` advanced and summary row present), then restore path also refreshed summary.
+
+- Next: `IN-11` (Switch product list and builder read-paths to derived summaries).

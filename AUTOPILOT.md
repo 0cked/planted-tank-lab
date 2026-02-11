@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-4` (Offer freshness and derived cache) — `IN-09` complete, `IN-10` active next.
+Current phase: `ING-4` (Offer freshness and derived cache) — `IN-10` complete, `IN-11` active next.
 
 ## Current State Snapshot
 
@@ -33,34 +33,31 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- derived offer read-cache + read-path adoption remain pending (`IN-10+`).
+- read-path adoption for derived offer summaries in product/builder surfaces remains pending (`IN-11+`).
 
 ## What Changed Last
 
-- Completed `IN-09` offer detail refresh pipeline + parser hooks.
-- Added new ingestion job kinds and worker handling:
-  - `offers.detail_refresh.bulk`
-  - `offers.detail_refresh.one`
-- Added detail ingestion source/parser implementation:
-  - `src/server/ingestion/sources/offers-detail.ts`
-  - provenance snapshots now capture parser metadata + extracted price/stock signals.
-- Updated normalization semantics for meaningful-change writes:
+- Completed `IN-10` derived offer summary cache.
+- Added cached derivative table + migration:
+  - `offer_summaries` in `src/server/db/schema.ts`
+  - `src/server/db/migrations/0011_offer_summaries_cache.sql`
+- Added summary refresh/read service:
+  - `src/server/services/offer-summaries.ts`
+- Wired invalidation/refresh from normalization update paths:
   - `src/server/normalization/offers.ts`
-  - `lastCheckedAt` updates every observation, while canonical price/stock + `price_history` only update on meaningful changes.
-- Switched refresh entry points to detail jobs:
-  - `src/app/admin/offers/refresh/route.ts`
-  - `src/app/admin/offers/[id]/refresh/route.ts`
-  - `src/app/api/cron/refresh-offers/route.ts`
+  - `src/server/normalization/manual-seed.ts`
+- Added summary query endpoint:
+  - `offers.summaryByProductIds` in `src/server/trpc/routers/offers.ts`
 - Added/updated coverage:
+  - `tests/api/offers.test.ts`
   - `tests/server/ingestion-offers-detail.test.ts`
-  - `tests/server/ingestion-scheduler.test.ts`
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-10` Derived offer summary cache for read-heavy views.
-2. `IN-11` Switch product list and builder read-paths to derived summaries.
-3. `IN-12` Ingestion ops dashboard and runbook checks.
+1. `IN-11` Switch product list and builder read-paths to derived summaries.
+2. `IN-12` Ingestion ops dashboard and runbook checks.
+3. `IN-13` Final gate check for data-pipeline readiness.
 
 ## Known Risks / Blockers
 

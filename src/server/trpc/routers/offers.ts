@@ -2,6 +2,7 @@ import { z } from "zod";
 import { and, asc, desc, eq, gt, inArray, isNotNull, min } from "drizzle-orm";
 
 import { offers, priceHistory, retailers } from "@/server/db/schema";
+import { ensureOfferSummariesByProductIds } from "@/server/services/offer-summaries";
 import { createTRPCRouter, publicProcedure } from "@/server/trpc/trpc";
 
 export const offersRouter = createTRPCRouter({
@@ -29,6 +30,30 @@ export const offersRouter = createTRPCRouter({
         })
         .from(offers)
         .limit(limit);
+    }),
+
+  summaryByProductIds: publicProcedure
+    .input(
+      z.object({
+        productIds: z.array(z.string().uuid()).max(200),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      if (input.productIds.length === 0) return [];
+
+      const rows = await ensureOfferSummariesByProductIds({
+        db: ctx.db,
+        productIds: input.productIds,
+      });
+
+      return rows.map((row) => ({
+        productId: row.productId,
+        minPriceCents: row.minPriceCents,
+        inStockCount: row.inStockCount,
+        staleFlag: row.staleFlag,
+        checkedAt: row.checkedAt,
+        updatedAt: row.updatedAt,
+      }));
     }),
 
   lowestByProductIds: publicProcedure

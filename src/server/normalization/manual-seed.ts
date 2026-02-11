@@ -20,6 +20,7 @@ import {
   applyNormalizationOverrides,
   serializeOverrideExplainability,
 } from "@/server/normalization/overrides";
+import { refreshOfferSummariesForProductIds } from "@/server/services/offer-summaries";
 
 const manualSeedImageUrlSchema = z
   .string()
@@ -667,6 +668,7 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
   let inserted = 0;
   let updated = 0;
   let mappingsUpserted = 0;
+  const touchedProductIds = new Set<string>();
 
   for (const snapshot of snapshots) {
     const item = snapshot.payload;
@@ -707,6 +709,10 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
     let canonicalOfferId = match.canonicalId;
     let persistedOfferValues = normalizedOfferValues;
     let mappingNotes: string | null = null;
+    const previousProductId =
+      canonicalOfferId != null
+        ? (existingOfferById.get(canonicalOfferId)?.productId ?? null)
+        : null;
 
     if (canonicalOfferId) {
       const overrideResult = await applyNormalizationOverrides({
@@ -753,6 +759,14 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
     });
     existingCanonicalIdByEntityId.set(snapshot.entityId, canonicalOfferId);
 
+    touchedProductIds.add(persistedOfferValues.productId);
+    if (
+      previousProductId &&
+      previousProductId !== persistedOfferValues.productId
+    ) {
+      touchedProductIds.add(previousProductId);
+    }
+
     await upsertCanonicalMapping({
       entityId: snapshot.entityId,
       canonicalType: "offer",
@@ -763,6 +777,11 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
     });
     mappingsUpserted += 1;
   }
+
+  await refreshOfferSummariesForProductIds({
+    db,
+    productIds: [...touchedProductIds],
+  });
 
   return {
     stats: {

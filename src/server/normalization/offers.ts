@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import type { DbClient } from "@/server/db";
 import { offers, priceHistory } from "@/server/db/schema";
+import { refreshOfferSummaryForProductId } from "@/server/services/offer-summaries";
 
 export type OfferObservationApplyResult = {
   meaningfulChange: boolean;
@@ -18,6 +19,7 @@ export async function applyOfferDetailObservation(params: {
 }): Promise<OfferObservationApplyResult> {
   const rows = await params.db
     .select({
+      productId: offers.productId,
       priceCents: offers.priceCents,
       currency: offers.currency,
       inStock: offers.inStock,
@@ -93,6 +95,12 @@ export async function applyOfferDetailObservation(params: {
     });
     priceHistoryAppended = true;
   }
+
+  await refreshOfferSummaryForProductId({
+    db: params.db,
+    productId: current.productId,
+    now: params.checkedAt,
+  });
 
   return { meaningfulChange, priceHistoryAppended };
 }

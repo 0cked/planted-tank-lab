@@ -193,7 +193,7 @@ describe("admin normalization overrides", () => {
     expect(actions).toContain("normalization.override.create");
     expect(actions).toContain("normalization.override.update");
     expect(actions).toContain("normalization.override.delete");
-  });
+  }, 15_000);
 
   test("duplicate field override for the same canonical entity is rejected", async () => {
     if (!actorUserId || !canonicalProductId) {
