@@ -30,7 +30,7 @@ No direct canonical bypass for import/seed paths.
 
 ### Phase ING-1: Seed/Import Through Ingestion
 
-- [ ] IN-01 (P0) Add manual-seed ingestion source adapter and entity snapshot writer.
+- [x] IN-01 (P0) Add manual-seed ingestion source adapter and entity snapshot writer.
   - Gates: G4, G9
   - Acceptance:
     - `manual_seed` source is upserted in `ingestion_sources`.

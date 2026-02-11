@@ -6,6 +6,12 @@ import { z } from "zod";
 
 import { db } from "@/server/db";
 import {
+  createManualSeedRun,
+  ensureManualSeedSource,
+  finishManualSeedRun,
+  ingestManualSeedSnapshot,
+} from "@/server/ingestion/sources/manual-seed";
+import {
   brands,
   categories,
   compatibilityRules,
@@ -156,6 +162,90 @@ const offerSeedSchema = z.object({
 function readJson<T>(relPath: string): T {
   const abs = join(process.cwd(), relPath);
   return JSON.parse(readFileSync(abs, "utf8")) as T;
+}
+
+async function ingestManualSeedData(productFiles: string[]): Promise<{
+  sourceId: string;
+  runId: string;
+  entitiesTouched: number;
+  snapshotsCreated: number;
+}> {
+  const sourceId = await ensureManualSeedSource();
+  const runId = await createManualSeedRun(sourceId);
+
+  let entitiesTouched = 0;
+  let snapshotsCreated = 0;
+
+  try {
+    for (const relPath of productFiles) {
+      const raw = readJson<unknown>(relPath);
+      const items = z.array(productSeedSchema).parse(raw);
+
+      for (const item of items) {
+        const res = await ingestManualSeedSnapshot({
+          sourceId,
+          runId,
+          entityType: "product",
+          sourceEntityId: item.slug,
+          raw: item,
+        });
+        entitiesTouched += 1;
+        if (res.snapshotCreated) snapshotsCreated += 1;
+      }
+    }
+
+    const rawPlants = readJson<unknown>("data/plants.json");
+    const plantItems = z.array(plantSeedSchema).parse(rawPlants);
+    for (const item of plantItems) {
+      const res = await ingestManualSeedSnapshot({
+        sourceId,
+        runId,
+        entityType: "plant",
+        sourceEntityId: item.slug,
+        raw: item,
+      });
+      entitiesTouched += 1;
+      if (res.snapshotCreated) snapshotsCreated += 1;
+    }
+
+    const rawOffers = readJson<unknown>("data/offers.json");
+    const offerItems = z.array(offerSeedSchema).parse(rawOffers);
+    for (const item of offerItems) {
+      const sourceEntityId = `${item.product_slug}::${item.retailer_slug}`;
+      const res = await ingestManualSeedSnapshot({
+        sourceId,
+        runId,
+        entityType: "offer",
+        sourceEntityId,
+        url: item.url,
+        raw: item,
+      });
+      entitiesTouched += 1;
+      if (res.snapshotCreated) snapshotsCreated += 1;
+    }
+
+    await finishManualSeedRun({
+      runId,
+      status: "success",
+      stats: {
+        entitiesTouched,
+        snapshotsCreated,
+      },
+    });
+  } catch (error) {
+    await finishManualSeedRun({
+      runId,
+      status: "failed",
+      stats: {
+        entitiesTouched,
+        snapshotsCreated,
+      },
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+
+  return { sourceId, runId, entitiesTouched, snapshotsCreated };
 }
 
 async function upsertCategories(): Promise<void> {
@@ -540,6 +630,9 @@ async function main(): Promise<void> {
     .map((f) => join("data/products", f))
     .sort((a, b) => a.localeCompare(b));
 
+  console.log("Seeding: ingestion snapshots (manual_seed source)...");
+  const ingestion = await ingestManualSeedData(productFiles);
+
   console.log("Seeding: categories...");
   await upsertCategories();
 
@@ -580,6 +673,12 @@ async function main(): Promise<void> {
   console.log(
     JSON.stringify(
       {
+        ingestion: {
+          sourceId: ingestion.sourceId,
+          runId: ingestion.runId,
+          entitiesTouched: ingestion.entitiesTouched,
+          snapshotsCreated: ingestion.snapshotsCreated,
+        },
         categories: categoriesCount[0]?.c,
         brands: brandsCount[0]?.c,
         products: productsCount[0]?.c,

@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-1` (Seed/import through ingestion pipeline).
+Current phase: `ING-1` (Seed/import through ingestion pipeline) — `IN-01` complete, `IN-02` active next.
 
 ## Current State Snapshot
 
@@ -38,11 +38,10 @@ Remaining critical gap:
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-01` Manual seed ingestion source adapter + snapshot writer.
-2. `IN-02` Refactor `pnpm seed` to ingestion -> normalization (no canonical bypass).
-3. `IN-03` Deterministic mapping rules for products/plants/offers.
-4. `IN-04` Normalization overrides + explainability metadata.
-5. `IN-05` Admin mapping/override operations UI.
+1. `IN-02` Refactor `pnpm seed` to ingestion -> normalization (no canonical bypass).
+2. `IN-03` Deterministic mapping rules for products/plants/offers.
+3. `IN-04` Normalization overrides + explainability metadata.
+4. `IN-05` Admin mapping/override operations UI.
 
 ## Known Risks / Blockers
 

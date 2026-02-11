@@ -279,3 +279,21 @@ Each work session must add a new dated entry that includes:
 - Work: Completed planning-doc consistency sweep after consolidation (active docs + archive notes + AGENTS/README alignment).
 - Verified: `pnpm verify:gates`.
 - Next: `IN-01`.
+
+## 2026-02-11 22:30
+
+- Work: Completed `IN-01` manual-seed ingestion source adapter + snapshot writer.
+  - Added `src/server/ingestion/sources/manual-seed.ts` with:
+    - `ensureManualSeedSource()` upsert for `manual_seed` in `ingestion_sources`
+    - `createManualSeedRun()` / `finishManualSeedRun()` for run lifecycle
+    - `ingestManualSeedSnapshot()` for `ingestion_entities` upsert + `ingestion_entity_snapshots` write with content-hash dedupe
+    - field-level trust/provenance payload in `extracted.fields` + `trust`
+  - Updated `scripts/seed.ts` to run manual-seed ingestion snapshot pass before canonical seed upserts and print ingestion summary.
+  - Added regression test `tests/server/manual-seed-source.test.ts` for snapshot hash dedupe + provenance shape assertions.
+- Verified:
+  - `pnpm typecheck`
+  - `pnpm test tests/server/manual-seed-source.test.ts`
+  - `pnpm seed` (successful run created `manual_seed` run with `entitiesTouched: 306`, `snapshotsCreated: 138`)
+  - SQL snapshot coverage check (manual query):
+    - `offer: 102`, `plant: 70`, `product: 134` snapshot rows under `manual_seed` source.
+- Next: `IN-02`.
