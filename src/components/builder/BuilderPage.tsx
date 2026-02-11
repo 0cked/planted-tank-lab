@@ -1827,7 +1827,8 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   }, [evals]);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
+    <div className="ptl-builder-bg">
+      <main className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex items-start justify-between gap-6">
         <div>
           <h1
@@ -2451,6 +2452,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       {bestOffersQ.isError || selectedOffersQ.isError ? (
         <div className="mt-2 text-xs text-red-700">Failed to load prices.</div>
       ) : null}
-    </main>
+      </main>
+    </div>
   );
 }
