@@ -5,7 +5,12 @@ import { eq } from "drizzle-orm";
 import { db, sql } from "@/server/db";
 import { ingestionJobs } from "@/server/db/schema";
 
-export const IngestionJobKinds = ["offers.head_refresh.bulk", "offers.head_refresh.one"] as const;
+export const IngestionJobKinds = [
+  "offers.head_refresh.bulk",
+  "offers.head_refresh.one",
+  "offers.detail_refresh.bulk",
+  "offers.detail_refresh.one",
+] as const;
 export type IngestionJobKind = (typeof IngestionJobKinds)[number];
 export const IngestionJobKindSchema = z.enum(IngestionJobKinds);
 
@@ -18,6 +23,17 @@ export const OffersHeadRefreshBulkPayloadSchema = z.object({
 export const OffersHeadRefreshOnePayloadSchema = z.object({
   offerId: z.string().uuid(),
   timeoutMs: z.number().int().min(500).max(30000).default(6000).optional(),
+});
+
+export const OffersDetailRefreshBulkPayloadSchema = z.object({
+  olderThanDays: z.number().int().min(0).max(365).default(2),
+  limit: z.number().int().min(1).max(500).default(30),
+  timeoutMs: z.number().int().min(500).max(60000).default(12000).optional(),
+});
+
+export const OffersDetailRefreshOnePayloadSchema = z.object({
+  offerId: z.string().uuid(),
+  timeoutMs: z.number().int().min(500).max(60000).default(12000).optional(),
 });
 
 const JobRowSchema = z.object({

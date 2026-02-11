@@ -176,7 +176,7 @@ export default async function AdminOffersPage(props: {
             <div>
               <div className="text-sm font-semibold text-neutral-900">Offers</div>
               <div className="mt-1 text-sm text-neutral-700">
-                Offers are refreshed via HEAD checks. Prices are manual for now.
+                Offers are refreshed via detail checks that parse price and stock signals.
               </div>
             </div>
           </div>

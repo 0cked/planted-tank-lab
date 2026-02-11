@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-4` (Offer freshness and derived cache) — `IN-08` complete, `IN-09` active next.
+Current phase: `ING-4` (Offer freshness and derived cache) — `IN-09` complete, `IN-10` active next.
 
 ## Current State Snapshot
 
@@ -33,31 +33,34 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- offer detail freshness jobs and derived read-cache adoption remain pending (`IN-09+`).
+- derived offer read-cache + read-path adoption remain pending (`IN-10+`).
 
 ## What Changed Last
 
-- Completed `IN-08` admin normalization override CRUD with reason/actor capture.
-- Added admin overrides surface:
-  - `src/app/admin/overrides/page.tsx`
-  - `src/app/admin/overrides/create/route.ts`
-  - `src/app/admin/overrides/[id]/update/route.ts`
-  - `src/app/admin/overrides/[id]/delete/route.ts`
-- Added override service with canonical existence checks, duplicate prevention, and admin audit logging:
-  - `src/server/services/admin/overrides.ts`
-- Updated admin navigation links:
-  - `src/app/admin/page.tsx`
-  - `src/app/admin/ingestion/page.tsx`
-- Added coverage:
-  - `tests/server/admin-overrides.test.ts`
-  - `tests/e2e/smoke.spec.ts` (signed-out protection for `/admin/overrides`)
+- Completed `IN-09` offer detail refresh pipeline + parser hooks.
+- Added new ingestion job kinds and worker handling:
+  - `offers.detail_refresh.bulk`
+  - `offers.detail_refresh.one`
+- Added detail ingestion source/parser implementation:
+  - `src/server/ingestion/sources/offers-detail.ts`
+  - provenance snapshots now capture parser metadata + extracted price/stock signals.
+- Updated normalization semantics for meaningful-change writes:
+  - `src/server/normalization/offers.ts`
+  - `lastCheckedAt` updates every observation, while canonical price/stock + `price_history` only update on meaningful changes.
+- Switched refresh entry points to detail jobs:
+  - `src/app/admin/offers/refresh/route.ts`
+  - `src/app/admin/offers/[id]/refresh/route.ts`
+  - `src/app/api/cron/refresh-offers/route.ts`
+- Added/updated coverage:
+  - `tests/server/ingestion-offers-detail.test.ts`
+  - `tests/server/ingestion-scheduler.test.ts`
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-09` Offer detail refresh jobs (`one` + `bulk`) and parser hooks.
-2. `IN-10` Derived offer summary cache for read-heavy views.
-3. `IN-11` Switch product list and builder read-paths to derived summaries.
+1. `IN-10` Derived offer summary cache for read-heavy views.
+2. `IN-11` Switch product list and builder read-paths to derived summaries.
+3. `IN-12` Ingestion ops dashboard and runbook checks.
 
 ## Known Risks / Blockers
 

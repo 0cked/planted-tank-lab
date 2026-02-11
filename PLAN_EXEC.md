@@ -140,7 +140,7 @@ No direct canonical bypass for import/seed paths.
 
 ### Phase ING-4: Offer Freshness and Derived Read Cache
 
-- [ ] IN-09 (P0) Add offer detail refresh jobs (`one` + `bulk`) and parser hooks.
+- [x] IN-09 (P0) Add offer detail refresh jobs (`one` + `bulk`) and parser hooks.
   - Gates: G0, G4, G7
   - Acceptance:
     - New job kinds process detail checks outside request paths.
@@ -154,6 +154,11 @@ No direct canonical bypass for import/seed paths.
     - `src/server/ingestion/job-queue.ts`
     - `src/server/ingestion/sources/offers-*.ts`
     - `src/server/normalization/offers.ts`
+  - Notes (2026-02-11):
+    - Added `offers.detail_refresh.bulk|one` job kinds + payload schemas and worker handling.
+    - Added detail ingestion source/parser pipeline in `src/server/ingestion/sources/offers-detail.ts` with provenance snapshot writes.
+    - Added meaningful-change normalization semantics in `src/server/normalization/offers.ts` (`lastCheckedAt` always updates; `price_history` appends only on meaningful price/stock changes).
+    - Switched admin+cron refresh routes to enqueue detail-refresh jobs and updated scheduler coverage + new detail worker regression test.
 
 - [ ] IN-10 (P0) Add derived offer summary cache for read-heavy catalog/builder views.
   - Gates: G0, G8
@@ -215,4 +220,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-09`.
+Start with `IN-10`.

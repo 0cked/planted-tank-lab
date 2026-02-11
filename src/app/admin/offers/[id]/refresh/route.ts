@@ -22,9 +22,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   const minuteBucket = Math.floor(Date.now() / 60000);
   const queued = await enqueueIngestionJob({
-    kind: "offers.head_refresh.one",
-    payload: { offerId: id, timeoutMs: 6000 },
-    idempotencyKey: `offers.head_refresh.one:${id}:${minuteBucket}`,
+    kind: "offers.detail_refresh.one",
+    payload: { offerId: id, timeoutMs: 12000 },
+    idempotencyKey: `offers.detail_refresh.one:${id}:${minuteBucket}`,
     priority: 10,
   });
 

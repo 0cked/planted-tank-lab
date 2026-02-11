@@ -7,11 +7,74 @@ import {
   claimNextJob,
   markJobFailure,
   markJobSuccess,
+  OffersDetailRefreshBulkPayloadSchema,
+  OffersDetailRefreshOnePayloadSchema,
   OffersHeadRefreshBulkPayloadSchema,
   OffersHeadRefreshOnePayloadSchema,
 } from "@/server/ingestion/job-queue";
 import { ensureIngestionSource } from "@/server/ingestion/sources";
+import { runOffersDetailRefresh } from "@/server/ingestion/sources/offers-detail";
 import { runOffersHeadRefresh } from "@/server/ingestion/sources/offers-head";
+
+async function ensureOffersHeadSource(): Promise<string> {
+  return ensureIngestionSource({
+    slug: "offers-head",
+    name: "Retailer offer HEAD checks",
+    kind: "offer_head",
+    defaultTrust: "retailer",
+    scheduleEveryMinutes: 60,
+    config: {
+      jobKind: "offers.head_refresh.bulk",
+      jobPayload: { olderThanDays: 2, limit: 50, timeoutMs: 6000 },
+      idempotencyPrefix: "schedule:offers-head",
+    },
+  });
+}
+
+async function ensureOffersDetailSource(): Promise<string> {
+  return ensureIngestionSource({
+    slug: "offers-detail",
+    name: "Retailer offer detail checks",
+    kind: "offer_detail",
+    defaultTrust: "retailer",
+    scheduleEveryMinutes: 120,
+    config: {
+      jobKind: "offers.detail_refresh.bulk",
+      jobPayload: { olderThanDays: 2, limit: 50, timeoutMs: 12000 },
+      idempotencyPrefix: "schedule:offers-detail",
+    },
+  });
+}
+
+async function createIngestionRun(sourceId: string): Promise<string> {
+  const runRows = await db
+    .insert(ingestionRuns)
+    .values({
+      sourceId,
+      status: "running",
+      startedAt: new Date(),
+      createdAt: new Date(),
+    })
+    .returning({ id: ingestionRuns.id });
+
+  const runId = runRows[0]?.id;
+  if (!runId) throw new Error("Failed to create ingestion run");
+  return runId;
+}
+
+async function finishIngestionRunSuccess(params: {
+  runId: string;
+  stats: Record<string, unknown>;
+}): Promise<void> {
+  await db
+    .update(ingestionRuns)
+    .set({
+      status: "success",
+      finishedAt: new Date(),
+      stats: params.stats,
+    })
+    .where(eq(ingestionRuns.id, params.runId));
+}
 
 export async function runIngestionWorker(params: {
   workerId: string;
@@ -54,32 +117,8 @@ export async function runIngestionWorker(params: {
     try {
       if (job.kind === "offers.head_refresh.bulk") {
         const payload = OffersHeadRefreshBulkPayloadSchema.parse(job.payload);
-
-        const sourceId = await ensureIngestionSource({
-          slug: "offers-head",
-          name: "Retailer offer HEAD checks",
-          kind: "offer_head",
-          defaultTrust: "retailer",
-          scheduleEveryMinutes: 60,
-          config: {
-            jobKind: "offers.head_refresh.bulk",
-            jobPayload: { olderThanDays: 2, limit: 50, timeoutMs: 6000 },
-            idempotencyPrefix: "schedule:offers-head",
-          },
-        });
-
-        const runRows = await db
-          .insert(ingestionRuns)
-          .values({
-            sourceId,
-            status: "running",
-            startedAt: new Date(),
-            createdAt: new Date(),
-          })
-          .returning({ id: ingestionRuns.id });
-
-        const runId = runRows[0]?.id;
-        if (!runId) throw new Error("Failed to create ingestion run");
+        const sourceId = await ensureOffersHeadSource();
+        const runId = await createIngestionRun(sourceId);
 
         const result = await runOffersHeadRefresh({
           db,
@@ -91,15 +130,7 @@ export async function runIngestionWorker(params: {
           timeoutMs: payload.timeoutMs ?? 6000,
         });
 
-        await db
-          .update(ingestionRuns)
-          .set({
-            status: "success",
-            finishedAt: new Date(),
-            stats: result,
-          })
-          .where(eq(ingestionRuns.id, runId));
-
+        await finishIngestionRunSuccess({ runId, stats: result });
         await markJobSuccess(job.id);
         succeeded += 1;
         continue;
@@ -107,32 +138,8 @@ export async function runIngestionWorker(params: {
 
       if (job.kind === "offers.head_refresh.one") {
         const payload = OffersHeadRefreshOnePayloadSchema.parse(job.payload);
-
-        const sourceId = await ensureIngestionSource({
-          slug: "offers-head",
-          name: "Retailer offer HEAD checks",
-          kind: "offer_head",
-          defaultTrust: "retailer",
-          scheduleEveryMinutes: 60,
-          config: {
-            jobKind: "offers.head_refresh.bulk",
-            jobPayload: { olderThanDays: 2, limit: 50, timeoutMs: 6000 },
-            idempotencyPrefix: "schedule:offers-head",
-          },
-        });
-
-        const runRows = await db
-          .insert(ingestionRuns)
-          .values({
-            sourceId,
-            status: "running",
-            startedAt: new Date(),
-            createdAt: new Date(),
-          })
-          .returning({ id: ingestionRuns.id });
-
-        const runId = runRows[0]?.id;
-        if (!runId) throw new Error("Failed to create ingestion run");
+        const sourceId = await ensureOffersHeadSource();
+        const runId = await createIngestionRun(sourceId);
 
         const result = await runOffersHeadRefresh({
           db,
@@ -143,15 +150,48 @@ export async function runIngestionWorker(params: {
           timeoutMs: payload.timeoutMs ?? 6000,
         });
 
-        await db
-          .update(ingestionRuns)
-          .set({
-            status: "success",
-            finishedAt: new Date(),
-            stats: result,
-          })
-          .where(eq(ingestionRuns.id, runId));
+        await finishIngestionRunSuccess({ runId, stats: result });
+        await markJobSuccess(job.id);
+        succeeded += 1;
+        continue;
+      }
 
+      if (job.kind === "offers.detail_refresh.bulk") {
+        const payload = OffersDetailRefreshBulkPayloadSchema.parse(job.payload);
+        const sourceId = await ensureOffersDetailSource();
+        const runId = await createIngestionRun(sourceId);
+
+        const result = await runOffersDetailRefresh({
+          db,
+          sourceId,
+          runId,
+          mode: "bulk",
+          olderThanDays: payload.olderThanDays,
+          limit: payload.limit,
+          timeoutMs: payload.timeoutMs ?? 12000,
+        });
+
+        await finishIngestionRunSuccess({ runId, stats: result });
+        await markJobSuccess(job.id);
+        succeeded += 1;
+        continue;
+      }
+
+      if (job.kind === "offers.detail_refresh.one") {
+        const payload = OffersDetailRefreshOnePayloadSchema.parse(job.payload);
+        const sourceId = await ensureOffersDetailSource();
+        const runId = await createIngestionRun(sourceId);
+
+        const result = await runOffersDetailRefresh({
+          db,
+          sourceId,
+          runId,
+          mode: "one",
+          offerId: payload.offerId,
+          timeoutMs: payload.timeoutMs ?? 12000,
+        });
+
+        await finishIngestionRunSuccess({ runId, stats: result });
         await markJobSuccess(job.id);
         succeeded += 1;
         continue;

@@ -29,8 +29,8 @@ export async function GET(req: Request) {
   const parsedLimit = Number.isFinite(limit) ? Math.min(200, Math.max(1, limit)) : 30;
 
   const queued = await enqueueIngestionJob({
-    kind: "offers.head_refresh.bulk",
-    payload: { olderThanDays: parsedOlder, limit: parsedLimit, timeoutMs: 6000 },
+    kind: "offers.detail_refresh.bulk",
+    payload: { olderThanDays: parsedOlder, limit: parsedLimit, timeoutMs: 12000 },
     priority: 0,
   });
 

@@ -514,3 +514,43 @@ Each work session must add a new dated entry that includes:
   - Environment blockers encountered: `tsx` IPC `EPERM` for `pnpm verify:gates`, Supabase pooler DNS unresolvable for DB-backed tests, and Google Fonts fetch failures during build/e2e.
 
 - Next: `IN-09` (Offer detail refresh jobs + parser hooks).
+
+## 2026-02-11 10:24
+
+- Work: Completed `IN-09` offer detail refresh jobs + parser hooks.
+  - Added detail ingestion job kinds + payload schemas:
+    - `offers.detail_refresh.bulk`
+    - `offers.detail_refresh.one`
+    - file: `src/server/ingestion/job-queue.ts`
+  - Added worker handling + source bootstrap for detail jobs:
+    - file: `src/server/ingestion/worker.ts`
+    - source slug: `offers-detail` (`offer_detail`) with scheduled bulk config.
+  - Added detail ingestion source/parser pipeline:
+    - file: `src/server/ingestion/sources/offers-detail.ts`
+    - GET-based detail fetch (worker-only), parser hooks (JSON-LD/meta/retailer/text fallback), provenance snapshot writes.
+  - Updated canonical offer normalization behavior for meaningful-change semantics:
+    - file: `src/server/normalization/offers.ts`
+    - `lastCheckedAt` updates every observation; canonical price/stock + `price_history` append only on meaningful observed changes.
+  - Switched refresh entry points from HEAD to detail jobs:
+    - `src/app/admin/offers/refresh/route.ts`
+    - `src/app/admin/offers/[id]/refresh/route.ts`
+    - `src/app/api/cron/refresh-offers/route.ts`
+    - `src/app/admin/offers/page.tsx` messaging updated to detail checks.
+  - Added/updated coverage:
+    - `tests/server/ingestion-offers-detail.test.ts` (detail job flow + no duplicate `price_history` for unchanged second run)
+    - `tests/server/ingestion-scheduler.test.ts` (detail scheduled job expectation)
+
+- Commands run:
+  - `pnpm vitest run tests/server/ingestion-offers-detail.test.ts` (initial FAIL while refining parser priority/timeout; final PASS)
+  - `pnpm test -- tests/server/ingestion-offers-detail.test.ts tests/server/ingestion-scheduler.test.ts` (PASS; repo Vitest config executes full suite: 26 files / 73 tests)
+  - `pnpm ingest schedule` (PASS: `scanned=2 enqueued=1 deduped=1 skipped=0 errors=0`)
+  - `pnpm ingest run` (PASS: `processed=0 ok=0 failed=0`)
+  - `pnpm verify:gates` (PASS)
+  - `node --import tsx scripts/tmp-check-offer-freshness.ts` (PASS manual DB check; `offers_with_last_checked_at=103`, `price_history_rows=194`)
+
+- Results:
+  - Detail refresh jobs are now first-class ingestion jobs and run outside request paths.
+  - Canonical offer writes and `price_history` appends now happen only on meaningful detail observation changes.
+  - Manual DB verification confirms non-null `last_checked_at` presence and populated `price_history`.
+
+- Next: `IN-10` (Derived offer summary cache for read-heavy views).

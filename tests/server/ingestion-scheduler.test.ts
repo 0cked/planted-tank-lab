@@ -17,21 +17,21 @@ afterAll(async () => {
 describe("ingestion scheduler", () => {
   test("enqueues scheduled jobs using idempotency buckets", async () => {
     await ensureIngestionSource({
-      slug: "offers-head",
-      name: "Retailer offer HEAD checks",
-      kind: "offer_head",
+      slug: "offers-detail",
+      name: "Retailer offer detail checks",
+      kind: "offer_detail",
       defaultTrust: "retailer",
       scheduleEveryMinutes: 60,
       config: {
-        jobKind: "offers.head_refresh.bulk",
-        jobPayload: { olderThanDays: 2, limit: 10, timeoutMs: 6000 },
-        idempotencyPrefix: "test:schedule:offers-head",
+        jobKind: "offers.detail_refresh.bulk",
+        jobPayload: { olderThanDays: 2, limit: 10, timeoutMs: 12000 },
+        idempotencyPrefix: "test:schedule:offers-detail",
       },
     });
 
     const now = new Date("2026-02-10T12:34:56.000Z");
     const bucket = Math.floor(now.getTime() / (60 * 60_000));
-    const idempotencyKey = `test:schedule:offers-head:${bucket}`;
+    const idempotencyKey = `test:schedule:offers-detail:${bucket}`;
 
     const res = await enqueueScheduledIngestionJobs({ db, now });
     expect(res.scanned).toBeGreaterThan(0);
@@ -42,7 +42,7 @@ describe("ingestion scheduler", () => {
       .where(eq(ingestionJobs.idempotencyKey, idempotencyKey))
       .limit(1);
 
-    expect(rows[0]?.kind).toBe("offers.head_refresh.bulk");
+    expect(rows[0]?.kind).toBe("offers.detail_refresh.bulk");
     createdJobId = rows[0]?.id ?? null;
 
     // Second run in the same bucket should dedupe.
@@ -53,7 +53,7 @@ describe("ingestion scheduler", () => {
     const srcRows = await db
       .select({ slug: ingestionSources.slug })
       .from(ingestionSources)
-      .where(eq(ingestionSources.slug, "offers-head"))
+      .where(eq(ingestionSources.slug, "offers-detail"))
       .limit(10);
     expect(srcRows.length).toBe(1);
   });
