@@ -45,6 +45,7 @@ Execute in this order:
 
 ## Known Risks / Blockers
 
+- `IN-02` currently blocked in this execution environment: `pnpm seed` intermittently exits via external signal (`SIGKILL` / exit 143) before completion after the seed-flow refactor. Need rerun in a stable shell/session to collect a full passing `pnpm seed && pnpm seed` idempotency proof.
 - Offer data completeness still depends on source coverage and parser quality.
 - In-memory rate limit implementation is acceptable now but not horizontally durable.
 - Sentry alerting still requires ongoing production tuning.

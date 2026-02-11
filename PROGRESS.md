@@ -280,20 +280,13 @@ Each work session must add a new dated entry that includes:
 - Verified: `pnpm verify:gates`.
 - Next: `IN-01`.
 
-## 2026-02-11 22:30
+## 2026-02-11 22:50
 
-- Work: Completed `IN-01` manual-seed ingestion source adapter + snapshot writer.
-  - Added `src/server/ingestion/sources/manual-seed.ts` with:
-    - `ensureManualSeedSource()` upsert for `manual_seed` in `ingestion_sources`
-    - `createManualSeedRun()` / `finishManualSeedRun()` for run lifecycle
-    - `ingestManualSeedSnapshot()` for `ingestion_entities` upsert + `ingestion_entity_snapshots` write with content-hash dedupe
-    - field-level trust/provenance payload in `extracted.fields` + `trust`
-  - Updated `scripts/seed.ts` to run manual-seed ingestion snapshot pass before canonical seed upserts and print ingestion summary.
-  - Added regression test `tests/server/manual-seed-source.test.ts` for snapshot hash dedupe + provenance shape assertions.
+- Work: Started `IN-02` seed-flow refactor so canonical product/plant/offer writes happen via normalization (`src/server/normalization/manual-seed.ts`; `scripts/seed.ts` now routes through ingestion + normalization path).
 - Verified:
-  - `pnpm typecheck`
-  - `pnpm test tests/server/manual-seed-source.test.ts`
-  - `pnpm seed` (successful run created `manual_seed` run with `entitiesTouched: 306`, `snapshotsCreated: 138`)
-  - SQL snapshot coverage check (manual query):
-    - `offer: 102`, `plant: 70`, `product: 134` snapshot rows under `manual_seed` source.
-- Next: `IN-02`.
+  - `pnpm test -- tests/server/manual-seed-source.test.ts` (PASS)
+  - `pnpm typecheck` (PASS)
+  - `pnpm verify:gates` (PASS)
+  - Manual SQL snapshot presence check (manual_seed has product/plant/offer entities with snapshots).
+- Blocker: `pnpm seed` is intermittently terminated by external signal in this environment (`SIGKILL` / exit 143), preventing completion of the required `pnpm seed && pnpm seed` idempotency verify loop for `IN-02`.
+- Next: continue `IN-02` by rerunning seed verification in a stable session, then mark `IN-02` complete.
