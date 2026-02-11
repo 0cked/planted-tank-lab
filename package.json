@@ -15,6 +15,7 @@
     "seed": "tsx scripts/seed.ts",
     "ingest": "tsx scripts/ingest.ts",
     "catalog:check": "tsx scripts/catalog-check.ts",
+    "catalog:cleanup:legacy": "tsx scripts/catalog-legacy-prune.ts",
     "catalog:audit:provenance": "tsx scripts/catalog-provenance-audit.ts",
     "format": "prettier -w ."
   },

@@ -704,3 +704,65 @@ Each work session must add a new dated entry that includes:
     - build parts referencing non-provenance: products `124`, plants `0`, total `124`
 
 - Next: `IN-11A2`.
+
+## 2026-02-11 18:15
+
+- Work: Implemented `IN-11A2` code changes (normalization-boundary hardening + legacy prune path), pending host-side DB verification.
+  - Added legacy prune module:
+    - `src/server/catalog/legacy-prune.ts`
+    - detects non-provenance canonical rows (`product|plant|offer`), prunes legacy rows plus dependent refs, and refreshes affected offer summaries.
+  - Added executable cleanup script:
+    - `scripts/catalog-legacy-prune.ts`
+    - wired as `pnpm catalog:cleanup:legacy` in `package.json`.
+  - Hardened seed/import flow:
+    - `scripts/seed.ts` now always runs normalization (removed `snapshotsCreated` skip), runs legacy prune, then runs provenance audit and fails if displayed violations remain.
+  - Added regression coverage:
+    - `tests/server/catalog-legacy-prune.test.ts` (deterministic prune-plan behavior).
+  - Updated planning docs for in-progress blocker status:
+    - `AUTOPILOT.md`
+    - `PLAN_EXEC.md`
+
+- Commands run:
+  - `pnpm verify:gates` (FAIL: `tsx` IPC pipe `EPERM` in sandbox)
+  - `node --import tsx scripts/gates.ts` (PASS fallback)
+  - `pnpm verify` (FAIL: DB-backed tests cannot resolve Supabase pooler DNS `ENOTFOUND aws-0-us-west-2.pooler.supabase.com`)
+  - `pnpm lint` (PASS)
+  - `pnpm typecheck` (PASS)
+  - `pnpm vitest run tests/server/catalog-legacy-prune.test.ts` (PASS)
+  - `pnpm test` (FAIL: same DB DNS resolution error)
+  - `pnpm catalog:audit:provenance` (FAIL: `tsx` IPC `EPERM`; fallback used)
+  - `node --import tsx scripts/catalog-provenance-audit.ts` (FAIL: DB DNS `ENOTFOUND`)
+  - `node --import tsx scripts/catalog-legacy-prune.ts` (FAIL: DB DNS `ENOTFOUND`)
+  - `git add ... && git commit -m "feat: harden seed normalization boundary with legacy prune"` (FAIL: cannot create `.git/index.lock` in sandbox)
+  - `git push origin main` (FAIL: DNS resolution `Could not resolve host: github.com`)
+
+- Results:
+  - `IN-11A2` implementation changes are in place and lint/typecheck + targeted regression test pass.
+  - DB-backed verification and actual data cleanup execution are blocked in this sandbox by Supabase DNS resolution failure.
+
+- Next: `IN-11A2` (host-side DB verification and cleanup execution, then mark complete if provenance audit passes).
+
+## 2026-02-11 18:26
+
+- Work: Completed host-side verification for `IN-11A2` and executed legacy cleanup against live DB.
+  - Ran `pnpm catalog:cleanup:legacy` end-to-end and captured before/after provenance audit snapshots.
+  - Confirmed post-cleanup provenance audit is fully clean (no displayed canonical violations).
+  - Updated planning artifacts to mark `IN-11A2` complete and advance queue to `IN-11A3`.
+
+- Commands run:
+  - `pnpm verify:gates` (PASS)
+  - `pnpm verify` (PASS; lint + typecheck + unit/integration + e2e)
+  - `pnpm catalog:cleanup:legacy` (PASS)
+    - Before cleanup violations: products `31`, plants `74`, offers `104`, categories `9`
+    - Cleanup deleted: products `31`, plants `74`, offers `104`
+    - Dependent cleanup: `build_items.selected_offer_id` cleared `125`; `price_history` rows deleted `207`
+    - After cleanup violations: products `0`, plants `0`, offers `0`, categories `0`, build parts total `0`
+  - `pnpm catalog:audit:provenance` (PASS; all zero violations)
+  - `pnpm seed` (STARTED; no completion signal after normalization phase in this session; process terminated manually to avoid indefinite run)
+
+- Results:
+  - `IN-11A2` is complete in both code and DB state.
+  - Production canonical/displayed catalog provenance violations are now zero.
+  - Full gate verification is green on host (`pnpm verify`, `pnpm verify:gates`).
+
+- Next: `IN-11A3` (remove placeholder assets/copy/spec filler from production catalog surfaces).

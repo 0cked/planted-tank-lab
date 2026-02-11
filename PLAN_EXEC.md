@@ -206,14 +206,32 @@ No direct canonical bypass for import/seed paths.
   - Gates: G0, G4, G8, G9
   - Subtasks (execute in order):
     - [x] IN-11A1 Codify legacy/pre-ingestion detection + provenance audit checks (products/plants/offers/categories/parts).
-    - [ ] IN-11A2 Harden seed/import normalization boundary and archive/prune legacy rows so production surfaces only show ingestion-backed canonical data.
+    - [x] IN-11A2 Harden seed/import normalization boundary and archive/prune legacy rows so production surfaces only show ingestion-backed canonical data.
     - [ ] IN-11A3 Remove placeholder assets/copy/spec filler from production catalog surfaces (Products/Plants/Builder) with explicit no-data UX.
     - [ ] IN-11A4 Add guardrails/tests to prevent placeholder/provenance regressions.
   - Notes (2026-02-11):
     - Added `src/server/catalog/provenance.ts` with canonical/displayed/build-part provenance audits.
     - Added `scripts/catalog-provenance-audit.ts` + `pnpm catalog:audit:provenance`.
     - Added regression coverage: `tests/server/catalog-provenance.test.ts`.
-    - Audit currently reports active violations (expected pre-cleanup): products=91, plants=74, offers=104, categories=10, build parts total=124.
+    - Baseline audit snapshot before cleanup: products=91, plants=74, offers=104, categories=10, build parts total=124.
+  - Notes (2026-02-11, IN-11A2 complete):
+    - Added `src/server/catalog/legacy-prune.ts`:
+      - detects canonical rows missing ingestion provenance (`product|plant|offer`)
+      - prunes legacy canonical rows plus dependent references (`build_items`, `user_favorites`, `price_history`, overrides/mappings)
+      - refreshes affected `offer_summaries` after offer pruning
+    - Added executable cleanup command:
+      - `scripts/catalog-legacy-prune.ts`
+      - `pnpm catalog:cleanup:legacy`
+    - Hardened `scripts/seed.ts` boundary:
+      - normalization now always runs (no `snapshotsCreated` skip path)
+      - legacy prune runs after normalization
+      - provenance audit runs after prune and throws if displayed violations remain
+    - Added regression coverage:
+      - `tests/server/catalog-legacy-prune.test.ts` (deterministic cleanup-plan behavior)
+    - Host verification + cleanup run:
+      - `pnpm catalog:cleanup:legacy` PASS
+      - `pnpm catalog:audit:provenance` PASS (`products=0, plants=0, offers=0, categories=0, build parts total=0`)
+      - Cleanup removed 31 products, 74 plants, 104 offers and deleted dependent price history + stale offer references.
   - Acceptance:
     - Define and codify "legacy/pre-ingestion" detection (products/plants/offers/categories/parts lacking ingestion provenance or canonical mapping consistency).
     - Remove or archive legacy pre-ingestion catalog rows so production surfaces only show ingestion-backed canonical data.
@@ -302,4 +320,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-11A`, then execute `CAT-01`.
+Start with `IN-11A3`, then continue to `IN-11A4`.

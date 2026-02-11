@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { pruneLegacyCatalogRows } from "@/server/catalog/legacy-prune";
+import { runCatalogProvenanceAudit } from "@/server/catalog/provenance";
 import { db } from "@/server/db";
 import {
   brands,
@@ -350,24 +352,29 @@ async function main(): Promise<void> {
   console.log("Seeding: retailers...");
   await upsertRetailers();
 
-  let normalization = {
-    products: { inserted: 0, updated: 0 },
-    plants: { inserted: 0, updated: 0 },
-    offers: { inserted: 0, updated: 0 },
-    mappingsUpserted: 0,
-    totalInserted: 0,
-    totalUpdated: 0,
-  };
+  console.log(
+    "Seeding: normalization (products/plants/offers from ingestion snapshots)...",
+  );
+  const normalization = await normalizeManualSeedSnapshots({
+    sourceId: ingestion.sourceId,
+  });
 
-  if (ingestion.snapshotsCreated > 0) {
-    console.log(
-      "Seeding: normalization (products/plants/offers from ingestion snapshots)...",
+  console.log("Seeding: prune legacy non-provenance catalog rows...");
+  const legacyCleanup = await pruneLegacyCatalogRows({ database: db });
+
+  console.log("Seeding: provenance audit...");
+  const provenanceAudit = await runCatalogProvenanceAudit(db);
+  if (provenanceAudit.hasDisplayedViolations) {
+    throw new Error(
+      [
+        "Provenance audit failed after seed normalization and cleanup.",
+        `displayed.products=${provenanceAudit.displayedWithoutProvenance.products}`,
+        `displayed.plants=${provenanceAudit.displayedWithoutProvenance.plants}`,
+        `displayed.offers=${provenanceAudit.displayedWithoutProvenance.offers}`,
+        `displayed.categories=${provenanceAudit.displayedWithoutProvenance.categories}`,
+        `buildParts.total=${provenanceAudit.buildPartsReferencingNonProvenance.total}`,
+      ].join(" "),
     );
-    normalization = await normalizeManualSeedSnapshots({
-      sourceId: ingestion.sourceId,
-    });
-  } else {
-    console.log("Seeding: normalization skipped (no new snapshots)...");
   }
 
   console.log("Seeding: price history (initial backfill)...");
@@ -417,6 +424,8 @@ async function main(): Promise<void> {
           totalInserted: normalization.totalInserted,
           totalUpdated: normalization.totalUpdated,
         },
+        legacyCleanup,
+        provenanceAudit,
         categories: categoriesCount[0]?.c,
         brands: brandsCount[0]?.c,
         products: productsCount[0]?.c,
