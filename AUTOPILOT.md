@@ -50,26 +50,23 @@ Remaining critical gap:
   - `pnpm lint` PASS
   - `pnpm typecheck` PASS
   - `pnpm vitest run tests/lib/offer-summary.test.ts` PASS
-  - `pnpm test:e2e` blocked in this environment due Google Fonts fetch failures during `next build`
+  - `pnpm verify` PASS (full lint + typecheck + vitest + e2e)
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-12` Ingestion ops dashboard and runbook checks.
+1. `IN-11A` Catalog production hardening: remove pre-ingestion legacy rows + placeholders.
 2. `CAT-01` Define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant counts.
 3. `CAT-02` Add one-click "Start from template" UX.
-4. `IN-13` Final gate check for data-pipeline readiness.
+4. `IN-12` Ingestion ops dashboard and runbook checks.
+5. `IN-13` Final gate check for data-pipeline readiness.
 
 ## Known Risks / Blockers
 
 - Offer data completeness still depends on source coverage and parser quality.
 - In-memory rate limit implementation is acceptable now but not horizontally durable.
 - Sentry alerting still requires ongoing production tuning.
-- Environment verification blockers persist in this sandbox:
-  - `pnpm verify:gates` fails via `tsx` IPC pipe `EPERM` (fallback command works: `node --import tsx scripts/gates.ts`).
-  - DB-backed tests fail when Supabase pooler DNS is unreachable (`ENOTFOUND aws-0-us-west-2.pooler.supabase.com`).
-  - `pnpm test:e2e` fails when Google Fonts cannot be fetched during `next build`.
-  - Git operations requiring `.git` writes are blocked (`.git/index.lock` cannot be created), and `git push` cannot resolve `github.com`.
+- Host rerun on 2026-02-11 shows no active execution blockers (`pnpm verify:gates` + `pnpm verify` both pass).
 
 ## Resume In <2 Minutes
 

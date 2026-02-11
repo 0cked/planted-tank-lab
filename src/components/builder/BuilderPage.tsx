@@ -7,6 +7,10 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { markSignupTracked, trackEvent } from "@/lib/analytics";
+import {
+  deriveOfferSummaryState,
+  formatOfferSummaryCheckedAt,
+} from "@/lib/offer-summary";
 
 import { SmartImage } from "@/components/SmartImage";
 import { RetailerMark } from "@/components/RetailerMark";
@@ -36,6 +40,7 @@ type CategoryRow = RouterOutputs["products"]["categoriesList"][number];
 type RuleRow = RouterOutputs["rules"]["listActive"][number];
 type ProductRow = RouterOutputs["products"]["listByCategorySlug"][number];
 type PlantRow = RouterOutputs["plants"]["list"][number];
+type OfferSummaryRow = RouterOutputs["offers"]["summaryByProductIds"][number];
 
 export type BuilderInitialState = {
   buildId: string | null;
@@ -60,6 +65,17 @@ function formatMoney(cents: number | null | undefined): string {
   if (cents == null) return "—";
   const dollars = cents / 100;
   return dollars.toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
+
+function formatDateShort(value: unknown): string | null {
+  if (value == null) return null;
+  const parsed = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function numSpec(specs: unknown, key: string): number | null {
@@ -1243,30 +1259,16 @@ function OffersDialog(props: {
     { enabled: props.open },
   );
 
-  const formatUpdatedAt = (value: unknown): string | null => {
-    if (value == null) return null;
-    const d = value instanceof Date ? value : new Date(String(value));
-    if (Number.isNaN(d.getTime())) return null;
-    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  };
-
-  const formatCheckedAt = (value: unknown): string | null => {
-    if (value == null) return null;
-    const d = value instanceof Date ? value : new Date(String(value));
-    if (Number.isNaN(d.getTime())) return null;
-    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  };
-
   return (
     <PickerDialog
       title={`Offers for ${props.productName}`}
-      description="Pick a retailer. Default is the best in-stock price."
+      description="Pick a retailer. Default pricing uses the derived offer summary."
       open={props.open}
       onOpenChange={props.onOpenChange}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-neutral-700">
-          {props.selectedOfferId ? "Custom offer selected." : "Using best in-stock offer."}
+          {props.selectedOfferId ? "Custom offer selected." : "Using derived offer summary."}
         </div>
         <button
           type="button"
@@ -1274,7 +1276,7 @@ function OffersDialog(props: {
           onClick={() => props.onSelectOfferId(null)}
           disabled={!props.selectedOfferId}
         >
-          Use best price
+          Use summary price
         </button>
       </div>
 
@@ -1293,8 +1295,8 @@ function OffersDialog(props: {
             {(offersQ.data ?? []).map((o) => {
               const selected = props.selectedOfferId === o.id;
               const price = formatMoney(o.priceCents);
-              const checked = formatCheckedAt((o as { lastCheckedAt?: unknown }).lastCheckedAt);
-              const updated = formatUpdatedAt((o as { updatedAt?: unknown }).updatedAt);
+              const checked = formatDateShort((o as { lastCheckedAt?: unknown }).lastCheckedAt);
+              const updated = formatDateShort((o as { updatedAt?: unknown }).updatedAt);
               return (
                 <li
                   key={o.id}
@@ -1437,6 +1439,11 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     return Array.from(new Set(ids));
   }, [productsByCategory]);
 
+  const offerSummariesQ = trpc.offers.summaryByProductIds.useQuery(
+    { productIds: selectedProductIds },
+    { enabled: selectedProductIds.length > 0 },
+  );
+
   const bestOffersQ = trpc.offers.bestByProductIds.useQuery(
     { productIds: selectedProductIds },
     { enabled: selectedProductIds.length > 0 },
@@ -1452,6 +1459,14 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     { offerIds: selectedOfferIds },
     { enabled: selectedOfferIds.length > 0 },
   );
+
+  const offerSummaryByProductId = useMemo(() => {
+    const map = new Map<string, OfferSummaryRow>();
+    for (const row of offerSummariesQ.data ?? []) {
+      map.set(row.productId, row);
+    }
+    return map;
+  }, [offerSummariesQ.data]);
 
   const bestOfferByProductId = useMemo(() => {
     const map = new Map<
@@ -1538,20 +1553,113 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
     selectedProductIds,
   ]);
 
+  const displayPriceByProductId = useMemo(() => {
+    const map = new Map<
+      string,
+      | {
+          source: "selected";
+          priceCents: number;
+          retailerName: string;
+        }
+      | {
+          source: "summary";
+          priceCents: number;
+          staleFlag: boolean;
+          checkedAt: Date | null;
+        }
+    >();
+
+    for (const productId of selectedProductIds) {
+      const selectedOfferId = selectedOfferIdByProductId[productId] ?? null;
+      const selected = selectedOfferId ? selectedOfferByProductId.get(productId) : null;
+      if (selected && selected.inStock && selected.priceCents != null) {
+        map.set(productId, {
+          source: "selected",
+          priceCents: selected.priceCents,
+          retailerName: selected.retailerName,
+        });
+        continue;
+      }
+
+      const summaryState = deriveOfferSummaryState(offerSummaryByProductId.get(productId));
+      if (summaryState.kind !== "priced") continue;
+
+      map.set(productId, {
+        source: "summary",
+        priceCents: summaryState.minPriceCents,
+        staleFlag: summaryState.staleFlag,
+        checkedAt: summaryState.checkedAt,
+      });
+    }
+
+    return map;
+  }, [
+    offerSummaryByProductId,
+    selectedOfferByProductId,
+    selectedOfferIdByProductId,
+    selectedProductIds,
+  ]);
+
   const totalCents = useMemo(() => {
     let total = 0;
     for (const p of Object.values(productsByCategory)) {
       if (!p) continue;
-      const cents = chosenOfferByProductId.get(p.id)?.priceCents;
+      const cents = displayPriceByProductId.get(p.id)?.priceCents;
       if (cents != null) total += cents;
     }
     return total;
-  }, [chosenOfferByProductId, productsByCategory]);
+  }, [displayPriceByProductId, productsByCategory]);
+
+  const pricingSourceCounts = useMemo(() => {
+    let selected = 0;
+    let summaryFresh = 0;
+    let summaryStale = 0;
+
+    for (const entry of displayPriceByProductId.values()) {
+      if (entry.source === "selected") {
+        selected += 1;
+        continue;
+      }
+      if (entry.staleFlag) summaryStale += 1;
+      else summaryFresh += 1;
+    }
+
+    return { selected, summaryFresh, summaryStale };
+  }, [displayPriceByProductId]);
 
   const selectedCount = selectedProductIds.length;
-  const pricedCount = chosenOfferByProductId.size;
-  const totalLabel = selectedCount > 0 && pricedCount === selectedCount ? "Total" : "Estimated total";
+  const pricedCount = displayPriceByProductId.size;
+  const unresolvedCount = Math.max(0, selectedCount - pricedCount);
+  const totalLabel =
+    selectedCount > 0 && unresolvedCount === 0 && pricingSourceCounts.summaryStale === 0
+      ? "Total"
+      : "Estimated total";
   const totalDisplay = pricedCount > 0 ? formatMoney(totalCents) : "—";
+  const totalSubLabel = useMemo(() => {
+    if (selectedCount === 0) {
+      return "Pick items to see pricing from derived offer summaries.";
+    }
+    if (offerSummariesQ.isLoading && pricedCount === 0) {
+      return "Loading offer summaries for selected items.";
+    }
+    if (unresolvedCount > 0) {
+      return `Pricing available for ${pricedCount} of ${selectedCount} selected item(s). ${unresolvedCount} item(s) have no in-stock offer summaries yet.`;
+    }
+    if (pricingSourceCounts.summaryStale > 0) {
+      return `Estimated from derived summaries; ${pricingSourceCounts.summaryStale} selected item(s) use stale checks.`;
+    }
+    if (pricingSourceCounts.selected > 0) {
+      return `Derived summaries with ${pricingSourceCounts.selected} selected offer override(s).`;
+    }
+    return "Derived offer summaries priced every selected item.";
+  }, [
+    offerSummariesQ.isLoading,
+    pricedCount,
+    pricingSourceCounts.selected,
+    pricingSourceCounts.summaryStale,
+    selectedCount,
+    unresolvedCount,
+  ]);
 
   const categoriesData = categoriesQ.data;
   const categories: CategoryRow[] = categoriesData ?? [];
@@ -2024,13 +2132,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
             <div className="mt-1 text-xl font-semibold tracking-tight">
               {totalDisplay}
             </div>
-            <div className="mt-1 text-xs text-neutral-500">
-              {selectedCount === 0
-                ? "Pick items to see pricing from in-stock offers."
-                : pricedCount === selectedCount
-                  ? "Best in-stock offer found for each selected item."
-                  : `Best in-stock offers found for ${pricedCount} of ${selectedCount} selected item(s).`}
-            </div>
+            <div className="mt-1 text-xs text-neutral-500">{totalSubLabel}</div>
           </div>
           <div>
             <div className="text-xs font-medium text-neutral-600">Errors</div>
@@ -2205,10 +2307,13 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                 const isCo2Category = c.slug === "co2";
                 const effectiveSelected =
                   isCo2Category && lowTechNoCo2 ? undefined : selected;
-                const offer = effectiveSelected
+                const buyOffer = effectiveSelected
                   ? chosenOfferByProductId.get(effectiveSelected.id)
                   : null;
-                const priceCents = offer?.priceCents ?? null;
+                const displayPrice = effectiveSelected
+                  ? displayPriceByProductId.get(effectiveSelected.id)
+                  : null;
+                const priceCents = displayPrice?.priceCents ?? null;
 
                 const selectionLabel = isCo2Category
                   ? lowTechNoCo2
@@ -2224,6 +2329,31 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                   (isCo2Category && lowTechNoCo2);
 
                 const catEvals = evalsByCat[c.slug] ?? [];
+                const priceSubLabel = (() => {
+                  if (!effectiveSelected) return null;
+
+                  if (displayPrice?.source === "selected") {
+                    return `${displayPrice.retailerName} (selected)`;
+                  }
+
+                  if (displayPrice?.source === "summary") {
+                    const checked = formatOfferSummaryCheckedAt(displayPrice.checkedAt);
+                    if (displayPrice.staleFlag) {
+                      return checked
+                        ? `Offer summary stale · Checked ${checked}`
+                        : "Offer summary stale";
+                    }
+                    return checked ? `Offer summary checked ${checked}` : "Offer summary ready";
+                  }
+
+                  if (offerSummariesQ.isLoading) return "Loading offer summary...";
+
+                  const summaryState = deriveOfferSummaryState(
+                    offerSummaryByProductId.get(effectiveSelected.id),
+                  );
+                  if (summaryState.kind === "pending") return "Offer summary pending";
+                  return "No in-stock offers yet";
+                })();
 
                 return (
                   <CategoryRowView
@@ -2234,14 +2364,8 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
                     hasSelection={hasSelection}
                     selectionLabel={selectionLabel}
                     priceLabel={formatMoney(priceCents)}
-                    priceSubLabel={
-                      offer
-                        ? `${offer.retailerName}${offer.source === "selected" ? " (selected)" : ""}`
-                        : effectiveSelected
-                          ? "No in-stock offers yet"
-                          : null
-                    }
-                    buyHref={offer ? offer.goUrl : null}
+                    priceSubLabel={priceSubLabel}
+                    buyHref={buyOffer ? buyOffer.goUrl : null}
                     onOffers={
                       effectiveSelected
                         ? () =>

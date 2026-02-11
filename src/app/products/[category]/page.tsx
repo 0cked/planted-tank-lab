@@ -3,6 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SmartImage } from "@/components/SmartImage";
+import {
+  deriveOfferSummaryState,
+  formatOfferSummaryCheckedAt,
+  type OfferSummaryLike,
+} from "@/lib/offer-summary";
 import { ProductCategoryFilters } from "@/components/products/ProductCategoryFilters";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
@@ -55,6 +60,26 @@ function formatMoney(cents: number | null | undefined): string {
   if (cents == null) return "—";
   const dollars = cents / 100;
   return dollars.toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
+
+function offerSummaryDisplay(summary: OfferSummaryLike): { priceCents: number | null; note: string } {
+  const state = deriveOfferSummaryState(summary);
+  if (state.kind === "pending") {
+    return { priceCents: null, note: "Offer summary pending" };
+  }
+  if (state.kind === "no_in_stock") {
+    return { priceCents: null, note: "No in-stock offers yet" };
+  }
+
+  const checked = formatOfferSummaryCheckedAt(state.checkedAt);
+  if (!checked) {
+    return { priceCents: state.minPriceCents, note: "Freshness unknown" };
+  }
+
+  return {
+    priceCents: state.minPriceCents,
+    note: state.staleFlag ? `Checked ${checked} (stale)` : `Checked ${checked}`,
+  };
 }
 
 function firstImageUrl(imageUrl: string | null, imageUrls: unknown): string | null {
@@ -186,10 +211,10 @@ export default async function ProductCategoryPage(props: {
   });
 
   const productIds = filtered.map((p) => p.id);
-  const prices = productIds.length
-    ? await caller.offers.lowestByProductIds({ productIds })
+  const summaries = productIds.length
+    ? await caller.offers.summaryByProductIds({ productIds })
     : [];
-  const minById = new Map(prices.map((r) => [r.productId, r.minPriceCents] as const));
+  const summaryById = new Map(summaries.map((row) => [row.productId, row] as const));
 
   const title = `${category.name} Products`;
 
@@ -249,15 +274,16 @@ export default async function ProductCategoryPage(props: {
             ) : (
               <ul className="divide-y divide-neutral-200">
                 {filtered.map((p) => {
-                  const price = minById.get(p.id) ?? null;
-                  const summary =
+                  const offerSummary = summaryById.get(p.id);
+                  const pricing = offerSummaryDisplay(offerSummary);
+                  const specSummary =
                     categorySlug === "tank"
                       ? tankSummary(p.specs)
                       : categorySlug === "light"
                         ? lightSummary(p.specs)
                         : "";
-                  const chips = summary
-                    ? summary
+                  const chips = specSummary
+                    ? specSummary
                         .split(" · ")
                         .map((s) => s.trim())
                         .filter(Boolean)
@@ -310,7 +336,10 @@ export default async function ProductCategoryPage(props: {
                               ) : null}
                             </div>
                             <div className="shrink-0 text-right text-sm font-semibold text-neutral-900">
-                              {formatMoney(price)}
+                              {formatMoney(pricing.priceCents)}
+                              <div className="mt-1 text-[11px] font-medium text-neutral-600">
+                                {pricing.note}
+                              </div>
                             </div>
                           </div>
                         </div>

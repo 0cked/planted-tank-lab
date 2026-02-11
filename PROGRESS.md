@@ -653,3 +653,22 @@ Each work session must add a new dated entry that includes:
   - Commit/push are blocked in this sandbox by `.git` write restrictions and outbound DNS restrictions.
 
 - Next: `IN-12` (Add ingestion ops dashboard and runbook checks).
+
+## 2026-02-11 14:18
+
+- Work: Host rerun + cleanup for `IN-11` execution record accuracy.
+  - Re-ran full verification in host environment and confirmed the prior Codex-session blockers were not reproducible.
+  - Updated planning docs to reflect verified status and corrected next-task ordering.
+
+- Commands run:
+  - `pnpm verify:gates` (PASS)
+  - `pnpm verify` (PASS; includes `pnpm test:e2e`)
+
+- Results:
+  - `IN-11` remains complete with passing full-project verification on host.
+  - Planning artifacts corrected:
+    - `AUTOPILOT.md` verification/blocker status updated.
+    - `PLAN_EXEC.md` IN-11 verification notes updated.
+    - Next queue realigned to `IN-11A` then `CAT-01`.
+
+- Next: `IN-11A` (Catalog production hardening).

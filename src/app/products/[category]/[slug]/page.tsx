@@ -4,6 +4,11 @@ import { notFound } from "next/navigation";
 
 import { RetailerMark } from "@/components/RetailerMark";
 import { SmartImage } from "@/components/SmartImage";
+import {
+  deriveOfferSummaryState,
+  formatOfferSummaryCheckedAt,
+  type OfferSummaryLike,
+} from "@/lib/offer-summary";
 import { formatSpecs } from "@/lib/specs";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
@@ -25,6 +30,26 @@ function isoDay(value: unknown): string | null {
   const d = value instanceof Date ? value : new Date(String(value));
   if (Number.isNaN(d.getTime())) return null;
   return d.toISOString().slice(0, 10);
+}
+
+function offerSummaryTopline(summary: OfferSummaryLike): { priceCents: number | null; note: string } {
+  const state = deriveOfferSummaryState(summary);
+  if (state.kind === "pending") {
+    return { priceCents: null, note: "Offer summary pending." };
+  }
+  if (state.kind === "no_in_stock") {
+    return { priceCents: null, note: "No in-stock offers yet." };
+  }
+
+  const checked = formatOfferSummaryCheckedAt(state.checkedAt);
+  if (!checked) {
+    return { priceCents: state.minPriceCents, note: "Freshness unknown." };
+  }
+
+  return {
+    priceCents: state.minPriceCents,
+    note: state.staleFlag ? `Checked ${checked} (stale).` : `Checked ${checked}.`,
+  };
 }
 
 function PriceSparkline(props: { centsByDay: Array<{ day: string; cents: number }> }) {
@@ -99,17 +124,18 @@ export default async function ProductDetailPage(props: {
   const brandName = p.brand?.name ?? null;
   const title = brandName ? `${brandName} ${p.name}` : p.name;
 
+  const offerSummary = (
+    await caller.offers.summaryByProductIds({
+      productIds: [p.id],
+    })
+  )[0];
+  const summaryTopline = offerSummaryTopline(offerSummary);
+
   const offers = await caller.offers.listByProductId({ productId: p.id, limit: 50 });
   const historyRows = await caller.offers
     .priceHistoryByProductId({ productId: p.id, days: 30, limit: 500 })
     .catch(() => []);
   const worksWellWith = await caller.products.worksWellWith({ productId: p.id, limit: 6 }).catch(() => []);
-  const lowest = offers.reduce<number | null>((min, o) => {
-    const cents = o.priceCents;
-    if (cents == null) return min;
-    if (min == null) return cents;
-    return Math.min(min, cents);
-  }, null);
 
   const specs = formatSpecs({ categorySlug: p.category.slug, specs: p.specs });
 
@@ -155,12 +181,12 @@ export default async function ProductDetailPage(props: {
           ) : null}
         </div>
         <div className="ptl-surface px-5 py-4 text-right">
-          <div className="text-xs font-semibold text-neutral-600">Lowest price</div>
+          <div className="text-xs font-semibold text-neutral-600">Lowest price (summary)</div>
           <div className="mt-1 text-2xl font-semibold tracking-tight">
-            {formatMoney(lowest)}
+            {formatMoney(summaryTopline.priceCents)}
           </div>
           <div className="mt-1 text-xs text-neutral-500">
-            Prices update as we add more stores.
+            {summaryTopline.note}
           </div>
         </div>
       </div>

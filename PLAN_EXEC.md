@@ -195,9 +195,12 @@ No direct canonical bypass for import/seed paths.
     - Switched product category and product detail price read-paths from offer scans/lowest-offer query to `offers.summaryByProductIds`, including explicit pending/no-stock/stale freshness copy.
     - Updated builder pricing/totals to be summary-first by default, with selected-offer overrides preserved, stale summary messaging, and explicit unknown states when summaries are missing.
     - Added `src/lib/offer-summary.ts` + `tests/lib/offer-summary.test.ts` for deterministic summary-state handling and regression coverage.
-    - Verification blockers in this environment:
-      - `pnpm test:e2e` fails during `next build` because Google Fonts cannot be fetched (offline/sandbox network restriction).
-      - Manual UI verification is blocked because local dev server bind fails with `listen EPERM` in this sandbox.
+    - Verification (host rerun):
+      - `pnpm lint` PASS
+      - `pnpm typecheck` PASS
+      - `pnpm vitest run tests/lib/offer-summary.test.ts` PASS
+      - `pnpm verify:gates` PASS
+      - `pnpm verify` PASS
 
 - [ ] IN-11A (P0) Catalog production hardening: remove pre-ingestion legacy rows + all placeholders.
   - Gates: G0, G4, G8, G9
@@ -289,4 +292,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-11`, then execute `IN-11A` immediately after.
+Start with `IN-11A`, then execute `CAT-01`.
