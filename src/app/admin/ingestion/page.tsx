@@ -183,6 +183,9 @@ export default async function AdminIngestionPage(props: {
             <Link href="/admin" className="ptl-btn-secondary">
               Back to admin
             </Link>
+            <Link href="/admin/overrides" className="ptl-btn-secondary">
+              Overrides
+            </Link>
             <Link href="/admin/logs" className="ptl-btn-secondary">
               View logs
             </Link>

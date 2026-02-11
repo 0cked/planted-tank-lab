@@ -121,7 +121,7 @@ No direct canonical bypass for import/seed paths.
     - `src/app/admin/ingestion/*`
     - `src/app/admin/mappings/*`
 
-- [ ] IN-08 (P0) Add admin override CRUD (field-level) with reason capture.
+- [x] IN-08 (P0) Add admin override CRUD (field-level) with reason capture.
   - Gates: G2, G4, G7
   - Acceptance:
     - Admin can create/update/delete overrides.
@@ -133,6 +133,10 @@ No direct canonical bypass for import/seed paths.
   - Entry points:
     - `src/app/admin/overrides/*`
     - `src/server/services/admin/*`
+  - Notes (2026-02-11):
+    - Added `/admin/overrides` CRUD UI + admin-only create/update/delete routes.
+    - Added admin override service with reason/actor validation + `admin_logs` audit entries.
+    - Added regression coverage in `tests/server/admin-overrides.test.ts` and signed-out route protection in `tests/e2e/smoke.spec.ts`.
 
 ### Phase ING-4: Offer Freshness and Derived Read Cache
 
@@ -211,4 +215,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-08`.
+Start with `IN-09`.

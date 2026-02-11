@@ -482,3 +482,35 @@ Each work session must add a new dated entry that includes:
   - Mapping changes are persisted in `canonical_entity_mappings` and audited in `admin_logs`.
 
 - Next: `IN-08` (Admin override CRUD with reason capture).
+
+## 2026-02-11 08:10
+
+- Work: Completed `IN-08` admin normalization override CRUD with reason/actor capture.
+  - Added admin override UI and CRUD routes:
+    - `src/app/admin/overrides/page.tsx`
+    - `src/app/admin/overrides/create/route.ts`
+    - `src/app/admin/overrides/[id]/update/route.ts`
+    - `src/app/admin/overrides/[id]/delete/route.ts`
+  - Added override service logic:
+    - `src/server/services/admin/overrides.ts` (canonical existence checks, duplicate prevention, reason/actor validation, `admin_logs` audit actions)
+  - Added coverage:
+    - `tests/server/admin-overrides.test.ts` (create/update/delete + reason/actor/timestamps + audit logs, duplicate rejection)
+    - `tests/e2e/smoke.spec.ts` (signed-out protection for `/admin/overrides`)
+  - Updated admin navigation links:
+    - `src/app/admin/page.tsx`
+    - `src/app/admin/ingestion/page.tsx`
+
+- Commands run:
+  - `pnpm verify:gates` (FAIL: `tsx` IPC pipe permission error `EPERM` in this environment)
+  - `node --import tsx scripts/gates.ts` (PASS fallback)
+  - `pnpm verify` (FAIL during `pnpm test`: DB DNS resolution error `ENOTFOUND aws-0-us-west-2.pooler.supabase.com`)
+  - `pnpm vitest run tests/server/admin-overrides.test.ts` (FAIL: same DB DNS resolution blocker)
+  - `pnpm test:e2e -- tests/e2e/smoke.spec.ts` (FAIL at `pnpm build`: unable to fetch Google Fonts in offline environment)
+  - `pnpm lint` (PASS)
+  - `pnpm typecheck` (PASS)
+
+- Results:
+  - IN-08 scope is implemented with CRUD, reason/actor persistence, and test coverage in place.
+  - Environment blockers encountered: `tsx` IPC `EPERM` for `pnpm verify:gates`, Supabase pooler DNS unresolvable for DB-backed tests, and Google Fonts fetch failures during build/e2e.
+
+- Next: `IN-09` (Offer detail refresh jobs + parser hooks).

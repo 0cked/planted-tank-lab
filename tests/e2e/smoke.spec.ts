@@ -97,3 +97,8 @@ test("admin ingestion route is protected (signed out)", async ({ page }) => {
   await page.goto("/admin/ingestion");
   await expect(page.getByRole("heading", { name: "That page does not exist" })).toBeVisible();
 });
+
+test("admin overrides route is protected (signed out)", async ({ page }) => {
+  await page.goto("/admin/overrides");
+  await expect(page.getByRole("heading", { name: "That page does not exist" })).toBeVisible();
+});

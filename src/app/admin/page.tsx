@@ -77,6 +77,16 @@ export default function AdminHomePage() {
             </div>
           </Link>
           <Link
+            href="/admin/overrides"
+            className="rounded-2xl border bg-white/70 p-5 transition hover:bg-white/85"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
+            <div className="text-sm font-semibold text-neutral-900">Overrides</div>
+            <div className="mt-1 text-sm text-neutral-700">
+              Field-level normalization overrides with reasons.
+            </div>
+          </Link>
+          <Link
             href="/admin/builds"
             className="rounded-2xl border bg-white/70 p-5 transition hover:bg-white/85"
             style={{ borderColor: "var(--ptl-border)" }}

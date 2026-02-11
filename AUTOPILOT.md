@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-3` (Admin operations for mapping/overrides) — `IN-07` complete, `IN-08` active next.
+Current phase: `ING-4` (Offer freshness and derived cache) — `IN-08` complete, `IN-09` active next.
 
 ## Current State Snapshot
 
@@ -33,29 +33,31 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- admin override CRUD and ingestion-facing controls remain pending (`IN-08+`).
+- offer detail freshness jobs and derived read-cache adoption remain pending (`IN-09+`).
 
 ## What Changed Last
 
-- Completed `IN-07` admin unmapped-entity mapping operations.
-- Added admin ingestion mapping surface:
-  - `src/app/admin/ingestion/page.tsx`
-  - `src/app/admin/mappings/map/route.ts`
-  - `src/app/admin/mappings/unmap/route.ts`
-- Added admin mapping service with compatibility + existence validation and audit logging:
-  - `src/server/services/admin/mappings.ts`
-- Updated admin home navigation to include ingestion mappings:
+- Completed `IN-08` admin normalization override CRUD with reason/actor capture.
+- Added admin overrides surface:
+  - `src/app/admin/overrides/page.tsx`
+  - `src/app/admin/overrides/create/route.ts`
+  - `src/app/admin/overrides/[id]/update/route.ts`
+  - `src/app/admin/overrides/[id]/delete/route.ts`
+- Added override service with canonical existence checks, duplicate prevention, and admin audit logging:
+  - `src/server/services/admin/overrides.ts`
+- Updated admin navigation links:
   - `src/app/admin/page.tsx`
-- Added regression coverage:
-  - `tests/server/admin-mappings.test.ts`
-  - `tests/e2e/smoke.spec.ts` (signed-out protection for `/admin/ingestion`)
+  - `src/app/admin/ingestion/page.tsx`
+- Added coverage:
+  - `tests/server/admin-overrides.test.ts`
+  - `tests/e2e/smoke.spec.ts` (signed-out protection for `/admin/overrides`)
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-08` Admin override CRUD (field-level) + reason capture.
-2. `IN-09` Offer detail refresh jobs (`one` + `bulk`) and parser hooks.
-3. `IN-10` Derived offer summary cache for read-heavy views.
+1. `IN-09` Offer detail refresh jobs (`one` + `bulk`) and parser hooks.
+2. `IN-10` Derived offer summary cache for read-heavy views.
+3. `IN-11` Switch product list and builder read-paths to derived summaries.
 
 ## Known Risks / Blockers
 
