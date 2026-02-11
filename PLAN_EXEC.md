@@ -179,7 +179,7 @@ No direct canonical bypass for import/seed paths.
     - Wired summary refresh into normalization updates in both observation path (`src/server/normalization/offers.ts`) and manual-seed offer normalization (`src/server/normalization/manual-seed.ts`).
     - Added `offers.summaryByProductIds` tRPC read API and coverage updates in `tests/api/offers.test.ts` + `tests/server/ingestion-offers-detail.test.ts`.
 
-- [ ] IN-11 (P0) Switch product list and builder read-paths to derived summaries.
+- [x] IN-11 (P0) Switch product list and builder read-paths to derived summaries.
   - Gates: G0, G8
   - Acceptance:
     - Product/category pages and builder totals consume derived summaries by default.
@@ -191,6 +191,13 @@ No direct canonical bypass for import/seed paths.
   - Entry points:
     - `src/app/products/*`
     - `src/app/builder/*`
+  - Notes (2026-02-11):
+    - Switched product category and product detail price read-paths from offer scans/lowest-offer query to `offers.summaryByProductIds`, including explicit pending/no-stock/stale freshness copy.
+    - Updated builder pricing/totals to be summary-first by default, with selected-offer overrides preserved, stale summary messaging, and explicit unknown states when summaries are missing.
+    - Added `src/lib/offer-summary.ts` + `tests/lib/offer-summary.test.ts` for deterministic summary-state handling and regression coverage.
+    - Verification blockers in this environment:
+      - `pnpm test:e2e` fails during `next build` because Google Fonts cannot be fetched (offline/sandbox network restriction).
+      - Manual UI verification is blocked because local dev server bind fails with `listen EPERM` in this sandbox.
 
 - [ ] IN-11A (P0) Catalog production hardening: remove pre-ingestion legacy rows + all placeholders.
   - Gates: G0, G4, G8, G9
@@ -215,6 +222,41 @@ No direct canonical bypass for import/seed paths.
     - `src/components/builder/*`
 
 ### Phase ING-5: Operations + Launch Gate Closeout
+
+### Phase CAT-1: Baseline "Aquascape in a Box" Builds
+
+- [ ] CAT-01 (P0) Define 3 baseline curated builds (Budget / Mid / Premium) with exact BOM + plant quantities.
+  - Gates: G0, G8, G9
+  - Acceptance:
+    - Three canonical templates exist with explicit tank size/style goals and full compatible BOM.
+    - Each template includes exact plant species + quantities (stems/pots/tissue cups) and required hardscape/substrate quantities.
+    - Compatibility evaluation for each template returns no blocking errors.
+    - Price bands are intentional and documented (e.g., budget / mid / premium rationale).
+  - Verify:
+    - `pnpm test`
+    - Manual: load each template in Builder and confirm complete+compatible state.
+  - Dependencies: IN-11A
+  - Entry points:
+    - `src/server/db/schema.ts`
+    - `src/server/trpc/routers/builds.ts`
+    - `src/components/builder/*`
+    - `src/app/builds/*`
+
+- [ ] CAT-02 (P0) Add one-click "Start from template" UX in Builder/Builds.
+  - Gates: G0, G8
+  - Acceptance:
+    - User can start from Budget/Mid/Premium baseline templates in one click.
+    - Template snapshot includes parts, quantities, and selected offers/variants where applicable.
+    - Empty-state and loading UX are clear and production-friendly.
+  - Verify:
+    - `pnpm test:e2e`
+    - Manual: create build from each template and share successfully.
+  - Dependencies: CAT-01
+  - Entry points:
+    - `src/app/builds/*`
+    - `src/app/builder/*`
+    - `src/components/builder/*`
+
 
 - [ ] IN-12 (P0) Add ingestion ops dashboard and runbook checks.
   - Gates: G7, G11

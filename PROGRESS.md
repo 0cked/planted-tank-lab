@@ -267,6 +267,14 @@ Each work session must add a new dated entry that includes:
 - Verified: planning docs updated and aligned (`AUTOPILOT.md`, `PLAN_EXEC.md`).
 - Next: execute `IN-11`, then `IN-11A`.
 
+## 2026-02-11 14:10
+
+- Work: Added new production-scope curation track for baseline template builds (“aquascape in a box”).
+  - `PLAN_EXEC.md`: added `CAT-01` (define Budget/Mid/Premium templates with exact quantities + compatible BOM) and `CAT-02` (one-click start-from-template UX).
+  - `AUTOPILOT.md`: inserted CAT-01/CAT-02 directly after catalog hardening tasks.
+- Verified: planning docs aligned with Jacob’s template-build directive.
+- Next: execute `IN-11` → `IN-11A` → `CAT-01` → `CAT-02`.
+
   - Hardened CI verification: e2e now runs against a production build (`pnpm test:e2e` builds first; Playwright uses `pnpm start`).
 - Verified: `pnpm verify` PASS.
 - Next: F-04 deploy to Fly (web + worker + scheduler), then F-05 DNS cutover, then resume E-04 seed-through-ingestion.
@@ -600,3 +608,48 @@ Each work session must add a new dated entry that includes:
   - Manual check PASS: updating an offer via normalization observation refreshed `offer_summaries` (`checkedAt`/`updatedAt` advanced and summary row present), then restore path also refreshed summary.
 
 - Next: `IN-11` (Switch product list and builder read-paths to derived summaries).
+
+## 2026-02-11 14:09
+
+- Work: Completed `IN-11` switch of product + builder read paths to derived offer summaries.
+  - Added shared summary-state helper:
+    - `src/lib/offer-summary.ts`
+  - Added helper regression coverage:
+    - `tests/lib/offer-summary.test.ts`
+  - Switched product category page pricing to summary reads:
+    - `src/app/products/[category]/page.tsx`
+    - replaced `offers.lowestByProductIds` with `offers.summaryByProductIds`
+    - explicit pending/no-in-stock/stale freshness copy per row
+  - Switched product detail hero pricing to summary reads:
+    - `src/app/products/[category]/[slug]/page.tsx`
+    - replaced lowest-price reduction over offer list with derived summary topline
+  - Switched builder totals and per-row pricing to summary-first reads:
+    - `src/components/builder/BuilderPage.tsx`
+    - added `offers.summaryByProductIds` query
+    - totals now derive from summary prices by default, with selected-offer overrides
+    - explicit states for loading/pending/no in-stock/stale summary freshness
+    - updated offers dialog copy to match summary-default behavior
+
+- Commands run:
+  - `pnpm verify:gates` (FAIL: `tsx` IPC pipe `EPERM`; fallback used)
+  - `node --import tsx scripts/gates.ts` (PASS)
+  - `pnpm verify` (FAIL: DB DNS resolution `ENOTFOUND aws-0-us-west-2.pooler.supabase.com`)
+  - `pnpm lint` (PASS)
+  - `pnpm typecheck` (initial FAIL due summary date typing mismatch; rerun PASS after fix)
+  - `pnpm test -- tests/lib/offer-summary.test.ts` (FAIL: repo Vitest config executed DB-backed suites; blocked by same DNS issue)
+  - `pnpm vitest run tests/lib/offer-summary.test.ts` (PASS; 1 file / 5 tests)
+  - `pnpm test:e2e` (FAIL: `next build` unable to fetch Google Fonts in this environment)
+  - `pnpm verify:gates` (FAIL repeat: `tsx` IPC pipe `EPERM`; fallback used)
+  - `node --import tsx scripts/gates.ts` (PASS)
+  - `git add ...` (FAIL: cannot create `.git/index.lock` due filesystem permission)
+  - `touch .git/index.lock` (FAIL: confirms `.git` write restriction in this environment)
+  - `git push origin main` (FAIL: DNS/network blocked, could not resolve `github.com`)
+
+- Results:
+  - IN-11 scope implemented with derived summary read-paths in product and builder surfaces.
+  - `lint` + `typecheck` pass after implementation.
+  - Targeted new helper tests pass via direct Vitest invocation.
+  - Environment blockers remain for DB-backed suites and e2e build networking.
+  - Commit/push are blocked in this sandbox by `.git` write restrictions and outbound DNS restrictions.
+
+- Next: `IN-12` (Add ingestion ops dashboard and runbook checks).

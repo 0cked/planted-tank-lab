@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-4/5` (read-path + catalog production hardening) — `IN-10` complete, `IN-11` active next, `IN-11A` queued immediately after.
+Current phase: `ING-5/CAT-1` (ops closeout + template-build curation) — `IN-11` complete, `IN-12` and `CAT-01` are next priorities.
 
 ## Current State Snapshot
 
@@ -33,31 +33,31 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- read-path adoption for derived offer summaries in product/builder surfaces remains pending (`IN-11+`).
+- ingestion ops dashboard/runbook and final gate closeout remain pending (`IN-12`, `IN-13`).
 
 ## What Changed Last
 
-- Completed `IN-10` derived offer summary cache.
-- Added cached derivative table + migration:
-  - `offer_summaries` in `src/server/db/schema.ts`
-  - `src/server/db/migrations/0011_offer_summaries_cache.sql`
-- Added summary refresh/read service:
-  - `src/server/services/offer-summaries.ts`
-- Wired invalidation/refresh from normalization update paths:
-  - `src/server/normalization/offers.ts`
-  - `src/server/normalization/manual-seed.ts`
-- Added summary query endpoint:
-  - `offers.summaryByProductIds` in `src/server/trpc/routers/offers.ts`
-- Added/updated coverage:
-  - `tests/api/offers.test.ts`
-  - `tests/server/ingestion-offers-detail.test.ts`
+- Completed `IN-11` read-path switch to derived summaries.
+- Product pages now default to derived offer summaries:
+  - `src/app/products/[category]/page.tsx`
+  - `src/app/products/[category]/[slug]/page.tsx`
+- Builder totals now default to derived summaries with explicit freshness/unknown states:
+  - `src/components/builder/BuilderPage.tsx`
+- Added shared summary-state helper + tests:
+  - `src/lib/offer-summary.ts`
+  - `tests/lib/offer-summary.test.ts`
+- Verification notes:
+  - `pnpm lint` PASS
+  - `pnpm typecheck` PASS
+  - `pnpm vitest run tests/lib/offer-summary.test.ts` PASS
+  - `pnpm test:e2e` blocked in this environment due Google Fonts fetch failures during `next build`
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-11` Switch product list and builder read-paths to derived summaries.
-2. `IN-11A` Catalog reset: remove all pre-ingestion and placeholder catalog content.
-3. `IN-12` Ingestion ops dashboard and runbook checks.
+1. `IN-12` Ingestion ops dashboard and runbook checks.
+2. `CAT-01` Define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant counts.
+3. `CAT-02` Add one-click "Start from template" UX.
 4. `IN-13` Final gate check for data-pipeline readiness.
 
 ## Known Risks / Blockers
@@ -65,6 +65,11 @@ Execute in this order:
 - Offer data completeness still depends on source coverage and parser quality.
 - In-memory rate limit implementation is acceptable now but not horizontally durable.
 - Sentry alerting still requires ongoing production tuning.
+- Environment verification blockers persist in this sandbox:
+  - `pnpm verify:gates` fails via `tsx` IPC pipe `EPERM` (fallback command works: `node --import tsx scripts/gates.ts`).
+  - DB-backed tests fail when Supabase pooler DNS is unreachable (`ENOTFOUND aws-0-us-west-2.pooler.supabase.com`).
+  - `pnpm test:e2e` fails when Google Fonts cannot be fetched during `next build`.
+  - Git operations requiring `.git` writes are blocked (`.git/index.lock` cannot be created), and `git push` cannot resolve `github.com`.
 
 ## Resume In <2 Minutes
 
