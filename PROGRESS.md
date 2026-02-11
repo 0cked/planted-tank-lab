@@ -291,6 +291,23 @@ Each work session must add a new dated entry that includes:
 - Blocker: `pnpm seed` is intermittently terminated by external signal in this environment (`SIGKILL` / exit 143), preventing completion of the required `pnpm seed && pnpm seed` idempotency verify loop for `IN-02`.
 - Next: continue `IN-02` by rerunning seed verification in a stable session, then mark `IN-02` complete.
 
+## 2026-02-11 22:56
+
+- Work: Completed `IN-02` by finishing the seed-through-normalization boundary.
+  - Added `src/server/normalization/manual-seed.ts` as the canonical normalization path for manual-seed snapshots (products/plants/offers) with deterministic canonical mapping upserts.
+  - Refactored `scripts/seed.ts` so canonical `products/plants/offers` are no longer written directly from JSON; seed now runs `ingestion -> normalization -> canonical`.
+  - Added seed output normalization summary (`inserted/updated` by entity type + totals/mappings).
+- Verified:
+  - `pnpm lint` (PASS)
+  - `pnpm typecheck` (PASS)
+  - `pnpm test tests/server/manual-seed-source.test.ts` (PASS)
+  - `pnpm seed` (PASS)
+  - `pnpm seed` (PASS, second run idempotent)
+  - `node --import tsx scripts/gates.ts` (PASS)
+  - Seed run row counts stable across both runs:
+    - categories `12`, brands `37`, products `134`, plants `70`, rules `20`, retailers `8`, offers `102`, priceHistory `179`
+- Next: `IN-03` (ingestion idempotency regression tests).
+
 ## 2026-02-11 23:20
 
 - Work: Completed `IN-02` seed-flow refactor verification closeout and advanced task tracking.

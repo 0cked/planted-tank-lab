@@ -33,7 +33,7 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- seed/import data still needs to be fully ingestion-driven end-to-end with deterministic normalization and provenance guarantees.
+- deterministic matching/override controls and ingestion idempotency regression coverage are still pending (`IN-03+`).
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
