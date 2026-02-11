@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-2` (Deterministic normalization + overrides) — `IN-05` complete, `IN-06` active next.
+Current phase: `ING-3` (Admin operations for mapping/overrides) — `IN-06` complete, `IN-07` active next.
 
 ## Current State Snapshot
 
@@ -33,23 +33,24 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- override application + explainability metadata are still pending (`IN-06+`).
+- admin mapping/override operations and ingestion-facing controls remain pending (`IN-07+`).
 
 ## What Changed Last
 
-- Completed `IN-05` deterministic normalization matchers for plants and offers.
-- Added matcher modules:
-  - `src/server/normalization/matchers/plant.ts`
-  - `src/server/normalization/matchers/offer.ts`
-- Wired matcher outputs into manual-seed normalization so plant/offer `canonical_entity_mappings` now persist deterministic `matchMethod` + `confidence`.
-- Added matcher unit tests and expanded ingestion idempotency mapping expectations for plant/offer metadata.
+- Completed `IN-06` normalization overrides + explainability metadata.
+- Added override applicator module:
+  - `src/server/normalization/overrides.ts`
+- Wired override application into manual-seed normalization for products/plants/offers so `normalization_overrides` win and `canonical_entity_mappings.notes` now stores per-field winner metadata.
+- Added regression coverage:
+  - `tests/ingestion/normalization-overrides.test.ts`
+  - Confirms manual override insert + normalization rerun persistence and winner-reason metadata.
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-06` Normalization overrides + explainability metadata.
-2. `IN-07` Admin unmapped-entity map/unmap operations.
-3. `IN-08` Admin override CRUD (field-level) + reason capture.
+1. `IN-07` Admin unmapped-entity map/unmap operations.
+2. `IN-08` Admin override CRUD (field-level) + reason capture.
+3. `IN-09` Offer detail refresh jobs (`one` + `bulk`) and parser hooks.
 
 ## Known Risks / Blockers
 

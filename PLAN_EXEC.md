@@ -94,7 +94,7 @@ No direct canonical bypass for import/seed paths.
     - `src/server/normalization/matchers/plant.ts`
     - `src/server/normalization/matchers/offer.ts`
 
-- [ ] IN-06 (P0) Apply normalization overrides with explainability metadata.
+- [x] IN-06 (P0) Apply normalization overrides with explainability metadata.
   - Gates: G4, G9
   - Acceptance:
     - `normalization_overrides` always win over automated values.

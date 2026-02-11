@@ -16,6 +16,10 @@ import {
 import { matchCanonicalOffer } from "@/server/normalization/matchers/offer";
 import { matchCanonicalPlant } from "@/server/normalization/matchers/plant";
 import { matchCanonicalProduct } from "@/server/normalization/matchers/product";
+import {
+  applyNormalizationOverrides,
+  serializeOverrideExplainability,
+} from "@/server/normalization/overrides";
 
 const manualSeedImageUrlSchema = z
   .string()
@@ -266,6 +270,7 @@ async function upsertCanonicalMapping(params: {
   canonicalId: string;
   matchMethod: string;
   confidence: number;
+  notes?: string | null;
 }): Promise<void> {
   await db
     .insert(canonicalEntityMappings)
@@ -275,6 +280,7 @@ async function upsertCanonicalMapping(params: {
       canonicalId: params.canonicalId,
       matchMethod: params.matchMethod,
       confidence: params.confidence,
+      notes: params.notes ?? null,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
@@ -284,6 +290,7 @@ async function upsertCanonicalMapping(params: {
         canonicalId: params.canonicalId,
         matchMethod: params.matchMethod,
         confidence: params.confidence,
+        notes: params.notes ?? null,
         updatedAt: new Date(),
       },
     });
@@ -376,25 +383,38 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
       existingProducts: [...existingProductById.values()],
     });
 
+    const normalizedProductValues = {
+      categoryId,
+      brandId,
+      name: item.name,
+      slug: item.slug,
+      description: item.description ?? null,
+      imageUrl: item.image_url ?? null,
+      imageUrls: item.image_urls ?? [],
+      specs: item.specs,
+      meta: productMeta,
+      status: "active",
+      source: "manual_seed",
+      verified: item.verified ?? false,
+      updatedAt: new Date(),
+    };
+
     let canonicalId = match.canonicalId;
+    let persistedProductValues = normalizedProductValues;
+    let mappingNotes: string | null = null;
+
     if (canonicalId) {
+      const overrideResult = await applyNormalizationOverrides({
+        canonicalType: "product",
+        canonicalId,
+        normalizedValues: normalizedProductValues,
+      });
+      persistedProductValues = overrideResult.resolvedValues;
+      mappingNotes = serializeOverrideExplainability(overrideResult.explainability);
+
       const rows = await db
         .update(products)
-        .set({
-          categoryId,
-          brandId,
-          name: item.name,
-          slug: item.slug,
-          description: item.description ?? null,
-          imageUrl: item.image_url ?? null,
-          imageUrls: item.image_urls ?? [],
-          specs: item.specs,
-          meta: productMeta,
-          status: "active",
-          source: "manual_seed",
-          verified: item.verified ?? false,
-          updatedAt: new Date(),
-        })
+        .set(persistedProductValues)
         .where(eq(products.id, canonicalId))
         .returning({ id: products.id });
 
@@ -406,21 +426,7 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
     } else {
       const rows = await db
         .insert(products)
-        .values({
-          categoryId,
-          brandId,
-          name: item.name,
-          slug: item.slug,
-          description: item.description ?? null,
-          imageUrl: item.image_url ?? null,
-          imageUrls: item.image_urls ?? [],
-          specs: item.specs,
-          meta: productMeta,
-          status: "active",
-          source: "manual_seed",
-          verified: item.verified ?? false,
-          updatedAt: new Date(),
-        })
+        .values(normalizedProductValues)
         .returning({ id: products.id });
 
       canonicalId = rows[0]?.id;
@@ -433,10 +439,10 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
 
     existingProductById.set(canonicalId, {
       id: canonicalId,
-      slug: item.slug,
-      brandId,
-      name: item.name,
-      meta: productMeta,
+      slug: String(persistedProductValues.slug),
+      brandId: persistedProductValues.brandId,
+      name: String(persistedProductValues.name),
+      meta: persistedProductValues.meta,
     });
     existingCanonicalIdByEntityId.set(snapshot.entityId, canonicalId);
 
@@ -446,6 +452,7 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
       canonicalId,
       matchMethod: match.matchMethod,
       confidence: match.confidence,
+      notes: mappingNotes,
     });
     mappingsUpserted += 1;
   }
@@ -506,48 +513,60 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
       existingPlants: [...existingPlantById.values()],
     });
 
+    const normalizedPlantValues = {
+      commonName: item.common_name,
+      scientificName: item.scientific_name ?? null,
+      slug: item.slug,
+      family: item.family ?? null,
+      description: item.description ?? null,
+      imageUrl: item.image_url ?? null,
+      imageUrls: item.image_urls ?? [],
+      sources: item.sources ?? [],
+
+      difficulty: item.difficulty,
+      lightDemand: item.light_demand,
+      co2Demand: item.co2_demand,
+      growthRate: item.growth_rate ?? null,
+      placement: item.placement,
+
+      tempMinF: item.temp_min_f != null ? String(item.temp_min_f) : null,
+      tempMaxF: item.temp_max_f != null ? String(item.temp_max_f) : null,
+      phMin: item.ph_min != null ? String(item.ph_min) : null,
+      phMax: item.ph_max != null ? String(item.ph_max) : null,
+      ghMin: item.gh_min ?? null,
+      ghMax: item.gh_max ?? null,
+      khMin: item.kh_min ?? null,
+      khMax: item.kh_max ?? null,
+
+      maxHeightIn: item.max_height_in != null ? String(item.max_height_in) : null,
+      propagation: item.propagation ?? null,
+      substrateType: item.substrate_type ?? null,
+      shrimpSafe: item.shrimp_safe,
+      beginnerFriendly: item.beginner_friendly,
+
+      nativeRegion: item.native_region ?? null,
+      notes: item.notes ?? null,
+      status: "active",
+      verified: false,
+      updatedAt: new Date(),
+    };
+
     let canonicalId = match.canonicalId;
+    let persistedPlantValues = normalizedPlantValues;
+    let mappingNotes: string | null = null;
+
     if (canonicalId) {
+      const overrideResult = await applyNormalizationOverrides({
+        canonicalType: "plant",
+        canonicalId,
+        normalizedValues: normalizedPlantValues,
+      });
+      persistedPlantValues = overrideResult.resolvedValues;
+      mappingNotes = serializeOverrideExplainability(overrideResult.explainability);
+
       const rows = await db
         .update(plants)
-        .set({
-          commonName: item.common_name,
-          scientificName: item.scientific_name ?? null,
-          slug: item.slug,
-          family: item.family ?? null,
-          description: item.description ?? null,
-          imageUrl: item.image_url ?? null,
-          imageUrls: item.image_urls ?? [],
-          sources: item.sources ?? [],
-
-          difficulty: item.difficulty,
-          lightDemand: item.light_demand,
-          co2Demand: item.co2_demand,
-          growthRate: item.growth_rate ?? null,
-          placement: item.placement,
-
-          tempMinF: item.temp_min_f != null ? String(item.temp_min_f) : null,
-          tempMaxF: item.temp_max_f != null ? String(item.temp_max_f) : null,
-          phMin: item.ph_min != null ? String(item.ph_min) : null,
-          phMax: item.ph_max != null ? String(item.ph_max) : null,
-          ghMin: item.gh_min ?? null,
-          ghMax: item.gh_max ?? null,
-          khMin: item.kh_min ?? null,
-          khMax: item.kh_max ?? null,
-
-          maxHeightIn:
-            item.max_height_in != null ? String(item.max_height_in) : null,
-          propagation: item.propagation ?? null,
-          substrateType: item.substrate_type ?? null,
-          shrimpSafe: item.shrimp_safe,
-          beginnerFriendly: item.beginner_friendly,
-
-          nativeRegion: item.native_region ?? null,
-          notes: item.notes ?? null,
-          status: "active",
-          verified: false,
-          updatedAt: new Date(),
-        })
+        .set(persistedPlantValues)
         .where(eq(plants.id, canonicalId))
         .returning({ id: plants.id });
 
@@ -559,44 +578,7 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
     } else {
       const rows = await db
         .insert(plants)
-        .values({
-          commonName: item.common_name,
-          scientificName: item.scientific_name ?? null,
-          slug: item.slug,
-          family: item.family ?? null,
-          description: item.description ?? null,
-          imageUrl: item.image_url ?? null,
-          imageUrls: item.image_urls ?? [],
-          sources: item.sources ?? [],
-
-          difficulty: item.difficulty,
-          lightDemand: item.light_demand,
-          co2Demand: item.co2_demand,
-          growthRate: item.growth_rate ?? null,
-          placement: item.placement,
-
-          tempMinF: item.temp_min_f != null ? String(item.temp_min_f) : null,
-          tempMaxF: item.temp_max_f != null ? String(item.temp_max_f) : null,
-          phMin: item.ph_min != null ? String(item.ph_min) : null,
-          phMax: item.ph_max != null ? String(item.ph_max) : null,
-          ghMin: item.gh_min ?? null,
-          ghMax: item.gh_max ?? null,
-          khMin: item.kh_min ?? null,
-          khMax: item.kh_max ?? null,
-
-          maxHeightIn:
-            item.max_height_in != null ? String(item.max_height_in) : null,
-          propagation: item.propagation ?? null,
-          substrateType: item.substrate_type ?? null,
-          shrimpSafe: item.shrimp_safe,
-          beginnerFriendly: item.beginner_friendly,
-
-          nativeRegion: item.native_region ?? null,
-          notes: item.notes ?? null,
-          status: "active",
-          verified: false,
-          updatedAt: new Date(),
-        })
+        .values(normalizedPlantValues)
         .returning({ id: plants.id });
 
       canonicalId = rows[0]?.id;
@@ -609,8 +591,11 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
 
     existingPlantById.set(canonicalId, {
       id: canonicalId,
-      slug: item.slug,
-      scientificName: item.scientific_name ?? null,
+      slug: String(persistedPlantValues.slug),
+      scientificName:
+        persistedPlantValues.scientificName == null
+          ? null
+          : String(persistedPlantValues.scientificName),
     });
     existingCanonicalIdByEntityId.set(snapshot.entityId, canonicalId);
 
@@ -620,6 +605,7 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
       canonicalId,
       matchMethod: match.matchMethod,
       confidence: match.confidence,
+      notes: mappingNotes,
     });
     mappingsUpserted += 1;
   }
@@ -706,23 +692,34 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
       existingOffers: [...existingOfferById.values()],
     });
 
+    const normalizedOfferValues = {
+      productId,
+      retailerId,
+      priceCents: item.price_cents ?? null,
+      currency: item.currency,
+      url: item.url,
+      affiliateUrl: item.affiliate_url ?? null,
+      inStock: item.in_stock,
+      lastCheckedAt: item.last_checked_at ? new Date(item.last_checked_at) : null,
+      updatedAt: new Date(),
+    };
+
     let canonicalOfferId = match.canonicalId;
+    let persistedOfferValues = normalizedOfferValues;
+    let mappingNotes: string | null = null;
+
     if (canonicalOfferId) {
+      const overrideResult = await applyNormalizationOverrides({
+        canonicalType: "offer",
+        canonicalId: canonicalOfferId,
+        normalizedValues: normalizedOfferValues,
+      });
+      persistedOfferValues = overrideResult.resolvedValues;
+      mappingNotes = serializeOverrideExplainability(overrideResult.explainability);
+
       const rows = await db
         .update(offers)
-        .set({
-          productId,
-          retailerId,
-          priceCents: item.price_cents ?? null,
-          currency: item.currency,
-          url: item.url,
-          affiliateUrl: item.affiliate_url ?? null,
-          inStock: item.in_stock,
-          lastCheckedAt: item.last_checked_at
-            ? new Date(item.last_checked_at)
-            : null,
-          updatedAt: new Date(),
-        })
+        .set(persistedOfferValues)
         .where(eq(offers.id, canonicalOfferId))
         .returning({ id: offers.id });
 
@@ -734,19 +731,7 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
     } else {
       const rows = await db
         .insert(offers)
-        .values({
-          productId,
-          retailerId,
-          priceCents: item.price_cents ?? null,
-          currency: item.currency,
-          url: item.url,
-          affiliateUrl: item.affiliate_url ?? null,
-          inStock: item.in_stock,
-          lastCheckedAt: item.last_checked_at
-            ? new Date(item.last_checked_at)
-            : null,
-          updatedAt: new Date(),
-        })
+        .values(normalizedOfferValues)
         .returning({ id: offers.id });
 
       const insertedId = rows[0]?.id;
@@ -762,9 +747,9 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
 
     existingOfferById.set(canonicalOfferId, {
       id: canonicalOfferId,
-      productId,
-      retailerId,
-      url: item.url,
+      productId: persistedOfferValues.productId,
+      retailerId: persistedOfferValues.retailerId,
+      url: String(persistedOfferValues.url),
     });
     existingCanonicalIdByEntityId.set(snapshot.entityId, canonicalOfferId);
 
@@ -774,6 +759,7 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
       canonicalId: canonicalOfferId,
       matchMethod: match.matchMethod,
       confidence: match.confidence,
+      notes: mappingNotes,
     });
     mappingsUpserted += 1;
   }

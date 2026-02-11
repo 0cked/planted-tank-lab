@@ -424,3 +424,25 @@ Each work session must add a new dated entry that includes:
 - Notes:
   - Earlier `ENOTFOUND`/`EPERM` failures were not reproducible in this host run.
   - Task sequencing remains unchanged: next task is `IN-06`.
+
+## 2026-02-11 04:19
+
+- Work: Completed `IN-06` normalization overrides + explainability metadata.
+  - Added `src/server/normalization/overrides.ts` to load/apply `normalization_overrides` by `(canonicalType, canonicalId)` with dot-path field application.
+  - Enforced override precedence in manual-seed normalization (`src/server/normalization/manual-seed.ts`) so canonical updates for products/plants/offers apply overrides before write.
+  - Extended canonical mapping upserts to persist explainability in `canonical_entity_mappings.notes` (`winnerByField` + reason/override id/timestamp).
+  - Added `tests/ingestion/normalization-overrides.test.ts` to simulate manual override insert + normalization rerun and assert both field persistence + winner-reason metadata.
+  - Updated planning artifacts (`PLAN_EXEC.md`, `AUTOPILOT.md`) to mark `IN-06` complete and move active work to `IN-07`.
+
+- Commands run:
+  - `pnpm typecheck` (PASS)
+  - `pnpm test -- tests/ingestion/normalization-overrides.test.ts` (initial run hit one transient failure in `tests/server/ingestion-offers-head.test.ts`; rerun PASS)
+  - `pnpm test -- tests/ingestion/idempotency.test.ts` (PASS; full suite executed in this repo config, 23 files / 68 tests)
+  - `pnpm verify:gates` (PASS)
+  - `pnpm lint` (PASS)
+
+- Results:
+  - `normalization_overrides` now win over automated normalization writes for canonical product/plant/offer updates.
+  - Per-field override winner metadata is recorded in mapping notes and verified by automated test.
+
+- Next: `IN-07` (Admin unmapped-entity map/unmap operations).
