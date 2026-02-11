@@ -322,3 +322,18 @@ Each work session must add a new dated entry that includes:
   - Idempotency check from seed summaries remains stable across both runs:
     - categories=12, brands=37, products=134, plants=70, rules=20, retailers=8, offers=102, priceHistory=179
 - Next: `IN-03` (ingestion idempotency regression tests).
+
+## 2026-02-11 23:42
+
+- Work: Completed `IN-03` ingestion idempotency regression coverage.
+  - Added `tests/ingestion/idempotency.test.ts` to validate end-to-end idempotency for ingestion + normalization on a dedicated test source.
+  - Coverage includes:
+    - duplicate seed input handling
+    - unchanged payload `content_hash` snapshot dedupe
+    - stable canonical product/plant/offer IDs across repeated normalization
+    - guard against duplicate canonical rows for product/plant/offer keys
+- Verified:
+  - `pnpm lint`
+  - `pnpm typecheck`
+  - `pnpm test` (includes new idempotency test)
+- Next: `IN-04` (deterministic product matching precedence).

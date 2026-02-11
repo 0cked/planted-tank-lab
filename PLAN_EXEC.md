@@ -58,7 +58,7 @@ No direct canonical bypass for import/seed paths.
     - `scripts/seed.ts`
     - `src/server/normalization/*`
 
-- [ ] IN-03 (P0) Add ingestion idempotency regression tests.
+- [x] IN-03 (P0) Add ingestion idempotency regression tests.
   - Gates: G4
   - Acceptance:
     - Tests cover: duplicate seed input, unchanged payload hash dedupe, stable canonical IDs.
@@ -211,4 +211,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-03`.
+Start with `IN-04`.

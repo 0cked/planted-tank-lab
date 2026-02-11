@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-1` (Seed/import through ingestion pipeline) — `IN-02` complete, `IN-03` active next.
+Current phase: `ING-2` (Deterministic normalization + overrides) — `IN-03` complete, `IN-04` active next.
 
 ## Current State Snapshot
 
@@ -33,15 +33,15 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- deterministic matching/override controls and ingestion idempotency regression coverage are still pending (`IN-03+`).
+- deterministic matching/override controls are still pending (`IN-04+`).
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-03` Add ingestion idempotency regression tests.
-2. `IN-04` Deterministic product matching precedence.
-3. `IN-05` Plant + offer deterministic matching.
-4. `IN-06` Normalization overrides + explainability metadata.
+1. `IN-04` Deterministic product matching precedence.
+2. `IN-05` Plant + offer deterministic matching.
+3. `IN-06` Normalization overrides + explainability metadata.
+4. `IN-07` Admin unmapped-entity map/unmap operations.
 
 ## Known Risks / Blockers
 
