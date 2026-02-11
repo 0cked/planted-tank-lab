@@ -108,7 +108,7 @@ No direct canonical bypass for import/seed paths.
 
 ### Phase ING-3: Admin Operations for Mapping/Overrides
 
-- [ ] IN-07 (P0) Add admin view for unmapped entities + map/unmap actions.
+- [x] IN-07 (P0) Add admin view for unmapped entities + map/unmap actions.
   - Gates: G2, G7
   - Acceptance:
     - Admin can list unmapped entities and map them to canonical records.
@@ -211,4 +211,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-06`.
+Start with `IN-08`.

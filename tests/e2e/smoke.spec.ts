@@ -92,3 +92,8 @@ test("not found renders a friendly page", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Plant not found" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Browse plants" })).toBeVisible();
 });
+
+test("admin ingestion route is protected (signed out)", async ({ page }) => {
+  await page.goto("/admin/ingestion");
+  await expect(page.getByRole("heading", { name: "That page does not exist" })).toBeVisible();
+});

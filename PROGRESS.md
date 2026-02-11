@@ -446,3 +446,39 @@ Each work session must add a new dated entry that includes:
   - Per-field override winner metadata is recorded in mapping notes and verified by automated test.
 
 - Next: `IN-07` (Admin unmapped-entity map/unmap operations).
+
+## 2026-02-11 06:21
+
+- Work: Completed `IN-07` admin unmapped-entity map/unmap operations.
+  - Added admin ingestion mapping UI:
+    - `src/app/admin/ingestion/page.tsx`
+    - filter/search for unmapped ingestion entities (`product`/`plant`/`offer`)
+    - per-entity mapping form to canonical records + recent mappings table with unmap actions
+  - Added admin map/unmap routes:
+    - `src/app/admin/mappings/map/route.ts`
+    - `src/app/admin/mappings/unmap/route.ts`
+    - both enforce admin-only access (404 for non-admin)
+  - Added mapping service with validation + audit logging:
+    - `src/server/services/admin/mappings.ts`
+    - validates UUIDs, entityType→canonicalType compatibility, canonical target existence
+    - upserts `canonical_entity_mappings` with `matchMethod=admin_manual`, `confidence=100`
+    - unmap deletes by `entityId`
+    - logs map/unmap changes via `admin_logs`
+  - Updated admin home nav card:
+    - `src/app/admin/page.tsx` now links to `/admin/ingestion`
+  - Added regression coverage:
+    - `tests/server/admin-mappings.test.ts`
+    - `tests/e2e/smoke.spec.ts` signed-out protection check for `/admin/ingestion`
+
+- Commands run:
+  - `pnpm typecheck` (PASS)
+  - `pnpm test -- tests/server/admin-mappings.test.ts` (PASS; Vitest executed full suite in this repo config, 24 files / 70 tests)
+  - `pnpm test:e2e -- tests/e2e/smoke.spec.ts` (PASS; 9 tests)
+  - `pnpm test:e2e` (PASS; 11 tests)
+  - `pnpm verify:gates` (PASS)
+
+- Results:
+  - Admin can list unmapped ingestion entities and map/unmap canonical links from `/admin/ingestion`.
+  - Mapping changes are persisted in `canonical_entity_mappings` and audited in `admin_logs`.
+
+- Next: `IN-08` (Admin override CRUD with reason capture).

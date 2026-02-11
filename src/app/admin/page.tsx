@@ -67,6 +67,16 @@ export default function AdminHomePage() {
             <div className="mt-1 text-sm text-neutral-700">Retailers and pricing links.</div>
           </Link>
           <Link
+            href="/admin/ingestion"
+            className="rounded-2xl border bg-white/70 p-5 transition hover:bg-white/85"
+            style={{ borderColor: "var(--ptl-border)" }}
+          >
+            <div className="text-sm font-semibold text-neutral-900">Ingestion</div>
+            <div className="mt-1 text-sm text-neutral-700">
+              Map unmapped entities to canonical records.
+            </div>
+          </Link>
+          <Link
             href="/admin/builds"
             className="rounded-2xl border bg-white/70 p-5 transition hover:bg-white/85"
             style={{ borderColor: "var(--ptl-border)" }}

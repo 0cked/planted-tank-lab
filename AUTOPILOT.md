@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-3` (Admin operations for mapping/overrides) — `IN-06` complete, `IN-07` active next.
+Current phase: `ING-3` (Admin operations for mapping/overrides) — `IN-07` complete, `IN-08` active next.
 
 ## Current State Snapshot
 
@@ -33,24 +33,29 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- admin mapping/override operations and ingestion-facing controls remain pending (`IN-07+`).
+- admin override CRUD and ingestion-facing controls remain pending (`IN-08+`).
 
 ## What Changed Last
 
-- Completed `IN-06` normalization overrides + explainability metadata.
-- Added override applicator module:
-  - `src/server/normalization/overrides.ts`
-- Wired override application into manual-seed normalization for products/plants/offers so `normalization_overrides` win and `canonical_entity_mappings.notes` now stores per-field winner metadata.
+- Completed `IN-07` admin unmapped-entity mapping operations.
+- Added admin ingestion mapping surface:
+  - `src/app/admin/ingestion/page.tsx`
+  - `src/app/admin/mappings/map/route.ts`
+  - `src/app/admin/mappings/unmap/route.ts`
+- Added admin mapping service with compatibility + existence validation and audit logging:
+  - `src/server/services/admin/mappings.ts`
+- Updated admin home navigation to include ingestion mappings:
+  - `src/app/admin/page.tsx`
 - Added regression coverage:
-  - `tests/ingestion/normalization-overrides.test.ts`
-  - Confirms manual override insert + normalization rerun persistence and winner-reason metadata.
+  - `tests/server/admin-mappings.test.ts`
+  - `tests/e2e/smoke.spec.ts` (signed-out protection for `/admin/ingestion`)
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-07` Admin unmapped-entity map/unmap operations.
-2. `IN-08` Admin override CRUD (field-level) + reason capture.
-3. `IN-09` Offer detail refresh jobs (`one` + `bulk`) and parser hooks.
+1. `IN-08` Admin override CRUD (field-level) + reason capture.
+2. `IN-09` Offer detail refresh jobs (`one` + `bulk`) and parser hooks.
+3. `IN-10` Derived offer summary cache for read-heavy views.
 
 ## Known Risks / Blockers
 
