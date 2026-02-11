@@ -362,3 +362,65 @@ Each work session must add a new dated entry that includes:
     - `pnpm tsx -e "import { like } from 'drizzle-orm'; import { db } from './src/server/db'; import { ingestionJobs } from './src/server/db/schema'; (async () => { await db.delete(ingestionJobs).where(like(ingestionJobs.idempotencyKey, 'test:schedule:offers-head:%')); await db.delete(ingestionJobs).where(like(ingestionJobs.idempotencyKey, 'test:offers.head_refresh.one:%')); })().catch((error) => { console.error(error); process.exit(1); });"`
 - Next: `IN-05` (plant + offer deterministic matching).
 
+
+## 2026-02-11 02:08
+
+- Work: Completed `IN-05` deterministic plant + offer matching for manual-seed normalization.
+  - Added `src/server/normalization/matchers/plant.ts` with deterministic precedence:
+    1) `identifier_exact`
+    2) `scientific_name_exact`
+    3) `slug_exact`
+    4) `new_canonical`
+  - Added `src/server/normalization/matchers/offer.ts` with deterministic precedence:
+    1) `identifier_exact`
+    2) `product_retailer_url_fingerprint` (canonical product id + retailer id + normalized URL)
+    3) `new_canonical`
+  - Wired both matchers into `src/server/normalization/manual-seed.ts` so plant/offer normalization now updates canonical rows by matcher result and persists matcher `matchMethod` + `confidence` into `canonical_entity_mappings`.
+  - Added matcher unit coverage:
+    - `tests/server/plant-matcher.test.ts`
+    - `tests/server/offer-matcher.test.ts`
+  - Expanded `tests/ingestion/idempotency.test.ts` to assert plant + offer mapping metadata across repeated normalization runs.
+
+- Commands run:
+  - `pnpm verify:gates` (startup)
+  - `node --import tsx scripts/gates.ts` (startup fallback)
+  - `pnpm verify`
+  - `pnpm test -- tests/server/product-matcher.test.ts tests/server/plant-matcher.test.ts tests/server/offer-matcher.test.ts`
+  - `pnpm lint`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm verify:gates`
+  - `node --import tsx scripts/gates.ts` (required fallback)
+  - `pnpm vitest run tests/server/product-matcher.test.ts tests/server/plant-matcher.test.ts tests/server/offer-matcher.test.ts`
+  - `git add ... && git commit -m \"feat: add deterministic plant and offer normalization matchers\"`
+  - `touch .git/index.lock`
+  - `git push origin main`
+
+- Results:
+  - `pnpm lint` PASS.
+  - `pnpm typecheck` PASS.
+  - `pnpm vitest run tests/server/product-matcher.test.ts tests/server/plant-matcher.test.ts tests/server/offer-matcher.test.ts` PASS.
+  - `pnpm test` FAIL in this environment due DB host resolution (`ENOTFOUND aws-0-us-west-2.pooler.supabase.com`) across DB-backed suites.
+  - `pnpm verify:gates` FAIL in this sandbox due `tsx` IPC pipe permission (`EPERM` on `/var/folders/.../tsx-*/...pipe`).
+  - `node --import tsx scripts/gates.ts` PASS and prints current gate dashboard.
+  - Commit/push blocker: `git add ... && git commit ...` fails with `fatal: Unable to create '.git/index.lock': Operation not permitted`; direct `touch .git/index.lock` reproduces the same sandbox restriction.
+  - Push blocker: `git push origin main` fails with `Could not resolve host: github.com`.
+
+- Next: `IN-06`.
+
+## 2026-02-11 02:10
+
+- Work: Verification/pass cleanup for `IN-05` handoff.
+  - Re-ran full verification suite directly in this host environment.
+  - Removed stale sandbox-only blocker notes from `AUTOPILOT.md` now that git/network/test/gates all run normally here.
+
+- Verified:
+  - `pnpm lint` (PASS)
+  - `pnpm typecheck` (PASS)
+  - `pnpm vitest run tests/server/product-matcher.test.ts tests/server/plant-matcher.test.ts tests/server/offer-matcher.test.ts` (PASS)
+  - `pnpm test` (PASS; 22 files / 67 tests)
+  - `pnpm verify:gates` (PASS)
+
+- Notes:
+  - Earlier `ENOTFOUND`/`EPERM` failures were not reproducible in this host run.
+  - Task sequencing remains unchanged: next task is `IN-06`.

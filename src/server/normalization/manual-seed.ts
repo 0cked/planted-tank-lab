@@ -13,6 +13,8 @@ import {
   products,
   retailers,
 } from "@/server/db/schema";
+import { matchCanonicalOffer } from "@/server/normalization/matchers/offer";
+import { matchCanonicalPlant } from "@/server/normalization/matchers/plant";
 import { matchCanonicalProduct } from "@/server/normalization/matchers/product";
 
 const manualSeedImageUrlSchema = z
@@ -468,10 +470,25 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
   });
 
   const existingPlants = await db
-    .select({ id: plants.id, slug: plants.slug })
+    .select({
+      id: plants.id,
+      slug: plants.slug,
+      scientificName: plants.scientificName,
+    })
     .from(plants);
-  const existingPlantIdBySlug = new Map(
-    existingPlants.map((row) => [row.slug, row.id] as const),
+  const existingPlantMappings = await db
+    .select({
+      entityId: canonicalEntityMappings.entityId,
+      canonicalId: canonicalEntityMappings.canonicalId,
+    })
+    .from(canonicalEntityMappings)
+    .where(eq(canonicalEntityMappings.canonicalType, "plant"));
+
+  const existingPlantById = new Map(
+    existingPlants.map((row) => [row.id, row] as const),
+  );
+  const existingCanonicalIdByEntityId = new Map(
+    existingPlantMappings.map((row) => [row.entityId, row.canonicalId] as const),
   );
 
   let inserted = 0;
@@ -480,53 +497,23 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
 
   for (const snapshot of snapshots) {
     const item = snapshot.payload;
-    const wasExisting = existingPlantIdBySlug.has(item.slug);
 
-    const rows = await db
-      .insert(plants)
-      .values({
-        commonName: item.common_name,
-        scientificName: item.scientific_name ?? null,
-        slug: item.slug,
-        family: item.family ?? null,
-        description: item.description ?? null,
-        imageUrl: item.image_url ?? null,
-        imageUrls: item.image_urls ?? [],
-        sources: item.sources ?? [],
+    const match = matchCanonicalPlant({
+      existingEntityCanonicalId:
+        existingCanonicalIdByEntityId.get(snapshot.entityId) ?? null,
+      slug: item.slug,
+      scientificName: item.scientific_name ?? null,
+      existingPlants: [...existingPlantById.values()],
+    });
 
-        difficulty: item.difficulty,
-        lightDemand: item.light_demand,
-        co2Demand: item.co2_demand,
-        growthRate: item.growth_rate ?? null,
-        placement: item.placement,
-
-        tempMinF: item.temp_min_f != null ? String(item.temp_min_f) : null,
-        tempMaxF: item.temp_max_f != null ? String(item.temp_max_f) : null,
-        phMin: item.ph_min != null ? String(item.ph_min) : null,
-        phMax: item.ph_max != null ? String(item.ph_max) : null,
-        ghMin: item.gh_min ?? null,
-        ghMax: item.gh_max ?? null,
-        khMin: item.kh_min ?? null,
-        khMax: item.kh_max ?? null,
-
-        maxHeightIn:
-          item.max_height_in != null ? String(item.max_height_in) : null,
-        propagation: item.propagation ?? null,
-        substrateType: item.substrate_type ?? null,
-        shrimpSafe: item.shrimp_safe,
-        beginnerFriendly: item.beginner_friendly,
-
-        nativeRegion: item.native_region ?? null,
-        notes: item.notes ?? null,
-        status: "active",
-        verified: false,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: plants.slug,
-        set: {
+    let canonicalId = match.canonicalId;
+    if (canonicalId) {
+      const rows = await db
+        .update(plants)
+        .set({
           commonName: item.common_name,
           scientificName: item.scientific_name ?? null,
+          slug: item.slug,
           family: item.family ?? null,
           description: item.description ?? null,
           imageUrl: item.image_url ?? null,
@@ -560,28 +547,79 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
           status: "active",
           verified: false,
           updatedAt: new Date(),
-        },
-      })
-      .returning({ id: plants.id });
+        })
+        .where(eq(plants.id, canonicalId))
+        .returning({ id: plants.id });
 
-    const canonicalId = rows[0]?.id ?? existingPlantIdBySlug.get(item.slug);
-    if (!canonicalId) {
-      throw new Error(`Failed to normalize plant '${item.slug}'`);
-    }
+      if (!rows[0]?.id) {
+        throw new Error(`Failed to update canonical plant '${canonicalId}'`);
+      }
 
-    if (wasExisting) {
       updated += 1;
     } else {
+      const rows = await db
+        .insert(plants)
+        .values({
+          commonName: item.common_name,
+          scientificName: item.scientific_name ?? null,
+          slug: item.slug,
+          family: item.family ?? null,
+          description: item.description ?? null,
+          imageUrl: item.image_url ?? null,
+          imageUrls: item.image_urls ?? [],
+          sources: item.sources ?? [],
+
+          difficulty: item.difficulty,
+          lightDemand: item.light_demand,
+          co2Demand: item.co2_demand,
+          growthRate: item.growth_rate ?? null,
+          placement: item.placement,
+
+          tempMinF: item.temp_min_f != null ? String(item.temp_min_f) : null,
+          tempMaxF: item.temp_max_f != null ? String(item.temp_max_f) : null,
+          phMin: item.ph_min != null ? String(item.ph_min) : null,
+          phMax: item.ph_max != null ? String(item.ph_max) : null,
+          ghMin: item.gh_min ?? null,
+          ghMax: item.gh_max ?? null,
+          khMin: item.kh_min ?? null,
+          khMax: item.kh_max ?? null,
+
+          maxHeightIn:
+            item.max_height_in != null ? String(item.max_height_in) : null,
+          propagation: item.propagation ?? null,
+          substrateType: item.substrate_type ?? null,
+          shrimpSafe: item.shrimp_safe,
+          beginnerFriendly: item.beginner_friendly,
+
+          nativeRegion: item.native_region ?? null,
+          notes: item.notes ?? null,
+          status: "active",
+          verified: false,
+          updatedAt: new Date(),
+        })
+        .returning({ id: plants.id });
+
+      canonicalId = rows[0]?.id;
+      if (!canonicalId) {
+        throw new Error(`Failed to normalize plant '${item.slug}'`);
+      }
+
       inserted += 1;
-      existingPlantIdBySlug.set(item.slug, canonicalId);
     }
+
+    existingPlantById.set(canonicalId, {
+      id: canonicalId,
+      slug: item.slug,
+      scientificName: item.scientific_name ?? null,
+    });
+    existingCanonicalIdByEntityId.set(snapshot.entityId, canonicalId);
 
     await upsertCanonicalMapping({
       entityId: snapshot.entityId,
       canonicalType: "plant",
       canonicalId,
-      matchMethod: "manual_seed_slug",
-      confidence: 100,
+      matchMethod: match.matchMethod,
+      confidence: match.confidence,
     });
     mappingsUpserted += 1;
   }
@@ -616,8 +654,16 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
       id: offers.id,
       productId: offers.productId,
       retailerId: offers.retailerId,
+      url: offers.url,
     })
     .from(offers);
+  const existingOfferMappings = await db
+    .select({
+      entityId: canonicalEntityMappings.entityId,
+      canonicalId: canonicalEntityMappings.canonicalId,
+    })
+    .from(canonicalEntityMappings)
+    .where(eq(canonicalEntityMappings.canonicalType, "offer"));
 
   const productIdBySlug = new Map(
     productRows.map((row) => [row.slug, row.id] as const),
@@ -625,11 +671,11 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
   const retailerIdBySlug = new Map(
     retailerRows.map((row) => [row.slug, row.id] as const),
   );
-  const offerIdByPair = new Map<string, string>(
-    existingOffers.map((row) => [
-      `${row.productId}::${row.retailerId}`,
-      row.id,
-    ]),
+  const existingOfferById = new Map(
+    existingOffers.map((row) => [row.id, row] as const),
+  );
+  const existingCanonicalIdByEntityId = new Map(
+    existingOfferMappings.map((row) => [row.entityId, row.canonicalId] as const),
   );
 
   let inserted = 0;
@@ -651,14 +697,22 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
       );
     }
 
-    const pairKey = `${productId}::${retailerId}`;
-    const existingOfferId = offerIdByPair.get(pairKey);
+    const match = matchCanonicalOffer({
+      existingEntityCanonicalId:
+        existingCanonicalIdByEntityId.get(snapshot.entityId) ?? null,
+      productId,
+      retailerId,
+      url: item.url,
+      existingOffers: [...existingOfferById.values()],
+    });
 
-    let canonicalOfferId: string;
-    if (existingOfferId) {
-      await db
+    let canonicalOfferId = match.canonicalId;
+    if (canonicalOfferId) {
+      const rows = await db
         .update(offers)
         .set({
+          productId,
+          retailerId,
           priceCents: item.price_cents ?? null,
           currency: item.currency,
           url: item.url,
@@ -669,8 +723,13 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
             : null,
           updatedAt: new Date(),
         })
-        .where(eq(offers.id, existingOfferId));
-      canonicalOfferId = existingOfferId;
+        .where(eq(offers.id, canonicalOfferId))
+        .returning({ id: offers.id });
+
+      if (!rows[0]?.id) {
+        throw new Error(`Failed to update canonical offer '${canonicalOfferId}'`);
+      }
+
       updated += 1;
     } else {
       const rows = await db
@@ -698,16 +757,23 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
       }
 
       canonicalOfferId = insertedId;
-      offerIdByPair.set(pairKey, insertedId);
       inserted += 1;
     }
+
+    existingOfferById.set(canonicalOfferId, {
+      id: canonicalOfferId,
+      productId,
+      retailerId,
+      url: item.url,
+    });
+    existingCanonicalIdByEntityId.set(snapshot.entityId, canonicalOfferId);
 
     await upsertCanonicalMapping({
       entityId: snapshot.entityId,
       canonicalType: "offer",
       canonicalId: canonicalOfferId,
-      matchMethod: "manual_seed_pair",
-      confidence: 100,
+      matchMethod: match.matchMethod,
+      confidence: match.confidence,
     });
     mappingsUpserted += 1;
   }

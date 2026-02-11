@@ -82,7 +82,7 @@ No direct canonical bypass for import/seed paths.
   - Entry points:
     - `src/server/normalization/matchers/product.ts`
 
-- [ ] IN-05 (P0) Implement plant and offer deterministic matchers.
+- [x] IN-05 (P0) Implement plant and offer deterministic matchers.
   - Gates: G4, G9
   - Acceptance:
     - Plants: scientific name/slug deterministic matching.
@@ -211,4 +211,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-05`.
+Start with `IN-06`.

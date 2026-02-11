@@ -19,6 +19,9 @@ import {
   ingestManualSeedSnapshot,
 } from "../../src/server/ingestion/sources/manual-seed";
 import { ensureIngestionSource } from "../../src/server/ingestion/sources";
+import { OFFER_MATCH_CONFIDENCE } from "../../src/server/normalization/matchers/offer";
+import { PLANT_MATCH_CONFIDENCE } from "../../src/server/normalization/matchers/plant";
+import { PRODUCT_MATCH_CONFIDENCE } from "../../src/server/normalization/matchers/product";
 import { normalizeManualSeedSnapshots } from "../../src/server/normalization/manual-seed";
 
 const suffix = Date.now();
@@ -229,7 +232,53 @@ describe("ingestion idempotency", () => {
 
     expect(productMappingRows[0]?.canonicalId).toBe(productId);
     expect(productMappingRows[0]?.matchMethod).toBe("new_canonical");
-    expect(productMappingRows[0]?.confidence).toBe(80);
+    expect(productMappingRows[0]?.confidence).toBe(
+      PRODUCT_MATCH_CONFIDENCE.newCanonical,
+    );
+
+    const plantEntityRows = await db
+      .select({ id: ingestionEntities.id })
+      .from(ingestionEntities)
+      .where(
+        and(
+          eq(ingestionEntities.sourceId, sourceId),
+          eq(ingestionEntities.entityType, "plant"),
+          eq(ingestionEntities.sourceEntityId, plantSlug),
+        ),
+      )
+      .limit(1);
+    const plantEntityId = plantEntityRows[0]?.id;
+    expect(plantEntityId).toBeTruthy();
+
+    const plantMappingRows = await db
+      .select({
+        canonicalId: canonicalEntityMappings.canonicalId,
+        matchMethod: canonicalEntityMappings.matchMethod,
+        confidence: canonicalEntityMappings.confidence,
+      })
+      .from(canonicalEntityMappings)
+      .where(eq(canonicalEntityMappings.entityId, plantEntityId!))
+      .limit(1);
+
+    expect(plantMappingRows[0]?.canonicalId).toBe(plantId);
+    expect(plantMappingRows[0]?.matchMethod).toBe("new_canonical");
+    expect(plantMappingRows[0]?.confidence).toBe(
+      PLANT_MATCH_CONFIDENCE.newCanonical,
+    );
+
+    const offerEntityRows = await db
+      .select({ id: ingestionEntities.id })
+      .from(ingestionEntities)
+      .where(
+        and(
+          eq(ingestionEntities.sourceId, sourceId),
+          eq(ingestionEntities.entityType, "offer"),
+          eq(ingestionEntities.sourceEntityId, `${productSlug}::amazon`),
+        ),
+      )
+      .limit(1);
+    const offerEntityId = offerEntityRows[0]?.id;
+    expect(offerEntityId).toBeTruthy();
 
     const offerRows = await db
       .select({ id: offers.id })
@@ -244,6 +293,22 @@ describe("ingestion idempotency", () => {
 
     offerId = offerRows[0]?.id ?? null;
     expect(offerId).toBeTruthy();
+
+    const offerMappingRows = await db
+      .select({
+        canonicalId: canonicalEntityMappings.canonicalId,
+        matchMethod: canonicalEntityMappings.matchMethod,
+        confidence: canonicalEntityMappings.confidence,
+      })
+      .from(canonicalEntityMappings)
+      .where(eq(canonicalEntityMappings.entityId, offerEntityId!))
+      .limit(1);
+
+    expect(offerMappingRows[0]?.canonicalId).toBe(offerId);
+    expect(offerMappingRows[0]?.matchMethod).toBe("new_canonical");
+    expect(offerMappingRows[0]?.confidence).toBe(
+      OFFER_MATCH_CONFIDENCE.newCanonical,
+    );
 
     const firstCanonicalIds = {
       productId,
@@ -307,7 +372,41 @@ describe("ingestion idempotency", () => {
 
     expect(productMappingRowsAfter[0]?.canonicalId).toBe(productId);
     expect(productMappingRowsAfter[0]?.matchMethod).toBe("identifier_exact");
-    expect(productMappingRowsAfter[0]?.confidence).toBe(100);
+    expect(productMappingRowsAfter[0]?.confidence).toBe(
+      PRODUCT_MATCH_CONFIDENCE.identifierExact,
+    );
+
+    const plantMappingRowsAfter = await db
+      .select({
+        canonicalId: canonicalEntityMappings.canonicalId,
+        matchMethod: canonicalEntityMappings.matchMethod,
+        confidence: canonicalEntityMappings.confidence,
+      })
+      .from(canonicalEntityMappings)
+      .where(eq(canonicalEntityMappings.entityId, plantEntityId!))
+      .limit(1);
+
+    expect(plantMappingRowsAfter[0]?.canonicalId).toBe(plantId);
+    expect(plantMappingRowsAfter[0]?.matchMethod).toBe("identifier_exact");
+    expect(plantMappingRowsAfter[0]?.confidence).toBe(
+      PLANT_MATCH_CONFIDENCE.identifierExact,
+    );
+
+    const offerMappingRowsAfter = await db
+      .select({
+        canonicalId: canonicalEntityMappings.canonicalId,
+        matchMethod: canonicalEntityMappings.matchMethod,
+        confidence: canonicalEntityMappings.confidence,
+      })
+      .from(canonicalEntityMappings)
+      .where(eq(canonicalEntityMappings.entityId, offerEntityId!))
+      .limit(1);
+
+    expect(offerMappingRowsAfter[0]?.canonicalId).toBe(offerId);
+    expect(offerMappingRowsAfter[0]?.matchMethod).toBe("identifier_exact");
+    expect(offerMappingRowsAfter[0]?.confidence).toBe(
+      OFFER_MATCH_CONFIDENCE.identifierExact,
+    );
 
     const productRowsAfter = await db
       .select({ id: products.id })

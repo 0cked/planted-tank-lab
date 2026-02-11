@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-2` (Deterministic normalization + overrides) — `IN-04` complete, `IN-05` active next.
+Current phase: `ING-2` (Deterministic normalization + overrides) — `IN-05` complete, `IN-06` active next.
 
 ## Current State Snapshot
 
@@ -33,15 +33,23 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- deterministic matching/override controls are still pending (`IN-05+`).
+- override application + explainability metadata are still pending (`IN-06+`).
+
+## What Changed Last
+
+- Completed `IN-05` deterministic normalization matchers for plants and offers.
+- Added matcher modules:
+  - `src/server/normalization/matchers/plant.ts`
+  - `src/server/normalization/matchers/offer.ts`
+- Wired matcher outputs into manual-seed normalization so plant/offer `canonical_entity_mappings` now persist deterministic `matchMethod` + `confidence`.
+- Added matcher unit tests and expanded ingestion idempotency mapping expectations for plant/offer metadata.
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-05` Plant + offer deterministic matching.
-2. `IN-06` Normalization overrides + explainability metadata.
-3. `IN-07` Admin unmapped-entity map/unmap operations.
-4. `IN-08` Admin override CRUD (field-level) + reason capture.
+1. `IN-06` Normalization overrides + explainability metadata.
+2. `IN-07` Admin unmapped-entity map/unmap operations.
+3. `IN-08` Admin override CRUD (field-level) + reason capture.
 
 ## Known Risks / Blockers
 
