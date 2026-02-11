@@ -44,7 +44,7 @@ No direct canonical bypass for import/seed paths.
     - `src/server/ingestion/sources/manual-seed.ts`
     - `scripts/seed.ts`
 
-- [ ] IN-02 (P0) Refactor seed flow to ingest raw data then normalize into canonical tables.
+- [x] IN-02 (P0) Refactor seed flow to ingest raw data then normalize into canonical tables.
   - Gates: G4, G9
   - Acceptance:
     - `scripts/seed.ts` no longer writes canonical product/plant/offer rows directly from JSON.
@@ -211,4 +211,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-01`.
+Start with `IN-03`.

@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-1` (Seed/import through ingestion pipeline) — `IN-01` complete, `IN-02` active next.
+Current phase: `ING-1` (Seed/import through ingestion pipeline) — `IN-02` complete, `IN-03` active next.
 
 ## Current State Snapshot
 
@@ -38,14 +38,13 @@ Remaining critical gap:
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-02` Refactor `pnpm seed` to ingestion -> normalization (no canonical bypass).
-2. `IN-03` Deterministic mapping rules for products/plants/offers.
-3. `IN-04` Normalization overrides + explainability metadata.
-4. `IN-05` Admin mapping/override operations UI.
+1. `IN-03` Add ingestion idempotency regression tests.
+2. `IN-04` Deterministic product matching precedence.
+3. `IN-05` Plant + offer deterministic matching.
+4. `IN-06` Normalization overrides + explainability metadata.
 
 ## Known Risks / Blockers
 
-- `IN-02` currently blocked in this execution environment: `pnpm seed` intermittently exits via external signal (`SIGKILL` / exit 143) before completion after the seed-flow refactor. Need rerun in a stable shell/session to collect a full passing `pnpm seed && pnpm seed` idempotency proof.
 - Offer data completeness still depends on source coverage and parser quality.
 - In-memory rate limit implementation is acceptable now but not horizontally durable.
 - Sentry alerting still requires ongoing production tuning.
