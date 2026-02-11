@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-5/CAT-1` (ops closeout + template-build curation) — `IN-11` complete, `IN-12` and `CAT-01` are next priorities.
+Current phase: `ING-5/CAT-1` (ops closeout + template-build curation) — `IN-11A1` complete; `IN-11A2` (legacy row purge + normalization-boundary hardening) is the active priority before `CAT-01`/`IN-12`.
 
 ## Current State Snapshot
 
@@ -33,40 +33,45 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
+- catalog still contains non-provenance legacy rows; provenance audit is now codified and currently failing until `IN-11A2` cleanup lands.
 - ingestion ops dashboard/runbook and final gate closeout remain pending (`IN-12`, `IN-13`).
 
 ## What Changed Last
 
-- Completed `IN-11` read-path switch to derived summaries.
-- Product pages now default to derived offer summaries:
-  - `src/app/products/[category]/page.tsx`
-  - `src/app/products/[category]/[slug]/page.tsx`
-- Builder totals now default to derived summaries with explicit freshness/unknown states:
-  - `src/components/builder/BuilderPage.tsx`
-- Added shared summary-state helper + tests:
-  - `src/lib/offer-summary.ts`
-  - `tests/lib/offer-summary.test.ts`
+- Completed `IN-11A1` provenance-audit codification for legacy/pre-ingestion detection.
+- Added reusable provenance utility:
+  - `src/server/catalog/provenance.ts`
+  - codifies ingestion-backed checks for canonical `product|plant|offer`
+  - reports canonical/displayed/builder-part violations by entity type
+- Added executable audit command:
+  - `scripts/catalog-provenance-audit.ts`
+  - `pnpm catalog:audit:provenance`
+- Added DB-backed regression coverage:
+  - `tests/server/catalog-provenance.test.ts`
+- Updated execution checklist:
+  - `PLAN_EXEC.md` marks `IN-11A1` complete.
 - Verification notes:
-  - `pnpm lint` PASS
-  - `pnpm typecheck` PASS
-  - `pnpm vitest run tests/lib/offer-summary.test.ts` PASS
-  - `pnpm verify` PASS (full lint + typecheck + vitest + e2e)
+  - `pnpm test` PASS
+  - `node --import tsx scripts/gates.ts` PASS
+  - `pnpm catalog:audit:provenance` FAIL (expected pre-cleanup; reports active violations to clear in `IN-11A2`)
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-11A` Catalog production hardening: remove pre-ingestion legacy rows + placeholders.
-2. `CAT-01` Define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant counts.
-3. `CAT-02` Add one-click "Start from template" UX.
-4. `IN-12` Ingestion ops dashboard and runbook checks.
-5. `IN-13` Final gate check for data-pipeline readiness.
+1. `IN-11A2` Harden seed/import normalization boundary and archive/prune legacy rows so production surfaces show ingestion-backed canonical data only.
+2. `IN-11A3` Remove placeholder assets/copy/spec filler from Products/Plants/Builder.
+3. `IN-11A4` Add guardrails/tests to prevent placeholder/provenance regressions.
+4. `CAT-01` Define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant counts.
+5. `CAT-02` Add one-click "Start from template" UX.
+6. `IN-12` Ingestion ops dashboard and runbook checks.
+7. `IN-13` Final gate check for data-pipeline readiness.
 
 ## Known Risks / Blockers
 
 - Offer data completeness still depends on source coverage and parser quality.
 - In-memory rate limit implementation is acceptable now but not horizontally durable.
 - Sentry alerting still requires ongoing production tuning.
-- Host rerun on 2026-02-11 shows no active execution blockers (`pnpm verify:gates` + `pnpm verify` both pass).
+- Provenance audit currently reports active legacy violations (`products=91`, `plants=74`, `offers=104`, `categories=10`, build parts `total=124`) until `IN-11A2` cleanup is completed.
 
 ## Resume In <2 Minutes
 

@@ -672,3 +672,35 @@ Each work session must add a new dated entry that includes:
     - Next queue realigned to `IN-11A` then `CAT-01`.
 
 - Next: `IN-11A` (Catalog production hardening).
+
+## 2026-02-11 16:19
+
+- Work: Completed `IN-11A1` provenance-audit codification.
+  - Added reusable canonical provenance audit utility:
+    - `src/server/catalog/provenance.ts`
+    - codifies ingestion-backed detection for canonical `product|plant|offer` rows via `canonical_entity_mappings` + `ingestion_entities`.
+    - reports canonical/displayed missing-provenance counts plus `build_items` references to non-provenance products/plants.
+  - Added executable audit command:
+    - `scripts/catalog-provenance-audit.ts`
+    - `pnpm catalog:audit:provenance` in `package.json`.
+  - Added DB-backed regression coverage:
+    - `tests/server/catalog-provenance.test.ts`.
+  - Updated planning artifact:
+    - `PLAN_EXEC.md` marks `IN-11A1` complete.
+
+- Commands run:
+  - `pnpm vitest run tests/server/catalog-provenance.test.ts` (PASS)
+  - `pnpm test` (PASS; 28 files / 80 tests)
+  - `node --import tsx scripts/gates.ts` (PASS)
+  - `pnpm catalog:audit:provenance` (FAIL with exit 2 by design while violations exist)
+  - `pnpm typecheck` (PASS)
+  - `pnpm lint` (PASS)
+
+- Results:
+  - Provenance audit command is now wired and enforcing non-zero exit when displayed violations exist.
+  - Current audit snapshot (pre-cleanup):
+    - canonical without provenance: products `91`, plants `74`, offers `104`, categories `10`
+    - displayed without provenance: products `91`, plants `74`, offers `104`, categories `10`
+    - build parts referencing non-provenance: products `124`, plants `0`, total `124`
+
+- Next: `IN-11A2`.
