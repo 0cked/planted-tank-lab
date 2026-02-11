@@ -1,96 +1,67 @@
 # AUTOPILOT - PlantedTankLab (Single Source Of Truth)
 
-Last updated: 2026-02-10
+Last updated: 2026-02-11
 
-This file is the single source of truth for: current status, what's next, and how to resume.
+This file is the only authoritative status board for active execution.
+If chat history or older docs conflict with this file, this file wins.
 
-If anything disagrees with chat history or archived docs, **this file wins**.
+## Planning System (Consolidated)
 
-## Current Milestone
+Only these four planning artifacts are active:
 
-- Milestone: F - Fly.io Migration (Web + Workers)
-- Day: 1
-- Current objective: move production hosting from Vercel to Fly.io (ADR 0004) to support long-running ingestion workers and scheduling, while keeping the trust-first architecture contract intact (ADR 0003).
+1. `AUTOPILOT.md` - current status, active task, next actions, resume protocol.
+2. `PLAN_EXEC.md` - full executable checklist with acceptance criteria and verify steps.
+3. `PROGRESS.md` - append-only session log.
+4. `VERIFY.md` - launch-readiness verification playbook and gate checks.
 
-## Launch Gates (G0-G11)
+Deprecated and archived:
+- `TODO.md` (archived at `archive/planning/2026-02-11/TODO.deprecated.md`).
 
-Source: `config/gates.json` (run: `pnpm verify:gates`)
+## Current Mission
 
-- Current focus gates: G0 (Core Value Works), G4 (Data Integrity), G9 (Trust & Compliance)
+Primary objective: complete **Top Priority #1** to production-grade quality:
+- trusted ingestion + normalization + canonical data freshness pipeline.
 
-## What Changed Last
+Current phase: `ING-1` (Seed/import through ingestion pipeline).
 
-- Added Fly.io deployment artifacts: `Dockerfile`, `.dockerignore`, `fly.toml`.
-- Added long-running ingestion ops:
-  - `pnpm ingest daemon` (worker loop)
-  - `pnpm ingest schedule --loop` (scheduler loop that enqueues periodic ingestion jobs)
-- Updated agent contract + docs for Fly hosting (ADR 0004): `AGENTS.md`, `README.md`.
-- Added optional CI deploy workflow: `.github/workflows/fly-deploy.yml` (requires `FLY_API_TOKEN`).
-- Hardened verification: Playwright now runs against a production build (`pnpm test:e2e` builds then runs tests); `pnpm verify` PASS.
+## Current State Snapshot
 
-## Next 3 Tasks (do these in order)
+Completed prerequisites:
+- Fly.io web deployment is live with Cloudflare DNS pointed to Fly.
+- Auth paths are functional (Google + email magic links via Resend).
+- Supabase RLS hardening migration applied (`0010_enable_rls`).
+- Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
-1. F-04 (P0) Provision Fly app + deploy (web + worker + scheduler), verify basic health.
-   Entry points: `fly.toml`, `Dockerfile`, `README.md` (Fly deploy steps).
-2. F-05 (P0) Cut DNS from Vercel → Fly (Cloudflare), verify certs + auth callbacks.
-   Entry points: Cloudflare DNS + `fly certs add` / `fly ips list` runbook.
-3. E-04 (P0) Seed/import flows through ingestion → normalization (no bypass).
-   Entry points: `scripts/seed.ts`, `src/server/ingestion/*`, `src/server/normalization/*`.
+Remaining critical gap:
+- seed/import data still needs to be fully ingestion-driven end-to-end with deterministic normalization and provenance guarantees.
 
-## Daily Visual QA Notes (2026-02-09)
+## Active Task Queue (from `PLAN_EXEC.md`)
 
-Observed from a fresh-session walkthrough (Home → Builder → Products → Plants → Builds → Sign-in):
-
-- Builder: copy bug: “Choose a Accessories” (should be “Choose Accessories” / “Choose an accessory”).
-- Plants list: page positions itself as “image-forward”, but many curated picks render with no image.
-- Plant detail pages: “Photo” section is an empty header (no image, no placeholder copy). Feels broken.
-- Plant specs formatting: `Type` shows `Water_column` (underscore leak). Also several fields show `—` (Origin/Family), which reads like missing data rather than intentional.
-- Products: category landing has no imagery per category (feels text-only), and many hardscape items show no price and product detail pages show “No offers yet” (fine, but needs a more intentional UX + sourcing plan).
-
-## Daily Visual QA Notes (2026-02-10)
-
-Observed from a fresh-session walkthrough (Home → Builder → Products → Plants → Builds → Sign-in → Profile):
-
-- ✅ No broken links encountered in the primary nav + footer (About/Privacy/Terms/Report/Contact all load).
-- Products → Hardscape list: some items show price as `—` (no offers) which reads a bit like missing/broken pricing.
-  - Backlog: consider showing an explicit “No offers yet” state in lists (or hide the price column when offer count is 0).
-- Product detail specs (e.g. Hardscape): spec keys render as raw snake_case (e.g. `hardscape_type`, `raises_gh`).
-  - Backlog: humanize spec labels (Title Case + spaces) for product specs tables.
-- Plants detail (spot-check): “Photo” section renders properly with the external image + disclaimer; plant info looks clean (no underscore leaks observed).
-- Builds page: empty state copy/CTAs feel intentional.
-- Profile (`/profile`): unauthenticated state is a clean sign-in prompt (no 404 / dead end).
+Execute in this order:
+1. `IN-01` Manual seed ingestion source adapter + snapshot writer.
+2. `IN-02` Refactor `pnpm seed` to ingestion -> normalization (no canonical bypass).
+3. `IN-03` Deterministic mapping rules for products/plants/offers.
+4. `IN-04` Normalization overrides + explainability metadata.
+5. `IN-05` Admin mapping/override operations UI.
 
 ## Known Risks / Blockers
 
-- Rate limiting is best-effort in-memory. If traffic warrants, migrate to Redis/KV (see `decisions/0001-rate-limiting-store.md`).
-- Sentry is wired in code but requires `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` in production environment and basic alert rules configured in Sentry UI (manual gate check).
-- Required-specs gating is now enforced; next risk is filling missing specs/images/offers so curated picks remain usable.
-- Fly.io migration requires `fly auth login` on the machine running deploys. Until Fly is deployed and DNS is cut over, production remains on Vercel.
-- Google OAuth redirect URIs are configured for `https://plantedtanklab.com/api/auth/callback/google`; this will work once the domain is serving from Fly.
+- Offer data completeness still depends on source coverage and parser quality.
+- In-memory rate limit implementation is acceptable now but not horizontally durable.
+- Sentry alerting still requires ongoing production tuning.
 
-## How To Resume (target: <2 minutes)
+## Resume In <2 Minutes
 
-1. Read: `AUTOPILOT.md`, then `PLAN_EXEC.md`, then `TODO.md`, then `PROGRESS.md`.
-2. Run quick health checks:
+1. Read `AUTOPILOT.md`.
+2. Open `PLAN_EXEC.md` and find the first unchecked `[ ]` task.
+3. Read last 1-3 entries in `PROGRESS.md`.
+4. Run:
    - `pnpm verify:gates`
-   - `pnpm verify`
-3. Start work on the top unchecked item in `TODO.md`.
-
-## Admin Access (prod)
-
-- `/admin/*` intentionally returns **404** unless `session.user.role === "admin"` (see `src/app/admin/layout.tsx`).
-- Admins are bootstrapped by env: set `ADMIN_EMAILS` (production secrets) to a comma-separated list of allowed emails (see `src/server/auth.ts`).
-- After changing `ADMIN_EMAILS`, trigger a new deploy and sign out/in to refresh the JWT role.
+   - targeted checks for the active task (from `PLAN_EXEC.md` verify section)
+5. Implement task end-to-end.
+6. Update `PLAN_EXEC.md`, `AUTOPILOT.md`, and append to `PROGRESS.md`.
 
 ## No-Conflicts Rule (strict)
 
-- Do not create new planning/checkpoint/roadmap files outside this system.
-- Allowed tracking artifacts are:
-  - `AUTOPILOT.md` (authoritative status + next actions)
-  - `PLAN_EXEC.md` (execution checklist)
-  - `TODO.md` (ready-now queue derived from PLAN_EXEC)
-  - `PROGRESS.md` (append-only work log)
-  - `VERIFY.md` (verification playbook)
-  - `config/gates.json` + `scripts/gates.ts` (gate dashboard)
-  - `decisions/*` (ADRs)
-- If a new doc is needed, link it from `AUTOPILOT.md` and ensure it does not duplicate task tracking.
+Do not create new planning/checkpoint files outside this system.
+If a new doc is necessary, link it from this file and ensure it does not duplicate task tracking already in `PLAN_EXEC.md`.

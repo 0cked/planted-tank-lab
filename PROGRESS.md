@@ -2,6 +2,10 @@
 
 This file is an append-only changelog of work completed.
 
+Planning note (2026-02-11): `TODO.md` is deprecated and archived.
+If older entries mention `TODO.md`, treat those references as historical only.
+Use `AUTOPILOT.md` + `PLAN_EXEC.md` for current execution.
+
 Each work session must add a new dated entry that includes:
 - what changed
 - what was verified
@@ -263,3 +267,15 @@ Each work session must add a new dated entry that includes:
 - Work: Added optional GitHub Actions auto-deploy for Fly (`.github/workflows/fly-deploy.yml`) and updated docs/plans to reference `FLY_API_TOKEN`.
 - Verified: `pnpm verify` PASS; `docker build -t plantedtanklab .` PASS.
 - Next: F-04 (Fly deploy), F-05 (DNS cutover).
+
+## 2026-02-11 22:10
+
+- Work: Consolidated planning system for multi-session agent execution. Archived `TODO.md` and pre-consolidation snapshots to `archive/planning/2026-02-11/`. Rewrote `AUTOPILOT.md` and `PLAN_EXEC.md` around the production data-pipeline track (`IN-*` tasks). Updated `AGENTS.md` + `README.md` to remove deprecated planning references.
+- Verified: planning docs now reference a 4-file system (`AUTOPILOT.md`, `PLAN_EXEC.md`, `PROGRESS.md`, `VERIFY.md`) and no active docs require `TODO.md`.
+- Next: `IN-01` then `IN-02`.
+
+## 2026-02-11 22:18
+
+- Work: Completed planning-doc consistency sweep after consolidation (active docs + archive notes + AGENTS/README alignment).
+- Verified: `pnpm verify:gates`.
+- Next: `IN-01`.

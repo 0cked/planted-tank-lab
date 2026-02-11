@@ -7,3 +7,11 @@ These files are **not authoritative** for current status, priorities, or next wo
 Single source of truth for execution:
 - `AUTOPILOT.md`
 
+Current active planning system:
+- `AUTOPILOT.md`
+- `PLAN_EXEC.md`
+- `PROGRESS.md`
+- `VERIFY.md`
+
+Consolidation note (2026-02-11):
+- `TODO.md` was deprecated and archived at `archive/planning/2026-02-11/TODO.deprecated.md`.

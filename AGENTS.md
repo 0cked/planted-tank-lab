@@ -10,7 +10,6 @@ Authoritative status + next actions:
 
 Supporting artifacts:
 - `PLAN_EXEC.md` (execution checklist; tasks link to launch gates)
-- `TODO.md` (ready-now queue derived from `PLAN_EXEC.md`)
 - `PROGRESS.md` (append-only work log; every session must append)
 - `VERIFY.md` (verification playbook + definition of done)
 - Gate dashboard: `config/gates.json` + `scripts/gates.ts` (run `pnpm verify:gates`)
@@ -19,11 +18,11 @@ Supporting artifacts:
 
 ### Session Startup Ritual (required)
 
-1. Read: `AUTOPILOT.md`, `PLAN_EXEC.md`, `TODO.md`, `PROGRESS.md`.
+1. Read: `AUTOPILOT.md`, `PLAN_EXEC.md`, `PROGRESS.md`.
 2. Run:
    - `pnpm verify:gates`
    - `pnpm verify`
-3. Start work on the top item in `TODO.md`.
+3. Start work on the first unchecked `[ ]` task in `PLAN_EXEC.md`.
 
 ### Execution Loop (required)
 
@@ -32,7 +31,6 @@ Supporting artifacts:
 3. Update tracking artifacts:
    - `AUTOPILOT.md` (status, "what changed last", next 3 tasks)
    - `PROGRESS.md` (append a dated entry)
-   - `TODO.md` (if ready-now queue changes)
    - `config/gates.json` (if gate status changes; set `lastVerifiedAt`)
    - `decisions/*` (if a high-impact decision was made)
 4. Commit with a conventional commit message.
@@ -42,6 +40,12 @@ Supporting artifacts:
 Do not create new planning/checkpoint/roadmap files outside the Autopilot system.
 If a new doc is needed, it must be linked from `AUTOPILOT.md` and must not duplicate
 task tracking.
+
+Allowed planning artifacts:
+- `AUTOPILOT.md`
+- `PLAN_EXEC.md`
+- `PROGRESS.md`
+- `VERIFY.md`
 
 ## Architecture Contract (Non-Negotiable)
 
@@ -267,7 +271,6 @@ planted-tank-lab/
 ├── AGENTS.md                 ← You are here
 ├── AUTOPILOT.md              ← Single source of truth (status + next actions)
 ├── PLAN_EXEC.md              ← Execution checklist (tasks + launch gates)
-├── TODO.md                   ← Ready-now queue (derived from PLAN_EXEC)
 ├── PROGRESS.md               ← Append-only work log
 ├── VERIFY.md                 ← Verification playbook
 ├── PLAN.md                   ← Product specification (not progress tracking)
@@ -496,7 +499,6 @@ The builder at `/builder` is the heart of the app. Read `PLAN.md` Section 5.2 fo
 
 - Use `AUTOPILOT.md` for status and next actions.
 - Use `PLAN_EXEC.md` as the execution checklist.
-- Use `TODO.md` as the ready-now queue (derived from `PLAN_EXEC.md`).
 - Record decisions in `decisions/*` (ADRs) and progress in `PROGRESS.md`.
 
 ## What NOT To Do

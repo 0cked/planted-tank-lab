@@ -4,9 +4,9 @@ PlantedTankLab is “PCPartPicker for planted aquariums.” Build a planted tank
 
 - **Single source of truth (status + next work):** `AUTOPILOT.md`
 - **Execution checklist (task IDs + acceptance criteria):** `PLAN_EXEC.md`
-- **Ready-now queue:** `TODO.md`
 - **Verification playbook:** `VERIFY.md`
 - **Append-only session log:** `PROGRESS.md`
+- **Historical planning archives:** `archive/planning/` (non-authoritative)
 - **Launch gates dashboard:** `pnpm verify:gates` (reads `config/gates.json`)
 
 If anything conflicts with chat history or older docs, `AUTOPILOT.md` wins.
