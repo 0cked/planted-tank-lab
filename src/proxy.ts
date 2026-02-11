@@ -54,6 +54,8 @@ export function proxy(req: NextRequest) {
     if (hostname === "www.plantedtanklab.com") {
       const url = req.nextUrl.clone();
       url.hostname = "plantedtanklab.com";
+      // Fly forwards internally on :8080; strip it from the canonical redirect target.
+      url.port = "";
       return NextResponse.redirect(url, 308);
     }
   }
