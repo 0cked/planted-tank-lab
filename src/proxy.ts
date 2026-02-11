@@ -45,6 +45,19 @@ function pickRule(pathname: string): Rule | null {
 }
 
 export function proxy(req: NextRequest) {
+  // Canonicalize host in production so auth cookies and OAuth callbacks stay deterministic.
+  // NextAuth uses host-only cookies (e.g. `__Host-*`), so apex and `www.` would otherwise be
+  // effectively separate sites with separate sessions.
+  if (process.env.NODE_ENV === "production") {
+    const hostHeader = (req.headers.get("host") ?? "").toLowerCase();
+    const hostname = hostHeader.split(":")[0] ?? "";
+    if (hostname === "www.plantedtanklab.com") {
+      const url = req.nextUrl.clone();
+      url.hostname = "plantedtanklab.com";
+      return NextResponse.redirect(url, 308);
+    }
+  }
+
   const pathname = req.nextUrl.pathname;
   const requestId = req.headers.get("x-request-id")?.slice(0, 200) ?? newRequestId();
 
@@ -95,5 +108,7 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/go/:path*", "/api/trpc/:path*"],
+  // Run for all app routes so canonical host redirect applies everywhere.
+  // Skip static assets and Next internals.
+  matcher: ["/((?!_next/|.*\\..*).*)"],
 };
