@@ -3,6 +3,8 @@ import { Suspense } from "react";
 
 import { LoginPanel } from "./LoginPanel";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Sign in | PlantedTankLab",
   description: "Sign in or create an account to save builds and sync across devices.",
