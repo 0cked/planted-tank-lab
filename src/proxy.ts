@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createFixedWindowRateLimiter, getRateLimitHeaders } from "@/lib/rate-limit";
 
 type Rule = {
-  id: "go" | "trpc";
+  id: "go" | "trpc" | "auth";
   limit: number;
   windowMs: number;
 };
@@ -41,6 +41,8 @@ function getClientIp(req: NextRequest): string | null {
 function pickRule(pathname: string): Rule | null {
   if (pathname.startsWith("/go/")) return { id: "go", limit: 60, windowMs: 60_000 };
   if (pathname.startsWith("/api/trpc/")) return { id: "trpc", limit: 300, windowMs: 60_000 };
+  // Limit magic-link send attempts to reduce abuse.
+  if (pathname.startsWith("/api/auth/signin/email")) return { id: "auth", limit: 12, windowMs: 60_000 };
   return null;
 }
 

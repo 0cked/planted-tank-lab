@@ -13,7 +13,9 @@ function allowGoogle(): boolean {
 }
 
 function allowEmail(): boolean {
-  return Boolean(process.env.EMAIL_SERVER && process.env.EMAIL_FROM);
+  return Boolean(
+    process.env.EMAIL_FROM && (process.env.EMAIL_SERVER || process.env.RESEND_API_KEY),
+  );
 }
 
 function allowDev(): boolean {

@@ -129,7 +129,9 @@ fly ips list
 Login UI is at `/login`. Auth providers are enabled only if env vars are present:
 
 - Google SSO: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-- Email magic links (optional): `EMAIL_SERVER`, `EMAIL_FROM` (SMTP via Nodemailer)
+- Email magic links (optional):
+  - Resend (recommended): `RESEND_API_KEY`, `EMAIL_FROM`
+  - SMTP (fallback): `EMAIL_SERVER`, `EMAIL_FROM` (via Nodemailer)
 
 Google OAuth redirect URIs must include:
 

@@ -7,13 +7,17 @@ import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
 import { drizzleAuthAdapter } from "@/server/auth-adapter";
 import { users } from "@/server/db/schema";
+import { sendResendEmail } from "@/server/email/resend";
 
 function hasGoogle(): boolean {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 }
 
 function hasEmailMagicLinks(): boolean {
-  return Boolean(process.env.EMAIL_SERVER && process.env.EMAIL_FROM);
+  const from = Boolean(process.env.EMAIL_FROM);
+  const hasSmtp = Boolean(process.env.EMAIL_SERVER);
+  const hasResend = Boolean(process.env.RESEND_API_KEY);
+  return from && (hasSmtp || hasResend);
 }
 
 function allowDevLogin(): boolean {
@@ -47,8 +51,41 @@ export const authOptions: NextAuthOptions = {
     ...(hasEmailMagicLinks()
       ? [
           EmailProvider({
-            server: process.env.EMAIL_SERVER as string,
+            // `server` is required by the provider type. When RESEND_API_KEY is set, we
+            // override sendVerificationRequest and do not use SMTP.
+            server: (process.env.EMAIL_SERVER ?? "smtp://localhost:25") as string,
             from: process.env.EMAIL_FROM as string,
+            ...(process.env.RESEND_API_KEY
+              ? {
+                  async sendVerificationRequest({ identifier, url }) {
+                    const { host } = new URL(url);
+                    const escaped = url.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+                    const subject = `Sign in to ${host}`;
+                    const html = `
+                      <div style="font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; line-height: 1.4;">
+                        <h2 style="margin: 0 0 12px;">Sign in to ${host}</h2>
+                        <p style="margin: 0 0 18px;">Click the button below to sign in. This link expires soon.</p>
+                        <p style="margin: 0 0 20px;">
+                          <a href="${escaped}" style="display:inline-block;padding:10px 14px;border-radius:999px;background:#0f7a53;color:#fff;text-decoration:none;font-weight:700;">
+                            Sign in
+                          </a>
+                        </p>
+                        <p style="margin: 0 0 8px; color: #444;">If the button doesn’t work, paste this link into your browser:</p>
+                        <p style="margin: 0; word-break: break-all;"><a href="${escaped}">${escaped}</a></p>
+                        <hr style="margin: 18px 0; border: 0; border-top: 1px solid #e5e7eb;" />
+                        <p style="margin: 0; color: #666; font-size: 12px;">
+                          If you didn’t request this email, you can ignore it.
+                        </p>
+                      </div>
+                    `.trim();
+
+                    const text = `Sign in to ${host}\n\n${url}\n\nIf you didn’t request this email, you can ignore it.`;
+
+                    await sendResendEmail({ to: identifier, subject, html, text });
+                  },
+                }
+              : {}),
           }),
         ]
       : []),
