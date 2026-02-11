@@ -71,7 +71,7 @@ No direct canonical bypass for import/seed paths.
 
 ### Phase ING-2: Deterministic Normalization + Overrides
 
-- [ ] IN-04 (P0) Implement deterministic product matching precedence.
+- [x] IN-04 (P0) Implement deterministic product matching precedence.
   - Gates: G4, G9
   - Acceptance:
     - Precedence order implemented: identifier exact match -> brand/model fingerprint -> new canonical.
@@ -211,4 +211,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-04`.
+Start with `IN-05`.

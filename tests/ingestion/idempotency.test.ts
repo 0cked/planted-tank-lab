@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 
 import { db } from "../../src/server/db";
 import {
+  canonicalEntityMappings,
   ingestionEntities,
   ingestionEntitySnapshots,
   ingestionSources,
@@ -35,7 +36,17 @@ async function countByQuery<T>(query: Promise<T[]>): Promise<number> {
 }
 
 afterAll(async () => {
-  if (offerId) {
+  if (productId) {
+    const relatedOffers = await db
+      .select({ id: offers.id })
+      .from(offers)
+      .where(eq(offers.productId, productId));
+
+    for (const row of relatedOffers) {
+      await db.delete(priceHistory).where(eq(priceHistory.offerId, row.id));
+      await db.delete(offers).where(eq(offers.id, row.id));
+    }
+  } else if (offerId) {
     await db.delete(priceHistory).where(eq(priceHistory.offerId, offerId));
     await db.delete(offers).where(eq(offers.id, offerId));
   }
@@ -192,6 +203,34 @@ describe("ingestion idempotency", () => {
     expect(productId).toBeTruthy();
     expect(plantId).toBeTruthy();
 
+    const productEntityRows = await db
+      .select({ id: ingestionEntities.id })
+      .from(ingestionEntities)
+      .where(
+        and(
+          eq(ingestionEntities.sourceId, sourceId),
+          eq(ingestionEntities.entityType, "product"),
+          eq(ingestionEntities.sourceEntityId, productSlug),
+        ),
+      )
+      .limit(1);
+    const productEntityId = productEntityRows[0]?.id;
+    expect(productEntityId).toBeTruthy();
+
+    const productMappingRows = await db
+      .select({
+        canonicalId: canonicalEntityMappings.canonicalId,
+        matchMethod: canonicalEntityMappings.matchMethod,
+        confidence: canonicalEntityMappings.confidence,
+      })
+      .from(canonicalEntityMappings)
+      .where(eq(canonicalEntityMappings.entityId, productEntityId!))
+      .limit(1);
+
+    expect(productMappingRows[0]?.canonicalId).toBe(productId);
+    expect(productMappingRows[0]?.matchMethod).toBe("new_canonical");
+    expect(productMappingRows[0]?.confidence).toBe(80);
+
     const offerRows = await db
       .select({ id: offers.id })
       .from(offers)
@@ -255,6 +294,20 @@ describe("ingestion idempotency", () => {
     const normalizationTwo = await normalizeManualSeedSnapshots({ sourceId });
     expect(normalizationTwo.totalInserted).toBe(0);
     expect(normalizationTwo.totalUpdated).toBe(3);
+
+    const productMappingRowsAfter = await db
+      .select({
+        canonicalId: canonicalEntityMappings.canonicalId,
+        matchMethod: canonicalEntityMappings.matchMethod,
+        confidence: canonicalEntityMappings.confidence,
+      })
+      .from(canonicalEntityMappings)
+      .where(eq(canonicalEntityMappings.entityId, productEntityId!))
+      .limit(1);
+
+    expect(productMappingRowsAfter[0]?.canonicalId).toBe(productId);
+    expect(productMappingRowsAfter[0]?.matchMethod).toBe("identifier_exact");
+    expect(productMappingRowsAfter[0]?.confidence).toBe(100);
 
     const productRowsAfter = await db
       .select({ id: products.id })

@@ -337,3 +337,28 @@ Each work session must add a new dated entry that includes:
   - `pnpm typecheck`
   - `pnpm test` (includes new idempotency test)
 - Next: `IN-04` (deterministic product matching precedence).
+
+## 2026-02-11 00:23
+
+- Work: Completed `IN-04` deterministic product matching precedence.
+  - Added `src/server/normalization/matchers/product.ts` with deterministic precedence:
+    1) `identifier_exact` (existing entity mapping / exact identifier)
+    2) `brand_model_fingerprint`
+    3) `new_canonical`
+  - Wired matcher into `normalizeProductsFromSnapshots` in `src/server/normalization/manual-seed.ts`.
+  - Product normalization now persists matcher-selected `matchMethod` + `confidence` into `canonical_entity_mappings`.
+  - Expanded manual-seed product schema to accept identifier/model fields and persist structured identifier metadata in product `meta`.
+  - Added matcher precedence unit coverage in `tests/server/product-matcher.test.ts`.
+  - Extended ingestion idempotency coverage to assert product mapping metadata across runs in `tests/ingestion/idempotency.test.ts`.
+  - Hardened idempotency test cleanup to remove all offer rows for the test product before product deletion.
+- Verified:
+  - `pnpm lint` (PASS)
+  - `pnpm typecheck` (PASS)
+  - `pnpm verify:gates` (PASS)
+  - `pnpm test -- tests/server/product-matcher.test.ts tests/ingestion/idempotency.test.ts` (PASS; Vitest executed full suite in this repo config)
+  - `pnpm test` (PASS)
+- Notes:
+  - Repeated local `pnpm test` loops can transiently trip ingestion idempotency-bucket tests; before the final pass, cleared stale test idempotency jobs with:
+    - `pnpm tsx -e "import { like } from 'drizzle-orm'; import { db } from './src/server/db'; import { ingestionJobs } from './src/server/db/schema'; (async () => { await db.delete(ingestionJobs).where(like(ingestionJobs.idempotencyKey, 'test:schedule:offers-head:%')); await db.delete(ingestionJobs).where(like(ingestionJobs.idempotencyKey, 'test:offers.head_refresh.one:%')); })().catch((error) => { console.error(error); process.exit(1); });"`
+- Next: `IN-05` (plant + offer deterministic matching).
+

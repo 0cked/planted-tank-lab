@@ -13,6 +13,7 @@ import {
   products,
   retailers,
 } from "@/server/db/schema";
+import { matchCanonicalProduct } from "@/server/normalization/matchers/product";
 
 const manualSeedImageUrlSchema = z
   .string()
@@ -33,10 +34,21 @@ export const manualSeedProductSchema = z.object({
   brand_name: z.string().min(1),
   name: z.string().min(1),
   slug: z.string().min(1),
+  model: z.string().min(1).optional(),
+  model_number: z.string().min(1).optional(),
+  sku: z.string().min(1).optional(),
+  upc: z.string().min(1).optional(),
+  ean: z.string().min(1).optional(),
+  gtin: z.string().min(1).optional(),
+  mpn: z.string().min(1).optional(),
+  asin: z.string().min(1).optional(),
   description: z.string().optional(),
   image_url: manualSeedImageUrlSchema.optional(),
   image_urls: z.array(manualSeedImageUrlSchema).optional(),
   specs: z.record(z.string(), z.unknown()),
+  identifiers: z
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    .optional(),
   sources: z.array(z.string().url()).optional(),
   source_notes: z.string().max(2000).optional(),
   verified: z.boolean().optional(),
@@ -117,6 +129,63 @@ export type ManualSeedNormalizationSummary = {
   totalUpdated: number;
 };
 
+type ManualSeedProduct = z.infer<typeof manualSeedProductSchema>;
+
+function normalizeIdentifierValue(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function buildManualSeedProductIdentifierMap(
+  item: ManualSeedProduct,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+
+  const assign = (key: string, value: unknown): void => {
+    const normalized = normalizeIdentifierValue(value);
+    if (!normalized) return;
+    out[key] = normalized;
+  };
+
+  assign("slug", item.slug);
+  assign("sku", item.sku);
+  assign("upc", item.upc);
+  assign("ean", item.ean);
+  assign("gtin", item.gtin);
+  assign("mpn", item.mpn);
+  assign("asin", item.asin);
+  assign("model_number", item.model_number);
+
+  if (item.identifiers) {
+    for (const [key, value] of Object.entries(item.identifiers).sort(
+      ([a], [b]) => a.localeCompare(b),
+    )) {
+      assign(key, value);
+    }
+  }
+
+  return out;
+}
+
+function buildManualSeedProductMeta(item: ManualSeedProduct): Record<string, unknown> {
+  return {
+    sources: item.sources ?? [],
+    source_notes: item.source_notes ?? null,
+    curated_rank: item.curated_rank ?? null,
+    model: item.model ?? null,
+    model_number: item.model_number ?? null,
+    identifiers: buildManualSeedProductIdentifierMap(item),
+  };
+}
+
 async function getLatestSnapshots(params: {
   sourceId: string;
   entityType: ManualSeedEntityType;
@@ -194,6 +263,7 @@ async function upsertCanonicalMapping(params: {
   canonicalType: "product" | "plant" | "offer";
   canonicalId: string;
   matchMethod: string;
+  confidence: number;
 }): Promise<void> {
   await db
     .insert(canonicalEntityMappings)
@@ -202,7 +272,7 @@ async function upsertCanonicalMapping(params: {
       canonicalType: params.canonicalType,
       canonicalId: params.canonicalId,
       matchMethod: params.matchMethod,
-      confidence: 100,
+      confidence: params.confidence,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
@@ -211,7 +281,7 @@ async function upsertCanonicalMapping(params: {
         canonicalType: params.canonicalType,
         canonicalId: params.canonicalId,
         matchMethod: params.matchMethod,
-        confidence: 100,
+        confidence: params.confidence,
         updatedAt: new Date(),
       },
     });
@@ -233,8 +303,21 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
     .select({ id: brands.id, slug: brands.slug })
     .from(brands);
   const existingProducts = await db
-    .select({ id: products.id, slug: products.slug })
+    .select({
+      id: products.id,
+      slug: products.slug,
+      brandId: products.brandId,
+      name: products.name,
+      meta: products.meta,
+    })
     .from(products);
+  const existingProductMappings = await db
+    .select({
+      entityId: canonicalEntityMappings.entityId,
+      canonicalId: canonicalEntityMappings.canonicalId,
+    })
+    .from(canonicalEntityMappings)
+    .where(eq(canonicalEntityMappings.canonicalType, "product"));
 
   const categoryIdBySlug = new Map(
     categoryRows.map((row) => [row.slug, row.id] as const),
@@ -242,8 +325,11 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
   const brandIdBySlug = new Map(
     brandRows.map((row) => [row.slug, row.id] as const),
   );
-  const existingProductIdBySlug = new Map(
-    existingProducts.map((row) => [row.slug, row.id] as const),
+  const existingProductById = new Map(
+    existingProducts.map((row) => [row.id, row] as const),
+  );
+  const existingCanonicalIdByEntityId = new Map(
+    existingProductMappings.map((row) => [row.entityId, row.canonicalId] as const),
   );
 
   let inserted = 0;
@@ -267,69 +353,97 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
       );
     }
 
-    const wasExisting = existingProductIdBySlug.has(item.slug);
+    const productMeta = buildManualSeedProductMeta(item);
 
-    const rows = await db
-      .insert(products)
-      .values({
-        categoryId,
-        brandId,
-        name: item.name,
-        slug: item.slug,
-        description: item.description ?? null,
-        imageUrl: item.image_url ?? null,
-        imageUrls: item.image_urls ?? [],
-        specs: item.specs,
-        meta: {
-          sources: item.sources ?? [],
-          source_notes: item.source_notes ?? null,
-          curated_rank: item.curated_rank ?? null,
-        },
-        status: "active",
-        source: "manual_seed",
-        verified: item.verified ?? false,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: products.slug,
-        set: {
+    const match = matchCanonicalProduct({
+      existingEntityCanonicalId:
+        existingCanonicalIdByEntityId.get(snapshot.entityId) ?? null,
+      slug: item.slug,
+      sourceEntityId: snapshot.sourceEntityId,
+      brandId,
+      name: item.name,
+      model: item.model ?? null,
+      modelNumber: item.model_number ?? null,
+      sku: item.sku ?? null,
+      upc: item.upc ?? null,
+      ean: item.ean ?? null,
+      gtin: item.gtin ?? null,
+      mpn: item.mpn ?? null,
+      asin: item.asin ?? null,
+      identifiers: item.identifiers ?? null,
+      existingProducts: [...existingProductById.values()],
+    });
+
+    let canonicalId = match.canonicalId;
+    if (canonicalId) {
+      const rows = await db
+        .update(products)
+        .set({
           categoryId,
           brandId,
           name: item.name,
+          slug: item.slug,
           description: item.description ?? null,
           imageUrl: item.image_url ?? null,
           imageUrls: item.image_urls ?? [],
           specs: item.specs,
-          meta: {
-            sources: item.sources ?? [],
-            source_notes: item.source_notes ?? null,
-            curated_rank: item.curated_rank ?? null,
-          },
+          meta: productMeta,
           status: "active",
           source: "manual_seed",
           verified: item.verified ?? false,
           updatedAt: new Date(),
-        },
-      })
-      .returning({ id: products.id });
+        })
+        .where(eq(products.id, canonicalId))
+        .returning({ id: products.id });
 
-    const canonicalId = rows[0]?.id ?? existingProductIdBySlug.get(item.slug);
-    if (!canonicalId) {
-      throw new Error(`Failed to normalize product '${item.slug}'`);
-    }
+      if (!rows[0]?.id) {
+        throw new Error(`Failed to update canonical product '${canonicalId}'`);
+      }
 
-    if (wasExisting) {
       updated += 1;
     } else {
+      const rows = await db
+        .insert(products)
+        .values({
+          categoryId,
+          brandId,
+          name: item.name,
+          slug: item.slug,
+          description: item.description ?? null,
+          imageUrl: item.image_url ?? null,
+          imageUrls: item.image_urls ?? [],
+          specs: item.specs,
+          meta: productMeta,
+          status: "active",
+          source: "manual_seed",
+          verified: item.verified ?? false,
+          updatedAt: new Date(),
+        })
+        .returning({ id: products.id });
+
+      canonicalId = rows[0]?.id;
+      if (!canonicalId) {
+        throw new Error(`Failed to normalize product '${item.slug}'`);
+      }
+
       inserted += 1;
-      existingProductIdBySlug.set(item.slug, canonicalId);
     }
+
+    existingProductById.set(canonicalId, {
+      id: canonicalId,
+      slug: item.slug,
+      brandId,
+      name: item.name,
+      meta: productMeta,
+    });
+    existingCanonicalIdByEntityId.set(snapshot.entityId, canonicalId);
 
     await upsertCanonicalMapping({
       entityId: snapshot.entityId,
       canonicalType: "product",
       canonicalId,
-      matchMethod: "manual_seed_slug",
+      matchMethod: match.matchMethod,
+      confidence: match.confidence,
     });
     mappingsUpserted += 1;
   }
@@ -467,6 +581,7 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
       canonicalType: "plant",
       canonicalId,
       matchMethod: "manual_seed_slug",
+      confidence: 100,
     });
     mappingsUpserted += 1;
   }
@@ -592,6 +707,7 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
       canonicalType: "offer",
       canonicalId: canonicalOfferId,
       matchMethod: "manual_seed_pair",
+      confidence: 100,
     });
     mappingsUpserted += 1;
   }
