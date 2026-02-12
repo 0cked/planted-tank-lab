@@ -49,8 +49,14 @@ export function isNonProductionCatalogSlug(
 export function shouldProductBeActiveForCatalogPolicy(params: {
   inStockPricedOffers: number;
   specs: unknown;
+  imageUrl: string | null;
+  imageUrls: unknown;
 }): boolean {
-  return params.inStockPricedOffers > 0 && hasSpecsObject(params.specs);
+  return (
+    params.inStockPricedOffers > 0 &&
+    hasSpecsObject(params.specs) &&
+    hasCatalogImage(params.imageUrl, params.imageUrls)
+  );
 }
 
 export function shouldPlantBeActiveForCatalogPolicy(params: {
@@ -105,6 +111,8 @@ export async function applyCatalogActivationPolicy(
             slug: products.slug,
             status: products.status,
             specs: products.specs,
+            imageUrl: products.imageUrl,
+            imageUrls: products.imageUrls,
           })
           .from(products)
           .where(inArray(products.categoryId, focusCategoryIds))
@@ -143,6 +151,8 @@ export async function applyCatalogActivationPolicy(
       shouldProductBeActiveForCatalogPolicy({
         inStockPricedOffers,
         specs: product.specs,
+        imageUrl: product.imageUrl,
+        imageUrls: product.imageUrls,
       });
 
     if (shouldBeActive && product.status !== "active") {

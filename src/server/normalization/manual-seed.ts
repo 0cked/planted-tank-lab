@@ -442,6 +442,8 @@ async function normalizeProductsFromSnapshots(params: {
       slug: products.slug,
       brandId: products.brandId,
       name: products.name,
+      imageUrl: products.imageUrl,
+      imageUrls: products.imageUrls,
       meta: products.meta,
     })
     .from(products);
@@ -508,14 +510,45 @@ async function normalizeProductsFromSnapshots(params: {
       existingProducts: [...existingProductById.values()],
     });
 
+    const canonicalIdForImageLookup = match.canonicalId;
+    const existingCanonicalProduct = canonicalIdForImageLookup
+      ? existingProductById.get(canonicalIdForImageLookup) ?? null
+      : null;
+
+    const incomingImageUrl = sanitizeCatalogImageUrl(item.image_url ?? null);
+    const incomingImageUrls = sanitizeCatalogImageUrls(item.image_urls ?? []);
+    const hasIncomingImages = incomingImageUrl != null || incomingImageUrls.length > 0;
+
+    const fallbackImageUrl = sanitizeCatalogImageUrl(
+      existingCanonicalProduct?.imageUrl ?? null,
+    );
+    const fallbackImageUrls = sanitizeCatalogImageUrls(
+      existingCanonicalProduct?.imageUrls ?? [],
+    );
+
+    const resolvedImageUrl = hasIncomingImages
+      ? incomingImageUrl ?? incomingImageUrls[0] ?? null
+      : fallbackImageUrl ?? fallbackImageUrls[0] ?? null;
+    const resolvedImageUrls = hasIncomingImages
+      ? incomingImageUrls.length > 0
+        ? incomingImageUrls
+        : resolvedImageUrl
+          ? [resolvedImageUrl]
+          : []
+      : fallbackImageUrls.length > 0
+        ? fallbackImageUrls
+        : resolvedImageUrl
+          ? [resolvedImageUrl]
+          : [];
+
     const normalizedProductValues = {
       categoryId,
       brandId,
       name: item.name,
       slug: item.slug,
       description: sanitizeCatalogCopy(item.description) ?? null,
-      imageUrl: sanitizeCatalogImageUrl(item.image_url ?? null),
-      imageUrls: sanitizeCatalogImageUrls(item.image_urls ?? []),
+      imageUrl: resolvedImageUrl,
+      imageUrls: resolvedImageUrls,
       specs: item.specs,
       meta: productMeta,
       status: "active",
@@ -567,6 +600,8 @@ async function normalizeProductsFromSnapshots(params: {
       slug: String(persistedProductValues.slug),
       brandId: persistedProductValues.brandId,
       name: String(persistedProductValues.name),
+      imageUrl: persistedProductValues.imageUrl,
+      imageUrls: persistedProductValues.imageUrls,
       meta: persistedProductValues.meta,
     });
     existingCanonicalIdByEntityId.set(snapshot.entityId, canonicalId);

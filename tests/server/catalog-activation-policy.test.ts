@@ -7,11 +7,13 @@ import {
 } from "@/server/catalog/activation-policy";
 
 describe("catalog activation policy helpers", () => {
-  test("activates focus products only when specs and in-stock priced offers exist", () => {
+  test("activates focus products only when image + specs + in-stock priced offers exist", () => {
     expect(
       shouldProductBeActiveForCatalogPolicy({
         inStockPricedOffers: 1,
         specs: { volume_gal: 20 },
+        imageUrl: "https://example.com/product.jpg",
+        imageUrls: [],
       }),
     ).toBe(true);
 
@@ -19,6 +21,8 @@ describe("catalog activation policy helpers", () => {
       shouldProductBeActiveForCatalogPolicy({
         inStockPricedOffers: 0,
         specs: { volume_gal: 20 },
+        imageUrl: "https://example.com/product.jpg",
+        imageUrls: [],
       }),
     ).toBe(false);
 
@@ -26,6 +30,17 @@ describe("catalog activation policy helpers", () => {
       shouldProductBeActiveForCatalogPolicy({
         inStockPricedOffers: 2,
         specs: {},
+        imageUrl: "https://example.com/product.jpg",
+        imageUrls: [],
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldProductBeActiveForCatalogPolicy({
+        inStockPricedOffers: 2,
+        specs: { volume_gal: 20 },
+        imageUrl: null,
+        imageUrls: [],
       }),
     ).toBe(false);
   });

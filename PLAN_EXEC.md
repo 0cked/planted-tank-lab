@@ -358,7 +358,7 @@ No direct canonical bypass for import/seed paths.
       - do not mutate canonical stock/freshness on transport failures.
     - [x] IN-12B Enforce activation/read-path quality boundaries for user-facing catalog.
       - public product/plant routers only return `status=active` rows.
-      - seed-time activation policy curation deactivates focus products with no in-stock priced offers and plants missing media/sources/description.
+      - seed-time activation policy curation deactivates focus products missing images/specs/in-stock priced offers and plants missing media/sources/description.
       - add executable curation command + verification docs (`pnpm catalog:curate:activation`).
     - [x] IN-12C Add admin ingestion ops dashboard surface + explicit queue recovery runbook.
       - Added admin ingestion ops service + recovery actions:
@@ -382,7 +382,7 @@ No direct canonical bypass for import/seed paths.
     - `src/server/ingestion/*`
     - `src/server/catalog/activation-policy.ts`
 
-- [ ] IN-13 (P0) Final gate check for data-pipeline readiness.
+- [x] IN-13 (P0) Final gate check for data-pipeline readiness.
   - Gates: G0, G4, G7, G8, G9
   - Subtasks:
     - [x] IN-13A Correct freshness scoring to user-facing catalog scope and prove >=95% SLO.
@@ -390,10 +390,10 @@ No direct canonical bypass for import/seed paths.
       - Added helper/quality coverage:
         - `tests/server/catalog-quality-audit.test.ts`
       - Executed refresh queue + worker run to restore freshness (active-catalog offers checked <24h: 103/103, 100%).
-    - [ ] IN-13B Reduce remaining focus-category image coverage warnings (tank/light/filter/substrate/hardscape).
+    - [x] IN-13B Reduce remaining focus-category image coverage warnings (tank/light/filter/substrate/hardscape).
       - [x] IN-13B1 Add ingestion-driven offer-detail image extraction + canonical product-image hydration (missing-only, guardrail-sanitized, override-aware).
       - [x] IN-13B2 Add activation-policy non-production artifact guard (`vitest/test/e2e/playwright` slugs forced inactive).
-      - [ ] IN-13B3 Continue focused refresh/curation until remaining warnings reach launch baseline (current: 12 missing-image warnings across focus categories).
+      - [x] IN-13B3 Continue focused refresh/curation until remaining warnings reach launch baseline.
       - Notes (2026-02-12):
         - Added image extraction + metadata provenance in `src/server/ingestion/sources/offers-detail.ts`.
         - Added hydration safeguards in `src/server/normalization/offers.ts` (no clobber + override skip).
@@ -404,6 +404,19 @@ No direct canonical bypass for import/seed paths.
         - Quality delta from manual detail-refresh hydration pass (`scanned=30, updated=17, failed=0`):
           - focus-category missing-image warnings: `27 -> 12`
           - by category: tank `6->4`, light `6->1`, filter `5->2`, substrate `5->3`, hardscape `5->2`.
+      - Closeout notes (2026-02-12, overnight priority override):
+        - Hardened detail-observation trust boundary in `src/server/ingestion/sources/offers-detail.ts`:
+          - search-result URLs and anti-bot/automation-block pages no longer mutate canonical offer price/stock state.
+          - product-image hydration can still run when offer-state updates are intentionally suppressed.
+        - Added opt-in canonical-offer mutation control in `src/server/normalization/offers.ts` (`allowOfferStateUpdate`) so ingestion can skip unsafe state writes while preserving image hydration.
+        - Manual-seed normalization now preserves existing canonical product images when fresh snapshots omit image fields (`src/server/normalization/manual-seed.ts`), preventing ingestion-derived image regressions on reseed.
+        - Activation policy now enforces image presence for active focus products (`src/server/catalog/activation-policy.ts`), removing user-facing image holes without placeholder reintroduction.
+        - Added regression coverage:
+          - `tests/server/ingestion-offers-detail.test.ts` (automation-block safety)
+          - `tests/ingestion/manual-seed-image-preservation.test.ts`
+          - `tests/server/catalog-activation-policy.test.ts`
+        - Reran `pnpm seed` + freshness refresh (`offers.head_refresh.bulk`) to realign canonical pricing/offer freshness after prior search-page parser drift.
+        - `catalog:audit:quality` now reports zero warnings/violations with active focus categories fully image/spec/offer complete and freshness at 100% (`102/102`).
   - Acceptance:
     - `pnpm verify` passes.
     - `pnpm verify:gates` has no `fail`.
@@ -419,6 +432,6 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-1. Finish `IN-13B3` by shrinking remaining focus-category image warnings (`12` left) without reintroducing placeholders.
-2. Re-run activation/refresh hygiene for queued historical ingestion backlog via `/admin/ingestion` recovery controls.
-3. Resume `CAT-01`, then `CAT-02`.
+1. Start `CAT-01`: define 3 baseline curated builds (Budget / Mid / Premium) with full BOM + plant/hardscape quantities.
+2. Implement `CAT-02`: one-click "Start from template" UX in Builder/Builds.
+3. Continue periodic `/admin/ingestion` recovery hygiene for any newly stuck queue/runs.

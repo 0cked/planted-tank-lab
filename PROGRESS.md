@@ -1064,3 +1064,51 @@ Each work session must add a new dated entry that includes:
   - `IN-13B` still open with `12` image warnings remaining (specific slugs in latest quality audit output).
   - Ingestion queue has historical manual bulk jobs that can create stale `running` locks when interrupted; continue using `/admin/ingestion` recovery controls before/after heavy manual runs.
   - Next: complete `IN-13B3` warning closeout, then resume `CAT-01`.
+
+## 2026-02-12 08:35
+
+- Work: Executed overnight priority override focused on catalog production-readiness (accuracy/completeness, freshness correctness, ingestion reliability, placeholder/legacy safety).
+  - Closed `IN-13B3` + `IN-13` launch-readiness gate.
+  - Hardened offer-detail ingestion trust boundary so untrusted observations no longer mutate canonical offer state:
+    - `src/server/ingestion/sources/offers-detail.ts`
+      - detect/skip canonical offer-state writes for search-result URLs and anti-bot retailer pages (Amazon automation block signatures).
+      - preserve ingestion snapshot provenance while suppressing unsafe price/stock mutations.
+    - `src/server/normalization/offers.ts`
+      - added `allowOfferStateUpdate` to support image hydration without forced offer-state writes.
+  - Hardened normalization reliability against image regressions:
+    - `src/server/normalization/manual-seed.ts`
+      - preserve existing canonical product images when manual-seed snapshots omit image fields.
+  - Tightened user-facing catalog activation boundary:
+    - `src/server/catalog/activation-policy.ts`
+      - focus products now require image + specs + in-stock priced offers to remain active.
+  - Added/updated regression coverage:
+    - `tests/server/ingestion-offers-detail.test.ts`
+    - `tests/server/catalog-activation-policy.test.ts`
+    - `tests/ingestion/manual-seed-image-preservation.test.ts` (new)
+
+- Data-state remediation executed this run:
+  - `pnpm seed` rerun to realign canonical offer pricing with ingestion-normalized baseline after prior search-page parser drift.
+  - Enqueued + processed high-priority `offers.head_refresh.bulk` to restore 24h freshness window.
+  - Marked an interrupted ad-hoc ingestion run as failed (finished) to avoid stale-running run noise in ops telemetry.
+
+- Verified:
+  - `pnpm lint` PASS
+  - `pnpm typecheck` PASS
+  - `pnpm vitest run tests/server/ingestion-offers-detail.test.ts tests/server/catalog-activation-policy.test.ts tests/ingestion/manual-seed-image-preservation.test.ts` PASS
+  - `pnpm seed` PASS
+  - `pnpm catalog:curate:activation` PASS (idempotent on rerun)
+  - `pnpm catalog:audit:regressions` PASS
+  - `pnpm catalog:audit:quality` PASS (`violations=0`, `warnings=0`, active offer freshness `102/102` = 100%)
+  - `pnpm verify:gates` PASS (no `fail` gates)
+  - `pnpm verify` PASS (lint + typecheck + unit/integration + e2e + build)
+
+- Outcome deltas:
+  - Focus-category active catalog now has zero missing-image/spec/offer warnings in quality audit.
+  - Active-catalog offer freshness restored to 100% (`102/102` within 24h).
+  - Canonical offer price drift versus `data/offers.json` baseline reduced to zero (`price_drift=0` after reseed).
+  - Placeholder/provenance regression posture remains clean (zero violations).
+
+- Next:
+  - Start `CAT-01` (Budget/Mid/Premium canonical baseline templates).
+  - Then implement `CAT-02` (one-click start-from-template UX).
+  - Keep `/admin/ingestion` recovery controls in rotation for stale lock/run hygiene.

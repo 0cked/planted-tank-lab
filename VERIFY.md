@@ -29,7 +29,7 @@ Exits non-zero when placeholder/provenance violations are present.
 ### `pnpm catalog:curate:activation`
 
 Applies canonical activation policy for user-facing catalog safety:
-- focus products (`tank/light/filter/substrate/hardscape`) require specs + at least one in-stock priced offer
+- focus products (`tank/light/filter/substrate/hardscape`) require image + specs + at least one in-stock priced offer
 - plants require image + sources + description
 
 ### `pnpm catalog:audit:quality`

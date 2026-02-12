@@ -19,10 +19,14 @@ Deprecated and archived:
 
 ## Current Mission
 
-Primary objective: complete **Top Priority #1** to production-grade quality:
-- trusted ingestion + normalization + canonical freshness + user-facing catalog quality boundaries.
+Primary objective: keep Top Priority #1 (trusted ingestion + normalization + canonical quality boundaries) stable while moving into **CAT-01/CAT-02**.
 
-Current phase: `ING-5 / IN-13` (gate closeout) — `IN-12` remains complete; `IN-13A` remains complete; `IN-13B` is in active closeout with image-warning debt reduced but not yet zero.
+Current phase: `CAT-1` baseline templates.
+
+Pipeline closeout status:
+- `IN-12` complete.
+- `IN-13` complete.
+- focus-category image/freshness readiness closeout is complete for active catalog scope.
 
 ## Current State Snapshot
 
@@ -33,69 +37,78 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 - `IN-11A` complete: provenance clean + placeholder regressions cleared in canonical/displayed catalog paths.
 - `IN-12` complete:
-  - offer refresh reliability semantics and stale-first deterministic scheduling remain in place.
+  - offer refresh reliability semantics + stale-first deterministic scheduling in place.
   - active-only public catalog read paths are enforced.
-  - new ingestion ops dashboard + recovery controls are live at `/admin/ingestion`.
-  - queue recovery runbook is documented in `VERIFY.md`.
+  - ingestion ops dashboard + queue recovery controls are live at `/admin/ingestion`.
+- `IN-13` complete:
+  - detail-observation trust boundary now blocks unsafe canonical price/stock mutations from search URLs + anti-bot pages.
+  - manual-seed normalization now preserves existing canonical product images when seed snapshots omit image fields.
+  - activation policy now requires images/specs/in-stock priced offers for active focus products.
 
-Current quality/freshness posture (`pnpm catalog:audit:quality`, 2026-02-12T11:32:06Z):
-- **Freshness SLO is met** for active catalog offers: **100%** (`103/103` checked within 24h).
-- focus-category image warnings have been reduced from **27** to **12** missing-image rows after ingestion-driven detail refresh hydration.
-  - tank: `6 -> 4`
-  - light: `6 -> 1`
-  - filter: `5 -> 2`
-  - substrate: `5 -> 3`
-  - hardscape: `5 -> 2`
-- offer completeness remains strong (`productsWithoutAnyOffer=0` across focus categories).
-- active plants media/source/description completeness remains clean.
+Current quality/freshness posture (`pnpm catalog:audit:quality`, 2026-02-12T13:27:30Z):
+- **Freshness SLO is met** for active catalog offers: **100%** (`102/102` checked within 24h).
+- focus categories (`tank/light/filter/substrate/hardscape`) are active-catalog complete for image/spec/offer coverage.
+- quality audit warnings/violations: **0**.
+- pricing drift introduced by prior search-page parsing was corrected via reseed + refresh.
 
-Remaining critical gaps:
-- `IN-13B` image coverage is improved but unresolved (12 focus-category missing-image warnings remain).
-- ingestion queue has accumulated historical queued/failed backlog from prior manual bulk attempts; `/admin/ingestion` recovery controls remain the source of truth for cleanup.
+Regression posture (`pnpm catalog:audit:regressions`, 2026-02-12T13:28:00Z):
+- provenance violations: **0**
+- placeholder violations: **0**
 
 ## What Changed Last
 
-- Added offer-detail image extraction + provenance wiring:
+- Hardened ingestion reliability and canonical mutation boundaries:
   - `src/server/ingestion/sources/offers-detail.ts`
-  - parses image candidates from JSON-LD + meta tags (+ amazon DOM fallback), sanitizes via catalog guardrails, stores image parser/confidence/source in snapshot metadata, and emits `product_image_url` extracted field when present.
-- Added normalization-side product image hydration safeguards:
+    - blocks canonical offer-state writes for search-result URLs + anti-bot pages
+    - keeps ingestion snapshot provenance while suppressing unsafe mutations
   - `src/server/normalization/offers.ts`
-  - hydrates canonical product image only when currently missing, skips when image overrides exist, and never clobbers existing curated images.
-- Added non-production artifact deactivation guard in activation policy:
+    - added `allowOfferStateUpdate` so ingestion can hydrate product images without mutating offer freshness/price when observations are untrusted
+
+- Hardened normalization reliability:
+  - `src/server/normalization/manual-seed.ts`
+    - preserves existing canonical product images when seed payload omits image fields
+
+- Tightened user-facing catalog quality boundaries:
   - `src/server/catalog/activation-policy.ts`
-  - explicit `isNonProductionCatalogSlug` helper (`vitest/test/e2e/playwright` patterns) now prevents those rows from being active catalog inventory.
-- Expanded regression coverage:
+    - focus products must have image + specs + in-stock priced offers to remain active
+
+- Added/updated regression coverage:
   - `tests/server/ingestion-offers-detail.test.ts`
   - `tests/server/catalog-activation-policy.test.ts`
+  - `tests/ingestion/manual-seed-image-preservation.test.ts`
+
+- Reconciled live data state after reliability hardening:
+  - `pnpm seed` (realigned canonical pricing/offers to ingestion-normalized baseline)
+  - high-priority `offers.head_refresh.bulk` run restored freshness window to 100%
 
 Verification highlights (this run):
 - `pnpm lint` PASS
 - `pnpm typecheck` PASS
-- `pnpm vitest run tests/server/ingestion-offers-detail.test.ts tests/server/catalog-activation-policy.test.ts` PASS
-- `pnpm verify:gates` PASS
+- `pnpm vitest run tests/server/ingestion-offers-detail.test.ts tests/server/catalog-activation-policy.test.ts tests/ingestion/manual-seed-image-preservation.test.ts` PASS
+- `pnpm seed` PASS
+- `pnpm catalog:curate:activation` PASS (idempotent on rerun)
 - `pnpm catalog:audit:regressions` PASS
-- `pnpm catalog:audit:quality` PASS (no violations; warnings reduced to 12)
+- `pnpm catalog:audit:quality` PASS (no warnings/violations)
+- `pnpm verify:gates` PASS (no fail gates)
 - `pnpm verify` PASS
-- direct offer-detail hydration execution (`runOffersDetailRefresh` bulk, `limit=30`, `timeoutMs=2500`) => `{ scanned: 30, updated: 17, failed: 0 }`
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-13B` reduce focus-category image coverage warnings without reintroducing placeholders.
-2. `CAT-01` define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant counts.
-3. `CAT-02` add one-click "Start from template" UX.
+1. `CAT-01` define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant quantities.
+2. `CAT-02` add one-click "Start from template" UX.
+3. Continue ingestion queue hygiene via `/admin/ingestion` recovery controls when stale locks appear.
 
 ## Known Risks / Blockers
 
-- Focus-category image coverage remains uneven (especially non-tank gear categories).
-- Historical ingestion failure backlog exists; recovery controls are now available but may require periodic operator intervention.
-- In-memory rate limit implementation is acceptable now but not horizontally durable.
+- Some ingestion runs can remain `running` if external worker processes terminate mid-job; continue using `/admin/ingestion` recovery controls.
+- In-memory rate limiting remains acceptable for now but not horizontally durable.
 - Sentry alerting still requires ongoing production tuning.
 
 ## Resume In <2 Minutes
 
 1. Read `AUTOPILOT.md`.
-2. Open `PLAN_EXEC.md` and find the first unchecked `[ ]` task.
+2. Open `PLAN_EXEC.md` and find the first unchecked `[ ]` task (`CAT-01`).
 3. Read last 1-3 entries in `PROGRESS.md`.
 4. Run:
    - `pnpm verify:gates`

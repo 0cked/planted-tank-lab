@@ -110,6 +110,7 @@ export async function applyOfferDetailObservation(params: {
   observedCurrency?: string | null;
   observedInStock?: boolean | null;
   observedProductImageUrl?: string | null;
+  allowOfferStateUpdate?: boolean;
 }): Promise<OfferObservationApplyResult> {
   const rows = await params.db
     .select({
@@ -131,6 +132,8 @@ export async function applyOfferDetailObservation(params: {
     };
   }
 
+  const allowOfferStateUpdate = params.allowOfferStateUpdate ?? true;
+
   const nextPriceCents =
     params.observedPriceCents !== undefined && params.observedPriceCents !== null
       ? params.observedPriceCents
@@ -147,48 +150,60 @@ export async function applyOfferDetailObservation(params: {
       : current.inStock;
 
   const priceChanged =
+    allowOfferStateUpdate &&
     params.observedPriceCents !== undefined &&
     params.observedPriceCents !== null &&
     params.observedPriceCents !== current.priceCents;
   const currencyChanged =
+    allowOfferStateUpdate &&
     params.observedCurrency !== undefined &&
     params.observedCurrency !== null &&
     params.observedCurrency !== current.currency;
   const stockChanged =
+    allowOfferStateUpdate &&
     params.observedInStock !== undefined &&
     params.observedInStock !== null &&
     params.observedInStock !== current.inStock;
 
-  const meaningfulChange = priceChanged || currencyChanged || stockChanged;
-
-  const updateValues: {
-    lastCheckedAt: Date;
-    updatedAt?: Date;
-    priceCents?: number | null;
-    currency?: string;
-    inStock?: boolean;
-  } = {
-    lastCheckedAt: params.checkedAt,
-  };
-
-  if (meaningfulChange) {
-    updateValues.updatedAt = params.checkedAt;
-    updateValues.priceCents = nextPriceCents;
-    updateValues.currency = nextCurrency;
-    updateValues.inStock = nextInStock;
-  }
-
-  await params.db.update(offers).set(updateValues).where(eq(offers.id, params.offerId));
+  const meaningfulChange = allowOfferStateUpdate && (priceChanged || currencyChanged || stockChanged);
 
   let priceHistoryAppended = false;
-  if (meaningfulChange && nextPriceCents != null) {
-    await params.db.insert(priceHistory).values({
-      offerId: params.offerId,
-      priceCents: nextPriceCents,
-      inStock: nextInStock,
-      recordedAt: params.checkedAt,
+
+  if (allowOfferStateUpdate) {
+    const updateValues: {
+      lastCheckedAt: Date;
+      updatedAt?: Date;
+      priceCents?: number | null;
+      currency?: string;
+      inStock?: boolean;
+    } = {
+      lastCheckedAt: params.checkedAt,
+    };
+
+    if (meaningfulChange) {
+      updateValues.updatedAt = params.checkedAt;
+      updateValues.priceCents = nextPriceCents;
+      updateValues.currency = nextCurrency;
+      updateValues.inStock = nextInStock;
+    }
+
+    await params.db.update(offers).set(updateValues).where(eq(offers.id, params.offerId));
+
+    if (meaningfulChange && nextPriceCents != null) {
+      await params.db.insert(priceHistory).values({
+        offerId: params.offerId,
+        priceCents: nextPriceCents,
+        inStock: nextInStock,
+        recordedAt: params.checkedAt,
+      });
+      priceHistoryAppended = true;
+    }
+
+    await refreshOfferSummaryForProductId({
+      db: params.db,
+      productId: current.productId,
+      now: params.checkedAt,
     });
-    priceHistoryAppended = true;
   }
 
   const productImageHydrated = await hydrateProductImageFromOfferObservation({
@@ -196,12 +211,6 @@ export async function applyOfferDetailObservation(params: {
     productId: current.productId,
     checkedAt: params.checkedAt,
     observedProductImageUrl: params.observedProductImageUrl,
-  });
-
-  await refreshOfferSummaryForProductId({
-    db: params.db,
-    productId: current.productId,
-    now: params.checkedAt,
   });
 
   return { meaningfulChange, priceHistoryAppended, productImageHydrated };

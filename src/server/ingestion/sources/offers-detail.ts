@@ -109,6 +109,74 @@ function parseAvailability(value: unknown): boolean | null {
   return null;
 }
 
+function isLikelySearchResultUrl(params: {
+  url: string;
+  retailerSlug: string;
+}): boolean {
+  try {
+    const parsed = new URL(params.url);
+    const path = parsed.pathname.toLowerCase();
+
+    if (params.retailerSlug === "amazon") {
+      return path === "/s" || path.startsWith("/s/");
+    }
+
+    if (params.retailerSlug === "buceplant") {
+      return path.includes("/search") || parsed.searchParams.has("q");
+    }
+
+    if (params.retailerSlug === "petco") {
+      return path.includes("/search") || parsed.searchParams.has("query");
+    }
+
+    return (
+      path.includes("/search") ||
+      parsed.searchParams.has("q") ||
+      parsed.searchParams.has("query") ||
+      parsed.searchParams.has("k")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isLikelyAutomationBlockedPage(params: {
+  html: string;
+  retailerSlug: string;
+}): boolean {
+  const lowered = params.html.toLowerCase();
+
+  if (params.retailerSlug === "amazon") {
+    return (
+      lowered.includes("automated access to amazon data") ||
+      lowered.includes("api-services-support@amazon.com") ||
+      lowered.includes("sorry! something went wrong")
+    );
+  }
+
+  return false;
+}
+
+function shouldApplyOfferStateObservation(params: {
+  parsed: ParsedOfferDetail;
+  retailerSlug: string;
+  observationUrl: string;
+}): boolean {
+  if (isLikelySearchResultUrl({
+    url: params.observationUrl,
+    retailerSlug: params.retailerSlug,
+  })) {
+    return false;
+  }
+
+  if (params.parsed.confidence === "low") return false;
+  if (params.parsed.parser === "text") return false;
+  if (params.parsed.parser === "none") return false;
+  if (params.parsed.parser === "http_status_fallback") return false;
+
+  return true;
+}
+
 function decodeHtmlAttribute(value: string): string {
   return value
     .replaceAll("&amp;", "&")
@@ -843,6 +911,22 @@ export async function runOffersDetailRefresh(params: {
         productImageUrl: imageObservation.imageUrl,
       };
 
+      const observationUrl = fetched.finalUrl ?? offer.url;
+      const blockedByAutomation = fetched.html
+        ? isLikelyAutomationBlockedPage({
+            html: fetched.html,
+            retailerSlug: offer.retailerSlug,
+          })
+        : false;
+      const allowOfferStateUpdate =
+        fetched.status != null &&
+        !blockedByAutomation &&
+        shouldApplyOfferStateObservation({
+          parsed,
+          retailerSlug: offer.retailerSlug,
+          observationUrl,
+        });
+
       const entityId = await upsertOfferEntity({
         db: params.db,
         sourceId: params.sourceId,
@@ -889,6 +973,11 @@ export async function runOffersDetailRefresh(params: {
           candidates: imageObservation.candidates,
         },
         observed,
+        observation: {
+          url: observationUrl,
+          blockedByAutomation,
+          allowOfferStateUpdate,
+        },
         observedMinute: minuteBucket,
       };
       const contentHash = sha256Hex(stableJsonStringify(rawJson));
@@ -928,6 +1017,12 @@ export async function runOffersDetailRefresh(params: {
         continue;
       }
 
+      // Anti-bot / automation block pages are not trustworthy for canonical state updates.
+      if (blockedByAutomation) {
+        failed += 1;
+        continue;
+      }
+
       const normalized = await applyOfferDetailObservation({
         db: params.db,
         offerId: offer.id,
@@ -936,6 +1031,7 @@ export async function runOffersDetailRefresh(params: {
         observedCurrency: observed.currency,
         observedInStock: observed.inStock,
         observedProductImageUrl: observed.productImageUrl,
+        allowOfferStateUpdate,
       });
 
       if (normalized.meaningfulChange || normalized.productImageHydrated) {

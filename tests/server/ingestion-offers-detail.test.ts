@@ -71,6 +71,20 @@ const detailHtmlSecondPass = `
 </html>
 `;
 
+const amazonAutomationBlockHtml = `
+<!--
+  To discuss automated access to Amazon data please contact api-services-support@amazon.com.
+-->
+<!doctype html>
+<html>
+  <head><title>Sorry! Something went wrong!</title></head>
+  <body>
+    <div>$39.99</div>
+    <div>In stock</div>
+  </body>
+</html>
+`;
+
 let activeDetailHtml = detailHtml;
 
 beforeAll(async () => {
@@ -423,6 +437,61 @@ describe("ingestion: offers detail refresh", () => {
     expect(productAfter[0]!.imageUrl).toBeNull();
     expect(Array.isArray(productAfter[0]!.imageUrls)).toBe(true);
     expect((productAfter[0]!.imageUrls as unknown[]).length).toBe(0);
+  });
+
+  test("does not mutate canonical offer state when retailer returns automation-block page", async () => {
+    expect(createdOfferId).toBeTruthy();
+    const offerId = createdOfferId!;
+
+    const baselineCheckedAt = new Date("2026-02-10T03:30:00.000Z");
+    await db
+      .update(offers)
+      .set({
+        url: "https://www.amazon.com/s?k=vitest+automation+blocked",
+        priceCents: 18888,
+        inStock: true,
+        lastCheckedAt: baselineCheckedAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(offers.id, offerId));
+
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(amazonAutomationBlockHtml, {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }) as unknown as typeof fetch;
+
+    const enq = await enqueueIngestionJob({
+      kind: "offers.detail_refresh.one",
+      payload: { offerId, timeoutMs: 3000 },
+      idempotencyKey: `test:offers.detail_refresh.one:automation-block:${offerId}:${Date.now()}:${Math.random()}`,
+      priority: 10_000,
+    });
+    if (enq.id) createdJobIds.push(enq.id);
+
+    const blockedJobStatus = await runWorkerUntilJobSettled({
+      jobId: enq.id!,
+      workerId: "vitest-detail-automation-block",
+    });
+
+    expect(blockedJobStatus).toBe("success");
+
+    const refreshed = await db
+      .select({
+        priceCents: offers.priceCents,
+        inStock: offers.inStock,
+        lastCheckedAt: offers.lastCheckedAt,
+      })
+      .from(offers)
+      .where(eq(offers.id, offerId))
+      .limit(1);
+
+    expect(refreshed[0]!.priceCents).toBe(18888);
+    expect(refreshed[0]!.inStock).toBe(true);
+    expect(refreshed[0]!.lastCheckedAt?.toISOString()).toBe(
+      baselineCheckedAt.toISOString(),
+    );
   });
 
   test("does not mutate canonical offer state on transport failure", async () => {
