@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { BuilderPage } from "@/components/builder/BuilderPage";
+import { VisualBuilderPage } from "@/components/builder/VisualBuilderPage";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
@@ -12,12 +12,22 @@ export default async function Page(props: { params: Promise<{ shareSlug: string 
     await createTRPCContext({ req: new Request("http://localhost") }),
   );
 
-  let data: Awaited<ReturnType<typeof caller.builds.getByShareSlug>>;
+  let data: Awaited<ReturnType<typeof caller.visualBuilder.getByShareSlug>>;
   try {
-    data = await caller.builds.getByShareSlug({ shareSlug });
+    data = await caller.visualBuilder.getByShareSlug({ shareSlug });
   } catch {
     notFound();
   }
 
-  return <BuilderPage initialState={data.snapshot} />;
+  return (
+    <VisualBuilderPage
+      initialBuild={{
+        ...data,
+        build: {
+          ...data.build,
+          updatedAt: data.build.updatedAt.toISOString(),
+        },
+      }}
+    />
+  );
 }

@@ -616,6 +616,9 @@ export const builds = pgTable(
     description: text("description"),
     shareSlug: varchar("share_slug", { length: 20 }),
     style: varchar("style", { length: 50 }),
+    tankId: uuid("tank_id").references(() => products.id, { onDelete: "set null" }),
+    // Serializable visual layout payload for Visual Builder v1.
+    canvasState: jsonb("canvas_state").notNull().default({}),
     isPublic: boolean("is_public").notNull().default(false),
     isCompleted: boolean("is_completed").notNull().default(false),
     coverImageUrl: varchar("cover_image_url", { length: 500 }),
@@ -634,7 +637,10 @@ export const builds = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [uniqueIndex("builds_share_slug_unique").on(t.shareSlug)],
+  (t) => [
+    uniqueIndex("builds_share_slug_unique").on(t.shareSlug),
+    index("idx_builds_tank").on(t.tankId),
+  ],
 );
 
 export const analyticsEvents = pgTable(

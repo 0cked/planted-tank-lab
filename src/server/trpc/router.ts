@@ -6,6 +6,7 @@ import { productsRouter } from "@/server/trpc/routers/products";
 import { rulesRouter } from "@/server/trpc/routers/rules";
 import { reportsRouter } from "@/server/trpc/routers/reports";
 import { usersRouter } from "@/server/trpc/routers/users";
+import { visualBuilderRouter } from "@/server/trpc/routers/visual-builder";
 
 export const appRouter = createTRPCRouter({
   builds: buildsRouter,
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
   rules: rulesRouter,
   reports: reportsRouter,
   users: usersRouter,
+  visualBuilder: visualBuilderRouter,
 });
 
 export type AppRouter = typeof appRouter;

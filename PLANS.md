@@ -36,12 +36,12 @@ Acceptance criteria:
 
 #### 1A. Core visual canvas + state
 
-- [ ] Implement a dedicated visual builder state model (serializable JSON) with canvas items:
+- [x] Implement a dedicated visual builder state model (serializable JSON) with canvas items:
   - `assetId`, `x`, `y`, `scale`, `rotation`, `layer`.
-- [ ] Implement tank selection (rimless catalog SKUs only) and proportional canvas sizing.
-- [ ] Implement drag, rotate, scale, duplicate, delete, and layering controls.
-- [ ] Implement left panel asset browser (hardscape, plants, substrate, equipment) with search/filter.
-- [ ] Implement right panel live BOM with quantities + estimated cost.
+- [x] Implement tank selection (rimless catalog SKUs only) and proportional canvas sizing.
+- [x] Implement drag, rotate, scale, duplicate, delete, and layering controls.
+- [x] Implement left panel asset browser (hardscape, plants, substrate, equipment) with search/filter.
+- [x] Implement right panel live BOM with quantities + estimated cost.
 
 Acceptance criteria:
 - User can place 50+ objects without functional breakage.
@@ -55,9 +55,9 @@ Verify:
 
 #### 1B. Data and API contract
 
-- [ ] Add `builds.tank_id` and `builds.canvas_state` to schema + migration.
-- [ ] Extend build upsert/query APIs to persist and return visual canvas state.
-- [ ] Keep backward compatibility with existing build snapshots and share links.
+- [x] Add `builds.tank_id` and `builds.canvas_state` to schema + migration.
+- [x] Extend build upsert/query APIs to persist and return visual canvas state.
+- [x] Keep backward compatibility with existing build snapshots and share links.
 
 Acceptance criteria:
 - Existing build pages continue working.
@@ -70,9 +70,9 @@ Verify:
 
 #### 1C. Monetization-ready BOM
 
-- [ ] Show SKU, price, and buy CTA per monetizable BOM line item.
-- [ ] Route buy CTAs through secure redirect endpoints (`/go/[offerId]`) for trackability.
-- [ ] Ensure client never exposes raw affiliate templates/tags.
+- [x] Show SKU, price, and buy CTA per monetizable BOM line item.
+- [x] Route buy CTAs through secure redirect endpoints (`/go/[offerId]`) for trackability.
+- [x] Ensure client never exposes raw affiliate templates/tags.
 
 Acceptance criteria:
 - BOM buy buttons resolve to server redirect routes.
@@ -85,9 +85,9 @@ Verify:
 
 ### Phase 2 - Save / Share / Duplicate
 
-- [ ] Save visual builds to account-backed records.
-- [ ] Generate/read public share URLs with read-only public mode.
-- [ ] Duplicate public builds into user-owned editable builds.
+- [x] Save visual builds to account-backed records.
+- [x] Generate/read public share URLs with read-only public mode.
+- [x] Duplicate public builds into user-owned editable builds.
 
 Acceptance criteria:
 - Save and reopen preserve tank + all canvas item transforms.
@@ -101,13 +101,13 @@ Verify:
 
 ### Phase 3 - Compatibility Warnings in Visual Builder
 
-- [ ] Integrate existing compatibility engine with visual build state.
-- [ ] Add required warnings:
+- [x] Integrate existing compatibility engine with visual build state.
+- [x] Add required warnings:
   - undersized filter,
   - light width mismatch,
   - CO2-required plants without CO2,
   - unrealistic hardscape volume load.
-- [ ] Surface warnings in right panel with severity hierarchy.
+- [x] Surface warnings in right panel with severity hierarchy.
 
 Acceptance criteria:
 - Warnings update deterministically as user edits build.
@@ -120,10 +120,10 @@ Verify:
 
 ### Phase 4 - Export + Production Hardening
 
-- [ ] Add PNG export for current layout.
-- [ ] Ensure pointer interactions stay responsive and avoid blocking renders.
-- [ ] Verify no console errors and strict lint/typecheck clean.
-- [ ] Add/refresh smoke tests for core Visual Builder path.
+- [x] Add PNG export for current layout.
+- [x] Ensure pointer interactions stay responsive and avoid blocking renders.
+- [x] Verify no console errors and strict lint/typecheck clean.
+- [x] Add/refresh smoke tests for core Visual Builder path.
 
 Acceptance criteria:
 - Exported image reflects layout reliably.
@@ -140,9 +140,9 @@ Verify:
 
 ## Immediate Next 3 Tasks
 
-1. Implement visual builder domain types + Zustand store (`src/stores/visual-builder-store.ts`).
-2. Add DB migration + schema changes for `tank_id` and `canvas_state` on `builds`.
-3. Build new `VisualBuilderPage` layout and wire `/builder` to it.
+1. Add keyboard nudging + multi-select transforms for faster desktop layout editing.
+2. Add visibility/lock controls per canvas item and mirror those states in export.
+3. Expand visual-builder API tests for duplicate-public and selected-offer override persistence.
 
 ## Resume Protocol (for any new agent session)
 

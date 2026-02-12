@@ -1,5 +1,5 @@
-import { BuilderPage } from "@/components/builder/BuilderPage";
+import { VisualBuilderPage } from "@/components/builder/VisualBuilderPage";
 
 export default function Page() {
-  return <BuilderPage />;
+  return <VisualBuilderPage />;
 }

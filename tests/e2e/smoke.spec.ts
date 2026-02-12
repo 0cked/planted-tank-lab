@@ -106,34 +106,16 @@ test("builds index renders", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Builds" })).toBeVisible();
 });
 
-test("builder share creates a snapshot; nav highlights Builds; open-in-builder returns to Builder", async ({
-  page,
-}) => {
+test("visual builder renders and saves draft state", async ({ page }) => {
   await page.goto("/builder");
   await dismissCookies(page);
-  await expect(page.getByRole("heading", { name: "Builder" })).toBeVisible();
-  await expect(page.getByTestId("category-row-tank")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Visual Canvas" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bill of Materials" })).toBeVisible();
   await page.waitForLoadState("networkidle");
 
-  await page.getByRole("button", { name: "Share" }).click();
-
-  await expect(page.getByText("Build snapshot")).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole("heading", { name: "Untitled Build" })).toBeVisible();
-  await expect(
-    page.getByRole("navigation").getByRole("link", { name: "Builds" }),
-  ).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-
-  await page.getByRole("link", { name: "Open in builder" }).click();
-  await expect(page).toHaveURL(/\/builder\//, { timeout: 15_000 });
-  await expect(
-    page.getByRole("navigation").getByRole("link", { name: "Builder" }),
-  ).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Build saved successfully.")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Share:\s*[a-zA-Z0-9_-]+/)).toBeVisible();
 });
 
 test("not found renders a friendly page", async ({ page }) => {

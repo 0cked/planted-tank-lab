@@ -1,0 +1,168 @@
+import { describe, expect, it } from "vitest";
+
+import { evaluateVisualCompatibility } from "@/components/builder/visual/compatibility";
+import type { CompatibilityRule } from "@/engine/types";
+
+const co2Rule: CompatibilityRule = {
+  code: "co2_required_plants",
+  name: "CO2-required plants",
+  severity: "warning",
+  categoriesInvolved: ["co2", "plants"],
+  conditionLogic: { type: "co2_required_plants", required_value: "required" },
+  messageTemplate: "{plant_name} requires CO2",
+};
+
+describe("evaluateVisualCompatibility", () => {
+  it("warns when a CO2-required plant is used in explicit low-tech mode", () => {
+    const result = evaluateVisualCompatibility({
+      tank: {
+        id: "tank-1",
+        name: "Rimless 20",
+        slug: "rimless-20",
+        widthIn: 24,
+        heightIn: 14,
+        depthIn: 12,
+        imageUrl: null,
+        priceCents: 20000,
+        offerId: "offer-1",
+        goUrl: "/go/offer-1",
+        specs: { volume_gal: 20, rimless: true },
+      },
+      assetsById: new Map([
+        [
+          "plant-1",
+          {
+            id: "plant-1",
+            type: "plant",
+            name: "Monte Carlo",
+            slug: "monte-carlo",
+            categorySlug: "plants",
+            categoryName: "Plants",
+            imageUrl: null,
+            widthIn: 3,
+            heightIn: 2,
+            depthIn: 2,
+            defaultScale: 0.7,
+            sku: null,
+            priceCents: null,
+            offerId: null,
+            goUrl: null,
+            purchaseUrl: "/plants/monte-carlo",
+            specs: null,
+            plantProfile: {
+              difficulty: "medium",
+              lightDemand: "medium",
+              co2Demand: "required",
+              growthRate: "medium",
+              placement: "foreground",
+              tempMinF: 68,
+              tempMaxF: 82,
+              phMin: 6,
+              phMax: 7.5,
+              ghMin: null,
+              ghMax: null,
+              khMin: null,
+              khMax: null,
+              maxHeightIn: 3,
+            },
+          },
+        ],
+      ]),
+      canvasItems: [
+        {
+          id: "item-1",
+          assetId: "plant-1",
+          assetType: "plant",
+          categorySlug: "plants",
+          x: 0.5,
+          y: 0.8,
+          scale: 1,
+          rotation: 0,
+          layer: 0,
+        },
+      ],
+      selectedProductByCategory: {},
+      rules: [co2Rule],
+      lowTechNoCo2: true,
+      hasShrimp: false,
+      compatibilityEnabled: true,
+    });
+
+    expect(result.evaluations.some((e) => e.ruleCode === "co2_required_plants")).toBe(true);
+  });
+
+  it("adds hardscape volume warning for excessive hardscape load", () => {
+    const result = evaluateVisualCompatibility({
+      tank: {
+        id: "tank-1",
+        name: "Rimless 20",
+        slug: "rimless-20",
+        widthIn: 24,
+        heightIn: 14,
+        depthIn: 12,
+        imageUrl: null,
+        priceCents: 20000,
+        offerId: "offer-1",
+        goUrl: "/go/offer-1",
+        specs: { volume_gal: 20, rimless: true },
+      },
+      assetsById: new Map([
+        [
+          "hardscape-1",
+          {
+            id: "hardscape-1",
+            type: "product",
+            name: "Large Seiryu Pack",
+            slug: "large-seiryu-pack",
+            categorySlug: "hardscape",
+            categoryName: "Hardscape",
+            imageUrl: null,
+            widthIn: 20,
+            heightIn: 12,
+            depthIn: 10,
+            defaultScale: 1,
+            sku: "HS-001",
+            priceCents: 10000,
+            offerId: "offer-hs",
+            goUrl: "/go/offer-hs",
+            purchaseUrl: "/go/offer-hs",
+            specs: { raises_gh: true },
+            plantProfile: null,
+          },
+        ],
+      ]),
+      canvasItems: [
+        {
+          id: "hardscape-item-1",
+          assetId: "hardscape-1",
+          assetType: "product",
+          categorySlug: "hardscape",
+          x: 0.4,
+          y: 0.7,
+          scale: 1,
+          rotation: 0,
+          layer: 0,
+        },
+        {
+          id: "hardscape-item-2",
+          assetId: "hardscape-1",
+          assetType: "product",
+          categorySlug: "hardscape",
+          x: 0.6,
+          y: 0.75,
+          scale: 1,
+          rotation: 0,
+          layer: 1,
+        },
+      ],
+      selectedProductByCategory: {},
+      rules: [],
+      lowTechNoCo2: false,
+      hasShrimp: false,
+      compatibilityEnabled: true,
+    });
+
+    expect(result.hardscapeVolumeRatio).not.toBeNull();
+    expect(result.evaluations.some((e) => e.ruleCode === "hardscape_visual_volume_cap")).toBe(true);
+  });
+});
