@@ -30,6 +30,56 @@ type BomLine = {
   type: "product" | "plant" | "tank";
 };
 
+type BuilderStepId = "tank" | "substrate" | "hardscape" | "plants" | "equipment" | "review";
+
+type StepMeta = {
+  id: BuilderStepId;
+  title: string;
+  summary: string;
+};
+
+const STEP_ORDER: BuilderStepId[] = [
+  "tank",
+  "substrate",
+  "hardscape",
+  "plants",
+  "equipment",
+  "review",
+];
+
+const STEP_META: Record<BuilderStepId, StepMeta> = {
+  tank: {
+    id: "tank",
+    title: "Choose tank",
+    summary: "Pick the physical dimensions first. Everything else is constrained around this.",
+  },
+  substrate: {
+    id: "substrate",
+    title: "Select substrate",
+    summary: "Set your substrate to guide plant/rooting and compatibility assumptions.",
+  },
+  hardscape: {
+    id: "hardscape",
+    title: "Place hardscape",
+    summary: "Arrange rocks/wood to establish layout structure and swimming lanes.",
+  },
+  plants: {
+    id: "plants",
+    title: "Add plants",
+    summary: "Layer foreground/midground/background plants and tune density.",
+  },
+  equipment: {
+    id: "equipment",
+    title: "Finish equipment",
+    summary: "Pick light/filter/CO2 and related gear to complete a workable setup.",
+  },
+  review: {
+    id: "review",
+    title: "Review and publish",
+    summary: "Check BOM, compatibility warnings, and save or share your build.",
+  },
+};
+
 const CANVAS_CATEGORIES = new Set(["hardscape", "plants"]);
 
 function formatMoney(cents: number | null | undefined): string {
@@ -70,13 +120,13 @@ function categoryLabel(slug: string): string {
 function severityClasses(sev: Severity): string {
   switch (sev) {
     case "error":
-      return "border-red-500/40 bg-red-500/10 text-red-100";
+      return "border-red-300 bg-red-50 text-red-800";
     case "warning":
-      return "border-amber-400/40 bg-amber-400/10 text-amber-100";
+      return "border-amber-300 bg-amber-50 text-amber-800";
     case "recommendation":
-      return "border-blue-400/40 bg-blue-400/10 text-blue-100";
+      return "border-sky-300 bg-sky-50 text-sky-800";
     case "completeness":
-      return "border-white/20 bg-white/5 text-neutral-200";
+      return "border-neutral-300 bg-neutral-100 text-neutral-700";
   }
 }
 
@@ -177,15 +227,29 @@ function lineUnitPrice(asset: VisualAsset | VisualTank): number {
   return asset.priceCents ?? 0;
 }
 
+function stepAllowsAsset(step: BuilderStepId, asset: VisualAsset, equipmentCategory: string): boolean {
+  if (step === "substrate") return asset.type === "product" && asset.categorySlug === "substrate";
+  if (step === "hardscape") return asset.categorySlug === "hardscape";
+  if (step === "plants") return asset.categorySlug === "plants";
+  if (step === "equipment") {
+    return (
+      asset.type === "product" &&
+      !CANVAS_CATEGORIES.has(asset.categorySlug) &&
+      asset.categorySlug !== "substrate" &&
+      asset.categorySlug !== "tank" &&
+      asset.categorySlug === equipmentCategory
+    );
+  }
+  return false;
+}
+
 export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse | null }) {
   const router = useRouter();
   const { status } = useSession();
 
   const [search, setSearch] = useState("");
-  const [libraryMode, setLibraryMode] = useState<"hardscape" | "plants" | "equipment">(
-    "hardscape",
-  );
   const [equipmentCategoryFilter, setEquipmentCategoryFilter] = useState<string>("light");
+  const [currentStep, setCurrentStep] = useState<BuilderStepId>("tank");
   const [saveState, setSaveState] = useState<{ type: "idle" | "ok" | "error"; message: string }>({
     type: "idle",
     message: "",
@@ -286,6 +350,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     for (const asset of assets ?? []) {
       if (asset.type !== "product") continue;
       if (CANVAS_CATEGORIES.has(asset.categorySlug)) continue;
+      if (asset.categorySlug === "substrate" || asset.categorySlug === "tank") continue;
       set.add(asset.categorySlug);
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b));
@@ -294,25 +359,62 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const activeEquipmentCategory =
     equipmentCategories.includes(equipmentCategoryFilter)
       ? equipmentCategoryFilter
-      : (equipmentCategories[0] ?? "");
+      : (equipmentCategories[0] ?? "light");
+
+  const hardscapeCount = useMemo(() => {
+    return canvasState.items.filter((item) => item.categorySlug === "hardscape").length;
+  }, [canvasState.items]);
+
+  const plantCount = useMemo(() => {
+    return canvasState.items.filter((item) => item.categorySlug === "plants").length;
+  }, [canvasState.items]);
+
+  const stepCompletion = useMemo(() => {
+    return {
+      tank: Boolean(selectedTank),
+      substrate: Boolean(selectedProductByCategory.substrate),
+      hardscape: hardscapeCount > 0,
+      plants: plantCount > 0,
+      equipment: Boolean(selectedProductByCategory.light) && Boolean(selectedProductByCategory.filter),
+      review: false,
+    } satisfies Record<BuilderStepId, boolean>;
+  }, [hardscapeCount, plantCount, selectedProductByCategory.filter, selectedProductByCategory.light, selectedProductByCategory.substrate, selectedTank]);
+
+  const currentStepIndex = STEP_ORDER.indexOf(currentStep);
+  const nextStep = currentStepIndex >= 0 && currentStepIndex < STEP_ORDER.length - 1
+    ? STEP_ORDER[currentStepIndex + 1]
+    : null;
+  const previousStep = currentStepIndex > 0 ? STEP_ORDER[currentStepIndex - 1] : null;
+
+  const canContinueCurrentStep =
+    currentStep === "equipment"
+      ? true
+      : currentStep === "review"
+        ? false
+        : stepCompletion[currentStep];
+
+  const canNavigateToStep = (target: BuilderStepId): boolean => {
+    const targetIndex = STEP_ORDER.indexOf(target);
+    if (targetIndex <= currentStepIndex) return true;
+    for (let i = 0; i < targetIndex; i += 1) {
+      const id = STEP_ORDER[i]!;
+      if (id === "review") continue;
+      if (!stepCompletion[id]) return false;
+    }
+    return true;
+  };
 
   const filteredAssets = useMemo(() => {
     const q = search.trim().toLowerCase();
 
     return (assets ?? []).filter((asset) => {
-      if (libraryMode === "hardscape" && asset.categorySlug !== "hardscape") return false;
-      if (libraryMode === "plants" && asset.categorySlug !== "plants") return false;
-      if (libraryMode === "equipment") {
-        if (asset.type !== "product") return false;
-        if (CANVAS_CATEGORIES.has(asset.categorySlug)) return false;
-        if (asset.categorySlug !== activeEquipmentCategory) return false;
-      }
+      if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) return false;
 
       if (!q) return true;
       const haystack = `${asset.name} ${asset.slug} ${asset.categoryName}`.toLowerCase();
       return haystack.includes(q);
     });
-  }, [activeEquipmentCategory, assets, libraryMode, search]);
+  }, [activeEquipmentCategory, assets, currentStep, search]);
 
   const bomLines = useMemo(
     () =>
@@ -431,12 +533,41 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     };
   }, []);
 
+  const handleChooseAsset = (asset: VisualAsset) => {
+    if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) {
+      setSaveState({
+        type: "error",
+        message: `Complete the current step first: ${STEP_META[currentStep].title}.`,
+      });
+      return;
+    }
+
+    if (CANVAS_CATEGORIES.has(asset.categorySlug)) {
+      addCanvasItemFromAsset(asset);
+      if (currentStep === "hardscape" && hardscapeCount === 0) setCurrentStep("plants");
+      return;
+    }
+
+    if (asset.type === "product") {
+      setSelectedProduct(asset.categorySlug, asset.id);
+      if (currentStep === "substrate") setCurrentStep("hardscape");
+    }
+  };
+
   const onDropAsset = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const assetId = event.dataTransfer.getData("text/asset-id");
     if (!assetId) return;
     const asset = assetsById.get(assetId);
     if (!asset) return;
+
+    if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) {
+      setSaveState({
+        type: "error",
+        message: `You are on \"${STEP_META[currentStep].title}\". Move to the matching step to place this item.`,
+      });
+      return;
+    }
 
     if (!CANVAS_CATEGORIES.has(asset.categorySlug)) {
       if (asset.type === "product") {
@@ -539,76 +670,95 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     }
   };
 
-  const buildLink = shareSlug ? `${typeof window !== "undefined" ? window.location.origin : ""}/builder/${shareSlug}` : null;
+  const tankDepthPanePercent = selectedTank
+    ? Math.min(20, Math.max(8, (selectedTank.depthIn / selectedTank.widthIn) * 34))
+    : 12;
+
+  const handleContinue = () => {
+    if (!nextStep) return;
+    setCurrentStep(nextStep);
+  };
+
+  const buildLink =
+    shareSlug && typeof window !== "undefined" ? `${window.location.origin}/builder/${shareSlug}` : null;
 
   return (
-    <div className="min-h-screen bg-[#0a0f13] text-white">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col px-4 pb-8 pt-4 sm:px-6 lg:px-8">
-        <header className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 backdrop-blur">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="min-w-[220px] flex-1">
-              <label className="text-[11px] uppercase tracking-[0.16em] text-white/60">Build name</label>
+    <div className="ptl-builder-bg min-h-screen pb-10">
+      <div className="mx-auto w-full max-w-[1600px] px-4 pt-5 sm:px-6 lg:px-8">
+        <header className="ptl-surface-strong p-4 sm:p-5">
+          <div className="flex flex-wrap items-start gap-4">
+            <div className="min-w-[240px] flex-1">
+              <div className="ptl-kicker">Guided visual builder</div>
+              <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl">
+                Build your tank step by step
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm text-neutral-700 sm:text-base">
+                Follow the sequence: tank, substrate, hardscape, plants, then equipment. The canvas and
+                compatibility update live as you make each choice.
+              </p>
+            </div>
+
+            <div className="min-w-[260px] flex-1">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-600">
+                Build name
+              </label>
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-white/15 bg-[#111923] px-3 py-2 text-sm text-white outline-none ring-emerald-400/0 transition focus:border-emerald-400/70 focus:ring-2"
+                className="mt-1 w-full rounded-xl border bg-white/80 px-3 py-2 text-sm outline-none focus:border-emerald-600"
+                style={{ borderColor: "var(--ptl-border)" }}
                 placeholder="Visual Build"
               />
             </div>
-            <div className="min-w-[240px] flex-[1.2]">
-              <label className="text-[11px] uppercase tracking-[0.16em] text-white/60">Description</label>
+
+            <div className="min-w-[260px] flex-1">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-600">
+                Description
+              </label>
               <input
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-white/15 bg-[#111923] px-3 py-2 text-sm text-white outline-none ring-emerald-400/0 transition focus:border-emerald-400/70 focus:ring-2"
-                placeholder="Minimal low-tech jungle with easy maintenance"
+                className="mt-1 w-full rounded-xl border bg-white/80 px-3 py-2 text-sm outline-none focus:border-emerald-600"
+                style={{ borderColor: "var(--ptl-border)" }}
+                placeholder="Low-tech jungle with easy maintenance"
               />
             </div>
-            <div className="ml-auto flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => saveBuild(false)}
-                disabled={saveMutation.isPending}
-                className="cursor-pointer rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20 disabled:cursor-wait disabled:opacity-60"
-              >
-                Save
-              </button>
-              <button
-                onClick={handleDuplicate}
-                className="cursor-pointer rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-              >
-                Duplicate
-              </button>
-              <button
-                onClick={() => saveBuild(true)}
-                disabled={saveMutation.isPending}
-                className="cursor-pointer rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-3 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/30 disabled:cursor-wait disabled:opacity-60"
-              >
-                Share
-              </button>
-              <button
-                onClick={handleExport}
-                className="cursor-pointer rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-              >
-                Export PNG
-              </button>
-              <button
-                onClick={resetAll}
-                className="cursor-pointer rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-              >
-                Reset
-              </button>
-            </div>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-white/70">
-            <span>
-              Build ID: <span className="font-mono text-white/85">{buildId ?? "draft"}</span>
-            </span>
-            <span>
-              Share: <span className="font-mono text-white/85">{shareSlug ?? "not published"}</span>
-            </span>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => saveBuild(false)}
+              disabled={saveMutation.isPending}
+              className="ptl-btn-secondary disabled:cursor-wait disabled:opacity-60"
+            >
+              Save draft
+            </button>
+            <button onClick={handleDuplicate} className="ptl-btn-secondary">
+              Duplicate
+            </button>
+            <button
+              onClick={() => saveBuild(true)}
+              disabled={saveMutation.isPending}
+              className="ptl-btn-primary disabled:cursor-wait disabled:opacity-60"
+            >
+              Share
+            </button>
+            <button onClick={handleExport} className="ptl-btn-secondary">
+              Export PNG
+            </button>
+            <button
+              onClick={() => {
+                resetAll();
+                setCurrentStep("tank");
+              }}
+              className="ptl-btn-secondary"
+            >
+              Reset
+            </button>
+
             {buildLink ? (
               <a
-                className="cursor-pointer rounded-full border border-white/20 px-2.5 py-1 text-[11px] font-semibold text-white/85 transition hover:bg-white/10"
+                className="ptl-pill"
                 href={buildLink}
                 target="_blank"
                 rel="noreferrer"
@@ -616,271 +766,412 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 Open public link
               </a>
             ) : null}
+
             {saveState.message ? (
               <span
                 className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
                   saveState.type === "ok"
-                    ? "border-emerald-400/50 bg-emerald-400/15 text-emerald-100"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                     : saveState.type === "error"
-                      ? "border-red-400/40 bg-red-400/15 text-red-100"
-                      : "border-white/20 bg-white/10 text-white/70"
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : "border-neutral-200 bg-neutral-100 text-neutral-700"
                 }`}
               >
                 {saveState.message}
               </span>
             ) : null}
           </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-600">
+            <span>
+              Build ID: <span className="font-mono text-neutral-800">{buildId ?? "draft"}</span>
+            </span>
+            <span>
+              Share: <span className="font-mono text-neutral-800">{shareSlug ?? "not published"}</span>
+            </span>
+          </div>
         </header>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)_360px]">
-          <aside className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <h2 className="text-sm font-semibold tracking-wide text-white">Tank</h2>
-            <select
-              value={selectedTank?.id ?? ""}
-              onChange={(event) => {
-                const tank = tanksById.get(event.target.value);
-                if (!tank) return;
-                setTank(tank.id, {
-                  widthIn: tank.widthIn,
-                  heightIn: tank.heightIn,
-                  depthIn: tank.depthIn,
-                });
-              }}
-              className="mt-2 w-full cursor-pointer rounded-xl border border-white/15 bg-[#111923] px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/70"
-            >
-              {(tanks ?? []).map((tank) => (
-                <option key={tank.id} value={tank.id}>
-                  {tank.name} ({tank.widthIn} in × {tank.depthIn} in × {tank.heightIn} in)
-                </option>
-              ))}
-            </select>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {([
-                ["hardscape", "Hardscape"],
-                ["plants", "Plants"],
-                ["equipment", "Equipment"],
-              ] as const).map(([mode, label]) => (
+        <section className="ptl-surface mt-4 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {STEP_ORDER.map((stepId, index) => {
+              const meta = STEP_META[stepId];
+              const active = currentStep === stepId;
+              const done = stepCompletion[stepId];
+              const blocked = !canNavigateToStep(stepId);
+              return (
                 <button
-                  key={mode}
-                  onClick={() => setLibraryMode(mode)}
-                  className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    libraryMode === mode
-                      ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
-                      : "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"
-                  }`}
+                  key={stepId}
+                  onClick={() => {
+                    if (blocked) return;
+                    setCurrentStep(stepId);
+                  }}
+                  disabled={blocked}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    active
+                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      : done
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                        : "border-neutral-300 bg-white text-neutral-700"
+                  } ${blocked ? "cursor-not-allowed opacity-45" : ""}`}
                 >
-                  {label}
+                  {index + 1}. {meta.title}
                 </button>
-              ))}
-            </div>
+              );
+            })}
+          </div>
 
-            {libraryMode === "equipment" ? (
-              <select
-                value={activeEquipmentCategory}
-                onChange={(event) => setEquipmentCategoryFilter(event.target.value)}
-                className="mt-3 w-full cursor-pointer rounded-xl border border-white/15 bg-[#111923] px-3 py-2 text-xs text-white outline-none focus:border-emerald-400/70"
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-white/70 p-3" style={{ borderColor: "var(--ptl-border)" }}>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-600">
+                Step {currentStepIndex + 1} of {STEP_ORDER.length}
+              </div>
+              <div className="mt-0.5 text-base font-semibold text-neutral-900">{STEP_META[currentStep].title}</div>
+              <div className="mt-0.5 text-sm text-neutral-700">{STEP_META[currentStep].summary}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (!previousStep) return;
+                  setCurrentStep(previousStep);
+                }}
+                disabled={!previousStep}
+                className="ptl-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {equipmentCategories.map((slug) => (
-                  <option key={slug} value={slug}>
-                    {categoryLabel(slug)}
-                  </option>
-                ))}
-              </select>
+                Back
+              </button>
+              {currentStep === "equipment" && !stepCompletion.equipment ? (
+                <button onClick={() => setCurrentStep("review")} className="ptl-btn-secondary">
+                  Skip for now
+                </button>
+              ) : null}
+              <button
+                onClick={handleContinue}
+                disabled={!nextStep || !canContinueCurrentStep}
+                className="ptl-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {currentStep === "review" ? "Ready to publish" : "Continue"}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
+          <aside className="ptl-surface p-4">
+            <h2 className="ptl-card-title text-neutral-900">{STEP_META[currentStep].title}</h2>
+            <p className="mt-1 text-sm text-neutral-700">{STEP_META[currentStep].summary}</p>
+
+            {currentStep === "tank" ? (
+              <div className="mt-3 space-y-3">
+                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-600">
+                  Rimless tank
+                </label>
+                <select
+                  value={selectedTank?.id ?? ""}
+                  onChange={(event) => {
+                    const tank = tanksById.get(event.target.value);
+                    if (!tank) return;
+                    setTank(tank.id, {
+                      widthIn: tank.widthIn,
+                      heightIn: tank.heightIn,
+                      depthIn: tank.depthIn,
+                    });
+                  }}
+                  className="w-full rounded-xl border bg-white/80 px-3 py-2 text-sm outline-none focus:border-emerald-600"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                >
+                  {(tanks ?? []).map((tank) => (
+                    <option key={tank.id} value={tank.id}>
+                      {tank.name} ({tank.widthIn} in x {tank.depthIn} in x {tank.heightIn} in)
+                    </option>
+                  ))}
+                </select>
+
+                {selectedTank ? (
+                  <div className="rounded-xl border bg-white/70 p-3 text-sm" style={{ borderColor: "var(--ptl-border)" }}>
+                    <div className="font-semibold text-neutral-900">{selectedTank.name}</div>
+                    <div className="mt-1 text-neutral-700">
+                      Dimensions: {selectedTank.widthIn} x {selectedTank.depthIn} x {selectedTank.heightIn} in
+                    </div>
+                    <div className="mt-0.5 text-neutral-700">Best price: {formatMoney(selectedTank.priceCents)}</div>
+                  </div>
+                ) : null}
+              </div>
             ) : null}
 
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search assets..."
-              className="mt-3 w-full rounded-xl border border-white/15 bg-[#111923] px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/70"
-            />
-
-            <div className="mt-3 max-h-[58vh] space-y-2 overflow-auto pr-1">
-              {filteredAssets.map((asset) => {
-                const isCanvasAsset = CANVAS_CATEGORIES.has(asset.categorySlug);
-                const selectedProductId = selectedProductByCategory[asset.categorySlug] ?? null;
-                const isSelectedEquipment = !isCanvasAsset && selectedProductId === asset.id;
-
-                return (
-                  <div
-                    key={`${asset.type}:${asset.id}:${asset.categorySlug}`}
-                    draggable
-                    onDragStart={(event) => {
-                      event.dataTransfer.setData("text/asset-id", asset.id);
-                      event.dataTransfer.effectAllowed = "copy";
-                    }}
-                    className="rounded-xl border border-white/10 bg-[#101820] p-2"
-                  >
-                    <div className="flex items-start gap-2">
-                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-[#0b1116]">
-                        {asset.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={asset.imageUrl}
-                            alt={asset.name}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                            draggable={false}
-                          />
-                        ) : (
-                          <div className="text-[10px] text-white/40">No image</div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-xs font-semibold text-white">{asset.name}</div>
-                        <div className="mt-0.5 text-[11px] text-white/60">{asset.categoryName}</div>
-                        <div className="mt-0.5 text-[11px] text-white/70">
-                          {asset.widthIn.toFixed(1)} in × {asset.depthIn.toFixed(1)} in ×{" "}
-                          {asset.heightIn.toFixed(1)} in
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-white/70">{formatMoney(asset.priceCents)}</div>
-                      </div>
-                    </div>
-
-                    <div className="mt-2 flex gap-2">
-                      {isCanvasAsset ? (
-                        <button
-                          onClick={() => addCanvasItemFromAsset(asset)}
-                          className="cursor-pointer rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-2 py-1 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/30"
-                        >
-                          Add to canvas
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setSelectedProduct(asset.categorySlug, asset.id)}
-                          className={`cursor-pointer rounded-lg border px-2 py-1 text-[11px] font-semibold transition ${
-                            isSelectedEquipment
-                              ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
-                              : "border-white/15 bg-white/10 text-white/80 hover:bg-white/20"
-                          }`}
-                        >
-                          {isSelectedEquipment ? "Selected" : "Select"}
-                        </button>
-                      )}
-                      {asset.purchaseUrl ? (
-                        <a
-                          href={asset.purchaseUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="cursor-pointer rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/20"
-                        >
-                          View
-                        </a>
-                      ) : null}
-                    </div>
+            {["substrate", "hardscape", "plants", "equipment"].includes(currentStep) ? (
+              <div className="mt-3 space-y-3">
+                {currentStep === "equipment" ? (
+                  <div className="flex flex-wrap gap-2">
+                    {equipmentCategories.map((slug) => (
+                      <button
+                        key={slug}
+                        onClick={() => setEquipmentCategoryFilter(slug)}
+                        className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                          activeEquipmentCategory === slug
+                            ? "border-emerald-500 bg-emerald-500 text-white"
+                            : "border-neutral-300 bg-white text-neutral-700"
+                        }`}
+                      >
+                        {categoryLabel(slug)}
+                      </button>
+                    ))}
                   </div>
-                );
-              })}
+                ) : null}
 
-              {filteredAssets.length === 0 ? (
-                <div className="rounded-xl border border-white/10 bg-[#101820] p-3 text-xs text-white/60">
-                  No assets match this filter.
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search assets..."
+                  className="w-full rounded-xl border bg-white/80 px-3 py-2 text-sm outline-none focus:border-emerald-600"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                />
+
+                <div className="max-h-[56vh] space-y-2 overflow-auto pr-1">
+                  {filteredAssets.map((asset) => {
+                    const selectedProductId = selectedProductByCategory[asset.categorySlug] ?? null;
+                    const isSelectedEquipment =
+                      asset.type === "product" && !CANVAS_CATEGORIES.has(asset.categorySlug) && selectedProductId === asset.id;
+
+                    return (
+                      <div
+                        key={`${asset.type}:${asset.id}:${asset.categorySlug}`}
+                        draggable
+                        onDragStart={(event) => {
+                          event.dataTransfer.setData("text/asset-id", asset.id);
+                          event.dataTransfer.effectAllowed = "copy";
+                        }}
+                        className="rounded-xl border bg-white/80 p-2"
+                        style={{ borderColor: "var(--ptl-border)" }}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border bg-white" style={{ borderColor: "var(--ptl-border)" }}>
+                            {asset.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={asset.imageUrl}
+                                alt={asset.name}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                                draggable={false}
+                              />
+                            ) : (
+                              <div className="text-[10px] text-neutral-500">No image</div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-xs font-semibold text-neutral-900">{asset.name}</div>
+                            <div className="mt-0.5 text-[11px] text-neutral-600">{asset.categoryName}</div>
+                            <div className="mt-0.5 text-[11px] text-neutral-600">
+                              {asset.widthIn.toFixed(1)} in x {asset.depthIn.toFixed(1)} in x {asset.heightIn.toFixed(1)} in
+                            </div>
+                            <div className="mt-0.5 text-[11px] text-neutral-700">{formatMoney(asset.priceCents)}</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            onClick={() => handleChooseAsset(asset)}
+                            className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+                              isSelectedEquipment
+                                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                : "border-emerald-600 bg-emerald-600 text-white"
+                            }`}
+                            style={isSelectedEquipment ? undefined : { borderColor: "#157f5a" }}
+                          >
+                            {CANVAS_CATEGORIES.has(asset.categorySlug)
+                              ? "Add to canvas"
+                              : isSelectedEquipment
+                                ? "Selected"
+                                : "Select"}
+                          </button>
+
+                          {asset.purchaseUrl ? (
+                            <a
+                              href={asset.purchaseUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-lg border bg-white px-2 py-1 text-[11px] font-semibold text-neutral-700"
+                              style={{ borderColor: "var(--ptl-border)" }}
+                            >
+                              View
+                            </a>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {filteredAssets.length === 0 ? (
+                    <div className="rounded-xl border bg-white/70 p-3 text-xs text-neutral-600" style={{ borderColor: "var(--ptl-border)" }}>
+                      No assets match this step/filter yet.
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
+
+                {currentStep === "hardscape" ? (
+                  <div className="rounded-xl border bg-white/70 p-2 text-xs text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
+                    Hardscape placed: <span className="font-semibold">{hardscapeCount}</span>
+                  </div>
+                ) : null}
+
+                {currentStep === "plants" ? (
+                  <div className="rounded-xl border bg-white/70 p-2 text-xs text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
+                    Plants placed: <span className="font-semibold">{plantCount}</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {currentStep === "review" ? (
+              <div className="mt-3 space-y-2 rounded-xl border bg-white/70 p-3 text-sm text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
+                <div>
+                  <span className="font-semibold text-neutral-900">Tank:</span> {selectedTank?.name ?? "None"}
+                </div>
+                <div>
+                  <span className="font-semibold text-neutral-900">Substrate:</span>{" "}
+                  {selectedProductByCategory.substrate ? "Selected" : "Not selected"}
+                </div>
+                <div>
+                  <span className="font-semibold text-neutral-900">Hardscape items:</span> {hardscapeCount}
+                </div>
+                <div>
+                  <span className="font-semibold text-neutral-900">Plant items:</span> {plantCount}
+                </div>
+                <div>
+                  <span className="font-semibold text-neutral-900">Estimated total:</span> {formatMoney(totalCents)}
+                </div>
+              </div>
+            ) : null}
           </aside>
 
-          <section className="rounded-2xl border border-white/10 bg-[#0b1116] p-3">
+          <section className="ptl-surface p-3 sm:p-4">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-2">
               <div>
-                <h2 className="text-sm font-semibold text-white">Visual Canvas</h2>
-                <p className="text-xs text-white/60">
-                  Drag assets into the tank, then drag items directly to place and refine composition.
+                <h2 className="text-base font-semibold text-neutral-900">Visual canvas</h2>
+                <p className="text-xs text-neutral-600">
+                  Drag items into the glass tank. Layout scales to real tank dimensions.
                 </p>
               </div>
               {selectedTank ? (
-                <div className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70">
-                  {selectedTank.widthIn} in × {selectedTank.depthIn} in × {selectedTank.heightIn} in
+                <div className="rounded-full border bg-white px-3 py-1 text-xs text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
+                  {selectedTank.widthIn} x {selectedTank.depthIn} x {selectedTank.heightIn} in
                 </div>
               ) : null}
             </div>
 
             <div
-              ref={canvasRef}
-              onDragOver={(event) => {
-                event.preventDefault();
-                event.dataTransfer.dropEffect = "copy";
-              }}
-              onDrop={onDropAsset}
-              className="relative mx-auto w-full max-w-[980px] overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-b from-[#0d1723] via-[#0b141d] to-[#0a1117]"
+              className="mx-auto w-full max-w-[1020px] rounded-[28px] border p-2 sm:p-3"
               style={{
-                aspectRatio: selectedTank
-                  ? `${selectedTank.widthIn} / ${selectedTank.heightIn}`
-                  : `${canvasState.widthIn} / ${canvasState.heightIn}`,
+                borderColor: "rgba(84, 108, 113, 0.45)",
+                background:
+                  "linear-gradient(180deg, rgba(240,248,252,0.95), rgba(226,239,243,0.92))",
+                boxShadow:
+                  "inset 0 1px 0 rgba(255,255,255,0.9), 0 16px 32px rgba(13,33,34,0.16)",
               }}
             >
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-[22%] bg-gradient-to-b from-emerald-300/15 to-transparent" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[26%] bg-gradient-to-t from-[#1a2830]/75 to-transparent" />
+              <div
+                ref={canvasRef}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "copy";
+                }}
+                onDrop={onDropAsset}
+                className="relative w-full overflow-hidden rounded-[18px] border"
+                style={{
+                  borderColor: "rgba(109, 140, 149, 0.85)",
+                  background:
+                    "linear-gradient(180deg, rgba(214,240,252,0.9) 0%, rgba(191,226,241,0.88) 55%, rgba(178,218,234,0.9) 100%)",
+                  aspectRatio: selectedTank
+                    ? `${selectedTank.widthIn} / ${selectedTank.heightIn}`
+                    : `${canvasState.widthIn} / ${canvasState.heightIn}`,
+                }}
+              >
+                <div className="pointer-events-none absolute inset-0 opacity-18" style={{ backgroundImage: "url('/images/builder-hero-960.jpg')", backgroundSize: "cover", backgroundPosition: "center" }} />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[16%] bg-gradient-to-b from-white/70 to-transparent" />
+                <div className="pointer-events-none absolute inset-x-0 top-[14%] h-px bg-white/90" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[20%] bg-gradient-to-t from-[#d7c6a2]/95 via-[#cdb790]/65 to-transparent" />
+                <div
+                  className="pointer-events-none absolute inset-y-[9%] right-0 border-l"
+                  style={{
+                    width: `${tankDepthPanePercent}%`,
+                    borderColor: "rgba(255,255,255,0.55)",
+                    background:
+                      "linear-gradient(270deg, rgba(132,176,191,0.35), rgba(132,176,191,0.08))",
+                  }}
+                />
 
-              {canvasState.items
-                .slice()
-                .sort((a, b) => a.layer - b.layer)
-                .map((item) => {
-                  const asset = assetsById.get(item.assetId);
-                  if (!asset) return null;
+                {canvasState.items
+                  .slice()
+                  .sort((a, b) => a.layer - b.layer)
+                  .map((item) => {
+                    const asset = assetsById.get(item.assetId);
+                    if (!asset) return null;
 
-                  const tankWidth = selectedTank?.widthIn ?? canvasState.widthIn;
-                  const tankHeight = selectedTank?.heightIn ?? canvasState.heightIn;
-                  const widthPct = ((asset.widthIn / tankWidth) * 100) * item.scale;
-                  const heightPct = ((asset.heightIn / tankHeight) * 100) * item.scale;
+                    const tankWidth = selectedTank?.widthIn ?? canvasState.widthIn;
+                    const tankHeight = selectedTank?.heightIn ?? canvasState.heightIn;
+                    const widthPct = ((asset.widthIn / tankWidth) * 100) * item.scale;
+                    const heightPct = ((asset.heightIn / tankHeight) * 100) * item.scale;
 
-                  return (
-                    <div
-                      key={item.id}
-                      className={`absolute select-none ${selectedItemId === item.id ? "z-30" : "z-10"}`}
-                      style={{
-                        left: `${item.x * 100}%`,
-                        top: `${item.y * 100}%`,
-                        width: `${Math.max(widthPct, 1.8)}%`,
-                        height: `${Math.max(heightPct, 1.8)}%`,
-                        transform: `translate(-50%, -50%) rotate(${item.rotation}deg)`,
-                        transformOrigin: "center center",
-                      }}
-                      onPointerDown={(event) => onPointerDownCanvasItem(item.id, event)}
-                      onPointerMove={onPointerMoveCanvasItem}
-                      onPointerUp={endDrag}
-                      onPointerCancel={endDrag}
-                    >
+                    return (
                       <div
-                        className={`relative h-full w-full rounded-md border transition ${
-                          selectedItemId === item.id
-                            ? "border-emerald-300/80 shadow-[0_0_0_1px_rgba(16,185,129,0.5)]"
-                            : "border-white/10"
-                        }`}
+                        key={item.id}
+                        className={`absolute select-none ${selectedItemId === item.id ? "z-30" : "z-10"}`}
+                        style={{
+                          left: `${item.x * 100}%`,
+                          top: `${item.y * 100}%`,
+                          width: `${Math.max(widthPct, 1.8)}%`,
+                          height: `${Math.max(heightPct, 1.8)}%`,
+                          transform: `translate(-50%, -50%) rotate(${item.rotation}deg)`,
+                          transformOrigin: "center center",
+                        }}
+                        onPointerDown={(event) => onPointerDownCanvasItem(item.id, event)}
+                        onPointerMove={onPointerMoveCanvasItem}
+                        onPointerUp={endDrag}
+                        onPointerCancel={endDrag}
                       >
-                        {asset.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={asset.imageUrl}
-                            alt={asset.name}
-                            draggable={false}
-                            className="h-full w-full object-contain"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[10px] text-white/45">
-                            {asset.name}
-                          </div>
-                        )}
+                        <div
+                          className={`relative h-full w-full rounded-md border transition ${
+                            selectedItemId === item.id
+                              ? "border-emerald-500 shadow-[0_0_0_1px_rgba(16,185,129,0.45)]"
+                              : "border-black/10"
+                          }`}
+                        >
+                          {asset.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={asset.imageUrl}
+                              alt={asset.name}
+                              draggable={false}
+                              className="h-full w-full object-contain"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] text-neutral-600">
+                              {asset.name}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+              </div>
+
+              <div className="mx-auto mt-2 h-3 w-[96%] rounded-b-2xl bg-[#6c7d85]/45" />
             </div>
 
-            <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="mt-3 rounded-xl border bg-white/70 p-3" style={{ borderColor: "var(--ptl-border)" }}>
               {selectedItem && selectedAsset ? (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px_220px_auto] md:items-center">
                   <div>
-                    <div className="text-xs uppercase tracking-[0.14em] text-white/50">Selected item</div>
-                    <div className="text-sm font-semibold text-white">{selectedAsset.name}</div>
-                    <div className="text-xs text-white/60">
+                    <div className="text-xs uppercase tracking-[0.14em] text-neutral-600">Selected item</div>
+                    <div className="text-sm font-semibold text-neutral-900">{selectedAsset.name}</div>
+                    <div className="text-xs text-neutral-600">
                       {selectedAsset.categoryName} · layer {selectedItem.layer + 1}
                     </div>
                   </div>
 
-                  <label className="text-xs text-white/70">
+                  <label className="text-xs text-neutral-700">
                     Scale
                     <input
                       type="range"
@@ -891,11 +1182,11 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                       onChange={(event) =>
                         updateCanvasItem(selectedItem.id, { scale: Number(event.target.value) })
                       }
-                      className="mt-1 w-full cursor-pointer"
+                      className="mt-1 w-full"
                     />
                   </label>
 
-                  <label className="text-xs text-white/70">
+                  <label className="text-xs text-neutral-700">
                     Rotation
                     <input
                       type="range"
@@ -908,48 +1199,48 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                           rotation: Number(event.target.value),
                         })
                       }
-                      className="mt-1 w-full cursor-pointer"
+                      className="mt-1 w-full"
                     />
                   </label>
 
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => moveCanvasItemLayer(selectedItem.id, "up")}
-                      className="cursor-pointer rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/20"
+                      className="ptl-btn-secondary !px-2 !py-1 !text-[11px]"
                     >
                       Layer +
                     </button>
                     <button
                       onClick={() => moveCanvasItemLayer(selectedItem.id, "down")}
-                      className="cursor-pointer rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/20"
+                      className="ptl-btn-secondary !px-2 !py-1 !text-[11px]"
                     >
                       Layer -
                     </button>
                     <button
                       onClick={() => duplicateCanvasItem(selectedItem.id)}
-                      className="cursor-pointer rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/20"
+                      className="ptl-btn-secondary !px-2 !py-1 !text-[11px]"
                     >
                       Duplicate
                     </button>
                     <button
                       onClick={() => removeCanvasItem(selectedItem.id)}
-                      className="cursor-pointer rounded-lg border border-red-400/40 bg-red-500/20 px-2 py-1 text-[11px] font-semibold text-red-100 hover:bg-red-500/30"
+                      className="rounded-lg border border-red-300 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700"
                     >
                       Delete
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="text-xs text-white/60">
+                <div className="text-xs text-neutral-600">
                   Select an object on the canvas to adjust scale, rotation, layering, duplicate, or delete.
                 </div>
               )}
             </div>
           </section>
 
-          <aside className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <h2 className="text-sm font-semibold text-white">Bill of Materials</h2>
-            <div className="mt-1 text-xs text-white/60">
+          <aside className="ptl-surface p-4">
+            <h2 className="text-sm font-semibold text-neutral-900">Bill of Materials</h2>
+            <div className="mt-1 text-xs text-neutral-600">
               Live pricing is best-effort from current in-stock offers.
             </div>
 
@@ -958,35 +1249,35 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 const canBuy = line.asset.goUrl || line.asset.purchaseUrl;
                 const buyUrl = line.asset.goUrl ?? line.asset.purchaseUrl ?? null;
                 return (
-                  <div key={line.key} className="rounded-xl border border-white/10 bg-[#111923] p-2.5">
+                  <div key={line.key} className="rounded-xl border bg-white/80 p-2.5" style={{ borderColor: "var(--ptl-border)" }}>
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="text-[11px] uppercase tracking-[0.14em] text-white/50">
+                        <div className="text-[11px] uppercase tracking-[0.14em] text-neutral-600">
                           {line.categoryName}
                         </div>
-                        <div className="text-sm font-semibold text-white">{line.asset.name}</div>
-                        <div className="text-xs text-white/60">
+                        <div className="text-sm font-semibold text-neutral-900">{line.asset.name}</div>
+                        <div className="text-xs text-neutral-600">
                           Qty {line.quantity} · Unit {formatMoney(line.asset.priceCents)}
                         </div>
                       </div>
-                      <div className="text-sm font-semibold text-white">
+                      <div className="text-sm font-semibold text-neutral-900">
                         {formatMoney((line.asset.priceCents ?? 0) * line.quantity)}
                       </div>
                     </div>
 
                     <div className="mt-2 flex items-center justify-between">
-                      <div className="text-[11px] text-white/55">SKU {line.asset.sku ?? "n/a"}</div>
+                      <div className="text-[11px] text-neutral-500">SKU {line.asset.sku ?? "n/a"}</div>
                       {canBuy && buyUrl ? (
                         <a
                           href={buyUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="cursor-pointer rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-2 py-1 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/30"
+                          className="rounded-lg border border-emerald-600 bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white"
                         >
                           Buy
                         </a>
                       ) : (
-                        <span className="rounded-lg border border-white/15 bg-white/10 px-2 py-1 text-[11px] font-semibold text-white/65">
+                        <span className="rounded-lg border border-neutral-200 bg-neutral-100 px-2 py-1 text-[11px] font-semibold text-neutral-600">
                           No offer
                         </span>
                       )}
@@ -996,52 +1287,49 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               })}
 
               {bomLines.length === 0 ? (
-                <div className="rounded-xl border border-white/10 bg-[#111923] p-3 text-xs text-white/60">
+                <div className="rounded-xl border bg-white/70 p-3 text-xs text-neutral-600" style={{ borderColor: "var(--ptl-border)" }}>
                   Add assets to begin building your bill of materials.
                 </div>
               ) : null}
             </div>
 
-            <div className="mt-4 rounded-xl border border-white/10 bg-[#111923] p-3">
+            <div className="mt-4 rounded-xl border bg-white/80 p-3" style={{ borderColor: "var(--ptl-border)" }}>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-white/70">Estimated total</span>
-                <span className="font-semibold text-white">{formatMoney(totalCents)}</span>
+                <span className="text-neutral-700">Estimated total</span>
+                <span className="font-semibold text-neutral-900">{formatMoney(totalCents)}</span>
               </div>
-              <div className="mt-1 text-xs text-white/55">
+              <div className="mt-1 text-xs text-neutral-600">
                 {bomLines.length} line item(s), {canvasState.items.length} canvas object(s)
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-white/10 bg-[#111923] p-3">
+            <div className="mt-4 rounded-xl border bg-white/80 p-3" style={{ borderColor: "var(--ptl-border)" }}>
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">Compatibility</h3>
-                <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+                <h3 className="text-sm font-semibold text-neutral-900">Compatibility</h3>
+                <label className="flex items-center gap-2 text-xs text-neutral-700">
                   <input
                     type="checkbox"
                     checked={compatibilityEnabled}
                     onChange={(event) => setCompatibilityEnabled(event.target.checked)}
-                    className="cursor-pointer"
                   />
                   Enabled
                 </label>
               </div>
 
               <div className="mb-2 grid grid-cols-2 gap-2 text-xs">
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-white/75">
+                <label className="flex items-center gap-2 rounded-lg border bg-white px-2 py-1.5 text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
                   <input
                     type="checkbox"
                     checked={flags.lowTechNoCo2}
                     onChange={(event) => setLowTechNoCo2(event.target.checked)}
-                    className="cursor-pointer"
                   />
                   Low-tech
                 </label>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-white/75">
+                <label className="flex items-center gap-2 rounded-lg border bg-white px-2 py-1.5 text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
                   <input
                     type="checkbox"
                     checked={flags.hasShrimp}
                     onChange={(event) => setHasShrimp(event.target.checked)}
-                    className="cursor-pointer"
                   />
                   Shrimp tank
                 </label>
@@ -1066,13 +1354,13 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 ))}
 
                 {compatibility.evaluations.length === 0 ? (
-                  <div className="rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-2 text-xs text-emerald-100">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-800">
                     No compatibility issues detected.
                   </div>
                 ) : null}
 
                 {compatibility.hardscapeVolumeRatio != null ? (
-                  <div className="text-[11px] text-white/55">
+                  <div className="text-[11px] text-neutral-600">
                     Hardscape volume estimate: {(compatibility.hardscapeVolumeRatio * 100).toFixed(1)}%
                   </div>
                 ) : null}

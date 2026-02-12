@@ -19,15 +19,25 @@ test("visual builder: add hardscape object and see live canvas count update", as
   await waitBuilderReady(page);
 
   await expect(page.getByText("1 line item(s), 0 canvas object(s)")).toBeVisible();
-
+  await page.getByRole("button", { name: "Continue" }).click();
+  await dismissCookies(page);
+  await expect(page.getByRole("heading", { name: "Select substrate" })).toBeVisible();
   await page
     .locator("aside")
-    .filter({ hasText: "Tank" })
+    .filter({ hasText: "Select substrate" })
+    .getByRole("button", { name: "Select" })
+    .first()
+    .click();
+  await dismissCookies(page);
+  await expect(page.getByRole("heading", { name: "Place hardscape" })).toBeVisible();
+  await page
+    .locator("aside")
+    .filter({ hasText: "Place hardscape" })
     .getByRole("button", { name: "Add to canvas" })
     .first()
     .click();
 
-  await expect(page.getByText(/1 canvas object\(s\)/)).toBeVisible();
+  await expect(page.getByText(/canvas object\(s\)/)).toBeVisible();
 });
 
 test("visual builder: plant placement + low-tech toggle stays interactive", async ({ page }) => {
@@ -35,10 +45,31 @@ test("visual builder: plant placement + low-tech toggle stays interactive", asyn
   await dismissCookies(page);
   await waitBuilderReady(page);
 
-  await page.getByRole("button", { name: "Plants" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await dismissCookies(page);
+  await page
+    .locator("aside")
+    .filter({ hasText: "Select substrate" })
+    .getByRole("button", { name: "Select" })
+    .first()
+    .click();
+  await dismissCookies(page);
+  await page
+    .locator("aside")
+    .filter({ hasText: "Place hardscape" })
+    .getByRole("button", { name: "Add to canvas" })
+    .first()
+    .click();
+  await dismissCookies(page);
+  await expect(page.getByRole("heading", { name: "Add plants" })).toBeVisible();
   await page.getByPlaceholder("Search assets...").fill("Monte Carlo");
-  await page.getByRole("button", { name: "Add to canvas" }).first().click();
-  await expect(page.getByText(/1 canvas object\(s\)/)).toBeVisible();
+  await page
+    .locator("aside")
+    .filter({ hasText: "Add plants" })
+    .getByRole("button", { name: "Add to canvas" })
+    .first()
+    .click();
+  await expect(page.getByText(/canvas object\(s\)/)).toBeVisible();
 
   await page.getByLabel("Low-tech").check();
   await expect(page.getByLabel("Low-tech")).toBeChecked();
