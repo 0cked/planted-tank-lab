@@ -48,6 +48,11 @@ pnpm dev
 - `pnpm ingest daemon` long-running ingestion worker (for Fly worker process)
 - `pnpm ingest schedule --loop` long-running scheduler (enqueues periodic ingestion jobs)
 
+### Homepage Water FX V2
+
+- Feature flag: `HERO_WATER_FX_V2=true` (or `1`) enables the WebGL hero water interaction by default.
+- Preview override: open `/?fx=water-v2` to force-enable, or `/?fx=off` to force-disable for QA.
+
 ## Deployment (Fly.io)
 
 This project is designed to run as long-lived services (web + workers) on Fly.io.
