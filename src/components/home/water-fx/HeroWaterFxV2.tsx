@@ -557,6 +557,9 @@ export function HeroWaterFxV2({ enabled }: HeroWaterFxV2Props) {
     let raf = 0;
     let running = true;
     let lastTime = performance.now();
+    let idlePulseTimer = 0;
+    let lastInteractionAt = performance.now();
+    let idlePhase = Math.random() * Math.PI * 2;
     let textDx = 0;
     let textDy = 0;
     let textVx = 0;
@@ -779,6 +782,7 @@ export function HeroWaterFxV2({ enabled }: HeroWaterFxV2Props) {
       if (speed < 0.6) return;
 
       lastPointer = { x, y };
+      lastInteractionAt = performance.now();
 
       const nx = x / Math.max(1, rect.width);
       const ny = y / Math.max(1, rect.height);
@@ -812,6 +816,26 @@ export function HeroWaterFxV2({ enabled }: HeroWaterFxV2Props) {
       const rect = root.getBoundingClientRect();
       const width = Math.max(1, Math.floor(rect.width));
       const height = Math.max(1, Math.floor(rect.height));
+
+      // Keep a subtle baseline current so the hero feels alive on first paint.
+      // This intentionally stays gentle and pauses during active interaction.
+      idlePulseTimer += dt;
+      if (time - lastInteractionAt > 1200 && idlePulseTimer > 0.95) {
+        idlePulseTimer = 0;
+        idlePhase += 0.38;
+        const nx = clamp(0.32 + Math.sin(idlePhase) * 0.06, 0.2, 0.46);
+        const ny = clamp(0.34 + Math.cos(idlePhase * 0.9) * 0.05, 0.22, 0.48);
+        const fx = Math.cos(idlePhase * 1.4) * 6.5;
+        const fy = Math.sin(idlePhase * 1.2) * 5.2;
+        field.inject(nx, ny, fx * 0.012, fy * 0.012, quality.splatRadius * 1.1);
+        pendingSplats.push({
+          x: nx,
+          y: ny,
+          fx,
+          fy,
+          strength: 7.5,
+        });
+      }
 
       field.step(dt);
       stepFluid(dt);
