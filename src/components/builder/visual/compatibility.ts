@@ -84,7 +84,7 @@ function calculateHardscapeRatio(params: {
   // Approximation: hardscape shapes are irregular and do not fully occupy bounding boxes.
   // 0.55 coefficient keeps ratio warnings practical for real layouts.
   const hardscapeVolumeCubicIn = params.canvasItems
-    .filter((item) => item.assetType === "product" && item.categorySlug === "hardscape")
+    .filter((item) => item.categorySlug === "hardscape")
     .reduce((sum, item) => {
       const asset = params.assetsById.get(item.assetId);
       if (!asset) return sum;
@@ -130,7 +130,7 @@ export function evaluateVisualCompatibility(input: CompatibilityInput): Compatib
   // For compatibility checks that involve hardscape properties, use the most frequent hardscape asset.
   const hardscapeCounts = new Map<string, number>();
   for (const item of input.canvasItems) {
-    if (item.assetType !== "product" || item.categorySlug !== "hardscape") continue;
+    if (item.categorySlug !== "hardscape") continue;
     hardscapeCounts.set(item.assetId, (hardscapeCounts.get(item.assetId) ?? 0) + 1);
   }
   let dominantHardscapeId: string | null = null;
@@ -143,13 +143,17 @@ export function evaluateVisualCompatibility(input: CompatibilityInput): Compatib
   }
   if (dominantHardscapeId) {
     const hardscape = input.assetsById.get(dominantHardscapeId);
-    if (hardscape && hardscape.type === "product") {
+    if (hardscape) {
       productsByCategory.hardscape = toProductSnapshot(
         "hardscape",
         hardscape.id,
         hardscape.name,
         hardscape.slug,
-        hardscape.specs,
+        {
+          ...(hardscape.specs ?? {}),
+          material_type: hardscape.materialType ?? null,
+          source_mode: hardscape.sourceMode,
+        },
       );
     }
   }

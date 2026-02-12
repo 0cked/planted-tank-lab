@@ -37,16 +37,24 @@ describe("tRPC visualBuilder router", () => {
     const catalog = await anon.visualBuilder.catalog();
     const tank = catalog.tanks[0];
     expect(tank?.id).toBeTruthy();
+    expect(catalog.assets.some((asset) => asset.sourceMode === "design_archetype")).toBe(true);
 
     const saved = await anon.visualBuilder.save({
       name: "Visual Builder Public Test",
       description: "Public round-trip test",
       tankId: tank!.id,
       canvasState: {
-        version: 1,
+        version: 2,
         widthIn: tank!.widthIn,
         heightIn: tank!.heightIn,
         depthIn: tank!.depthIn,
+        substrateProfile: {
+          leftDepthIn: 1.5,
+          centerDepthIn: 2.3,
+          rightDepthIn: 1.8,
+          moundHeightIn: 0.8,
+          moundPosition: 0.54,
+        },
         items: [],
       },
       lineItems: [],
@@ -62,7 +70,36 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.build.id).toBe(saved.buildId);
     expect(loaded.build.isPublic).toBe(true);
     expect(loaded.initialState.tankId).toBe(tank!.id);
-    expect(loaded.initialState.canvasState.version).toBe(1);
+    expect(loaded.initialState.canvasState.version).toBe(2);
+
+    await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
+    await db.delete(builds).where(eq(builds.id, saved.buildId));
+  }, 20_000);
+
+  it("normalizes legacy v1 canvas payloads to v2 on read", async () => {
+    const anon = await getAnonCaller();
+    const catalog = await anon.visualBuilder.catalog();
+    const tank = catalog.tanks[0];
+    expect(tank?.id).toBeTruthy();
+
+    const saved = await anon.visualBuilder.save({
+      name: "Visual Builder Legacy Canvas Test",
+      tankId: tank!.id,
+      canvasState: {
+        version: 1,
+        widthIn: tank!.widthIn,
+        heightIn: tank!.heightIn,
+        depthIn: tank!.depthIn,
+        items: [],
+      },
+      lineItems: [],
+      isPublic: true,
+      flags: {},
+    });
+
+    const loaded = await anon.visualBuilder.getByShareSlug({ shareSlug: saved.shareSlug });
+    expect(loaded.initialState.canvasState.version).toBe(2);
+    expect(loaded.initialState.canvasState.substrateProfile.centerDepthIn).toBeGreaterThan(0.2);
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));
@@ -88,10 +125,17 @@ describe("tRPC visualBuilder router", () => {
       description: "Private access-control test",
       tankId: tank!.id,
       canvasState: {
-        version: 1,
+        version: 2,
         widthIn: tank!.widthIn,
         heightIn: tank!.heightIn,
         depthIn: tank!.depthIn,
+        substrateProfile: {
+          leftDepthIn: 1.2,
+          centerDepthIn: 2,
+          rightDepthIn: 1.6,
+          moundHeightIn: 0.4,
+          moundPosition: 0.5,
+        },
         items: [],
       },
       lineItems: [],

@@ -4,6 +4,7 @@ PlantedTankLab is “PCPartPicker for planted aquariums.” Build a planted tank
 
 - **Single source of truth (status + next work):** `PLANS.md`
 - **Agent operating contract:** `AGENTS.md`
+- **Visual Builder asset pack spec:** `docs/visual-asset-pack-spec.md`
 - **Historical planning archives:** `archive/planning/` (non-authoritative)
 
 If anything conflicts with chat history or older docs, `PLANS.md` wins.

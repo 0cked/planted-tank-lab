@@ -74,7 +74,7 @@ Data model expectations:
 
 ## 7) UX + Engineering Quality Bar
 
-- Premium, minimal, dark-first visual style for Visual Builder.
+- Premium, minimal, light-first visual style for Visual Builder with aquascape tone.
 - Clear information hierarchy and obvious next actions.
 - Mobile-responsive layout.
 - No console errors.

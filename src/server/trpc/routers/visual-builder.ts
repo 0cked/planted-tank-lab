@@ -15,6 +15,11 @@ import {
 } from "@/server/db/schema";
 import type * as fullSchema from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/server/trpc/trpc";
+import { getDesignLibraryAssets } from "@/server/visual/design-asset-library";
+import {
+  DEFAULT_SUBSTRATE_PROFILE,
+  normalizeSubstrateProfile,
+} from "@/lib/visual/substrate";
 
 type ProductRow = {
   id: string;
@@ -43,7 +48,7 @@ type OfferRow = {
 type VisualCanvasItem = {
   id: string;
   assetId: string;
-  assetType: "product" | "plant";
+  assetType: "product" | "plant" | "design";
   categorySlug: string;
   x: number;
   y: number;
@@ -57,7 +62,7 @@ const ACTIVE_STATUS = "active" as const;
 const canvasItemSchema = z.object({
   id: z.string().min(1).max(200),
   assetId: z.string().uuid(),
-  assetType: z.enum(["product", "plant"]),
+  assetType: z.enum(["product", "plant", "design"]),
   categorySlug: z.string().min(1).max(80),
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
@@ -66,13 +71,49 @@ const canvasItemSchema = z.object({
   layer: z.number().int().min(0).max(5000),
 });
 
-const canvasStateSchema = z.object({
+const substrateProfileSchema = z.object({
+  leftDepthIn: z.number().min(0.2).max(200),
+  centerDepthIn: z.number().min(0.2).max(200),
+  rightDepthIn: z.number().min(0.2).max(200),
+  moundHeightIn: z.number().min(0).max(200),
+  moundPosition: z.number().min(0.2).max(0.8),
+});
+
+const canvasStateV2Schema = z.object({
+  version: z.literal(2),
+  widthIn: z.number().positive(),
+  heightIn: z.number().positive(),
+  depthIn: z.number().positive(),
+  substrateProfile: substrateProfileSchema,
+  items: z.array(canvasItemSchema).max(500),
+});
+
+const canvasStateV1Schema = z.object({
   version: z.literal(1),
   widthIn: z.number().positive(),
   heightIn: z.number().positive(),
   depthIn: z.number().positive(),
   items: z.array(canvasItemSchema).max(500),
 });
+
+const canvasStateSchema = z
+  .union([canvasStateV2Schema, canvasStateV1Schema])
+  .transform((input) => {
+    if (input.version === 2) {
+      return {
+        ...input,
+        substrateProfile: normalizeSubstrateProfile(input.substrateProfile, input.heightIn),
+      };
+    }
+    return {
+      version: 2 as const,
+      widthIn: input.widthIn,
+      heightIn: input.heightIn,
+      depthIn: input.depthIn,
+      items: input.items,
+      substrateProfile: normalizeSubstrateProfile(DEFAULT_SUBSTRATE_PROFILE, input.heightIn),
+    };
+  });
 
 const lineItemSchema = z
   .object({
@@ -245,20 +286,40 @@ function defaultScaleForCategory(categorySlug: string): number {
   }
 }
 
+function defaultBagVolumeLiters(categorySlug: string, specs: unknown): number | null {
+  if (categorySlug !== "substrate") return null;
+  const s = asRecord(specs);
+  const direct =
+    asNumber(s.bag_volume_l) ??
+    asNumber(s.bag_size_l) ??
+    asNumber(s.pack_volume_l) ??
+    asNumber(s.volume_l);
+  if (direct != null && direct > 0) return direct;
+
+  const substrateType =
+    typeof s.substrate_type === "string" ? s.substrate_type.toLowerCase() : undefined;
+  if (substrateType === "active_soil") return 8;
+  if (substrateType === "sand") return 9;
+  if (substrateType === "inert_gravel") return 8.8;
+  return 8;
+}
+
 function parseCanvasState(value: unknown): {
-  version: 1;
+  version: 2;
   widthIn: number;
   heightIn: number;
   depthIn: number;
+  substrateProfile: z.infer<typeof substrateProfileSchema>;
   items: VisualCanvasItem[];
 } {
   const parsed = canvasStateSchema.safeParse(value);
   if (parsed.success) return parsed.data;
   return {
-    version: 1,
+    version: 2,
     widthIn: 24,
     heightIn: 14,
     depthIn: 12,
+    substrateProfile: DEFAULT_SUBSTRATE_PROFILE,
     items: [],
   };
 }
@@ -368,6 +429,7 @@ export const visualBuilderRouter = createTRPCRouter({
       db: ctx.db,
       productIds: productRows.map((row) => row.product.id),
     });
+    const categoryNameBySlug = new Map(categoryRows.map((row) => [row.slug, row.name] as const));
 
     const tanks = rimlessTanks.map((row) => {
       const dims = dimensionsFromProduct("tank", row.product.specs);
@@ -394,9 +456,11 @@ export const visualBuilderRouter = createTRPCRouter({
       .map((row) => {
         const dims = dimensionsFromProduct(row.category.slug, row.product.specs);
         const bestOffer = bestOfferByProductId.get(row.product.id) ?? null;
+        const linkedOfferUrl = bestOffer ? `/go/${bestOffer.offerId}` : null;
         return {
           id: row.product.id,
           type: "product" as const,
+          sourceMode: "catalog_product" as const,
           name: row.product.name,
           slug: row.product.slug,
           categorySlug: row.category.slug,
@@ -408,9 +472,22 @@ export const visualBuilderRouter = createTRPCRouter({
           defaultScale: defaultScaleForCategory(row.category.slug),
           sku: skuFromProduct(row.product),
           priceCents: bestOffer?.priceCents ?? null,
+          estimatedUnitPriceCents: null,
           offerId: bestOffer?.offerId ?? null,
-          goUrl: bestOffer ? `/go/${bestOffer.offerId}` : null,
-          purchaseUrl: bestOffer ? `/go/${bestOffer.offerId}` : null,
+          goUrl: linkedOfferUrl,
+          purchaseUrl: linkedOfferUrl,
+          retailerLinks: linkedOfferUrl
+            ? [
+                {
+                  label: `Buy from ${bestOffer?.retailer.name ?? "retailer"}`,
+                  url: linkedOfferUrl,
+                  retailerSlug: bestOffer?.retailer.slug ?? undefined,
+                },
+              ]
+            : [],
+          materialType: null,
+          tags: [],
+          bagVolumeLiters: defaultBagVolumeLiters(row.category.slug, row.product.specs),
           specs: asRecord(row.product.specs),
           plantProfile: null,
         };
@@ -422,6 +499,7 @@ export const visualBuilderRouter = createTRPCRouter({
       return {
         id: row.id,
         type: "plant" as const,
+        sourceMode: "catalog_plant" as const,
         name: row.commonName,
         slug: row.slug,
         categorySlug: "plants",
@@ -433,9 +511,21 @@ export const visualBuilderRouter = createTRPCRouter({
         defaultScale: defaultScaleForCategory("plants"),
         sku: null,
         priceCents: null,
+        estimatedUnitPriceCents: null,
         offerId: null,
         goUrl: null,
         purchaseUrl,
+        retailerLinks: purchaseUrl
+          ? [
+              {
+                label: "Shop similar plants",
+                url: purchaseUrl,
+              },
+            ]
+          : [],
+        materialType: null,
+        tags: [],
+        bagVolumeLiters: null,
         specs: null,
         plantProfile: {
           difficulty: row.difficulty,
@@ -456,6 +546,36 @@ export const visualBuilderRouter = createTRPCRouter({
       };
     });
 
+    const designAssets = getDesignLibraryAssets().map((asset) => ({
+      id: asset.id,
+      type: "design" as const,
+      sourceMode: "design_archetype" as const,
+      name: asset.name,
+      slug: asset.slug,
+      categorySlug: asset.categorySlug,
+      categoryName: categoryNameBySlug.get(asset.categorySlug) ?? asset.categoryName,
+      imageUrl: asset.imageUrl ?? null,
+      widthIn: asset.widthIn,
+      heightIn: asset.heightIn,
+      depthIn: asset.depthIn,
+      defaultScale: asset.defaultScale,
+      sku: null,
+      priceCents: null,
+      estimatedUnitPriceCents: asset.estimatedUnitPriceCents ?? null,
+      offerId: null,
+      goUrl: null,
+      purchaseUrl: asset.retailerLinks[0]?.url ?? null,
+      retailerLinks: asset.retailerLinks,
+      materialType: asset.materialType ?? null,
+      tags: asset.tags,
+      bagVolumeLiters: null,
+      specs: {
+        material_type: asset.materialType ?? null,
+        source_mode: "design_archetype",
+      },
+      plantProfile: null,
+    }));
+
     return {
       tanks,
       categories: categoryRows.map((row) => ({
@@ -463,7 +583,7 @@ export const visualBuilderRouter = createTRPCRouter({
         slug: row.slug,
         name: row.name,
       })),
-      assets: [...productAssets, ...plantAssets],
+      assets: [...productAssets, ...plantAssets, ...designAssets],
       updatedAt: new Date().toISOString(),
     };
   }),

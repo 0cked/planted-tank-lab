@@ -74,3 +74,20 @@ test("visual builder: plant placement + low-tech toggle stays interactive", asyn
   await page.getByLabel("Low-tech").check();
   await expect(page.getByLabel("Low-tech")).toBeChecked();
 });
+
+test("visual builder: substrate sculpt updates bag estimate", async ({ page }) => {
+  await page.goto("/builder");
+  await dismissCookies(page);
+  await waitBuilderReady(page);
+
+  await page.getByRole("button", { name: "Continue" }).click();
+  await dismissCookies(page);
+  await expect(page.getByRole("heading", { name: "Select substrate" })).toBeVisible();
+
+  const substratePanel = page.locator("aside").filter({ hasText: "Substrate profile" });
+  const chooseButtons = substratePanel.getByRole("button", { name: /Select|Selected/ });
+  await chooseButtons.first().click();
+  await expect(page.getByRole("heading", { name: "Place hardscape" })).toBeVisible();
+  await expect(page.getByText(/target fill/gi).first()).toBeVisible();
+  await expect(page.getByText(/bag/gi).first()).toBeVisible();
+});

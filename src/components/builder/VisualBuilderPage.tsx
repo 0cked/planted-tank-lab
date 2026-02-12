@@ -12,9 +12,15 @@ import type {
   VisualAsset,
   VisualCanvasItem,
   VisualLineItem,
+  VisualRetailerLink,
   VisualTank,
 } from "@/components/builder/visual/types";
 import type { CompatibilityRule, Severity } from "@/engine/types";
+import {
+  estimateSubstrateBags,
+  estimateSubstrateVolume,
+  substrateContourPercentages,
+} from "@/lib/visual/substrate";
 import type { AppRouter } from "@/server/trpc/router";
 import { useVisualBuilderStore } from "@/stores/visual-builder-store";
 
@@ -26,8 +32,11 @@ type BomLine = {
   categorySlug: string;
   categoryName: string;
   quantity: number;
+  notes?: string;
+  saveEligible?: boolean;
+  retailerLinks?: VisualRetailerLink[];
   asset: VisualAsset | VisualTank;
-  type: "product" | "plant" | "tank";
+  type: "product" | "plant" | "tank" | "design";
 };
 
 type BuilderStepId = "tank" | "substrate" | "hardscape" | "plants" | "equipment" | "review";
@@ -136,6 +145,8 @@ function buildBomLines(params: {
   selectedProductByCategory: Record<string, string | undefined>;
   canvasItems: VisualCanvasItem[];
   categoriesBySlug: Map<string, string>;
+  substrateBagCount: number;
+  substrateNote?: string;
 }): BomLine[] {
   const lines: BomLine[] = [];
 
@@ -157,11 +168,17 @@ function buildBomLines(params: {
     const asset = params.assetsById.get(productId);
     if (!asset || asset.type !== "product") continue;
 
+    const quantity = categorySlug === "substrate" ? params.substrateBagCount : 1;
+    const notes = categorySlug === "substrate" ? params.substrateNote : undefined;
+
     lines.push({
       key: `product:${asset.id}:${categorySlug}`,
       categorySlug,
       categoryName: params.categoriesBySlug.get(categorySlug) ?? categoryLabel(categorySlug),
-      quantity: 1,
+      quantity: Math.max(1, quantity),
+      notes,
+      saveEligible: true,
+      retailerLinks: asset.retailerLinks ?? [],
       asset,
       type: "product",
     });
@@ -186,6 +203,8 @@ function buildBomLines(params: {
       categorySlug,
       categoryName: params.categoriesBySlug.get(categorySlug) ?? categoryLabel(categorySlug),
       quantity,
+      saveEligible: asset.type !== "design",
+      retailerLinks: asset.retailerLinks ?? [],
       asset,
       type: asset.type,
     });
@@ -198,32 +217,40 @@ function buildBomLines(params: {
 }
 
 function toLineItemsForSave(lines: BomLine[]): VisualLineItem[] {
-  return lines.map((line) => {
-    if (line.type === "tank") {
+  return lines
+    .filter((line) => line.saveEligible !== false)
+    .map((line) => {
+      if (line.type === "tank") {
+        return {
+          categorySlug: "tank",
+          productId: line.asset.id,
+          quantity: line.quantity,
+          notes: line.notes,
+          selectedOfferId: line.asset.offerId ?? undefined,
+        };
+      }
+      if (line.type === "product") {
+        return {
+          categorySlug: line.categorySlug,
+          productId: line.asset.id,
+          quantity: line.quantity,
+          notes: line.notes,
+          selectedOfferId: line.asset.offerId ?? undefined,
+        };
+      }
       return {
-        categorySlug: "tank",
-        productId: line.asset.id,
+        categorySlug: "plants",
+        plantId: line.asset.id,
         quantity: line.quantity,
-        selectedOfferId: line.asset.offerId ?? undefined,
+        notes: line.notes,
       };
-    }
-    if (line.type === "product") {
-      return {
-        categorySlug: line.categorySlug,
-        productId: line.asset.id,
-        quantity: line.quantity,
-        selectedOfferId: line.asset.offerId ?? undefined,
-      };
-    }
-    return {
-      categorySlug: "plants",
-      plantId: line.asset.id,
-      quantity: line.quantity,
-    };
-  });
+    });
 }
 
 function lineUnitPrice(asset: VisualAsset | VisualTank): number {
+  if ("estimatedUnitPriceCents" in asset && asset.estimatedUnitPriceCents != null) {
+    return asset.priceCents ?? asset.estimatedUnitPriceCents;
+  }
   return asset.priceCents ?? 0;
 }
 
@@ -272,6 +299,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const setDescription = useVisualBuilderStore((s) => s.setDescription);
   const setPublic = useVisualBuilderStore((s) => s.setPublic);
   const setTank = useVisualBuilderStore((s) => s.setTank);
+  const setSubstrateProfile = useVisualBuilderStore((s) => s.setSubstrateProfile);
   const setSelectedProduct = useVisualBuilderStore((s) => s.setSelectedProduct);
   const setCompatibilityEnabled = useVisualBuilderStore((s) => s.setCompatibilityEnabled);
   const setLowTechNoCo2 = useVisualBuilderStore((s) => s.setLowTechNoCo2);
@@ -407,14 +435,61 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const filteredAssets = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    return (assets ?? []).filter((asset) => {
-      if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) return false;
+    const sourceRank: Record<string, number> = {
+      design_archetype: 0,
+      catalog_plant: 1,
+      catalog_product: 2,
+    };
 
-      if (!q) return true;
-      const haystack = `${asset.name} ${asset.slug} ${asset.categoryName}`.toLowerCase();
-      return haystack.includes(q);
-    });
+    return (assets ?? [])
+      .filter((asset) => {
+        if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) return false;
+
+        if (!q) return true;
+        const tags = asset.tags?.join(" ") ?? "";
+        const haystack = `${asset.name} ${asset.slug} ${asset.categoryName} ${tags}`.toLowerCase();
+        return haystack.includes(q);
+      })
+      .sort((a, b) => {
+        const aRank = sourceRank[a.sourceMode] ?? 99;
+        const bRank = sourceRank[b.sourceMode] ?? 99;
+        if (aRank !== bRank) return aRank - bRank;
+        return a.name.localeCompare(b.name);
+      });
   }, [activeEquipmentCategory, assets, currentStep, search]);
+
+  const selectedSubstrateAsset = useMemo(() => {
+    const substrateId = selectedProductByCategory.substrate;
+    if (!substrateId) return null;
+    const asset = assetsById.get(substrateId);
+    if (!asset || asset.type !== "product" || asset.categorySlug !== "substrate") return null;
+    return asset;
+  }, [assetsById, selectedProductByCategory.substrate]);
+
+  const substrateVolume = useMemo(() => {
+    return estimateSubstrateVolume({
+      tankWidthIn: selectedTank?.widthIn ?? canvasState.widthIn,
+      tankDepthIn: selectedTank?.depthIn ?? canvasState.depthIn,
+      tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
+      profile: canvasState.substrateProfile,
+    });
+  }, [
+    canvasState.depthIn,
+    canvasState.heightIn,
+    canvasState.substrateProfile,
+    canvasState.widthIn,
+    selectedTank?.depthIn,
+    selectedTank?.heightIn,
+    selectedTank?.widthIn,
+  ]);
+
+  const substrateBagVolumeLiters = selectedSubstrateAsset?.bagVolumeLiters ?? 8;
+  const substrateBags = useMemo(() => {
+    return estimateSubstrateBags({
+      volumeLiters: substrateVolume.volumeLiters,
+      bagVolumeLiters: substrateBagVolumeLiters,
+    });
+  }, [substrateBagVolumeLiters, substrateVolume.volumeLiters]);
 
   const bomLines = useMemo(
     () =>
@@ -424,8 +499,23 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
         selectedProductByCategory,
         canvasItems: canvasState.items,
         categoriesBySlug,
+        substrateBagCount:
+          selectedProductByCategory.substrate != null ? substrateBags.bagsRequired : 1,
+        substrateNote:
+          selectedProductByCategory.substrate != null
+            ? `${substrateVolume.volumeLiters.toFixed(1)} L target fill (${substrateBags.bagVolumeLiters.toFixed(1)} L per bag)`
+            : undefined,
       }),
-    [assetsById, canvasState.items, categoriesBySlug, selectedProductByCategory, selectedTank],
+    [
+      assetsById,
+      canvasState.items,
+      categoriesBySlug,
+      selectedProductByCategory,
+      selectedTank,
+      substrateBags.bagVolumeLiters,
+      substrateBags.bagsRequired,
+      substrateVolume.volumeLiters,
+    ],
   );
 
   const bomForSave = useMemo(() => toLineItemsForSave(bomLines), [bomLines]);
@@ -673,6 +763,10 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const tankDepthPanePercent = selectedTank
     ? Math.min(20, Math.max(8, (selectedTank.depthIn / selectedTank.widthIn) * 34))
     : 12;
+  const substrateContour = substrateContourPercentages({
+    profile: substrateVolume.normalizedProfile,
+    tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
+  });
 
   const handleContinue = () => {
     if (!nextStep) return;
@@ -927,6 +1021,98 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                   style={{ borderColor: "var(--ptl-border)" }}
                 />
 
+                {currentStep === "substrate" ? (
+                  <div
+                    className="space-y-2 rounded-xl border bg-white/70 p-3"
+                    style={{ borderColor: "var(--ptl-border)" }}
+                  >
+                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-600">
+                      Substrate profile
+                    </div>
+                    <label className="block text-[11px] text-neutral-700">
+                      Left depth ({substrateVolume.normalizedProfile.leftDepthIn.toFixed(1)} in)
+                      <input
+                        type="range"
+                        min={0.2}
+                        max={Math.max(2, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.62)}
+                        step={0.1}
+                        value={substrateVolume.normalizedProfile.leftDepthIn}
+                        onChange={(event) =>
+                          setSubstrateProfile({ leftDepthIn: Number(event.target.value) })
+                        }
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                    <label className="block text-[11px] text-neutral-700">
+                      Center depth ({substrateVolume.normalizedProfile.centerDepthIn.toFixed(1)} in)
+                      <input
+                        type="range"
+                        min={0.2}
+                        max={Math.max(2, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.62)}
+                        step={0.1}
+                        value={substrateVolume.normalizedProfile.centerDepthIn}
+                        onChange={(event) =>
+                          setSubstrateProfile({ centerDepthIn: Number(event.target.value) })
+                        }
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                    <label className="block text-[11px] text-neutral-700">
+                      Right depth ({substrateVolume.normalizedProfile.rightDepthIn.toFixed(1)} in)
+                      <input
+                        type="range"
+                        min={0.2}
+                        max={Math.max(2, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.62)}
+                        step={0.1}
+                        value={substrateVolume.normalizedProfile.rightDepthIn}
+                        onChange={(event) =>
+                          setSubstrateProfile({ rightDepthIn: Number(event.target.value) })
+                        }
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                    <label className="block text-[11px] text-neutral-700">
+                      Mound height ({substrateVolume.normalizedProfile.moundHeightIn.toFixed(1)} in)
+                      <input
+                        type="range"
+                        min={0}
+                        max={Math.max(1, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.38)}
+                        step={0.1}
+                        value={substrateVolume.normalizedProfile.moundHeightIn}
+                        onChange={(event) =>
+                          setSubstrateProfile({ moundHeightIn: Number(event.target.value) })
+                        }
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                    <label className="block text-[11px] text-neutral-700">
+                      Mound position ({Math.round(substrateVolume.normalizedProfile.moundPosition * 100)}%)
+                      <input
+                        type="range"
+                        min={0.2}
+                        max={0.8}
+                        step={0.01}
+                        value={substrateVolume.normalizedProfile.moundPosition}
+                        onChange={(event) =>
+                          setSubstrateProfile({ moundPosition: Number(event.target.value) })
+                        }
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                    <div className="rounded-lg border bg-white px-2 py-1.5 text-[11px] text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
+                      Target fill: {substrateVolume.volumeLiters.toFixed(1)} L
+                      {selectedSubstrateAsset ? (
+                        <span>
+                          {" "}
+                          · {substrateBags.bagsRequired} bag(s) of {substrateBags.bagVolumeLiters.toFixed(1)} L
+                        </span>
+                      ) : (
+                        <span> · Pick a substrate product to compute bag count.</span>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="max-h-[56vh] space-y-2 overflow-auto pr-1">
                   {filteredAssets.map((asset) => {
                     const selectedProductId = selectedProductByCategory[asset.categorySlug] ?? null;
@@ -963,9 +1149,15 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                             <div className="truncate text-xs font-semibold text-neutral-900">{asset.name}</div>
                             <div className="mt-0.5 text-[11px] text-neutral-600">{asset.categoryName}</div>
                             <div className="mt-0.5 text-[11px] text-neutral-600">
+                              {asset.sourceMode === "design_archetype" ? "Design asset" : "Catalog item"}
+                            </div>
+                            <div className="mt-0.5 text-[11px] text-neutral-600">
                               {asset.widthIn.toFixed(1)} in x {asset.depthIn.toFixed(1)} in x {asset.heightIn.toFixed(1)} in
                             </div>
-                            <div className="mt-0.5 text-[11px] text-neutral-700">{formatMoney(asset.priceCents)}</div>
+                            <div className="mt-0.5 text-[11px] text-neutral-700">
+                              {formatMoney(lineUnitPrice(asset))}
+                              {asset.sourceMode === "design_archetype" ? " est." : ""}
+                            </div>
                           </div>
                         </div>
 
@@ -1030,7 +1222,9 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 </div>
                 <div>
                   <span className="font-semibold text-neutral-900">Substrate:</span>{" "}
-                  {selectedProductByCategory.substrate ? "Selected" : "Not selected"}
+                  {selectedProductByCategory.substrate
+                    ? `${substrateBags.bagsRequired} bag(s) · ${substrateVolume.volumeLiters.toFixed(1)} L`
+                    : "Not selected"}
                 </div>
                 <div>
                   <span className="font-semibold text-neutral-900">Hardscape items:</span> {hardscapeCount}
@@ -1090,7 +1284,50 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 <div className="pointer-events-none absolute inset-0 opacity-18" style={{ backgroundImage: "url('/images/builder-hero-960.jpg')", backgroundSize: "cover", backgroundPosition: "center" }} />
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-[16%] bg-gradient-to-b from-white/70 to-transparent" />
                 <div className="pointer-events-none absolute inset-x-0 top-[14%] h-px bg-white/90" />
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[20%] bg-gradient-to-t from-[#d7c6a2]/95 via-[#cdb790]/65 to-transparent" />
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    clipPath: `polygon(0% 100%, 0% ${substrateContour.leftTopPct}%, ${Math.max(
+                      6,
+                      substrateContour.moundPositionPct - 6,
+                    )}% ${Math.min(99, substrateContour.moundTopPct + 2)}%, ${
+                      substrateContour.moundPositionPct
+                    }% ${substrateContour.moundTopPct}%, ${Math.min(
+                      94,
+                      substrateContour.moundPositionPct + 6,
+                    )}% ${Math.min(99, substrateContour.centerTopPct + 1)}%, 50% ${
+                      substrateContour.centerTopPct
+                    }%, 100% ${substrateContour.rightTopPct}%, 100% 100%)`,
+                    background:
+                      "linear-gradient(180deg, rgba(217,197,157,0.92) 0%, rgba(202,175,125,0.95) 56%, rgba(174,145,96,0.96) 100%)",
+                  }}
+                />
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-20"
+                  style={{
+                    clipPath: `polygon(0% 100%, 0% ${substrateContour.leftTopPct}%, ${Math.max(
+                      6,
+                      substrateContour.moundPositionPct - 6,
+                    )}% ${Math.min(99, substrateContour.moundTopPct + 2)}%, ${
+                      substrateContour.moundPositionPct
+                    }% ${substrateContour.moundTopPct}%, ${Math.min(
+                      94,
+                      substrateContour.moundPositionPct + 6,
+                    )}% ${Math.min(99, substrateContour.centerTopPct + 1)}%, 50% ${
+                      substrateContour.centerTopPct
+                    }%, 100% ${substrateContour.rightTopPct}%, 100% 100%)`,
+                    background:
+                      "repeating-linear-gradient(135deg, rgba(88,68,44,0.16) 0, rgba(88,68,44,0.16) 2px, rgba(255,255,255,0.08) 2px, rgba(255,255,255,0.08) 6px)",
+                  }}
+                />
+                <div
+                  className="pointer-events-none absolute left-0 right-0 h-px"
+                  style={{
+                    top: `${substrateContour.centerTopPct}%`,
+                    background:
+                      "linear-gradient(90deg, rgba(133,108,72,0.45), rgba(245,236,216,0.7), rgba(133,108,72,0.45))",
+                  }}
+                />
                 <div
                   className="pointer-events-none absolute inset-y-[9%] right-0 border-l"
                   style={{
@@ -1246,8 +1483,10 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
 
             <div className="mt-3 space-y-2">
               {bomLines.map((line) => {
-                const canBuy = line.asset.goUrl || line.asset.purchaseUrl;
+                const canBuy = line.asset.goUrl || line.asset.purchaseUrl || line.retailerLinks?.length;
                 const buyUrl = line.asset.goUrl ?? line.asset.purchaseUrl ?? null;
+                const unitPrice = lineUnitPrice(line.asset);
+                const totalLinePrice = unitPrice * line.quantity;
                 return (
                   <div key={line.key} className="rounded-xl border bg-white/80 p-2.5" style={{ borderColor: "var(--ptl-border)" }}>
                     <div className="flex items-start justify-between gap-2">
@@ -1257,30 +1496,53 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                         </div>
                         <div className="text-sm font-semibold text-neutral-900">{line.asset.name}</div>
                         <div className="text-xs text-neutral-600">
-                          Qty {line.quantity} · Unit {formatMoney(line.asset.priceCents)}
+                          Qty {line.quantity} · Unit {formatMoney(unitPrice)}
+                          {"sourceMode" in line.asset && line.asset.sourceMode === "design_archetype"
+                            ? " est."
+                            : ""}
                         </div>
+                        {line.notes ? <div className="text-[11px] text-neutral-600">{line.notes}</div> : null}
                       </div>
                       <div className="text-sm font-semibold text-neutral-900">
-                        {formatMoney((line.asset.priceCents ?? 0) * line.quantity)}
+                        {formatMoney(totalLinePrice)}
                       </div>
                     </div>
 
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="text-[11px] text-neutral-500">SKU {line.asset.sku ?? "n/a"}</div>
-                      {canBuy && buyUrl ? (
-                        <a
-                          href={buyUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-lg border border-emerald-600 bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white"
-                        >
-                          Buy
-                        </a>
-                      ) : (
-                        <span className="rounded-lg border border-neutral-200 bg-neutral-100 px-2 py-1 text-[11px] font-semibold text-neutral-600">
-                          No offer
-                        </span>
-                      )}
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-[11px] text-neutral-500">
+                        {"sourceMode" in line.asset && line.asset.sourceMode === "design_archetype"
+                          ? `Material ${line.asset.materialType ?? "generic"}`
+                          : `SKU ${line.asset.sku ?? "n/a"}`}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {buyUrl ? (
+                          <a
+                            href={buyUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-lg border border-emerald-600 bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white"
+                          >
+                            Buy
+                          </a>
+                        ) : null}
+                        {(line.retailerLinks ?? []).slice(0, 2).map((link) => (
+                          <a
+                            key={`${line.key}:${link.url}`}
+                            href={link.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-lg border bg-white px-2 py-1 text-[11px] font-semibold text-neutral-700"
+                            style={{ borderColor: "var(--ptl-border)" }}
+                          >
+                            {link.label}
+                          </a>
+                        ))}
+                        {!canBuy ? (
+                          <span className="rounded-lg border border-neutral-200 bg-neutral-100 px-2 py-1 text-[11px] font-semibold text-neutral-600">
+                            No offer
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 );

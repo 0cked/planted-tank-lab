@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a",
+      "name": "Seiryu Boulder (Large)",
+      "slug": "seiryu-boulder-large",
+      "categorySlug": "hardscape",
+      "categoryName": "Hardscape",
+      "imageUrl": "/images/visual-assets/hardscape/seiryu-boulder-large.png",
+      "widthIn": 10,
+      "heightIn": 6.4,
+      "depthIn": 6.5,
+      "defaultScale": 0.95,
+      "materialType": "seiryu_stone",
+      "estimatedUnitPriceCents": 2400,
+      "tags": ["stone", "angular", "gray", "main"],
+      "retailerLinks": [
+        { "label": "Shop Seiryu at Buce Plant", "url": "https://buceplant.com/search?q=seiryu+stone", "retailerSlug": "buce-plant" },
+        { "label": "Shop Seiryu at Aqua Rocks", "url": "https://aquarockscolorado.com/search?q=seiryu", "retailerSlug": "aqua-rocks" },
+        { "label": "Shop Seiryu on Amazon", "url": "https://www.amazon.com/s?k=seiryu+stone+aquarium", "retailerSlug": "amazon" }
+      ]
+    },
+    {
+      "id": "85d4cf8f-f421-4cc1-a5e5-61ecf22a85ec",
+      "name": "Seiryu Accent Stone",
+      "slug": "seiryu-accent-stone",
+      "categorySlug": "hardscape",
+      "categoryName": "Hardscape",
+      "imageUrl": "/images/visual-assets/hardscape/seiryu-accent-stone.png",
+      "widthIn": 5.5,
+      "heightIn": 3.4,
+      "depthIn": 3.5,
+      "defaultScale": 1,
+      "materialType": "seiryu_stone",
+      "estimatedUnitPriceCents": 1100,
+      "tags": ["stone", "accent", "gray"],
+      "retailerLinks": [
+        { "label": "Shop Seiryu at Buce Plant", "url": "https://buceplant.com/search?q=seiryu+stone", "retailerSlug": "buce-plant" },
+        { "label": "Shop Seiryu at Aqua Rocks", "url": "https://aquarockscolorado.com/search?q=seiryu", "retailerSlug": "aqua-rocks" }
+      ]
+    },
+    {
+      "id": "2ad2bc4d-26ab-4f90-99b0-cad20f4e9130",
+      "name": "Dragon Stone Ridge",
+      "slug": "dragon-stone-ridge",
+      "categorySlug": "hardscape",
+      "categoryName": "Hardscape",
+      "imageUrl": "/images/visual-assets/hardscape/dragon-stone-ridge.png",
+      "widthIn": 9.2,
+      "heightIn": 5.6,
+      "depthIn": 5.8,
+      "defaultScale": 0.9,
+      "materialType": "dragon_stone",
+      "estimatedUnitPriceCents": 2100,
+      "tags": ["stone", "ohko", "textured"],
+      "retailerLinks": [
+        { "label": "Shop Dragon Stone at Buce Plant", "url": "https://buceplant.com/search?q=dragon+stone", "retailerSlug": "buce-plant" },
+        { "label": "Shop Dragon Stone at Aqua Rocks", "url": "https://aquarockscolorado.com/search?q=dragon+stone", "retailerSlug": "aqua-rocks" },
+        { "label": "Shop Dragon Stone on Amazon", "url": "https://www.amazon.com/s?k=dragon+stone+aquarium", "retailerSlug": "amazon" }
+      ]
+    },
+    {
+      "id": "3f6132a1-9cdc-4df5-88a8-b026717fd330",
+      "name": "Dragon Stone Accent",
+      "slug": "dragon-stone-accent",
+      "categorySlug": "hardscape",
+      "categoryName": "Hardscape",
+      "imageUrl": "/images/visual-assets/hardscape/dragon-stone-accent.png",
+      "widthIn": 5,
+      "heightIn": 3,
+      "depthIn": 3,
+      "defaultScale": 1.02,
+      "materialType": "dragon_stone",
+      "estimatedUnitPriceCents": 900,
+      "tags": ["stone", "accent", "texture"],
+      "retailerLinks": [
+        { "label": "Shop Dragon Stone at Buce Plant", "url": "https://buceplant.com/search?q=dragon+stone", "retailerSlug": "buce-plant" },
+        { "label": "Shop Dragon Stone at Aqua Rocks", "url": "https://aquarockscolorado.com/search?q=dragon+stone", "retailerSlug": "aqua-rocks" }
+      ]
+    },
+    {
+      "id": "3d4eaf6f-2858-449f-a0fe-c819d8898d9d",
+      "name": "Lava Rock Cluster",
+      "slug": "lava-rock-cluster",
+      "categorySlug": "hardscape",
+      "categoryName": "Hardscape",
+      "imageUrl": "/images/visual-assets/hardscape/lava-rock-cluster.png",
+      "widthIn": 8.2,
+      "heightIn": 4.9,
+      "depthIn": 5.4,
+      "defaultScale": 0.95,
+      "materialType": "lava_rock",
+      "estimatedUnitPriceCents": 1600,
+      "tags": ["stone", "porous", "dark"],
+      "retailerLinks": [
+        { "label": "Shop Lava Rock at Buce Plant", "url": "https://buceplant.com/search?q=lava+rock", "retailerSlug": "buce-plant" },
+        { "label": "Shop Lava Rock on Amazon", "url": "https://www.amazon.com/s?k=lava+rock+aquarium", "retailerSlug": "amazon" }
+      ]
+    },
+    {
+      "id": "9f7fd6f9-74aa-4b3a-a6f2-ebbe7af11d60",
+      "name": "Spider Wood Branch",
+      "slug": "spider-wood-branch",
+      "categorySlug": "hardscape",
+      "categoryName": "Hardscape",
+      "imageUrl": "/images/visual-assets/hardscape/spider-wood-branch.png",
+      "widthIn": 11.2,
+      "heightIn": 8.1,
+      "depthIn": 4.7,
+      "defaultScale": 0.88,
+      "materialType": "spider_wood",
+      "estimatedUnitPriceCents": 2800,
+      "tags": ["wood", "branch", "airy", "main"],
+      "retailerLinks": [
+        { "label": "Shop Spider Wood at Buce Plant", "url": "https://buceplant.com/search?q=spider+wood", "retailerSlug": "buce-plant" },
+        { "label": "Shop Spider Wood at Aqua Rocks", "url": "https://aquarockscolorado.com/search?q=spider+wood", "retailerSlug": "aqua-rocks" },
+        { "label": "Shop Spider Wood on Amazon", "url": "https://www.amazon.com/s?k=spider+wood+aquarium", "retailerSlug": "amazon" }
+      ]
+    },
+    {
+      "id": "a9d0f802-81f5-4ef9-9ebf-aad2e3264a2d",
+      "name": "Spider Wood Twig Set",
+      "slug": "spider-wood-twig-set",
+      "categorySlug": "hardscape",
+      "categoryName": "Hardscape",
+      "imageUrl": "/images/visual-assets/hardscape/spider-wood-twig-set.png",
+      "widthIn": 7,
+      "heightIn": 6.8,
+      "depthIn": 3.1,
+      "defaultScale": 0.96,
+      "materialType": "spider_wood",
+      "estimatedUnitPriceCents": 1500,
+      "tags": ["wood", "twig", "branch"],
+      "retailerLinks": [
+        { "label": "Shop Spider Wood at Buce Plant", "url": "https://buceplant.com/search?q=spider+wood", "retailerSlug": "buce-plant" },
+        { "label": "Shop Spider Wood on Amazon", "url": "https://www.amazon.com/s?k=spider+wood+aquarium", "retailerSlug": "amazon" }
+      ]
+    },
+    {
+      "id": "52f924d7-6112-4a38-8b9e-8a57616537ad",
+      "name": "Manzanita Branch",
+      "slug": "manzanita-branch",
+      "categorySlug": "hardscape",
+      "categoryName": "Hardscape",
+      "imageUrl": "/images/visual-assets/hardscape/manzanita-branch.png",
+      "widthIn": 10.4,
+      "heightIn": 7.4,
+      "depthIn": 3.6,
+      "defaultScale": 0.9,
+      "materialType": "manzanita_wood",
+      "estimatedUnitPriceCents": 2300,
+      "tags": ["wood", "branch", "minimal"],
+      "retailerLinks": [
+        { "label": "Shop Manzanita at Buce Plant", "url": "https://buceplant.com/search?q=manzanita", "retailerSlug": "buce-plant" },
+        { "label": "Shop Manzanita on Amazon", "url": "https://www.amazon.com/s?k=manzanita+aquarium+wood", "retailerSlug": "amazon" }
+      ]
+    },
+    {
+      "id": "c753a901-df80-462f-a947-2f7c229fa07f",
+      "name": "Mopani Root",
+      "slug": "mopani-root",
+      "categorySlug": "hardscape",
+      "categoryName": "Hardscape",
+      "imageUrl": "/images/visual-assets/hardscape/mopani-root.png",
+      "widthIn": 8.8,
+      "heightIn": 5.2,
+      "depthIn": 5.8,
+      "defaultScale": 0.9,
+      "materialType": "mopani_wood",
+      "estimatedUnitPriceCents": 1900,
+      "tags": ["wood", "root", "dense"],
+      "retailerLinks": [
+        { "label": "Shop Mopani at Buce Plant", "url": "https://buceplant.com/search?q=mopani", "retailerSlug": "buce-plant" },
+        { "label": "Shop Mopani on Amazon", "url": "https://www.amazon.com/s?k=mopani+wood+aquarium", "retailerSlug": "amazon" }
+      ]
+    },
+    {
+      "id": "619a345f-6463-4c06-8f5d-a83592563878",
+      "name": "Branchwood Arch",
+      "slug": "branchwood-arch",
+      "categorySlug": "hardscape",
+      "categoryName": "Hardscape",
+      "imageUrl": "/images/visual-assets/hardscape/branchwood-arch.png",
+      "widthIn": 12,
+      "heightIn": 7.5,
+      "depthIn": 4.2,
+      "defaultScale": 0.84,
+      "materialType": "branchwood",
+      "estimatedUnitPriceCents": 3200,
+      "tags": ["wood", "arch", "statement"],
+      "retailerLinks": [
+        { "label": "Shop Branchwood at Buce Plant", "url": "https://buceplant.com/search?q=branch+wood", "retailerSlug": "buce-plant" },
+        { "label": "Shop Branchwood on Amazon", "url": "https://www.amazon.com/s?k=branch+wood+aquarium", "retailerSlug": "amazon" }
+      ]
+    }
+  ]
+}

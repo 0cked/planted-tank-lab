@@ -8,7 +8,12 @@ import type {
   VisualCanvasItem,
   VisualCanvasState,
   VisualLineItem,
+  VisualSubstrateProfile,
 } from "@/components/builder/visual/types";
+import {
+  DEFAULT_SUBSTRATE_PROFILE,
+  normalizeSubstrateProfile,
+} from "@/lib/visual/substrate";
 
 type VisualBuilderFlags = {
   lowTechNoCo2: boolean;
@@ -38,6 +43,7 @@ type VisualBuilderState = {
   setDescription: (value: string) => void;
   setPublic: (value: boolean) => void;
   setTank: (tankId: string, dims: { widthIn: number; heightIn: number; depthIn: number }) => void;
+  setSubstrateProfile: (patch: Partial<VisualSubstrateProfile>) => void;
 
   setCompatibilityEnabled: (value: boolean) => void;
   setLowTechNoCo2: (value: boolean) => void;
@@ -110,11 +116,26 @@ function normalizeItems(items: VisualCanvasItem[]): VisualCanvasItem[] {
     .map((item, index) => ({ ...item, layer: index }));
 }
 
+function normalizeCanvasState(input: VisualCanvasState): VisualCanvasState {
+  const widthIn = Math.max(1, input.widthIn);
+  const heightIn = Math.max(1, input.heightIn);
+  const depthIn = Math.max(1, input.depthIn);
+  return {
+    version: 2,
+    widthIn,
+    heightIn,
+    depthIn,
+    substrateProfile: normalizeSubstrateProfile(input.substrateProfile, heightIn),
+    items: normalizeItems(input.items),
+  };
+}
+
 const initialCanvasState: VisualCanvasState = {
-  version: 1,
+  version: 2,
   widthIn: 24,
   heightIn: 14,
   depthIn: 12,
+  substrateProfile: DEFAULT_SUBSTRATE_PROFILE,
   items: [],
 };
 
@@ -148,12 +169,30 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
       setTank: (tankId, dims) =>
         set((state) => ({
           tankId,
-          canvasState: {
+          canvasState: normalizeCanvasState({
             ...state.canvasState,
             widthIn: Math.max(1, dims.widthIn),
             heightIn: Math.max(1, dims.heightIn),
             depthIn: Math.max(1, dims.depthIn),
-          },
+            substrateProfile: normalizeSubstrateProfile(
+              state.canvasState.substrateProfile,
+              Math.max(1, dims.heightIn),
+            ),
+          }),
+        })),
+
+      setSubstrateProfile: (patch) =>
+        set((state) => ({
+          canvasState: normalizeCanvasState({
+            ...state.canvasState,
+            substrateProfile: normalizeSubstrateProfile(
+              {
+                ...state.canvasState.substrateProfile,
+                ...patch,
+              },
+              state.canvasState.heightIn,
+            ),
+          }),
         })),
 
       setCompatibilityEnabled: (value) => set({ compatibilityEnabled: value }),
@@ -327,13 +366,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             description: payload.description ?? "",
             isPublic: payload.isPublic,
             tankId: payload.tankId,
-            canvasState: {
-              version: 1,
-              widthIn: Math.max(1, payload.canvasState.widthIn),
-              heightIn: Math.max(1, payload.canvasState.heightIn),
-              depthIn: Math.max(1, payload.canvasState.depthIn),
-              items: normalizeItems(payload.canvasState.items),
-            },
+            canvasState: normalizeCanvasState(payload.canvasState),
             selectedProductByCategory,
             flags: {
               lowTechNoCo2: Boolean(payload.flags.lowTechNoCo2),
@@ -355,10 +388,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           description: s.description.trim(),
           isPublic: s.isPublic,
           tankId: s.tankId,
-          canvasState: {
-            ...s.canvasState,
-            items: normalizeItems(s.canvasState.items),
-          },
+          canvasState: normalizeCanvasState(s.canvasState),
           lineItems: bomLineItems,
           flags: {
             lowTechNoCo2: s.flags.lowTechNoCo2,
@@ -369,8 +399,51 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
     }),
     {
       name: "ptl-visual-builder-v1",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
+      migrate: (persistedState: unknown) => {
+        const source = persistedState as Partial<VisualBuilderState> | undefined;
+        if (!source || typeof source !== "object") {
+          return {
+            ...initialState,
+            canvasState: normalizeCanvasState(initialState.canvasState),
+          };
+        }
+
+        const candidateCanvas = (source.canvasState as Partial<VisualCanvasState> | undefined) ?? {};
+        const widthIn =
+          typeof candidateCanvas.widthIn === "number" && Number.isFinite(candidateCanvas.widthIn)
+            ? Math.max(1, candidateCanvas.widthIn)
+            : initialCanvasState.widthIn;
+        const heightIn =
+          typeof candidateCanvas.heightIn === "number" && Number.isFinite(candidateCanvas.heightIn)
+            ? Math.max(1, candidateCanvas.heightIn)
+            : initialCanvasState.heightIn;
+        const depthIn =
+          typeof candidateCanvas.depthIn === "number" && Number.isFinite(candidateCanvas.depthIn)
+            ? Math.max(1, candidateCanvas.depthIn)
+            : initialCanvasState.depthIn;
+        const items = Array.isArray(candidateCanvas.items)
+          ? (candidateCanvas.items as VisualCanvasItem[])
+          : [];
+        const substrateProfile = normalizeSubstrateProfile(
+          (candidateCanvas as { substrateProfile?: Partial<VisualSubstrateProfile> }).substrateProfile,
+          heightIn,
+        );
+
+        return {
+          ...initialState,
+          ...source,
+          canvasState: normalizeCanvasState({
+            version: 2,
+            widthIn,
+            heightIn,
+            depthIn,
+            items,
+            substrateProfile,
+          }),
+        } as VisualBuilderState;
+      },
       partialize: (state) => ({
         buildId: state.buildId,
         shareSlug: state.shareSlug,

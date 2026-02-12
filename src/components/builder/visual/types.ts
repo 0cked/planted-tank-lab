@@ -1,8 +1,20 @@
-export type VisualAssetType = "product" | "plant";
+export type VisualAssetType = "product" | "plant" | "design";
+
+export type VisualAssetSourceMode =
+  | "catalog_product"
+  | "catalog_plant"
+  | "design_archetype";
+
+export type VisualRetailerLink = {
+  label: string;
+  url: string;
+  retailerSlug?: string;
+};
 
 export type VisualAsset = {
   id: string;
   type: VisualAssetType;
+  sourceMode: VisualAssetSourceMode;
   name: string;
   slug: string;
   categorySlug: string;
@@ -14,9 +26,14 @@ export type VisualAsset = {
   defaultScale: number;
   sku: string | null;
   priceCents: number | null;
+  estimatedUnitPriceCents?: number | null;
   offerId: string | null;
   goUrl: string | null;
   purchaseUrl: string | null;
+  retailerLinks?: VisualRetailerLink[];
+  materialType?: string | null;
+  tags?: string[];
+  bagVolumeLiters?: number | null;
   specs?: Record<string, unknown> | null;
   plantProfile?: {
     difficulty: string;
@@ -52,6 +69,14 @@ export type VisualTank = {
   specs?: Record<string, unknown> | null;
 };
 
+export type VisualSubstrateProfile = {
+  leftDepthIn: number;
+  centerDepthIn: number;
+  rightDepthIn: number;
+  moundHeightIn: number;
+  moundPosition: number;
+};
+
 export type VisualCanvasItem = {
   id: string;
   assetId: string;
@@ -65,10 +90,11 @@ export type VisualCanvasItem = {
 };
 
 export type VisualCanvasState = {
-  version: 1;
+  version: 2;
   widthIn: number;
   heightIn: number;
   depthIn: number;
+  substrateProfile: VisualSubstrateProfile;
   items: VisualCanvasItem[];
 };
 

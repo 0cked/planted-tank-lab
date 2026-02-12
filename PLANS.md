@@ -138,11 +138,31 @@ Verify:
 
 ---
 
+### Phase 5 - Design-First Hardscape + Substrate Modeling
+
+- [x] Add a design-first hardscape asset library decoupled from exact SKU identity.
+- [x] Add substrate sculpt controls (left/center/right depth + mound) with persisted canvas state.
+- [x] Add dynamic substrate fill + bag estimation tied to selected substrate product bag volume.
+- [x] Publish an explicit visual asset production spec for incoming art packs.
+
+Acceptance criteria:
+- Users can place generic design hardscape and still access retailer links by material type.
+- Substrate profile updates canvas visuals and BOM quantities in real time.
+- Builder saves/loads canvas state with substrate profile (`version: 2`) while legacy (`version: 1`) payloads are normalized on read.
+
+Verify:
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test -- tests/api/visual-builder.test.ts`
+- `pnpm test:e2e -- tests/e2e/builder.spec.ts`
+
+---
+
 ## Immediate Next 3 Tasks
 
-1. Add keyboard nudging + multi-select transforms for faster desktop layout editing.
-2. Add visibility/lock controls per canvas item and mirror those states in export.
-3. Expand visual-builder API tests for duplicate-public and selected-offer override persistence.
+1. Add substrate texture switching in the UI and persist the chosen texture key.
+2. Introduce plant design-archetype assets with optional species mapping for compatibility scoring.
+3. Add keyboard nudging + multi-select transforms for faster desktop layout editing.
 
 ## Resume Protocol (for any new agent session)
 
