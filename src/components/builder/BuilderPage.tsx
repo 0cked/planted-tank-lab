@@ -7,7 +7,11 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { markSignupTracked, trackEvent } from "@/lib/analytics";
-import { missingSourceImageCopy, normalizePickerDetails } from "@/lib/catalog-no-data";
+import {
+  firstCatalogImageUrl,
+  missingSourceImageCopy,
+  normalizePickerDetails,
+} from "@/lib/catalog-no-data";
 import {
   deriveOfferSummaryState,
   formatOfferSummaryCheckedAt,
@@ -293,14 +297,6 @@ function curatedRank(row: ProductRow): number | null {
   if (typeof v === "string" && v.trim() !== "") {
     const n = Number(v);
     if (Number.isFinite(n) && n > 0) return Math.floor(n);
-  }
-  return null;
-}
-
-function firstImageUrl(params: { imageUrl: string | null; imageUrls: unknown }): string | null {
-  if (params.imageUrl) return params.imageUrl;
-  if (Array.isArray(params.imageUrls) && typeof params.imageUrls[0] === "string") {
-    return params.imageUrls[0];
   }
   return null;
 }
@@ -828,7 +824,7 @@ function ProductPicker(props: {
             {effectiveItems.map((x) => {
               const r = x.row;
               const label = r.brand?.name ? `${r.brand.name} ${r.name}` : r.name;
-              const img = firstImageUrl({ imageUrl: r.imageUrl ?? null, imageUrls: r.imageUrls });
+              const img = firstCatalogImageUrl({ imageUrl: r.imageUrl ?? null, imageUrls: r.imageUrls });
               const chips = productPreviewChips({ categorySlug: props.categorySlug, specs: r.specs });
               const badge = x.blocked ? (
                 <span
@@ -1128,7 +1124,7 @@ function PlantPicker(props: {
               const label = p.scientificName
                 ? `${p.commonName} (${p.scientificName})`
                 : p.commonName;
-              const img = firstImageUrl({ imageUrl: p.imageUrl ?? null, imageUrls: p.imageUrls });
+              const img = firstCatalogImageUrl({ imageUrl: p.imageUrl ?? null, imageUrls: p.imageUrls });
               const chips = [
                 p.difficulty,
                 `${p.lightDemand} light`,

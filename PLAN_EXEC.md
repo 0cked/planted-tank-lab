@@ -209,6 +209,9 @@ No direct canonical bypass for import/seed paths.
     - [x] IN-11A2 Harden seed/import normalization boundary and archive/prune legacy rows so production surfaces only show ingestion-backed canonical data.
     - [x] IN-11A3 Remove placeholder assets/copy/spec filler from production catalog surfaces (Products/Plants/Builder) with explicit no-data UX.
     - [ ] IN-11A4 Add guardrails/tests to prevent placeholder/provenance regressions.
+      - [x] IN-11A4a Add centralized placeholder marker guardrails (image URL + filler-copy tokens) used by normalization/read helpers.
+      - [x] IN-11A4b Add regression tests that enforce placeholder guard behavior and verify API/router tests do not rely on pre-ingestion seeded slugs.
+      - [x] IN-11A4c Add executable verification guardrail command(s) for provenance + placeholder audits and wire into seed/import verification flow.
   - Notes (2026-02-11):
     - Added `src/server/catalog/provenance.ts` with canonical/displayed/build-part provenance audits.
     - Added `scripts/catalog-provenance-audit.ts` + `pnpm catalog:audit:provenance`.
@@ -251,6 +254,35 @@ No direct canonical bypass for import/seed paths.
       - `pnpm verify:gates` PASS
       - `pnpm verify` FAIL (pre-existing seeded-data expectations after provenance cleanup: `tests/api/offers.test.ts`, `tests/api/builds.test.ts`, `tests/api/plants.test.ts`)
       - `pnpm seed` STARTED for data refresh, reached normalization phase, no completion signal (terminated manually).
+  - Notes (2026-02-11/12, IN-11A4 in progress):
+    - Added centralized placeholder guardrails:
+      - `src/lib/catalog-guardrails.ts`
+      - sanitizers wired into `src/server/normalization/manual-seed.ts` and catalog read helpers (`src/lib/catalog-no-data.ts`, Products/Plants/Builder surfaces).
+    - Added executable regression audit + seed wiring:
+      - `src/server/catalog/regression-audit.ts`
+      - `scripts/catalog-regression-audit.ts`
+      - `pnpm catalog:audit:regressions`
+      - `scripts/seed.ts` now runs regression audit (provenance + placeholder markers) and fails on violations.
+    - Removed hardcoded legacy slug assumptions from API/e2e regression coverage:
+      - `tests/api/offers.test.ts`
+      - `tests/api/builds.test.ts`
+      - `tests/api/plants.test.ts`
+      - `tests/e2e/smoke.spec.ts` (plants smoke test now fixture-safe).
+    - Added guardrail unit coverage:
+      - `tests/lib/catalog-guardrails.test.ts`
+      - updated `tests/lib/catalog-no-data.test.ts`.
+    - Verification (host):
+      - `pnpm lint` PASS
+      - `pnpm typecheck` PASS
+      - `pnpm test` PASS
+      - `pnpm test:e2e` PASS
+      - `pnpm verify` PASS
+      - `pnpm verify:gates` PASS
+      - `pnpm catalog:audit:provenance` PASS
+      - `pnpm catalog:audit:regressions` FAIL (placeholder image markers still present on 18 active products).
+      - `pnpm seed` reached normalization phase twice with no completion signal; terminated manually.
+    - Blocker:
+      - Existing canonical product rows still contain placeholder image markers; remediation depends on completing `pnpm seed`/normalization cleanup run that currently stalls in normalization phase.
   - Acceptance:
     - Define and codify "legacy/pre-ingestion" detection (products/plants/offers/categories/parts lacking ingestion provenance or canonical mapping consistency).
     - Remove or archive legacy pre-ingestion catalog rows so production surfaces only show ingestion-backed canonical data.

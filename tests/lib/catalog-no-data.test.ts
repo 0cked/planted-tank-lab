@@ -14,11 +14,16 @@ describe("catalog no-data helpers", () => {
     expect(plant.body).toContain("plant");
   });
 
-  test("normalizes picker details and falls back when missing", () => {
+  test("normalizes picker details and falls back when missing or placeholder", () => {
     expect(normalizePickerDetails("  Compact canister with quiet operation.  "))
       .toBe("Compact canister with quiet operation.");
 
-    expect(normalizePickerDetails("")).toBe("Source details are not available for this item yet.");
+    expect(normalizePickerDetails("Photo coming soon"))
+      .toBe("Source details are not available for this item yet.");
+    expect(normalizePickerDetails("No details yet"))
+      .toBe("Source details are not available for this item yet.");
+    expect(normalizePickerDetails(""))
+      .toBe("Source details are not available for this item yet.");
     expect(normalizePickerDetails("   "))
       .toBe("Source details are not available for this item yet.");
     expect(normalizePickerDetails(null))

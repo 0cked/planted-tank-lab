@@ -5,7 +5,7 @@ import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { pruneLegacyCatalogRows } from "@/server/catalog/legacy-prune";
-import { runCatalogProvenanceAudit } from "@/server/catalog/provenance";
+import { runCatalogRegressionAudit } from "@/server/catalog/regression-audit";
 import { db } from "@/server/db";
 import {
   brands,
@@ -362,17 +362,20 @@ async function main(): Promise<void> {
   console.log("Seeding: prune legacy non-provenance catalog rows...");
   const legacyCleanup = await pruneLegacyCatalogRows({ database: db });
 
-  console.log("Seeding: provenance audit...");
-  const provenanceAudit = await runCatalogProvenanceAudit(db);
-  if (provenanceAudit.hasDisplayedViolations) {
+  console.log("Seeding: regression audit (provenance + placeholders)...");
+  const regressionAudit = await runCatalogRegressionAudit(db);
+  const provenanceAudit = regressionAudit.provenance;
+  if (regressionAudit.hasViolations) {
     throw new Error(
       [
-        "Provenance audit failed after seed normalization and cleanup.",
+        "Catalog regression audit failed after seed normalization and cleanup.",
         `displayed.products=${provenanceAudit.displayedWithoutProvenance.products}`,
         `displayed.plants=${provenanceAudit.displayedWithoutProvenance.plants}`,
         `displayed.offers=${provenanceAudit.displayedWithoutProvenance.offers}`,
         `displayed.categories=${provenanceAudit.displayedWithoutProvenance.categories}`,
         `buildParts.total=${provenanceAudit.buildPartsReferencingNonProvenance.total}`,
+        `placeholder.products=${regressionAudit.placeholders.products.total}`,
+        `placeholder.plants=${regressionAudit.placeholders.plants.total}`,
       ].join(" "),
     );
   }
@@ -425,6 +428,7 @@ async function main(): Promise<void> {
           totalUpdated: normalization.totalUpdated,
         },
         legacyCleanup,
+        regressionAudit,
         provenanceAudit,
         categories: categoriesCount[0]?.c,
         brands: brandsCount[0]?.c,

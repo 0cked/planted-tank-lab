@@ -1,6 +1,6 @@
 # AUTOPILOT - PlantedTankLab (Single Source Of Truth)
 
-Last updated: 2026-02-11
+Last updated: 2026-02-12
 
 This file is the only authoritative status board for active execution.
 If chat history or older docs conflict with this file, this file wins.
@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-5/CAT-1` (ops closeout + template-build curation) — `IN-11A1`, `IN-11A2`, and `IN-11A3` are complete; `IN-11A4` (placeholder/provenance anti-regression guardrails) is now active.
+Current phase: `ING-5/CAT-1` (ops closeout + template-build curation) — `IN-11A1`, `IN-11A2`, and `IN-11A3` are complete; `IN-11A4` guardrails are implemented in code/tests but final data cleanup is blocked on a seed normalization run that does not complete.
 
 ## Current State Snapshot
 
@@ -33,34 +33,33 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- complete `IN-11A4` to lock in anti-regression guardrails for placeholder/provenance regressions.
+- finish `IN-11A4` data-state remediation by completing a successful seed normalization run and clearing existing placeholder image markers detected by `pnpm catalog:audit:regressions`.
 - ingestion ops dashboard/runbook and final gate closeout remain pending (`IN-12`, `IN-13`).
 
 ## What Changed Last
 
-- Completed `IN-11A3` placeholder/content cleanup across production catalog surfaces.
-- Added explicit no-data helper + regression coverage:
-  - `src/lib/catalog-no-data.ts`
-  - `tests/lib/catalog-no-data.test.ts`
-- Removed placeholder hero-image fallbacks and filler copy from:
-  - `src/app/products/page.tsx`
-  - `src/app/products/[category]/page.tsx`
-  - `src/app/products/[category]/[slug]/page.tsx`
-  - `src/app/plants/page.tsx`
-  - `src/app/plants/[slug]/page.tsx`
-  - `src/components/builder/BuilderPage.tsx`
+- Implemented `IN-11A4` code/test guardrails:
+  - Added centralized placeholder sanitization/detection module: `src/lib/catalog-guardrails.ts`.
+  - Wired sanitization into normalization boundary: `src/server/normalization/manual-seed.ts`.
+  - Wired read-path helpers to suppress placeholder media/copy: Products/Plants/Builder + `src/lib/catalog-no-data.ts`.
+  - Added regression audit service + CLI: `src/server/catalog/regression-audit.ts`, `scripts/catalog-regression-audit.ts`, `pnpm catalog:audit:regressions`.
+  - Hardened regression tests to avoid hardcoded legacy slugs (`tests/api/offers.test.ts`, `tests/api/builds.test.ts`, `tests/api/plants.test.ts`, `tests/e2e/smoke.spec.ts`).
+  - Added unit coverage: `tests/lib/catalog-guardrails.test.ts` + updated `tests/lib/catalog-no-data.test.ts`.
 - Verification notes:
-  - `pnpm vitest run tests/lib/catalog-no-data.test.ts` PASS
   - `pnpm lint` PASS
   - `pnpm typecheck` PASS
+  - `pnpm test` PASS
+  - `pnpm test:e2e` PASS
+  - `pnpm verify` PASS
   - `pnpm verify:gates` PASS
-  - `pnpm verify` FAIL due existing seeded-data assumptions after provenance cleanup (`tests/api/offers.test.ts`, `tests/api/builds.test.ts`, `tests/api/plants.test.ts`)
-  - `pnpm seed` reached normalization phase and produced no completion signal (terminated manually).
+  - `pnpm catalog:audit:provenance` PASS
+  - `pnpm catalog:audit:regressions` FAIL (`placeholder.products=18`, provenance clean)
+  - `pnpm seed` attempted twice; reaches normalization phase and does not emit completion signal (terminated manually).
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-11A4` Add guardrails/tests to prevent placeholder/provenance regressions.
+1. `IN-11A4` Close remaining blocker: complete seed normalization run and clear existing placeholder image markers so `pnpm catalog:audit:regressions` passes.
 2. `CAT-01` Define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant counts.
 3. `CAT-02` Add one-click "Start from template" UX.
 4. `IN-12` Ingestion ops dashboard and runbook checks.
@@ -71,7 +70,7 @@ Execute in this order:
 - Offer data completeness still depends on source coverage and parser quality.
 - In-memory rate limit implementation is acceptable now but not horizontally durable.
 - Sentry alerting still requires ongoing production tuning.
-- Provenance baseline is clean and placeholder/content cleanup is complete (`IN-11A3`); anti-regression coverage (`IN-11A4`) is still pending.
+- Provenance baseline is clean and anti-regression guardrail code/tests are in place, but existing placeholder image rows remain in canonical products until a successful seed normalization/remediation run completes.
 
 ## Resume In <2 Minutes
 

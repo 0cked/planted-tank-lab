@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SmartImage } from "@/components/SmartImage";
-import { missingSourceImageCopy } from "@/lib/catalog-no-data";
+import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-data";
 import {
   deriveOfferSummaryState,
   formatOfferSummaryCheckedAt,
@@ -81,12 +81,6 @@ function offerSummaryDisplay(summary: OfferSummaryLike): { priceCents: number | 
     priceCents: state.minPriceCents,
     note: state.staleFlag ? `Checked ${checked} (stale)` : `Checked ${checked}`,
   };
-}
-
-function firstImageUrl(imageUrl: string | null, imageUrls: unknown): string | null {
-  if (imageUrl) return imageUrl;
-  if (Array.isArray(imageUrls) && typeof imageUrls[0] === "string") return imageUrls[0];
-  return null;
 }
 
 function tankSummary(specs: unknown): string {
@@ -292,7 +286,7 @@ export default async function ProductCategoryPage(props: {
                         .slice(0, 4)
                     : [];
                   const brandName = p.brand?.name ?? null;
-                  const productImg = firstImageUrl(p.imageUrl ?? null, p.imageUrls);
+                  const productImg = firstCatalogImageUrl({ imageUrl: p.imageUrl ?? null, imageUrls: p.imageUrls });
                   return (
                     <li key={p.id} className="px-5 py-4">
                       <div className="flex items-start gap-4">

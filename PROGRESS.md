@@ -800,3 +800,55 @@ Each work session must add a new dated entry that includes:
   - Guardrail work remains next (`IN-11A4`).
 
 - Next: `IN-11A4`.
+
+## 2026-02-11 22:41
+
+- Work: Executed `IN-11A4` implementation scope (guardrails/tests + verification plumbing), with one remaining ops/data blocker.
+  - Added centralized placeholder guardrail helpers:
+    - `src/lib/catalog-guardrails.ts`
+    - detects/sanitizes placeholder image URLs + filler copy markers.
+  - Wired guardrails into normalization + read paths:
+    - `src/server/normalization/manual-seed.ts` now sanitizes product/plant image/copy fields before canonical writes.
+    - `src/lib/catalog-no-data.ts` now uses sanitized picker-copy + first-usable image helper.
+    - updated Products/Plants/Builder surfaces to use `firstCatalogImageUrl` guardrails:
+      - `src/app/products/[category]/page.tsx`
+      - `src/app/products/[category]/[slug]/page.tsx`
+      - `src/app/plants/page.tsx`
+      - `src/app/plants/[slug]/page.tsx`
+      - `src/components/builder/BuilderPage.tsx`
+  - Added regression audit execution path:
+    - `src/server/catalog/regression-audit.ts`
+    - `scripts/catalog-regression-audit.ts`
+    - `package.json` script: `pnpm catalog:audit:regressions`
+    - `scripts/seed.ts` now runs regression audit (provenance + placeholder markers) and fails on violations.
+  - Reworked slug-fragile regression coverage to fixture-driven tests:
+    - `tests/api/offers.test.ts`
+    - `tests/api/builds.test.ts`
+    - `tests/api/plants.test.ts`
+    - `tests/e2e/smoke.spec.ts` (plants smoke now no longer hardcoded to `java-fern`).
+  - Added/updated unit coverage:
+    - `tests/lib/catalog-guardrails.test.ts`
+    - `tests/lib/catalog-no-data.test.ts`
+
+- Commands run:
+  - `pnpm lint` (PASS)
+  - `pnpm typecheck` (PASS)
+  - `pnpm vitest run tests/lib/catalog-guardrails.test.ts tests/lib/catalog-no-data.test.ts tests/api/offers.test.ts tests/api/plants.test.ts tests/api/builds.test.ts` (PASS)
+  - `pnpm verify:gates` (PASS)
+  - `pnpm test` (PASS)
+  - `pnpm test:e2e` (PASS)
+  - `pnpm verify` (PASS)
+  - `pnpm catalog:audit:provenance` (PASS)
+  - `pnpm catalog:audit:regressions` (FAIL: placeholder image markers still present on 18 active products)
+  - `pnpm seed` (attempted twice; reached normalization phase and produced no completion signal; terminated manually)
+
+- Results:
+  - IN-11A4 guardrail code/tests and executable audits are in place.
+  - Provenance remains clean (`displayed` + `build parts` violations all zero).
+  - Placeholder regression audit is now explicit and failing loudly on existing canonical placeholder image rows.
+  - Full verify suite is green after slug-fragility fixes (`pnpm verify` PASS).
+
+- Blocker:
+  - Existing placeholder image rows (18 products) still require successful seed/normalization remediation run; `pnpm seed` currently stalls in normalization with no completion signal.
+
+- Next: `IN-11A4` blocker-closeout (complete seed normalization/remediation so `pnpm catalog:audit:regressions` passes), then `CAT-01`.

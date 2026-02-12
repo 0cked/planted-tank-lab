@@ -1,7 +1,8 @@
+import { and, eq, isNotNull } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 
 import { db } from "../../src/server/db";
-import { priceHistory } from "../../src/server/db/schema";
+import { offers, priceHistory, products } from "../../src/server/db/schema";
 import { createTRPCContext } from "../../src/server/trpc/context";
 import { appRouter } from "../../src/server/trpc/router";
 
@@ -11,15 +12,37 @@ async function getCaller() {
   );
 }
 
-describe("tRPC offers router", () => {
-  test("bestByProductIds returns best in-stock offers for seeded products", async () => {
-    const caller = await getCaller();
+async function pickProductWithOffers(): Promise<string> {
+  const rows = await db
+    .select({ productId: products.id })
+    .from(offers)
+    .innerJoin(products, eq(offers.productId, products.id))
+    .where(
+      and(
+        eq(products.status, "active"),
+        eq(offers.inStock, true),
+        isNotNull(offers.priceCents),
+      ),
+    )
+    .limit(1);
 
-    const seeded = await caller.products.getBySlug({ slug: "uns-60u" });
-    const best = await caller.offers.bestByProductIds({ productIds: [seeded.id] });
+  const productId = rows[0]?.productId;
+  if (!productId) {
+    throw new Error("Expected at least one active product with an in-stock priced offer.");
+  }
+
+  return productId;
+}
+
+describe("tRPC offers router", () => {
+  test("bestByProductIds returns best in-stock offers for an active product", async () => {
+    const caller = await getCaller();
+    const productId = await pickProductWithOffers();
+
+    const best = await caller.offers.bestByProductIds({ productIds: [productId] });
 
     expect(best.length).toBe(1);
-    expect(best[0]!.productId).toBe(seeded.id);
+    expect(best[0]!.productId).toBe(productId);
     expect(best[0]!.priceCents).toBeTypeOf("number");
     expect(best[0]!.goUrl).toMatch(/^\/go\//);
     expect(best[0]!.retailer.name).toBeTruthy();
@@ -27,12 +50,12 @@ describe("tRPC offers router", () => {
 
   test("summaryByProductIds returns derived offer summaries", async () => {
     const caller = await getCaller();
+    const productId = await pickProductWithOffers();
 
-    const seeded = await caller.products.getBySlug({ slug: "uns-60u" });
-    const summaries = await caller.offers.summaryByProductIds({ productIds: [seeded.id] });
+    const summaries = await caller.offers.summaryByProductIds({ productIds: [productId] });
 
     expect(summaries.length).toBe(1);
-    expect(summaries[0]!.productId).toBe(seeded.id);
+    expect(summaries[0]!.productId).toBe(productId);
     expect(summaries[0]!.inStockCount).toBeGreaterThanOrEqual(0);
     expect(typeof summaries[0]!.staleFlag).toBe("boolean");
 
@@ -44,11 +67,12 @@ describe("tRPC offers router", () => {
 
   test("priceHistoryByProductId returns history rows (after inserting a point)", async () => {
     const caller = await getCaller();
-    const seeded = await caller.products.getBySlug({ slug: "uns-60u" });
-    const offers = await caller.offers.listByProductId({ productId: seeded.id, limit: 5 });
-    expect(offers.length).toBeGreaterThan(0);
+    const productId = await pickProductWithOffers();
 
-    const offerId = offers[0]!.id;
+    const offerRows = await caller.offers.listByProductId({ productId, limit: 5 });
+    expect(offerRows.length).toBeGreaterThan(0);
+
+    const offerId = offerRows[0]!.id;
     await db.insert(priceHistory).values({
       offerId,
       priceCents: 12345,
@@ -57,7 +81,7 @@ describe("tRPC offers router", () => {
     });
 
     const rows = await caller.offers.priceHistoryByProductId({
-      productId: seeded.id,
+      productId,
       days: 365,
       limit: 50,
     });

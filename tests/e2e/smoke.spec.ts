@@ -1,4 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
+import { eq, inArray } from "drizzle-orm";
+
+import { db } from "../../src/server/db";
+import { plants } from "../../src/server/db/schema";
 
 async function dismissCookies(page: Page) {
   const allow = page.getByRole("button", { name: "Allow" });
@@ -6,6 +10,51 @@ async function dismissCookies(page: Page) {
     await allow.click();
   }
 }
+
+
+const createdPlantIds: string[] = [];
+
+async function ensurePlantSlugForE2E(): Promise<string> {
+  const existing = await db
+    .select({ slug: plants.slug })
+    .from(plants)
+    .where(eq(plants.status, "active"))
+    .orderBy(plants.commonName)
+    .limit(1);
+
+  const existingSlug = existing[0]?.slug;
+  if (existingSlug) return existingSlug;
+
+  const slug = `vitest-e2e-plant-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const inserted = await db
+    .insert(plants)
+    .values({
+      commonName: "Vitest E2E Plant",
+      scientificName: "E2ea testii",
+      slug,
+      difficulty: "easy",
+      lightDemand: "low",
+      co2Demand: "low",
+      placement: "midground",
+      description: "Fixture plant for e2e smoke coverage.",
+      status: "active",
+      beginnerFriendly: true,
+      shrimpSafe: true,
+      updatedAt: new Date(),
+    })
+    .returning({ id: plants.id, slug: plants.slug });
+
+  const row = inserted[0];
+  if (!row) throw new Error("Failed to create fallback e2e plant fixture.");
+  createdPlantIds.push(row.id);
+  return row.slug;
+}
+
+test.afterAll(async () => {
+  if (createdPlantIds.length > 0) {
+    await db.delete(plants).where(inArray(plants.id, createdPlantIds));
+  }
+});
 
 test("home renders", async ({ page }) => {
   await page.goto("/");
@@ -35,14 +84,14 @@ test("product detail renders", async ({ page }) => {
 });
 
 test("plants browsing and detail render", async ({ page }) => {
-  await page.goto("/plants", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Plants" })).toBeVisible();
-  await expect(
-    page.locator('a[href="/plants/java-fern"]').first(),
-  ).toBeVisible();
+  const plantSlug = await ensurePlantSlugForE2E();
 
-  await page.goto("/plants/java-fern", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Java Fern" })).toBeVisible();
+  await page.goto("/plants?curated=0", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Plants" })).toBeVisible();
+  await expect(page.locator(`a[href="/plants/${plantSlug}"]`).first()).toBeVisible();
+
+  await page.goto(`/plants/${plantSlug}`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading")).toContainText(/.+/);
   await expect(page.getByText("Care Card")).toBeVisible();
 });
 

@@ -1,6 +1,11 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
+import {
+  sanitizeCatalogCopy,
+  sanitizeCatalogImageUrl,
+  sanitizeCatalogImageUrls,
+} from "@/lib/catalog-guardrails";
 import { db } from "@/server/db";
 import {
   brands,
@@ -389,9 +394,9 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
       brandId,
       name: item.name,
       slug: item.slug,
-      description: item.description ?? null,
-      imageUrl: item.image_url ?? null,
-      imageUrls: item.image_urls ?? [],
+      description: sanitizeCatalogCopy(item.description) ?? null,
+      imageUrl: sanitizeCatalogImageUrl(item.image_url ?? null),
+      imageUrls: sanitizeCatalogImageUrls(item.image_urls ?? []),
       specs: item.specs,
       meta: productMeta,
       status: "active",
@@ -519,9 +524,9 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
       scientificName: item.scientific_name ?? null,
       slug: item.slug,
       family: item.family ?? null,
-      description: item.description ?? null,
-      imageUrl: item.image_url ?? null,
-      imageUrls: item.image_urls ?? [],
+      description: sanitizeCatalogCopy(item.description) ?? null,
+      imageUrl: sanitizeCatalogImageUrl(item.image_url ?? null),
+      imageUrls: sanitizeCatalogImageUrls(item.image_urls ?? []),
       sources: item.sources ?? [],
 
       difficulty: item.difficulty,
@@ -546,7 +551,7 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
       beginnerFriendly: item.beginner_friendly,
 
       nativeRegion: item.native_region ?? null,
-      notes: item.notes ?? null,
+      notes: sanitizeCatalogCopy(item.notes) ?? null,
       status: "active",
       verified: false,
       updatedAt: new Date(),

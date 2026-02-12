@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SmartImage } from "@/components/SmartImage";
-import { missingSourceImageCopy } from "@/lib/catalog-no-data";
+import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-data";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 function sourcesList(value: unknown): string[] {
@@ -94,6 +94,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
   const updated = p.updatedAt ? new Date(p.updatedAt).toISOString().slice(0, 10) : null;
   const typeLabel = p.substrateType ?? p.placement;
   const missingPlantImage = missingSourceImageCopy("plant");
+  const imageUrl = firstCatalogImageUrl({ imageUrl: p.imageUrl ?? null, imageUrls: p.imageUrls });
 
   const plantInfoRows: Array<{ label: string; value: string }> = [
     { label: "Type", value: titleWords(typeLabel) },
@@ -146,9 +147,9 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
               className="relative aspect-[16/10] overflow-hidden rounded-2xl border bg-white/60"
               style={{ borderColor: "var(--ptl-border)" }}
             >
-              {p.imageUrl ? (
+              {imageUrl ? (
                 <SmartImage
-                  src={p.imageUrl}
+                  src={imageUrl}
                   alt=""
                   fill
                   sizes="(min-width: 1024px) 560px, 100vw"
@@ -168,7 +169,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
                 </div>
               )}
             </div>
-            {p.imageUrl ? (
+            {imageUrl ? (
               <div className="mt-2 text-xs text-neutral-600">
                 Images are provided as-is from external sources.
               </div>

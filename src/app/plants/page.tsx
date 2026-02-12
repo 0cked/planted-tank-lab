@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { SmartImage } from "@/components/SmartImage";
 import { PlantsFilters } from "@/components/plants/PlantsFilters";
-import { missingSourceImageCopy } from "@/lib/catalog-no-data";
+import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-data";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 export const metadata: Metadata = {
@@ -94,7 +94,11 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
           ) : (
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {plants.map((p) => {
-                const hasImg = Boolean(p.imageUrl);
+                const imageUrl = firstCatalogImageUrl({
+                  imageUrl: p.imageUrl ?? null,
+                  imageUrls: p.imageUrls,
+                });
+                const hasImg = Boolean(imageUrl);
                 return (
                   <li key={p.id}>
                     <Link
@@ -105,7 +109,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                       <div className="relative aspect-[4/3] overflow-hidden">
                         {hasImg ? (
                           <SmartImage
-                            src={p.imageUrl as string}
+                            src={imageUrl as string}
                             alt=""
                             fill
                             sizes="(max-width: 1024px) 50vw, 33vw"

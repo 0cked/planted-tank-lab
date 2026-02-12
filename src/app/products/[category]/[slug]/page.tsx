@@ -9,7 +9,8 @@ import {
   formatOfferSummaryCheckedAt,
   type OfferSummaryLike,
 } from "@/lib/offer-summary";
-import { missingSourceImageCopy } from "@/lib/catalog-no-data";
+import { sanitizeCatalogImageUrls } from "@/lib/catalog-guardrails";
+import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-data";
 import { formatSpecs } from "@/lib/specs";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
@@ -88,12 +89,6 @@ function PriceSparkline(props: { centsByDay: Array<{ day: string; cents: number 
   );
 }
 
-function firstImageUrl(imageUrl: string | null, imageUrls: unknown): string | null {
-  if (imageUrl) return imageUrl;
-  if (Array.isArray(imageUrls) && typeof imageUrls[0] === "string") return imageUrls[0];
-  return null;
-}
-
 export async function generateMetadata(props: {
   params: Promise<{ category: string; slug: string }>;
 }): Promise<Metadata> {
@@ -140,10 +135,11 @@ export default async function ProductDetailPage(props: {
 
   const specs = formatSpecs({ categorySlug: p.category.slug, specs: p.specs });
 
-  const gallery = Array.isArray(p.imageUrls)
-    ? p.imageUrls.filter((u): u is string => typeof u === "string")
-    : [];
-  const primaryImage = firstImageUrl(p.imageUrl ?? null, gallery) ?? null;
+  const gallery = sanitizeCatalogImageUrls(p.imageUrls);
+  const primaryImage = firstCatalogImageUrl({
+    imageUrl: p.imageUrl ?? null,
+    imageUrls: gallery,
+  });
   const missingProductImage = missingSourceImageCopy("product");
 
   const centsByDay = (() => {
@@ -359,7 +355,7 @@ export default async function ProductDetailPage(props: {
 
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {worksWellWith.map((x) => {
-              const img = firstImageUrl(x.imageUrl ?? null, x.imageUrls) ?? null;
+              const img = firstCatalogImageUrl({ imageUrl: x.imageUrl ?? null, imageUrls: x.imageUrls });
               const brandPrefix = x.brand?.name ? `${x.brand.name} ` : "";
               const title = `${brandPrefix}${x.name}`;
               return (

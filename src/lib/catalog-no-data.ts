@@ -1,3 +1,8 @@
+import {
+  firstCatalogImageUrl as firstCatalogImageUrlFromGuardrails,
+  sanitizeCatalogCopy,
+} from "@/lib/catalog-guardrails";
+
 export type CatalogEntityKind = "product" | "plant";
 
 type MissingSourceImageCopy = {
@@ -21,7 +26,14 @@ export function missingSourceImageCopy(kind: CatalogEntityKind): MissingSourceIm
 }
 
 export function normalizePickerDetails(description: string | null | undefined): string {
-  const text = description?.trim();
+  const text = sanitizeCatalogCopy(description);
   if (text) return text;
   return "Source details are not available for this item yet.";
+}
+
+export function firstCatalogImageUrl(params: {
+  imageUrl: string | null | undefined;
+  imageUrls: unknown;
+}): string | null {
+  return firstCatalogImageUrlFromGuardrails(params.imageUrl, params.imageUrls);
 }
