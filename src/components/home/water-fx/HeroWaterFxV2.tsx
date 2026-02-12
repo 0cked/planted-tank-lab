@@ -825,15 +825,15 @@ export function HeroWaterFxV2({ enabled }: HeroWaterFxV2Props) {
         idlePhase += 0.38;
         const nx = clamp(0.32 + Math.sin(idlePhase) * 0.06, 0.2, 0.46);
         const ny = clamp(0.34 + Math.cos(idlePhase * 0.9) * 0.05, 0.22, 0.48);
-        const fx = Math.cos(idlePhase * 1.4) * 12;
-        const fy = Math.sin(idlePhase * 1.2) * 9.5;
-        field.inject(nx, ny, fx * 0.03, fy * 0.03, quality.splatRadius * 1.25);
+        const fx = Math.cos(idlePhase * 1.4) * 22;
+        const fy = Math.sin(idlePhase * 1.2) * 16;
+        field.inject(nx, ny, fx * 0.06, fy * 0.06, quality.splatRadius * 1.35);
         pendingSplats.push({
           x: nx,
           y: ny,
           fx,
           fy,
-          strength: 14,
+          strength: 24,
         });
       }
 
