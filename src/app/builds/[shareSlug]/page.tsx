@@ -44,6 +44,33 @@ function labelForCategory(params: { slug: string; name?: string | null }): strin
   return titleCaseSlug(params.slug);
 }
 
+function tierMeta(style: string | null | undefined): {
+  label: string;
+  className: string;
+} | null {
+  if (!style) return null;
+  const normalized = style.trim().toLowerCase();
+  if (normalized === "budget") {
+    return {
+      label: "Budget",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    };
+  }
+  if (normalized === "mid") {
+    return {
+      label: "Mid",
+      className: "border-blue-200 bg-blue-50 text-blue-900",
+    };
+  }
+  if (normalized === "premium") {
+    return {
+      label: "Premium",
+      className: "border-amber-200 bg-amber-50 text-amber-900",
+    };
+  }
+  return null;
+}
+
 export default async function BuildSharePage(props: {
   params: Promise<{ shareSlug: string }>;
 }) {
@@ -56,12 +83,23 @@ export default async function BuildSharePage(props: {
   const data = await caller.builds.getByShareSlug({ shareSlug }).catch(() => null);
   if (!data) notFound();
 
-  const categoriesList = await caller.products.categoriesList().catch(() => []);
-  const categoryNameBySlug = new Map(categoriesList.map((c) => [c.slug, c.name] as const));
-
-  const gear = Object.entries(data.snapshot.productsByCategory)
-    .map(([categorySlug, p]) => ({ categorySlug, product: p }))
-    .filter((x) => Boolean(x.product?.id));
+  const gear = data.items.filter(
+    (
+      item,
+    ): item is (typeof data.items)[number] & {
+      type: "product";
+      product: { id: string; name: string; slug: string };
+    } => item.type === "product" && item.product != null,
+  );
+  const plantItems = data.items.filter(
+    (
+      item,
+    ): item is (typeof data.items)[number] & {
+      type: "plant";
+      plant: { id: string; commonName: string; slug: string };
+    } => item.type === "plant" && item.plant != null,
+  );
+  const tier = tierMeta(data.build.style);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -79,6 +117,11 @@ export default async function BuildSharePage(props: {
             </p>
           ) : null}
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-neutral-700">
+            {tier ? (
+              <div className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${tier.className}`}>
+                {tier.label}
+              </div>
+            ) : null}
             <div className="rounded-full border bg-white/60 px-3 py-1.5" style={{ borderColor: "var(--ptl-border)" }}>
               {data.build.itemCount} item(s)
             </div>
@@ -122,14 +165,14 @@ export default async function BuildSharePage(props: {
             <ul className="mt-4 space-y-3">
               {gear.map((g) => (
                 <li
-                  key={g.categorySlug}
+                  key={g.id}
                   className="rounded-2xl border bg-white/55 p-4"
                   style={{ borderColor: "var(--ptl-border)" }}
                 >
                   <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
                     {labelForCategory({
                       slug: g.categorySlug,
-                      name: categoryNameBySlug.get(g.categorySlug) ?? null,
+                      name: g.categoryName,
                     })}
                   </div>
                   <div className="mt-1 text-sm font-semibold text-neutral-900">
@@ -144,6 +187,10 @@ export default async function BuildSharePage(props: {
                       (g.product?.name ?? "—")
                     )}
                   </div>
+                  <div className="mt-1 text-xs text-neutral-700">
+                    Qty: {g.quantity}
+                    {g.notes ? ` · ${g.notes}` : ""}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -152,15 +199,19 @@ export default async function BuildSharePage(props: {
 
         <section className="ptl-surface p-7 sm:p-10">
           <h2 className="text-lg font-semibold">Plants</h2>
-          {data.snapshot.plants.length === 0 ? (
+          {plantItems.length === 0 ? (
             <div className="mt-4 text-sm text-neutral-700">No plants selected.</div>
           ) : (
-            <ul className="mt-4 space-y-2">
-              {data.snapshot.plants.map((p) => (
-                <li key={p.id}>
-                  <Link href={`/plants/${p.slug}`} className="text-sm font-semibold text-neutral-900 hover:underline">
-                    {p.commonName}
+            <ul className="mt-4 space-y-3">
+              {plantItems.map((p) => (
+                <li key={p.id} className="rounded-2xl border bg-white/55 p-4" style={{ borderColor: "var(--ptl-border)" }}>
+                  <Link href={`/plants/${p.plant.slug}`} className="text-sm font-semibold text-neutral-900 hover:underline">
+                    {p.plant.commonName}
                   </Link>
+                  <div className="mt-1 text-xs text-neutral-700">
+                    Qty: {p.quantity}
+                    {p.notes ? ` · ${p.notes}` : ""}
+                  </div>
                 </li>
               ))}
             </ul>

@@ -116,6 +116,7 @@ export const buildsRouter = createTRPCRouter({
         .select({
           id: builds.id,
           name: builds.name,
+          style: builds.style,
           shareSlug: builds.shareSlug,
           description: builds.description,
           coverImageUrl: builds.coverImageUrl,
@@ -198,6 +199,7 @@ export const buildsRouter = createTRPCRouter({
       const items = await ctx.db
         .select({
           categorySlug: categories.slug,
+          categoryName: categories.name,
           product: products,
           plant: plants,
           item: buildItems,
@@ -206,43 +208,100 @@ export const buildsRouter = createTRPCRouter({
         .innerJoin(categories, eq(buildItems.categoryId, categories.id))
         .leftJoin(products, eq(buildItems.productId, products.id))
         .leftJoin(plants, eq(buildItems.plantId, plants.id))
-        .where(eq(buildItems.buildId, build.id));
+        .where(eq(buildItems.buildId, build.id))
+        .orderBy(buildItems.addedAt);
 
       const productsByCategory: Record<string, ProductSnapshot | undefined> = {};
       const plantList: PlantSnapshot[] = [];
       const selectedOfferIdByProductId: Record<string, string | undefined> = {};
+      const detailedItems: Array<{
+        id: string;
+        categorySlug: string;
+        categoryName: string;
+        quantity: number;
+        notes: string | null;
+        type: "product" | "plant";
+        product:
+          | {
+              id: string;
+              name: string;
+              slug: string;
+            }
+          | null;
+        plant:
+          | {
+              id: string;
+              commonName: string;
+              slug: string;
+            }
+          | null;
+      }> = [];
+      const seenPlantIds = new Set<string>();
 
       for (const row of items) {
         if (row.product) {
-          productsByCategory[row.categorySlug] = {
-            id: row.product.id,
-            name: row.product.name,
-            slug: row.product.slug,
-            categorySlug: row.categorySlug,
-            specs: (row.product.specs ?? {}) as Record<string, unknown>,
-          };
+          if (!productsByCategory[row.categorySlug]) {
+            productsByCategory[row.categorySlug] = {
+              id: row.product.id,
+              name: row.product.name,
+              slug: row.product.slug,
+              categorySlug: row.categorySlug,
+              specs: (row.product.specs ?? {}) as Record<string, unknown>,
+            };
+          }
           if (row.item.selectedOfferId) {
             selectedOfferIdByProductId[row.product.id] = row.item.selectedOfferId;
           }
+          detailedItems.push({
+            id: row.item.id,
+            categorySlug: row.categorySlug,
+            categoryName: row.categoryName,
+            quantity: row.item.quantity,
+            notes: row.item.notes,
+            type: "product",
+            product: {
+              id: row.product.id,
+              name: row.product.name,
+              slug: row.product.slug,
+            },
+            plant: null,
+          });
         } else if (row.plant) {
-          plantList.push({
-            id: row.plant.id,
-            commonName: row.plant.commonName,
-            slug: row.plant.slug,
-            difficulty: row.plant.difficulty,
-            lightDemand: row.plant.lightDemand,
-            co2Demand: row.plant.co2Demand,
-            growthRate: row.plant.growthRate,
-            placement: row.plant.placement,
-            tempMinF: row.plant.tempMinF ? Number(row.plant.tempMinF) : null,
-            tempMaxF: row.plant.tempMaxF ? Number(row.plant.tempMaxF) : null,
-            phMin: row.plant.phMin ? Number(row.plant.phMin) : null,
-            phMax: row.plant.phMax ? Number(row.plant.phMax) : null,
-            ghMin: row.plant.ghMin ?? null,
-            ghMax: row.plant.ghMax ?? null,
-            khMin: row.plant.khMin ?? null,
-            khMax: row.plant.khMax ?? null,
-            maxHeightIn: row.plant.maxHeightIn ? Number(row.plant.maxHeightIn) : null,
+          if (!seenPlantIds.has(row.plant.id)) {
+            plantList.push({
+              id: row.plant.id,
+              commonName: row.plant.commonName,
+              slug: row.plant.slug,
+              difficulty: row.plant.difficulty,
+              lightDemand: row.plant.lightDemand,
+              co2Demand: row.plant.co2Demand,
+              growthRate: row.plant.growthRate,
+              placement: row.plant.placement,
+              tempMinF: row.plant.tempMinF ? Number(row.plant.tempMinF) : null,
+              tempMaxF: row.plant.tempMaxF ? Number(row.plant.tempMaxF) : null,
+              phMin: row.plant.phMin ? Number(row.plant.phMin) : null,
+              phMax: row.plant.phMax ? Number(row.plant.phMax) : null,
+              ghMin: row.plant.ghMin ?? null,
+              ghMax: row.plant.ghMax ?? null,
+              khMin: row.plant.khMin ?? null,
+              khMax: row.plant.khMax ?? null,
+              maxHeightIn: row.plant.maxHeightIn ? Number(row.plant.maxHeightIn) : null,
+            });
+            seenPlantIds.add(row.plant.id);
+          }
+          detailedItems.push({
+            id: row.item.id,
+            categorySlug: row.categorySlug,
+            categoryName: row.categoryName,
+            quantity: row.item.quantity,
+            notes: row.item.notes,
+            type: "plant",
+            product: null,
+            plant: {
+              id: row.plant.id,
+              commonName: row.plant.commonName,
+              slug: row.plant.slug,
+            },
           });
         }
       }
@@ -251,6 +310,7 @@ export const buildsRouter = createTRPCRouter({
         build: {
           id: build.id,
           name: build.name,
+          style: build.style,
           shareSlug: build.shareSlug,
           description: build.description,
           isPublic: build.isPublic,
@@ -258,6 +318,7 @@ export const buildsRouter = createTRPCRouter({
           totalPriceCents: build.totalPriceCents,
           updatedAt: build.updatedAt,
         },
+        items: detailedItems,
         snapshot: {
           buildId: build.id,
           shareSlug: build.shareSlug,

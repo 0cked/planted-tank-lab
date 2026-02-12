@@ -9,6 +9,8 @@ import { pruneLegacyCatalogRows } from "@/server/catalog/legacy-prune";
 import { runCatalogRegressionAudit } from "@/server/catalog/regression-audit";
 import { db } from "@/server/db";
 import {
+  buildItems,
+  builds,
   brands,
   categories,
   compatibilityRules,
@@ -66,6 +68,38 @@ const retailerSeedSchema = z.object({
   allowed_hosts: z.array(z.string().min(1)).optional(),
   meta: z.record(z.string(), z.unknown()).optional(),
   active: z.boolean().default(true),
+});
+
+const curatedBuildItemSeedSchema = z
+  .object({
+    category_slug: z.string().min(1),
+    product_slug: z.string().min(1).optional(),
+    plant_slug: z.string().min(1).optional(),
+    quantity: z.number().int().min(1).default(1),
+    notes: z.string().max(500).optional(),
+  })
+  .refine(
+    (item) =>
+      (item.product_slug != null && item.plant_slug == null) ||
+      (item.product_slug == null && item.plant_slug != null),
+    {
+      message: "Each curated build item must define exactly one of product_slug or plant_slug.",
+    },
+  );
+
+const curatedBuildSeedSchema = z.object({
+  slug: z
+    .string()
+    .min(1)
+    .max(20)
+    .regex(/^[a-z0-9-]+$/),
+  name: z.string().min(1).max(300),
+  tier: z.enum(["budget", "mid", "premium"]),
+  description: z.string().min(1).max(5000),
+  style: z.string().min(1).max(50).optional(),
+  cover_image_url: z.string().min(1).optional(),
+  flags: z.record(z.string(), z.unknown()).optional(),
+  items: z.array(curatedBuildItemSeedSchema).min(1),
 });
 
 function readJson<T>(relPath: string): T {
@@ -386,6 +420,212 @@ async function backfillInitialPriceHistory(): Promise<void> {
   }
 }
 
+async function upsertCuratedBuilds(): Promise<{
+  buildsSeeded: number;
+  itemRowsSeeded: number;
+  itemsMissingPricedOffer: number;
+}> {
+  const raw = readJson<unknown>("data/builds.json");
+  const curatedBuilds = z.array(curatedBuildSeedSchema).parse(raw);
+
+  const categoryRows = await db
+    .select({ id: categories.id, slug: categories.slug })
+    .from(categories);
+  const categoryIdBySlug = new Map(categoryRows.map((row) => [row.slug, row.id] as const));
+
+  const productRows = await db
+    .select({
+      id: products.id,
+      slug: products.slug,
+      categorySlug: categories.slug,
+    })
+    .from(products)
+    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .where(eq(products.status, "active"));
+  const productBySlug = new Map(productRows.map((row) => [row.slug, row] as const));
+
+  const plantRows = await db
+    .select({
+      id: plants.id,
+      slug: plants.slug,
+    })
+    .from(plants)
+    .where(eq(plants.status, "active"));
+  const plantBySlug = new Map(plantRows.map((row) => [row.slug, row] as const));
+
+  const pricedOfferRows = await db
+    .select({
+      id: offers.id,
+      productId: offers.productId,
+      priceCents: offers.priceCents,
+    })
+    .from(offers)
+    .where(and(eq(offers.inStock, true), isNotNull(offers.priceCents)))
+    .orderBy(offers.productId, offers.priceCents);
+
+  const bestOfferByProductId = new Map<string, { id: string; priceCents: number }>();
+  for (const row of pricedOfferRows) {
+    if (row.priceCents == null) continue;
+    if (!bestOfferByProductId.has(row.productId)) {
+      bestOfferByProductId.set(row.productId, {
+        id: row.id,
+        priceCents: row.priceCents,
+      });
+    }
+  }
+
+  let buildsSeeded = 0;
+  let itemRowsSeeded = 0;
+  let itemsMissingPricedOffer = 0;
+
+  for (const preset of curatedBuilds) {
+    const now = new Date();
+    const seededStyle = preset.style ?? preset.tier;
+
+    const upserted = await db
+      .insert(builds)
+      .values({
+        userId: null,
+        name: preset.name,
+        description: preset.description,
+        shareSlug: preset.slug,
+        style: seededStyle,
+        isPublic: true,
+        isCompleted: true,
+        coverImageUrl: preset.cover_image_url ?? null,
+        flags: preset.flags ?? {},
+        itemCount: 0,
+        totalPriceCents: 0,
+        warningsCount: 0,
+        errorsCount: 0,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: builds.shareSlug,
+        set: {
+          name: preset.name,
+          description: preset.description,
+          style: seededStyle,
+          isPublic: true,
+          isCompleted: true,
+          coverImageUrl: preset.cover_image_url ?? null,
+          flags: preset.flags ?? {},
+          updatedAt: now,
+        },
+      })
+      .returning({ id: builds.id });
+
+    const buildId = upserted[0]?.id;
+    if (!buildId) {
+      throw new Error(`Failed to upsert curated build '${preset.slug}'.`);
+    }
+
+    await db.delete(buildItems).where(eq(buildItems.buildId, buildId));
+
+    const itemRowsToInsert: Array<{
+      buildId: string;
+      categoryId: string;
+      productId: string | null;
+      plantId: string | null;
+      quantity: number;
+      notes: string | null;
+      selectedOfferId: string | null;
+      addedAt: Date;
+    }> = [];
+
+    let totalPriceCents = 0;
+
+    for (const item of preset.items) {
+      const categoryId = categoryIdBySlug.get(item.category_slug);
+      if (!categoryId) {
+        throw new Error(
+          `Curated build '${preset.slug}' references unknown category '${item.category_slug}'.`,
+        );
+      }
+
+      if (item.product_slug) {
+        const product = productBySlug.get(item.product_slug);
+        if (!product) {
+          throw new Error(
+            `Curated build '${preset.slug}' references unknown product '${item.product_slug}'.`,
+          );
+        }
+
+        if (product.categorySlug !== item.category_slug) {
+          throw new Error(
+            `Curated build '${preset.slug}' product '${item.product_slug}' is in category '${product.categorySlug}', expected '${item.category_slug}'.`,
+          );
+        }
+
+        const bestOffer = bestOfferByProductId.get(product.id);
+        if (bestOffer) {
+          totalPriceCents += bestOffer.priceCents * item.quantity;
+        } else {
+          itemsMissingPricedOffer += 1;
+        }
+
+        itemRowsToInsert.push({
+          buildId,
+          categoryId,
+          productId: product.id,
+          plantId: null,
+          quantity: item.quantity,
+          notes: item.notes ?? null,
+          selectedOfferId: bestOffer?.id ?? null,
+          addedAt: now,
+        });
+        continue;
+      }
+
+      if (item.category_slug !== "plants") {
+        throw new Error(
+          `Curated build '${preset.slug}' uses plant '${item.plant_slug}' outside the 'plants' category.`,
+        );
+      }
+
+      const plant = plantBySlug.get(item.plant_slug ?? "");
+      if (!plant) {
+        throw new Error(
+          `Curated build '${preset.slug}' references unknown plant '${item.plant_slug}'.`,
+        );
+      }
+
+      itemRowsToInsert.push({
+        buildId,
+        categoryId,
+        productId: null,
+        plantId: plant.id,
+        quantity: item.quantity,
+        notes: item.notes ?? null,
+        selectedOfferId: null,
+        addedAt: now,
+      });
+    }
+
+    if (itemRowsToInsert.length > 0) {
+      await db.insert(buildItems).values(itemRowsToInsert);
+    }
+
+    await db
+      .update(builds)
+      .set({
+        itemCount: itemRowsToInsert.length,
+        totalPriceCents,
+        updatedAt: now,
+      })
+      .where(eq(builds.id, buildId));
+
+    buildsSeeded += 1;
+    itemRowsSeeded += itemRowsToInsert.length;
+  }
+
+  return {
+    buildsSeeded,
+    itemRowsSeeded,
+    itemsMissingPricedOffer,
+  };
+}
+
 async function main(): Promise<void> {
   const productFiles = readdirSync(join(process.cwd(), "data/products"))
     .filter((fileName) => fileName.endsWith(".json"))
@@ -442,6 +682,9 @@ async function main(): Promise<void> {
   console.log("Seeding: price history (initial backfill)...");
   await backfillInitialPriceHistory();
 
+  console.log("Seeding: curated public builds...");
+  const curatedBuilds = await upsertCuratedBuilds();
+
   // Avoid spiking pooled connections on low-connection poolers.
   const categoriesCount = await db
     .select({ c: sql<number>`count(*)::int` })
@@ -467,6 +710,12 @@ async function main(): Promise<void> {
   const priceHistoryCount = await db
     .select({ c: sql<number>`count(*)::int` })
     .from(priceHistory);
+  const buildsCount = await db
+    .select({ c: sql<number>`count(*)::int` })
+    .from(builds);
+  const buildItemsCount = await db
+    .select({ c: sql<number>`count(*)::int` })
+    .from(buildItems);
 
   console.log("Seed complete.");
   console.log(
@@ -499,6 +748,9 @@ async function main(): Promise<void> {
         retailers: retailersCount[0]?.c,
         offers: offersCount[0]?.c,
         priceHistory: priceHistoryCount[0]?.c,
+        builds: buildsCount[0]?.c,
+        buildItems: buildItemsCount[0]?.c,
+        curatedBuilds,
       },
       null,
       2,

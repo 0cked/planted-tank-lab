@@ -1,0 +1,271 @@
+[
+  {
+    "slug": "budget-jungle-20",
+    "name": "Budget 20G Low-Tech Jungle",
+    "tier": "budget",
+    "description": "A forgiving, beginner-safe setup built around a 20 gallon long. No pressurized CO2, easy plants, and dependable gear that is widely available.",
+    "style": "budget",
+    "flags": {
+      "lowTechNoCo2": true,
+      "hasShrimp": false
+    },
+    "cover_image_url": "/images/home-hero-960.jpg",
+    "items": [
+      {
+        "category_slug": "tank",
+        "product_slug": "standard-20-gallon-long",
+        "quantity": 1
+      },
+      {
+        "category_slug": "stand",
+        "product_slug": "aqueon-metal-stand-20-long",
+        "quantity": 1
+      },
+      {
+        "category_slug": "light",
+        "product_slug": "nicrew-classicled-plus",
+        "quantity": 1
+      },
+      {
+        "category_slug": "filter",
+        "product_slug": "aquaclear-50-hob",
+        "quantity": 1
+      },
+      {
+        "category_slug": "substrate",
+        "product_slug": "pool-filter-sand",
+        "quantity": 2,
+        "notes": "Use two bags for full substrate depth."
+      },
+      {
+        "category_slug": "hardscape",
+        "product_slug": "dragon-stone",
+        "quantity": 2,
+        "notes": "Two medium boxes for a stable hardscape base."
+      },
+      {
+        "category_slug": "fertilizer",
+        "product_slug": "easy-green",
+        "quantity": 1
+      },
+      {
+        "category_slug": "heater",
+        "product_slug": "eheim-jager-100w",
+        "quantity": 1
+      },
+      {
+        "category_slug": "test_kit",
+        "product_slug": "api-freshwater-master-kit",
+        "quantity": 1
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "java-fern",
+        "quantity": 3,
+        "notes": "Attach to hardscape, do not bury rhizome."
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "anubias-nana",
+        "quantity": 4,
+        "notes": "Rhizome plant for midground hardscape points."
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "crypt-wendtii",
+        "quantity": 6
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "dwarf-sag",
+        "quantity": 10
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "java-moss",
+        "quantity": 2,
+        "notes": "Split and tie to wood and stone accents."
+      }
+    ]
+  },
+  {
+    "slug": "mid-tech-60u",
+    "name": "Mid-Tier 60U CO2 Planted Build",
+    "tier": "mid",
+    "description": "A balanced CO2 build for strong growth without going fully premium. Reliable canister filtration, proven mid-tier lighting, and easy-to-manage stem/carpeting mix.",
+    "style": "mid",
+    "flags": {
+      "lowTechNoCo2": false,
+      "hasShrimp": false
+    },
+    "cover_image_url": "/images/builder-hero-960.jpg",
+    "items": [
+      {
+        "category_slug": "tank",
+        "product_slug": "uns-60u",
+        "quantity": 1
+      },
+      {
+        "category_slug": "stand",
+        "product_slug": "uns-stand-60u",
+        "quantity": 1
+      },
+      {
+        "category_slug": "light",
+        "product_slug": "fluval-plant-3-0-24",
+        "quantity": 1
+      },
+      {
+        "category_slug": "filter",
+        "product_slug": "fluval-207-canister",
+        "quantity": 1
+      },
+      {
+        "category_slug": "co2",
+        "product_slug": "fzone-dual-stage-regulator",
+        "quantity": 1
+      },
+      {
+        "category_slug": "substrate",
+        "product_slug": "uns-controsoil-normal",
+        "quantity": 2,
+        "notes": "Two bags for 2.5-3 in front-to-back depth."
+      },
+      {
+        "category_slug": "hardscape",
+        "product_slug": "spider-wood",
+        "quantity": 2
+      },
+      {
+        "category_slug": "fertilizer",
+        "product_slug": "nilocg-thrives",
+        "quantity": 1
+      },
+      {
+        "category_slug": "heater",
+        "product_slug": "eheim-jager-100w",
+        "quantity": 1
+      },
+      {
+        "category_slug": "test_kit",
+        "product_slug": "api-freshwater-master-kit",
+        "quantity": 1
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "monte-carlo",
+        "quantity": 6
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "staurogyne-repens",
+        "quantity": 8
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "ludwigia-repens",
+        "quantity": 8
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "crypt-wendtii",
+        "quantity": 5
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "anubias-petite",
+        "quantity": 3
+      }
+    ]
+  },
+  {
+    "slug": "premium-ada-60p",
+    "name": "Premium ADA 60P High-Tech",
+    "tier": "premium",
+    "description": "A premium high-tech layout path with stronger PAR, dual-stage CO2, and dense planting for color and carpeting. Built for serious growth and precision control.",
+    "style": "premium",
+    "flags": {
+      "lowTechNoCo2": false,
+      "hasShrimp": false
+    },
+    "cover_image_url": "/images/aquascape-hero-16-by-9.svg",
+    "items": [
+      {
+        "category_slug": "tank",
+        "product_slug": "ada-60p",
+        "quantity": 1
+      },
+      {
+        "category_slug": "stand",
+        "product_slug": "ada-cube-cabinet-60p",
+        "quantity": 1
+      },
+      {
+        "category_slug": "light",
+        "product_slug": "chihiros-wrgb-ii-60",
+        "quantity": 1
+      },
+      {
+        "category_slug": "filter",
+        "product_slug": "oase-biomaster2-thermo-250",
+        "quantity": 1
+      },
+      {
+        "category_slug": "co2",
+        "product_slug": "co2art-pro-se",
+        "quantity": 1
+      },
+      {
+        "category_slug": "substrate",
+        "product_slug": "ada-aquasoil-amazonia-v2",
+        "quantity": 2
+      },
+      {
+        "category_slug": "hardscape",
+        "product_slug": "seiryu-stone",
+        "quantity": 3,
+        "notes": "Three sets for a classic Iwagumi-style foundation."
+      },
+      {
+        "category_slug": "fertilizer",
+        "product_slug": "apt-complete",
+        "quantity": 1
+      },
+      {
+        "category_slug": "heater",
+        "product_slug": "cobalt-neotherm-100w",
+        "quantity": 1
+      },
+      {
+        "category_slug": "test_kit",
+        "product_slug": "apera-ph-pen",
+        "quantity": 1
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "monte-carlo",
+        "quantity": 8
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "rotala-hra",
+        "quantity": 10
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "alternanthera-reineckii-mini",
+        "quantity": 6
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "buce-kedagang",
+        "quantity": 4
+      },
+      {
+        "category_slug": "plants",
+        "plant_slug": "hydrocotyle-tripartita-japan",
+        "quantity": 5
+      }
+    ]
+  }
+]
