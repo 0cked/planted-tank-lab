@@ -20,6 +20,7 @@ import {
   DEFAULT_SUBSTRATE_PROFILE,
   normalizeSubstrateProfile,
 } from "@/lib/visual/substrate";
+import { buildTankIllustrationUrl, tankModelFromSlug } from "@/lib/tank-visual";
 
 type ProductRow = {
   id: string;
@@ -434,6 +435,7 @@ export const visualBuilderRouter = createTRPCRouter({
     const tanks = rimlessTanks.map((row) => {
       const dims = dimensionsFromProduct("tank", row.product.specs);
       const bestOffer = bestOfferByProductId.get(row.product.id) ?? null;
+      const label = tankModelFromSlug(row.product.slug) ?? "UNS";
       return {
         id: row.product.id,
         name: row.product.name,
@@ -441,7 +443,12 @@ export const visualBuilderRouter = createTRPCRouter({
         widthIn: dims.widthIn,
         heightIn: dims.heightIn,
         depthIn: dims.depthIn,
-        imageUrl: firstImage(row.product.imageUrl, row.product.imageUrls),
+        imageUrl: buildTankIllustrationUrl({
+          lengthIn: dims.widthIn,
+          widthIn: dims.depthIn,
+          heightIn: dims.heightIn,
+          label,
+        }),
         priceCents: bestOffer?.priceCents ?? null,
         offerId: bestOffer?.offerId ?? null,
         goUrl: bestOffer ? `/go/${bestOffer.offerId}` : null,

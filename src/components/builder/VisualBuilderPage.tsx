@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { trpc } from "@/components/TRPCProvider";
+import { SmartImage } from "@/components/SmartImage";
 import { evaluateVisualCompatibility } from "@/components/builder/visual/compatibility";
 import { exportVisualLayoutPng } from "@/components/builder/visual/export";
 import type {
@@ -983,6 +984,20 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
 
                 {selectedTank ? (
                   <div className="rounded-xl border bg-white/70 p-3 text-sm" style={{ borderColor: "var(--ptl-border)" }}>
+                    {selectedTank.imageUrl ? (
+                      <div
+                        className="mb-2 overflow-hidden rounded-xl border bg-white"
+                        style={{ borderColor: "var(--ptl-border)" }}
+                      >
+                        <SmartImage
+                          src={selectedTank.imageUrl}
+                          alt={selectedTank.name}
+                          width={720}
+                          height={420}
+                          className="aspect-[5/3] w-full object-cover"
+                        />
+                      </div>
+                    ) : null}
                     <div className="font-semibold text-neutral-900">{selectedTank.name}</div>
                     <div className="mt-1 text-neutral-700">
                       Dimensions: {selectedTank.widthIn} x {selectedTank.depthIn} x {selectedTank.heightIn} in

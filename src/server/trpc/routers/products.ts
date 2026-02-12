@@ -4,8 +4,39 @@ import { and, desc, eq, ilike, inArray, isNotNull, ne, sql } from "drizzle-orm";
 
 import { buildItems, brands, categories, products } from "@/server/db/schema";
 import { createTRPCRouter, publicProcedure } from "@/server/trpc/trpc";
+import {
+  buildTankIllustrationUrl,
+  getTankVisualDimensions,
+  tankModelFromSlug,
+} from "@/lib/tank-visual";
 
 const ACTIVE_PRODUCT_STATUS = "active" as const;
+
+type ProductLike = {
+  slug: string;
+  specs: unknown;
+  imageUrl: string | null;
+  imageUrls: unknown;
+};
+
+function withTankPrimaryImage<T extends ProductLike>(product: T, categorySlug: string): T {
+  if (categorySlug !== "tank") return product;
+
+  const dims = getTankVisualDimensions(product.specs);
+  if (!dims) return product;
+
+  const label = tankModelFromSlug(product.slug) ?? "UNS";
+  return {
+    ...product,
+    imageUrl: buildTankIllustrationUrl({
+      lengthIn: dims.lengthIn,
+      widthIn: dims.widthIn,
+      heightIn: dims.heightIn,
+      label,
+    }),
+    imageUrls: [],
+  };
+}
 
 export const productsRouter = createTRPCRouter({
   list: publicProcedure
@@ -109,7 +140,7 @@ export const productsRouter = createTRPCRouter({
         .limit(input.limit);
 
       return rows.map((r) => ({
-        ...r.product,
+        ...withTankPrimaryImage(r.product, input.categorySlug),
         brand: r.brand,
       }));
     }),
@@ -152,7 +183,7 @@ export const productsRouter = createTRPCRouter({
         .limit(input.limit);
 
       return rows.map((r) => ({
-        ...r.product,
+        ...withTankPrimaryImage(r.product, input.categorySlug),
         brand: r.brand,
       }));
     }),
@@ -181,7 +212,7 @@ export const productsRouter = createTRPCRouter({
       if (!row) throw new TRPCError({ code: "NOT_FOUND" });
 
       return {
-        ...row.product,
+        ...withTankPrimaryImage(row.product, row.category.slug),
         brand: row.brand,
         category: row.category,
       };
@@ -253,11 +284,7 @@ export const productsRouter = createTRPCRouter({
 
       return rows
         .map((r) => ({
-          id: r.product.id,
-          name: r.product.name,
-          slug: r.product.slug,
-          imageUrl: r.product.imageUrl,
-          imageUrls: r.product.imageUrls,
+          ...withTankPrimaryImage(r.product, r.category.slug),
           category: { slug: r.category.slug, name: r.category.name },
           brand: r.brand ? { slug: r.brand.slug, name: r.brand.name } : null,
           uses: usesById.get(r.product.id) ?? 0,
