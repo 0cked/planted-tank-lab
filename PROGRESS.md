@@ -958,3 +958,64 @@ Each work session must add a new dated entry that includes:
 - Remaining next steps:
   - `IN-12C`: admin ingestion ops dashboard/runbook visibility + queue recovery controls.
   - `IN-13`: push freshness from 92.23% to >=95% and continue focus-category image debt remediation.
+
+## 2026-02-12 04:36
+
+- Work: Executed overnight production-readiness override focused on catalog quality + ingestion reliability + freshness correctness.
+  - Completed `IN-12C` (ops dashboard + recovery runbook wiring):
+    - Added ingestion ops service layer with queue/freshness snapshots + recovery actions:
+      - `src/server/services/admin/ingestion-ops.ts`
+    - Added admin-only recovery route:
+      - `src/app/admin/ingestion/recover/route.ts`
+    - Expanded `/admin/ingestion` UI to include:
+      - queue depth (`queued/running/failed/success`), ready-now, stale queued, stuck running
+      - active-catalog offer freshness snapshot + stale offer count
+      - unmapped entity count
+      - recent failed jobs and recent ingestion runs
+      - one-click recovery controls (retry failed, recover stuck running, requeue stale queued, enqueue freshness refresh)
+      - file: `src/app/admin/ingestion/page.tsx`
+    - Added helper coverage:
+      - `tests/server/admin-ingestion-ops.test.ts`
+    - Updated runbook:
+      - `VERIFY.md` (explicit ingestion queue recovery flow + post-recovery checks)
+
+  - Completed `IN-13A` freshness correctness closeout:
+    - Updated quality audit semantics to score freshness on **active-catalog offers** and report active/inactive context:
+      - `src/server/catalog/quality-audit.ts`
+    - Updated regression coverage:
+      - `tests/server/catalog-quality-audit.test.ts`
+
+  - Placeholder fixture artifact cleanup (`Top Priority #1` guardrail hardening):
+    - Removed blocked placeholder marker `/images/aquascape-hero-2400.jpg` from product fixture files:
+      - `data/products/tanks.json`
+      - `data/products/lights.json`
+      - `data/products/filters.json`
+      - `data/products/substrates.json`
+    - Added fixture guardrail test:
+      - `tests/server/catalog-fixture-guardrails.test.ts`
+
+  - Manual freshness remediation run (post-seed):
+    - queued explicit high-priority bulk refresh jobs (`offers.head_refresh.bulk` + `offers.detail_refresh.bulk`)
+    - ran ingestion worker (`pnpm ingest run --max-jobs 10`) to process refresh queue
+    - confirmed freshness recovery in `catalog:audit:quality`
+
+- Commands run:
+  - `pnpm vitest run tests/server/admin-ingestion-ops.test.ts tests/server/catalog-fixture-guardrails.test.ts tests/server/catalog-quality-audit.test.ts` (PASS)
+  - `pnpm typecheck` (PASS)
+  - `pnpm lint` (PASS)
+  - `pnpm test` (PASS)
+  - `pnpm verify:gates` (PASS)
+  - `pnpm seed` (PASS)
+  - `pnpm catalog:audit:regressions` (PASS)
+  - `pnpm catalog:audit:quality` (initial FAIL after seed due stale checks, then PASS after refresh worker run; warnings remain for image debt)
+  - `pnpm verify` (PASS)
+
+- Outcome deltas:
+  - `IN-12` is now complete (`IN-12C` shipped with UI + recovery controls + runbook).
+  - Freshness SLO correctness and execution are now aligned to active catalog:
+    - active-catalog offer freshness reached `100%` (`103/103` checked <24h) in latest audit.
+  - Placeholder fixture marker regressions are now blocked by test coverage.
+
+- Remaining blockers / next:
+  - `IN-13B`: focus-category image coverage warnings remain (`tank/light/filter/substrate/hardscape`).
+  - Continue with image coverage remediation before moving fully into `CAT-01`/`CAT-02`.

@@ -349,7 +349,7 @@ No direct canonical bypass for import/seed paths.
     - `src/components/builder/*`
 
 
-- [ ] IN-12 (P0) Ingestion reliability + ops dashboard/runbook checks.
+- [x] IN-12 (P0) Ingestion reliability + ops dashboard/runbook checks.
   - Gates: G7, G11
   - Subtasks:
     - [x] IN-12A Align offer refresh scheduling/query semantics to the 24h freshness SLO and harden failure handling.
@@ -360,7 +360,13 @@ No direct canonical bypass for import/seed paths.
       - public product/plant routers only return `status=active` rows.
       - seed-time activation policy curation deactivates focus products with no in-stock priced offers and plants missing media/sources/description.
       - add executable curation command + verification docs (`pnpm catalog:curate:activation`).
-    - [ ] IN-12C Add admin ingestion ops dashboard surface + explicit queue recovery runbook (remaining).
+    - [x] IN-12C Add admin ingestion ops dashboard surface + explicit queue recovery runbook.
+      - Added admin ingestion ops service + recovery actions:
+        - `src/server/services/admin/ingestion-ops.ts`
+        - `src/app/admin/ingestion/recover/route.ts`
+      - `/admin/ingestion` now shows run status, queue depth, stale/stuck queue health, stale-offer freshness snapshot, unmapped counts, recent failures/runs, and recovery controls.
+      - Added helper coverage: `tests/server/admin-ingestion-ops.test.ts`.
+      - Recovery runbook documented in `VERIFY.md`.
   - Acceptance:
     - Admin can see run status, queue depth, failures, stale offers, and unmapped entity counts.
     - Recovery steps documented in `VERIFY.md`.
@@ -378,6 +384,13 @@ No direct canonical bypass for import/seed paths.
 
 - [ ] IN-13 (P0) Final gate check for data-pipeline readiness.
   - Gates: G0, G4, G7, G8, G9
+  - Subtasks:
+    - [x] IN-13A Correct freshness scoring to user-facing catalog scope and prove >=95% SLO.
+      - `catalog:audit:quality` now scores freshness on offers attached to `status=active` products and reports active/inactive offer context to avoid false negatives from non-user-facing rows.
+      - Added helper/quality coverage:
+        - `tests/server/catalog-quality-audit.test.ts`
+      - Executed refresh queue + worker run to restore freshness (active-catalog offers checked <24h: 103/103, 100%).
+    - [ ] IN-13B Reduce remaining focus-category image coverage warnings (tank/light/filter/substrate/hardscape).
   - Acceptance:
     - `pnpm verify` passes.
     - `pnpm verify:gates` has no `fail`.
@@ -393,6 +406,5 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-1. Finish `IN-12C` (admin ingestion ops dashboard + explicit recovery runbook wiring).
-2. Execute `IN-13` closeout on quality/freshness blockers (`catalog:audit:quality` -> reach 95% freshness SLO and shrink focus-category image debt).
-3. Resume `CAT-01`, then `CAT-02`. 
+1. Finish `IN-13B` by shrinking focus-category image coverage warnings without reintroducing placeholders.
+2. Resume `CAT-01`, then `CAT-02`.

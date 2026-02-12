@@ -19,8 +19,7 @@
     "sources": [
       "https://ultumnaturesystems.com/"
     ],
-    "curated_rank": 1,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 1
   },
   {
     "category_slug": "tank",
@@ -237,8 +236,7 @@
     "sources": [
       "https://waterboxaquariums.com/"
     ],
-    "curated_rank": 3,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 3
   },
   {
     "category_slug": "tank",
@@ -344,8 +342,7 @@
     "sources": [
       "https://www.adana.co.jp/en/"
     ],
-    "curated_rank": 4,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 4
   },
   {
     "category_slug": "tank",
@@ -409,8 +406,7 @@
     "sources": [
       "https://fluvalaquatics.com/"
     ],
-    "curated_rank": 5,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 5
   },
   {
     "category_slug": "tank",
@@ -453,8 +449,7 @@
     "sources": [
       "https://www.aqueon.com/"
     ],
-    "curated_rank": 2,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 2
   },
   {
     "category_slug": "tank",
@@ -530,7 +525,7 @@
       "length_in": 6.29,
       "width_in": 6.29,
       "height_in": 9.45,
-      "glass_thickness_mm": 5.0,
+      "glass_thickness_mm": 5,
       "volume_gal": 1.6,
       "volume_liters": 6.1,
       "material": "glass",
@@ -552,9 +547,9 @@
       "length_in": 7.87,
       "width_in": 7.87,
       "height_in": 7.87,
-      "glass_thickness_mm": 5.0,
+      "glass_thickness_mm": 5,
       "volume_gal": 2.1,
-      "volume_liters": 8.0,
+      "volume_liters": 8,
       "material": "glass",
       "rimless": true
     },
@@ -574,9 +569,9 @@
       "length_in": 11.81,
       "width_in": 11.81,
       "height_in": 11.81,
-      "glass_thickness_mm": 5.0,
+      "glass_thickness_mm": 5,
       "volume_gal": 7.1,
-      "volume_liters": 27.0,
+      "volume_liters": 27,
       "material": "glass",
       "rimless": true
     },
@@ -596,9 +591,9 @@
       "length_in": 17.72,
       "width_in": 6.69,
       "height_in": 6.69,
-      "glass_thickness_mm": 5.0,
+      "glass_thickness_mm": 5,
       "volume_gal": 3.4,
-      "volume_liters": 13.0,
+      "volume_liters": 13,
       "material": "glass",
       "rimless": true
     },

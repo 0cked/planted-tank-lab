@@ -35,7 +35,29 @@ Applies canonical activation policy for user-facing catalog safety:
 ### `pnpm catalog:audit:quality`
 
 Runs canonical catalog readiness metrics for focus categories (`tank/light/filter/substrate/hardscape`), plants coverage, and offer freshness.
+Offer freshness SLO is scored on **active-catalog offers only** (offers attached to active products), while still reporting total/inactive offer context.
 Exits non-zero when launch-readiness violations are present (e.g., freshness SLO misses, empty focus categories).
+
+## Ingestion queue recovery runbook (IN-12C)
+
+Use `/admin/ingestion` as the primary operations surface.
+
+1. Review **Ingestion ops dashboard**:
+   - queue depth (`queued/running/failed`)
+   - `stale queued` + `stuck running`
+   - recent failed jobs + recent ingestion runs
+   - active-catalog offer freshness snapshot and unmapped entity count
+2. Apply recovery controls (admin-only) in this order:
+   - **Retry failed jobs**
+   - **Recover stuck running** (requeues old `running` locks)
+   - **Requeue stale queued** (forces overdue queued jobs to run now)
+   - **Enqueue freshness refresh** (schedules high-priority bulk head/detail refresh)
+3. Re-check health:
+   - `pnpm catalog:audit:quality`
+   - `pnpm catalog:audit:regressions`
+   - `pnpm verify:gates` (or `node --import tsx scripts/gates.ts` in restricted sandbox shells)
+
+If failures persist after one recovery pass, capture the top failed-job errors from `/admin/ingestion` and escalate.
 
 ## Local Setup (when needed)
 

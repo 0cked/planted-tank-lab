@@ -21,6 +21,7 @@ import {
   products,
   retailers,
 } from "@/server/db/schema";
+import { getIngestionOpsSnapshot } from "@/server/services/admin/ingestion-ops";
 import type { CanonicalType } from "@/server/services/admin/mappings";
 
 export const metadata = {
@@ -62,14 +63,41 @@ function formatDateTime(value: unknown): string {
   });
 }
 
+function formatDurationMs(value: number | null): string {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return "—";
+  if (value < 1000) return `${Math.round(value)}ms`;
+
+  const seconds = Math.round(value / 1000);
+  if (seconds < 60) return `${seconds}s`;
+
+  const minutes = Math.floor(seconds / 60);
+  const remSeconds = seconds % 60;
+  if (minutes < 60) return remSeconds > 0 ? `${minutes}m ${remSeconds}s` : `${minutes}m`;
+
+  const hours = Math.floor(minutes / 60);
+  const remMinutes = minutes % 60;
+  return remMinutes > 0 ? `${hours}h ${remMinutes}m` : `${hours}h`;
+}
+
 export default async function AdminIngestionPage(props: {
-  searchParams: Promise<{ q?: string; type?: string; saved?: string; error?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    type?: string;
+    saved?: string;
+    error?: string;
+    recoveryAction?: string;
+    recoveryCount?: string;
+  }>;
 }) {
   const sp = await props.searchParams;
   const q = (sp.q ?? "").trim();
   const typeFilter = parseTypeFilter((sp.type ?? "").trim());
   const saved = (sp.saved ?? "").trim();
   const error = (sp.error ?? "").trim();
+  const recoveryAction = (sp.recoveryAction ?? "").trim();
+  const recoveryCount = Number(sp.recoveryCount ?? "0");
+
+  const ingestionOps = await getIngestionOpsSnapshot();
 
   const productOptionsRows = await db
     .select({ id: products.id, name: products.name, slug: products.slug })
@@ -194,7 +222,9 @@ export default async function AdminIngestionPage(props: {
 
         {saved ? (
           <div className="mt-6 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-            Mapping update saved.
+            {saved === "recovery"
+              ? `Recovery action '${recoveryAction || "unknown"}' completed (${Number.isFinite(recoveryCount) ? recoveryCount : 0} job${recoveryCount === 1 ? "" : "s"} affected).`
+              : "Mapping update saved."}
           </div>
         ) : null}
 
@@ -203,6 +233,137 @@ export default async function AdminIngestionPage(props: {
             {error}
           </div>
         ) : null}
+
+        <section className="mt-8 rounded-2xl border bg-white/70 p-5" style={{ borderColor: "var(--ptl-border)" }}>
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-neutral-900">Ingestion ops dashboard</div>
+              <div className="text-xs text-neutral-600">Snapshot generated {formatDateTime(ingestionOps.generatedAt)}</div>
+            </div>
+            <div className="text-xs text-neutral-600">
+              Freshness: {ingestionOps.freshness.freshnessPercent}% ({ingestionOps.freshness.activeCheckedWithinWindow}/
+              {ingestionOps.freshness.activeCatalogOffers} active offers in {ingestionOps.freshness.freshnessWindowHours}h)
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+            <div className="rounded-xl border bg-white/80 px-3 py-2" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-[11px] uppercase tracking-wide text-neutral-600">Queued</div>
+              <div className="text-lg font-semibold text-neutral-900">{ingestionOps.queue.queued}</div>
+            </div>
+            <div className="rounded-xl border bg-white/80 px-3 py-2" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-[11px] uppercase tracking-wide text-neutral-600">Running</div>
+              <div className="text-lg font-semibold text-neutral-900">{ingestionOps.queue.running}</div>
+            </div>
+            <div className="rounded-xl border bg-white/80 px-3 py-2" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-[11px] uppercase tracking-wide text-neutral-600">Failed</div>
+              <div className="text-lg font-semibold text-rose-700">{ingestionOps.queue.failed}</div>
+            </div>
+            <div className="rounded-xl border bg-white/80 px-3 py-2" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-[11px] uppercase tracking-wide text-neutral-600">Ready now</div>
+              <div className="text-lg font-semibold text-neutral-900">{ingestionOps.queue.readyNow}</div>
+            </div>
+            <div className="rounded-xl border bg-white/80 px-3 py-2" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-[11px] uppercase tracking-wide text-neutral-600">Stale queued</div>
+              <div className="text-lg font-semibold text-amber-700">{ingestionOps.queue.staleQueued}</div>
+            </div>
+            <div className="rounded-xl border bg-white/80 px-3 py-2" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-[11px] uppercase tracking-wide text-neutral-600">Stuck running</div>
+              <div className="text-lg font-semibold text-amber-700">{ingestionOps.queue.stuckRunning}</div>
+            </div>
+            <div className="rounded-xl border bg-white/80 px-3 py-2" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-[11px] uppercase tracking-wide text-neutral-600">Unmapped</div>
+              <div className="text-lg font-semibold text-neutral-900">{ingestionOps.counts.unmappedEntities}</div>
+            </div>
+            <div className="rounded-xl border bg-white/80 px-3 py-2" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-[11px] uppercase tracking-wide text-neutral-600">Active stale offers</div>
+              <div className="text-lg font-semibold text-neutral-900">{ingestionOps.freshness.activeStaleOrMissing}</div>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div className="rounded-xl border bg-white/80 p-3" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">Queue recovery</div>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <form method="post" action="/admin/ingestion/recover" className="contents">
+                  <input type="hidden" name="action" value="retry_failed_jobs" />
+                  <input type="hidden" name="limit" value="200" />
+                  <button type="submit" className="ptl-btn-secondary w-full">Retry failed jobs</button>
+                </form>
+
+                <form method="post" action="/admin/ingestion/recover" className="contents">
+                  <input type="hidden" name="action" value="recover_stuck_running_jobs" />
+                  <input type="hidden" name="limit" value="200" />
+                  <input type="hidden" name="stuckRunningMinutes" value="45" />
+                  <button type="submit" className="ptl-btn-secondary w-full">Recover stuck running</button>
+                </form>
+
+                <form method="post" action="/admin/ingestion/recover" className="contents">
+                  <input type="hidden" name="action" value="requeue_stale_queued_jobs" />
+                  <input type="hidden" name="limit" value="200" />
+                  <input type="hidden" name="staleQueuedMinutes" value="120" />
+                  <button type="submit" className="ptl-btn-secondary w-full">Requeue stale queued</button>
+                </form>
+
+                <form method="post" action="/admin/ingestion/recover" className="contents">
+                  <input type="hidden" name="action" value="enqueue_freshness_refresh" />
+                  <input type="hidden" name="limit" value="120" />
+                  <button type="submit" className="ptl-btn-primary w-full">Enqueue freshness refresh</button>
+                </form>
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-white/80 p-3" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">Run status (recent)</div>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs text-neutral-700">
+                {ingestionOps.runStatusLast24h.map((row) => (
+                  <span
+                    key={row.status}
+                    className="rounded-full border bg-white px-2 py-1"
+                    style={{ borderColor: "var(--ptl-border)" }}
+                  >
+                    {row.status}: {row.count}
+                  </span>
+                ))}
+                {ingestionOps.runStatusLast24h.length === 0 ? <span>No ingestion runs recorded yet.</span> : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div className="rounded-xl border bg-white/80 p-3" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">Recent failed jobs</div>
+              <div className="mt-2 space-y-2 text-xs text-neutral-700">
+                {ingestionOps.recentFailedJobs.slice(0, 8).map((job) => (
+                  <div key={job.id} className="rounded-lg border bg-white px-2 py-2" style={{ borderColor: "var(--ptl-border)" }}>
+                    <div className="font-medium text-neutral-900">{job.kind}</div>
+                    <div>Attempts {job.attempts}/{job.maxAttempts} · runAfter {formatDateTime(job.runAfter)}</div>
+                    {job.lastError ? <div className="mt-1 line-clamp-2 text-rose-700">{job.lastError}</div> : null}
+                  </div>
+                ))}
+                {ingestionOps.recentFailedJobs.length === 0 ? <div>No failed ingestion jobs.</div> : null}
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-white/80 p-3" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">Recent ingestion runs</div>
+              <div className="mt-2 space-y-2 text-xs text-neutral-700">
+                {ingestionOps.recentRuns.slice(0, 8).map((run) => (
+                  <div key={run.id} className="rounded-lg border bg-white px-2 py-2" style={{ borderColor: "var(--ptl-border)" }}>
+                    <div className="font-medium text-neutral-900">
+                      {run.sourceName} ({run.sourceSlug})
+                    </div>
+                    <div>
+                      {run.status} · started {formatDateTime(run.startedAt)} · duration {formatDurationMs(run.durationMs)}
+                    </div>
+                    {run.error ? <div className="mt-1 line-clamp-2 text-rose-700">{run.error}</div> : null}
+                  </div>
+                ))}
+                {ingestionOps.recentRuns.length === 0 ? <div>No ingestion runs recorded yet.</div> : null}
+              </div>
+            </div>
+          </div>
+        </section>
 
         <form className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_220px_auto] sm:items-center">
           <input

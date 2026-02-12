@@ -62,6 +62,8 @@ export type CatalogQualityPlantsMetrics = {
 
 export type CatalogQualityOfferFreshnessMetrics = {
   totalOffers: number;
+  activeCatalogOffers: number;
+  inactiveCatalogOffers: number;
   offersCheckedWithinWindow: number;
   offersStaleOrMissingCheck: number;
   offersMissingCheckTimestamp: number;
@@ -217,22 +219,25 @@ export function buildCatalogQualityFindings(params: {
 
   if (
     params.offers.freshnessPercent < params.offers.freshnessSloPercent &&
-    params.offers.totalOffers > 0
+    params.offers.activeCatalogOffers > 0
   ) {
     violations.push({
       severity: "violation",
       code: "offer_freshness_below_slo",
       scope: "offers",
-      message: `Offer freshness is ${params.offers.freshnessPercent}% (<${params.offers.freshnessSloPercent}% SLO for ${params.offers.freshnessWindowHours}h window).`,
+      message: `Offer freshness is ${params.offers.freshnessPercent}% (${params.offers.offersCheckedWithinWindow}/${params.offers.activeCatalogOffers} active-catalog offers checked within ${params.offers.freshnessWindowHours}h; SLO ${params.offers.freshnessSloPercent}%).`,
     });
   }
 
-  if (params.offers.totalOffers === 0) {
+  if (params.offers.totalOffers === 0 || params.offers.activeCatalogOffers === 0) {
     violations.push({
       severity: "violation",
       code: "offers_empty",
       scope: "offers",
-      message: "Canonical offers table has zero rows.",
+      message:
+        params.offers.totalOffers === 0
+          ? "Canonical offers table has zero rows."
+          : "Active catalog has zero offers attached to active products.",
     });
   }
 
@@ -241,7 +246,7 @@ export function buildCatalogQualityFindings(params: {
       severity: "warning",
       code: "offers_missing_last_checked_at",
       scope: "offers",
-      message: `${params.offers.offersMissingCheckTimestamp} offers are missing last_checked_at timestamps.`,
+      message: `${params.offers.offersMissingCheckTimestamp} active-catalog offers are missing last_checked_at timestamps.`,
     });
   }
 
@@ -478,20 +483,25 @@ export async function runCatalogQualityAudit(
     await database
       .select({
         totalOffers: sql<number>`count(*)::int`.as("total_offers"),
+        activeCatalogOffers: sql<number>`
+          coalesce(sum(case when ${products.status} = 'active' then 1 else 0 end), 0)::int
+        `.as("active_catalog_offers"),
         offersCheckedWithinWindow: sql<number>`
-          coalesce(sum(case when ${offers.lastCheckedAt} is not null and ${offers.lastCheckedAt} >= now() - (${CATALOG_OFFER_FRESHNESS_WINDOW_HOURS} * interval '1 hour') then 1 else 0 end), 0)::int
+          coalesce(sum(case when ${products.status} = 'active' and ${offers.lastCheckedAt} is not null and ${offers.lastCheckedAt} >= now() - (${CATALOG_OFFER_FRESHNESS_WINDOW_HOURS} * interval '1 hour') then 1 else 0 end), 0)::int
         `.as("offers_checked_within_window"),
         offersMissingCheckTimestamp: sql<number>`
-          coalesce(sum(case when ${offers.lastCheckedAt} is null then 1 else 0 end), 0)::int
+          coalesce(sum(case when ${products.status} = 'active' and ${offers.lastCheckedAt} is null then 1 else 0 end), 0)::int
         `.as("offers_missing_check_timestamp"),
         inStockPricedOffers: sql<number>`
-          coalesce(sum(case when ${offers.inStock} = true and ${offers.priceCents} is not null then 1 else 0 end), 0)::int
+          coalesce(sum(case when ${products.status} = 'active' and ${offers.inStock} = true and ${offers.priceCents} is not null then 1 else 0 end), 0)::int
         `.as("in_stock_priced_offers"),
       })
       .from(offers)
+      .innerJoin(products, eq(offers.productId, products.id))
   )[0];
 
   const totalOffers = Number(offerFreshnessRow?.totalOffers ?? 0);
+  const activeCatalogOffers = Number(offerFreshnessRow?.activeCatalogOffers ?? 0);
   const offersCheckedWithinWindow = Number(
     offerFreshnessRow?.offersCheckedWithinWindow ?? 0,
   );
@@ -502,15 +512,17 @@ export async function runCatalogQualityAudit(
 
   const offersMetrics: CatalogQualityOfferFreshnessMetrics = {
     totalOffers,
+    activeCatalogOffers,
+    inactiveCatalogOffers: Math.max(0, totalOffers - activeCatalogOffers),
     offersCheckedWithinWindow,
-    offersStaleOrMissingCheck: Math.max(0, totalOffers - offersCheckedWithinWindow),
+    offersStaleOrMissingCheck: Math.max(0, activeCatalogOffers - offersCheckedWithinWindow),
     offersMissingCheckTimestamp,
     inStockPricedOffers,
     freshnessWindowHours: CATALOG_OFFER_FRESHNESS_WINDOW_HOURS,
     freshnessSloPercent: CATALOG_OFFER_FRESHNESS_SLO_PERCENT,
     freshnessPercent: toPercent({
       numerator: offersCheckedWithinWindow,
-      denominator: totalOffers,
+      denominator: activeCatalogOffers,
     }),
   };
 

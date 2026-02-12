@@ -58,8 +58,7 @@
     "sources": [
       "https://fluvalaquatics.com/"
     ],
-    "curated_rank": 1,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 1
   },
   {
     "category_slug": "light",
@@ -178,8 +177,7 @@
     "sources": [
       "https://www.chihirosaquaticstudio.com/"
     ],
-    "curated_rank": 2,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 2
   },
   {
     "category_slug": "light",
@@ -263,8 +261,7 @@
     "sources": [
       "https://www.twinstar-light.com/"
     ],
-    "curated_rank": 3,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 3
   },
   {
     "category_slug": "light",
@@ -375,8 +372,7 @@
     "sources": [
       "https://onf.com/"
     ],
-    "curated_rank": 6,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 6
   },
   {
     "category_slug": "light",
@@ -404,8 +400,7 @@
     "sources": [
       "https://www.nicrew.com/"
     ],
-    "curated_rank": 5,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 5
   },
   {
     "category_slug": "light",
@@ -459,8 +454,7 @@
       ],
       "app_controlled": false
     },
-    "curated_rank": 4,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 4
   },
   {
     "category_slug": "light",

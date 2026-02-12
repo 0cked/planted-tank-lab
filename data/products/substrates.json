@@ -16,8 +16,7 @@
     "sources": [
       "https://www.adana.co.jp/en/"
     ],
-    "curated_rank": 1,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 1
   },
   {
     "category_slug": "substrate",
@@ -36,8 +35,7 @@
     "sources": [
       "https://ultumnaturesystems.com/"
     ],
-    "curated_rank": 2,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 2
   },
   {
     "category_slug": "substrate",
@@ -56,8 +54,7 @@
     "sources": [
       "https://fluvalaquatics.com/"
     ],
-    "curated_rank": 3,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 3
   },
   {
     "category_slug": "substrate",
@@ -93,8 +90,7 @@
     "sources": [
       "https://caribsea.com/"
     ],
-    "curated_rank": 5,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 5
   },
   {
     "category_slug": "substrate",
@@ -148,8 +144,7 @@
       "https://www.amazon.com/s?k=pool+filter+sand"
     ],
     "source_notes": "Generic commodity; seeded from Amazon search URL.",
-    "curated_rank": 4,
-    "image_url": "/images/aquascape-hero-2400.jpg"
+    "curated_rank": 4
   },
   {
     "category_slug": "substrate",

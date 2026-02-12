@@ -52,6 +52,8 @@ function offerMetrics(
 ): CatalogQualityOfferFreshnessMetrics {
   return {
     totalOffers: 100,
+    activeCatalogOffers: 100,
+    inactiveCatalogOffers: 0,
     offersCheckedWithinWindow: 100,
     offersStaleOrMissingCheck: 0,
     offersMissingCheckTimestamp: 0,
