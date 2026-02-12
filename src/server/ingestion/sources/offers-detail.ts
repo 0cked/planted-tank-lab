@@ -1,5 +1,6 @@
 import { and, eq, isNotNull, sql as dsql } from "drizzle-orm";
 
+import { sanitizeCatalogImageUrl } from "@/lib/catalog-guardrails";
 import type { DbClient } from "@/server/db";
 import {
   canonicalEntityMappings,
@@ -29,6 +30,14 @@ type ParsedOfferDetail = {
   inStock: boolean | null;
   parser: string;
   confidence: "high" | "medium" | "low";
+};
+
+type ParsedOfferImageObservation = {
+  imageUrl: string | null;
+  parser: string;
+  confidence: "high" | "medium" | "low";
+  source: string | null;
+  candidates: string[];
 };
 
 type OfferDetailParser = (params: {
@@ -100,6 +109,112 @@ function parseAvailability(value: unknown): boolean | null {
   return null;
 }
 
+function decodeHtmlAttribute(value: string): string {
+  return value
+    .replaceAll("&amp;", "&")
+    .replaceAll("&#38;", "&")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#34;", '"')
+    .replaceAll("&#x27;", "'")
+    .replaceAll("&#39;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .trim();
+}
+
+function parseTagAttributes(tag: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const regex = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g;
+
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(tag)) !== null) {
+    const key = String(match[1] ?? "").toLowerCase();
+    if (!key) continue;
+    const rawValue = match[2] ?? match[3] ?? match[4] ?? "";
+    out[key] = decodeHtmlAttribute(rawValue);
+  }
+
+  return out;
+}
+
+function uniquePreservingOrder(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  for (const value of values) {
+    if (seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+  }
+
+  return out;
+}
+
+function normalizeImageCandidateUrl(params: {
+  candidate: string;
+  baseUrl: string;
+}): string | null {
+  const trimmed = params.candidate.trim();
+  if (!trimmed) return null;
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.startsWith("data:") ||
+    lower.startsWith("blob:") ||
+    lower.startsWith("javascript:")
+  ) {
+    return null;
+  }
+
+  let resolved = trimmed;
+  if (resolved.startsWith("//")) {
+    resolved = `https:${resolved}`;
+  }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(resolved, params.baseUrl);
+  } catch {
+    return null;
+  }
+
+  if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+    return null;
+  }
+
+  return sanitizeCatalogImageUrl(parsedUrl.toString());
+}
+
+function pushImageCandidatesFromValue(value: unknown, out: string[]): void {
+  if (typeof value === "string") {
+    const normalized = decodeHtmlAttribute(value);
+    if (normalized) out.push(normalized);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      pushImageCandidatesFromValue(item, out);
+    }
+    return;
+  }
+
+  if (!value || typeof value !== "object") return;
+
+  const obj = value as Record<string, unknown>;
+  for (const key of [
+    "url",
+    "contentUrl",
+    "thumbnailUrl",
+    "image",
+    "src",
+  ]) {
+    if (key in obj) {
+      pushImageCandidatesFromValue(obj[key], out);
+    }
+  }
+}
+
 function extractJsonLdScripts(html: string): string[] {
   const out: string[] = [];
   const regex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
@@ -134,6 +249,58 @@ function collectOfferNodes(input: unknown, out: Record<string, unknown>[]): void
   for (const value of Object.values(obj)) {
     collectOfferNodes(value, out);
   }
+}
+
+function collectProductOrOfferNodes(
+  input: unknown,
+  out: Record<string, unknown>[],
+): void {
+  if (!input) return;
+
+  if (Array.isArray(input)) {
+    for (const item of input) collectProductOrOfferNodes(item, out);
+    return;
+  }
+
+  if (typeof input !== "object") return;
+
+  const obj = input as Record<string, unknown>;
+  const rawType = obj["@type"];
+  const typeValues = Array.isArray(rawType)
+    ? rawType.map((v) => String(v).toLowerCase())
+    : [String(rawType ?? "").toLowerCase()];
+
+  if (typeValues.some((v) => v.includes("product") || v.includes("offer"))) {
+    out.push(obj);
+  }
+
+  for (const value of Object.values(obj)) {
+    collectProductOrOfferNodes(value, out);
+  }
+}
+
+function extractImageCandidatesFromJsonLd(html: string): string[] {
+  const candidates: string[] = [];
+  const scripts = extractJsonLdScripts(html);
+
+  for (const script of scripts) {
+    try {
+      const parsed = JSON.parse(script) as unknown;
+      const nodes: Record<string, unknown>[] = [];
+      collectProductOrOfferNodes(parsed, nodes);
+
+      for (const node of nodes) {
+        pushImageCandidatesFromValue(node.image, candidates);
+        pushImageCandidatesFromValue(node.thumbnailUrl, candidates);
+        pushImageCandidatesFromValue(node.contentUrl, candidates);
+        pushImageCandidatesFromValue(node.itemOffered, candidates);
+      }
+    } catch {
+      // ignore invalid json-ld blocks
+    }
+  }
+
+  return uniquePreservingOrder(candidates);
 }
 
 function parseFromJsonLd(html: string): ParsedOfferDetail | null {
@@ -255,6 +422,139 @@ function parseAmazon(html: string): ParsedOfferDetail | null {
   };
 
   return hasSignal(parsed) ? parsed : null;
+}
+
+function extractMetaImageCandidates(html: string): string[] {
+  const candidates: string[] = [];
+  const allowedMetaKeys = new Set([
+    "og:image",
+    "og:image:url",
+    "twitter:image",
+    "twitter:image:src",
+    "image",
+  ]);
+
+  const metaRegex = /<meta\b[^>]*>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = metaRegex.exec(html)) !== null) {
+    const attrs = parseTagAttributes(match[0]);
+    const key =
+      attrs.property?.toLowerCase() ??
+      attrs.name?.toLowerCase() ??
+      attrs.itemprop?.toLowerCase() ??
+      "";
+    if (!allowedMetaKeys.has(key)) continue;
+
+    const content = attrs.content ?? attrs.href;
+    if (typeof content === "string" && content.trim().length > 0) {
+      candidates.push(content.trim());
+    }
+  }
+
+  const linkRegex = /<link\b[^>]*>/gi;
+  while ((match = linkRegex.exec(html)) !== null) {
+    const attrs = parseTagAttributes(match[0]);
+    const rel = attrs.rel?.toLowerCase() ?? "";
+    if (rel !== "image_src") continue;
+    const href = attrs.href;
+    if (typeof href === "string" && href.trim().length > 0) {
+      candidates.push(href.trim());
+    }
+  }
+
+  return uniquePreservingOrder(candidates);
+}
+
+function extractAmazonImageCandidates(html: string): string[] {
+  const out: string[] = [];
+
+  const imgRegex =
+    /<img[^>]+(?:id=["']landingImage["']|class=["'][^"']*(?:s-image|a-dynamic-image)[^"']*["'])[^>]*(?:src|data-old-hires)=["']([^"']+)["'][^>]*>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = imgRegex.exec(html)) !== null) {
+    const candidate = match[1]?.trim();
+    if (candidate) out.push(candidate);
+  }
+
+  const dynamicRegex = /data-a-dynamic-image=["']([^"']+)["']/gi;
+  while ((match = dynamicRegex.exec(html)) !== null) {
+    const raw = decodeHtmlAttribute(match[1] ?? "");
+    if (!raw) continue;
+
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      for (const key of Object.keys(parsed)) {
+        if (typeof key === "string" && key.trim().length > 0) {
+          out.push(key);
+        }
+      }
+    } catch {
+      // ignore malformed amazon dynamic-image payloads
+    }
+  }
+
+  return uniquePreservingOrder(out);
+}
+
+function parseOfferImageObservation(params: {
+  html: string;
+  retailerSlug: string;
+  baseUrl: string;
+}): ParsedOfferImageObservation {
+  const parserCandidates: Array<{
+    parser: string;
+    confidence: "high" | "medium" | "low";
+    source: string;
+    candidates: string[];
+  }> = [
+    {
+      parser: "jsonld",
+      confidence: "high",
+      source: "jsonld.image",
+      candidates: extractImageCandidatesFromJsonLd(params.html),
+    },
+    {
+      parser: "meta",
+      confidence: "medium",
+      source: "meta:image",
+      candidates: extractMetaImageCandidates(params.html),
+    },
+  ];
+
+  if (params.retailerSlug === "amazon") {
+    parserCandidates.push({
+      parser: "amazon_dom",
+      confidence: "low",
+      source: "amazon:image",
+      candidates: extractAmazonImageCandidates(params.html),
+    });
+  }
+
+  for (const parserCandidate of parserCandidates) {
+    for (const candidate of parserCandidate.candidates) {
+      const normalized = normalizeImageCandidateUrl({
+        candidate,
+        baseUrl: params.baseUrl,
+      });
+      if (!normalized) continue;
+
+      return {
+        imageUrl: normalized,
+        parser: parserCandidate.parser,
+        confidence: parserCandidate.confidence,
+        source: parserCandidate.source,
+        candidates: uniquePreservingOrder(parserCandidate.candidates),
+      };
+    }
+  }
+
+  return {
+    imageUrl: null,
+    parser: "none",
+    confidence: "low",
+    source: null,
+    candidates: [],
+  };
 }
 
 const retailerParsers: Record<string, OfferDetailParser[]> = {
@@ -522,10 +822,25 @@ export async function runOffersDetailRefresh(params: {
             confidence: "low" as const,
           };
 
+      const imageObservation = fetched.html
+        ? parseOfferImageObservation({
+            html: fetched.html,
+            retailerSlug: offer.retailerSlug,
+            baseUrl: fetched.finalUrl ?? offer.url,
+          })
+        : {
+            imageUrl: null,
+            parser: "none",
+            confidence: "low" as const,
+            source: null,
+            candidates: [],
+          };
+
       const observed = {
         priceCents: parsed.priceCents,
         currency: parsed.currency,
         inStock: parsed.inStock,
+        productImageUrl: imageObservation.imageUrl,
       };
 
       const entityId = await upsertOfferEntity({
@@ -551,6 +866,13 @@ export async function runOffersDetailRefresh(params: {
         extractedFields.in_stock = { value: observed.inStock, trust: "retailer" };
         trustFields.in_stock = "retailer";
       }
+      if (observed.productImageUrl != null) {
+        extractedFields.product_image_url = {
+          value: observed.productImageUrl,
+          trust: "retailer",
+        };
+        trustFields.product_image_url = "retailer";
+      }
 
       const rawJson = {
         url: offer.url,
@@ -559,6 +881,13 @@ export async function runOffersDetailRefresh(params: {
         contentType: fetched.contentType,
         parser: parsed.parser,
         confidence: parsed.confidence,
+        image: {
+          parser: imageObservation.parser,
+          confidence: imageObservation.confidence,
+          source: imageObservation.source,
+          selected: imageObservation.imageUrl,
+          candidates: imageObservation.candidates,
+        },
         observed,
         observedMinute: minuteBucket,
       };
@@ -579,6 +908,9 @@ export async function runOffersDetailRefresh(params: {
               parser: parsed.parser,
               confidence: parsed.confidence,
               retailer: offer.retailerSlug,
+              imageParser: imageObservation.parser,
+              imageConfidence: imageObservation.confidence,
+              imageSource: imageObservation.source,
             },
           },
           trust: {
@@ -603,9 +935,12 @@ export async function runOffersDetailRefresh(params: {
         observedPriceCents: observed.priceCents,
         observedCurrency: observed.currency,
         observedInStock: observed.inStock,
+        observedProductImageUrl: observed.productImageUrl,
       });
 
-      if (normalized.meaningfulChange) updated += 1;
+      if (normalized.meaningfulChange || normalized.productImageHydrated) {
+        updated += 1;
+      }
     } catch {
       failed += 1;
     }

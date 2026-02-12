@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  isNonProductionCatalogSlug,
   shouldPlantBeActiveForCatalogPolicy,
   shouldProductBeActiveForCatalogPolicy,
 } from "@/server/catalog/activation-policy";
@@ -65,5 +66,16 @@ describe("catalog activation policy helpers", () => {
         description: "  ",
       }),
     ).toBe(false);
+  });
+
+  test("detects non-production catalog artifact slugs", () => {
+    expect(isNonProductionCatalogSlug("vitest-product-123")).toBe(true);
+    expect(isNonProductionCatalogSlug("test-item-abc")).toBe(true);
+    expect(isNonProductionCatalogSlug("my-e2e-plant")).toBe(true);
+    expect(isNonProductionCatalogSlug("playwright-seed-row")).toBe(true);
+
+    expect(isNonProductionCatalogSlug("fluval-plant-3-0-24")).toBe(false);
+    expect(isNonProductionCatalogSlug("standard-20-gallon-long")).toBe(false);
+    expect(isNonProductionCatalogSlug(null)).toBe(false);
   });
 });

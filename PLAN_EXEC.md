@@ -391,6 +391,19 @@ No direct canonical bypass for import/seed paths.
         - `tests/server/catalog-quality-audit.test.ts`
       - Executed refresh queue + worker run to restore freshness (active-catalog offers checked <24h: 103/103, 100%).
     - [ ] IN-13B Reduce remaining focus-category image coverage warnings (tank/light/filter/substrate/hardscape).
+      - [x] IN-13B1 Add ingestion-driven offer-detail image extraction + canonical product-image hydration (missing-only, guardrail-sanitized, override-aware).
+      - [x] IN-13B2 Add activation-policy non-production artifact guard (`vitest/test/e2e/playwright` slugs forced inactive).
+      - [ ] IN-13B3 Continue focused refresh/curation until remaining warnings reach launch baseline (current: 12 missing-image warnings across focus categories).
+      - Notes (2026-02-12):
+        - Added image extraction + metadata provenance in `src/server/ingestion/sources/offers-detail.ts`.
+        - Added hydration safeguards in `src/server/normalization/offers.ts` (no clobber + override skip).
+        - Added artifact deactivation guard in `src/server/catalog/activation-policy.ts`.
+        - Added/updated coverage:
+          - `tests/server/ingestion-offers-detail.test.ts`
+          - `tests/server/catalog-activation-policy.test.ts`
+        - Quality delta from manual detail-refresh hydration pass (`scanned=30, updated=17, failed=0`):
+          - focus-category missing-image warnings: `27 -> 12`
+          - by category: tank `6->4`, light `6->1`, filter `5->2`, substrate `5->3`, hardscape `5->2`.
   - Acceptance:
     - `pnpm verify` passes.
     - `pnpm verify:gates` has no `fail`.
@@ -406,5 +419,6 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-1. Finish `IN-13B` by shrinking focus-category image coverage warnings without reintroducing placeholders.
-2. Resume `CAT-01`, then `CAT-02`.
+1. Finish `IN-13B3` by shrinking remaining focus-category image warnings (`12` left) without reintroducing placeholders.
+2. Re-run activation/refresh hygiene for queued historical ingestion backlog via `/admin/ingestion` recovery controls.
+3. Resume `CAT-01`, then `CAT-02`.

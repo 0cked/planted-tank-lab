@@ -1019,3 +1019,48 @@ Each work session must add a new dated entry that includes:
 - Remaining blockers / next:
   - `IN-13B`: focus-category image coverage warnings remain (`tank/light/filter/substrate/hardscape`).
   - Continue with image coverage remediation before moving fully into `CAT-01`/`CAT-02`.
+
+## 2026-02-12 06:33
+
+- Work: Executed `IN-13B` production-readiness hardening focused on ingestion-driven image coverage, normalization safety, and catalog artifact suppression.
+  - Added offer-detail image extraction + provenance capture:
+    - `src/server/ingestion/sources/offers-detail.ts`
+    - new deterministic image candidate extraction from JSON-LD + meta tags (+ Amazon DOM fallback), URL normalization, placeholder sanitization, and snapshot metadata (`imageParser`, `imageConfidence`, `imageSource`, `product_image_url`).
+  - Added canonical hydration safeguards for product images:
+    - `src/server/normalization/offers.ts`
+    - `applyOfferDetailObservation` now accepts `observedProductImageUrl` and hydrates canonical product images **only when missing**, skipping when product image overrides exist and never clobbering existing curated images.
+  - Added activation-policy drift guard for non-production artifacts:
+    - `src/server/catalog/activation-policy.ts`
+    - exported `isNonProductionCatalogSlug` helper and forced inactive handling for `vitest/test/e2e/playwright` slug artifacts.
+  - Added/updated coverage:
+    - `tests/server/ingestion-offers-detail.test.ts`
+      - validates placeholder-safe image extraction threading into snapshots
+      - validates missing-only hydration + non-clobber behavior
+      - validates override-protected hydration skip
+    - `tests/server/catalog-activation-policy.test.ts`
+      - validates non-production slug detection helper paths.
+
+- Commands run:
+  - `pnpm vitest run tests/server/ingestion-offers-detail.test.ts tests/server/catalog-activation-policy.test.ts` (PASS)
+  - `pnpm lint` (PASS)
+  - `pnpm typecheck` (PASS)
+  - `pnpm verify:gates` (PASS)
+  - `pnpm catalog:audit:regressions` (PASS)
+  - `pnpm catalog:audit:quality` (PASS; warnings reduced)
+  - `pnpm verify` (PASS; lint + typecheck + unit/integration + e2e)
+  - direct manual refresh execution (`runOffersDetailRefresh` bulk, `olderThanHours=0`, `limit=30`, `timeoutMs=2500`) => `{ scanned: 30, updated: 17, failed: 0 }`.
+
+- Outcome deltas:
+  - Focus-category missing-image warnings reduced from `27` to `12` in `catalog:audit:quality`:
+    - tank `6 -> 4`
+    - light `6 -> 1`
+    - filter `5 -> 2`
+    - substrate `5 -> 3`
+    - hardscape `5 -> 2`
+  - Active-catalog freshness remained at `100%` (`103/103` within 24h window).
+  - Placeholder/provenance regression audit remained clean (zero violations).
+
+- Blockers/next:
+  - `IN-13B` still open with `12` image warnings remaining (specific slugs in latest quality audit output).
+  - Ingestion queue has historical manual bulk jobs that can create stale `running` locks when interrupted; continue using `/admin/ingestion` recovery controls before/after heavy manual runs.
+  - Next: complete `IN-13B3` warning closeout, then resume `CAT-01`.

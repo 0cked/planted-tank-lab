@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical freshness + user-facing catalog quality boundaries.
 
-Current phase: `ING-5 / IN-13` (gate closeout) — `IN-12` is now complete; `IN-13A` freshness correctness/SLO is complete; `IN-13B` image coverage debt remains before resuming template-build work.
+Current phase: `ING-5 / IN-13` (gate closeout) — `IN-12` remains complete; `IN-13A` remains complete; `IN-13B` is in active closeout with image-warning debt reduced but not yet zero.
 
 ## Current State Snapshot
 
@@ -37,45 +37,46 @@ Completed prerequisites:
   - active-only public catalog read paths are enforced.
   - new ingestion ops dashboard + recovery controls are live at `/admin/ingestion`.
   - queue recovery runbook is documented in `VERIFY.md`.
-- Seed fixture placeholder marker cleanup complete:
-  - removed `/images/aquascape-hero-2400.jpg` references from product fixtures.
-  - regression guard added (`tests/server/catalog-fixture-guardrails.test.ts`).
 
-Current quality/freshness posture (`pnpm catalog:audit:quality`):
+Current quality/freshness posture (`pnpm catalog:audit:quality`, 2026-02-12T11:32:06Z):
 - **Freshness SLO is met** for active catalog offers: **100%** (`103/103` checked within 24h).
-- quality audit now scores freshness against active-catalog offers and reports active/inactive context explicitly.
-- focus-category offer completeness remains strong (`productsWithoutAnyOffer=0` across focus categories).
+- focus-category image warnings have been reduced from **27** to **12** missing-image rows after ingestion-driven detail refresh hydration.
+  - tank: `6 -> 4`
+  - light: `6 -> 1`
+  - filter: `5 -> 2`
+  - substrate: `5 -> 3`
+  - hardscape: `5 -> 2`
+- offer completeness remains strong (`productsWithoutAnyOffer=0` across focus categories).
 - active plants media/source/description completeness remains clean.
-- focus-category image warnings remain (tank/light/filter/substrate/hardscape).
 
 Remaining critical gaps:
-- `IN-13B` focus-category image coverage debt remains unresolved.
-- ingestion queue has accumulated historical failed jobs; dashboard recovery controls exist but ongoing cleanup/tuning is still needed.
+- `IN-13B` image coverage is improved but unresolved (12 focus-category missing-image warnings remain).
+- ingestion queue has accumulated historical queued/failed backlog from prior manual bulk attempts; `/admin/ingestion` recovery controls remain the source of truth for cleanup.
 
 ## What Changed Last
 
-- Completed `IN-12C` admin ingestion ops surface + recovery controls:
-  - `src/server/services/admin/ingestion-ops.ts`
-  - `src/app/admin/ingestion/recover/route.ts`
-  - expanded `/admin/ingestion` dashboard with queue depth, stale/stuck indicators, recent failed jobs/runs, stale-offer snapshot, and one-click recovery actions.
-  - added helper coverage: `tests/server/admin-ingestion-ops.test.ts`.
-- Improved `IN-13A` freshness correctness semantics:
-  - `src/server/catalog/quality-audit.ts` now scores freshness on active-catalog offers and includes active/inactive offer context.
-  - updated quality-audit tests: `tests/server/catalog-quality-audit.test.ts`.
-- Removed lingering placeholder fixture artifacts + guardrail:
-  - `data/products/{tanks,lights,filters,substrates}.json` cleaned of blocked placeholder image marker.
-  - `tests/server/catalog-fixture-guardrails.test.ts` added.
-- Runbook updates:
-  - `VERIFY.md` now includes explicit ingestion queue recovery workflow tied to `/admin/ingestion` controls.
+- Added offer-detail image extraction + provenance wiring:
+  - `src/server/ingestion/sources/offers-detail.ts`
+  - parses image candidates from JSON-LD + meta tags (+ amazon DOM fallback), sanitizes via catalog guardrails, stores image parser/confidence/source in snapshot metadata, and emits `product_image_url` extracted field when present.
+- Added normalization-side product image hydration safeguards:
+  - `src/server/normalization/offers.ts`
+  - hydrates canonical product image only when currently missing, skips when image overrides exist, and never clobbers existing curated images.
+- Added non-production artifact deactivation guard in activation policy:
+  - `src/server/catalog/activation-policy.ts`
+  - explicit `isNonProductionCatalogSlug` helper (`vitest/test/e2e/playwright` patterns) now prevents those rows from being active catalog inventory.
+- Expanded regression coverage:
+  - `tests/server/ingestion-offers-detail.test.ts`
+  - `tests/server/catalog-activation-policy.test.ts`
 
 Verification highlights (this run):
-- `pnpm vitest run tests/server/admin-ingestion-ops.test.ts tests/server/catalog-fixture-guardrails.test.ts tests/server/catalog-quality-audit.test.ts` PASS
-- `pnpm test` PASS
+- `pnpm lint` PASS
+- `pnpm typecheck` PASS
+- `pnpm vitest run tests/server/ingestion-offers-detail.test.ts tests/server/catalog-activation-policy.test.ts` PASS
 - `pnpm verify:gates` PASS
-- `pnpm seed` PASS
 - `pnpm catalog:audit:regressions` PASS
-- `pnpm catalog:audit:quality` PASS (no violations; image warnings remain)
+- `pnpm catalog:audit:quality` PASS (no violations; warnings reduced to 12)
 - `pnpm verify` PASS
+- direct offer-detail hydration execution (`runOffersDetailRefresh` bulk, `limit=30`, `timeoutMs=2500`) => `{ scanned: 30, updated: 17, failed: 0 }`
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 

@@ -6,6 +6,8 @@ import type { DbClient } from "@/server/db";
 import { categories, offers, plants, products } from "@/server/db/schema";
 
 const MAX_SAMPLE_SLUGS = 20;
+const NON_PRODUCTION_SLUG_PATTERN =
+  /(^|[-_])(vitest|test|e2e|playwright)([-_]|$)/i;
 
 function toStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -33,6 +35,15 @@ function uniqueSorted(values: string[]): string[] {
   return [...new Set(values)]
     .sort((a, b) => a.localeCompare(b))
     .slice(0, MAX_SAMPLE_SLUGS);
+}
+
+export function isNonProductionCatalogSlug(
+  slug: string | null | undefined,
+): boolean {
+  if (typeof slug !== "string") return false;
+  const normalized = slug.trim().toLowerCase();
+  if (!normalized) return false;
+  return NON_PRODUCTION_SLUG_PATTERN.test(normalized);
 }
 
 export function shouldProductBeActiveForCatalogPolicy(params: {
@@ -126,10 +137,13 @@ export async function applyCatalogActivationPolicy(
 
   for (const product of focusProducts) {
     const inStockPricedOffers = inStockCountByProductId.get(product.id) ?? 0;
-    const shouldBeActive = shouldProductBeActiveForCatalogPolicy({
-      inStockPricedOffers,
-      specs: product.specs,
-    });
+    const isArtifact = isNonProductionCatalogSlug(product.slug);
+    const shouldBeActive =
+      !isArtifact &&
+      shouldProductBeActiveForCatalogPolicy({
+        inStockPricedOffers,
+        specs: product.specs,
+      });
 
     if (shouldBeActive && product.status !== "active") {
       productIdsToActivate.push(product.id);
@@ -160,12 +174,15 @@ export async function applyCatalogActivationPolicy(
   const plantSlugsToDeactivate: string[] = [];
 
   for (const plant of plantRows) {
-    const shouldBeActive = shouldPlantBeActiveForCatalogPolicy({
-      imageUrl: plant.imageUrl,
-      imageUrls: plant.imageUrls,
-      sources: plant.sources,
-      description: plant.description,
-    });
+    const isArtifact = isNonProductionCatalogSlug(plant.slug);
+    const shouldBeActive =
+      !isArtifact &&
+      shouldPlantBeActiveForCatalogPolicy({
+        imageUrl: plant.imageUrl,
+        imageUrls: plant.imageUrls,
+        sources: plant.sources,
+        description: plant.description,
+      });
 
     if (shouldBeActive && plant.status !== "active") {
       plantIdsToActivate.push(plant.id);
