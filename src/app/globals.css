@@ -73,41 +73,6 @@ body {
   }
 }
 
-.hero-water-fx-v2-layer {
-  opacity: 0.92;
-  mix-blend-mode: screen;
-}
-
-.hero-water-fx-v2-particles {
-  opacity: 0.9;
-  mix-blend-mode: screen;
-}
-
-.hero-water-fx-v2-enabled #hero-water-heading {
-  text-shadow: 0 2px 18px rgba(6, 24, 17, 0.2), 0 1px 0 rgba(248, 255, 252, 0.35);
-  transition: opacity 180ms ease-out, filter 180ms ease-out;
-}
-
-.hero-water-fx-v2-enabled #hero-water-lede {
-  text-shadow: 0 1px 14px rgba(6, 24, 17, 0.16);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-water-fx-v2-layer,
-  .hero-water-fx-v2-particles {
-    display: none !important;
-  }
-
-  #hero-water-text {
-    transform: none !important;
-    filter: none !important;
-  }
-
-  #hero-water-heading {
-    opacity: 1 !important;
-  }
-}
-
 /* Ensure interactive controls feel interactive, even without utility classes. */
 a,
 button,
