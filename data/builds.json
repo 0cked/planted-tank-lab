@@ -1,9 +1,9 @@
 [
   {
     "slug": "budget-jungle-20",
-    "name": "Budget 20G Low-Tech Jungle",
+    "name": "Budget 60U Low-Tech Jungle",
     "tier": "budget",
-    "description": "A forgiving, beginner-safe setup built around a 20 gallon long. No pressurized CO2, easy plants, and dependable gear that is widely available.",
+    "description": "A forgiving, beginner-safe setup built around a UNS 60U. No pressurized CO2, easy plants, and dependable gear that is widely available.",
     "style": "budget",
     "flags": {
       "lowTechNoCo2": true,
@@ -13,7 +13,7 @@
     "items": [
       {
         "category_slug": "tank",
-        "product_slug": "standard-20-gallon-long",
+        "product_slug": "uns-60u",
         "quantity": 1
       },
       {
@@ -179,10 +179,10 @@
     ]
   },
   {
-    "slug": "premium-ada-60p",
-    "name": "Premium ADA 60P High-Tech",
+    "slug": "premium-uns-120p",
+    "name": "Premium UNS 120P High-Tech",
     "tier": "premium",
-    "description": "A premium high-tech layout path with stronger PAR, dual-stage CO2, and dense planting for color and carpeting. Built for serious growth and precision control.",
+    "description": "A premium high-tech layout path on a UNS 120P with stronger PAR, dual-stage CO2, and dense planting for color and carpeting. Built for serious growth and precision control.",
     "style": "premium",
     "flags": {
       "lowTechNoCo2": false,
@@ -192,7 +192,7 @@
     "items": [
       {
         "category_slug": "tank",
-        "product_slug": "ada-60p",
+        "product_slug": "uns-120p",
         "quantity": 1
       },
       {

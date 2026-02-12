@@ -3,21 +3,20 @@
     "category_slug": "tank",
     "brand_slug": "uns",
     "brand_name": "UNS",
-    "name": "UNS 60U Rimless Aquarium",
-    "slug": "uns-60u",
-    "description": "Rimless low-iron glass aquarium (60U format).",
+    "name": "UNS 180U Rimless Aquarium",
+    "slug": "uns-180u",
+    "description": "UNS 180U ultra-clear rimless aquarium.",
     "specs": {
-      "volume_gal": 20.6,
-      "volume_liters": 77.8,
-      "length_in": 23.6,
-      "width_in": 14.2,
-      "height_in": 14.2,
+      "length_in": 70.86,
+      "width_in": 23.62,
+      "height_in": 23.62,
+      "volume_gal": 171.1,
+      "volume_liters": 647.7,
       "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 190
+      "rimless": true
     },
     "sources": [
-      "https://ultumnaturesystems.com/"
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
     ],
     "curated_rank": 1
   },
@@ -25,109 +24,43 @@
     "category_slug": "tank",
     "brand_slug": "uns",
     "brand_name": "UNS",
-    "name": "UNS 45U Rimless Aquarium",
-    "slug": "uns-45u",
-    "description": "Rimless low-iron glass aquarium (45U format).",
+    "name": "UNS 150U Rimless Aquarium",
+    "slug": "uns-150u",
+    "description": "UNS 150U ultra-clear rimless aquarium.",
     "specs": {
-      "volume_gal": 9,
-      "volume_liters": 34,
-      "length_in": 17.7,
-      "width_in": 10.6,
-      "height_in": 10.6,
-      "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 85
-    },
-    "sources": [
-      "https://ultumnaturesystems.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "uns",
-    "brand_name": "UNS",
-    "name": "UNS 90U Rimless Aquarium",
-    "slug": "uns-90u",
-    "description": "Rimless low-iron glass aquarium (90U format).",
-    "specs": {
-      "volume_gal": 48,
-      "volume_liters": 182,
-      "length_in": 35.4,
-      "width_in": 17.7,
-      "height_in": 17.7,
-      "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 450
-    },
-    "sources": [
-      "https://ultumnaturesystems.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "uns",
-    "brand_name": "UNS",
-    "name": "UNS 60L Rimless Aquarium",
-    "slug": "uns-60l",
-    "description": "UNS 60L - 6.3 Gallon Ultra Clear Rimless Aquarium",
-    "specs": {
-      "length_in": 23.62,
-      "width_in": 7.87,
-      "height_in": 7.87,
-      "glass_thickness_mm": 5,
-      "volume_gal": 6.3,
-      "volume_liters": 24,
+      "length_in": 59.05,
+      "width_in": 23.62,
+      "height_in": 23.62,
+      "volume_gal": 142.6,
+      "volume_liters": 539.8,
       "material": "glass",
       "rimless": true
     },
     "sources": [
-      "https://buceplant.com/products/uns-60l-6-gallon-ultra-clear-rimless-aquarium"
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
     ],
-    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-60l-6-3-gallon-ultra-clear-rimless-aquarium-1219639403.jpg?v=1770424475"
+    "curated_rank": 2
   },
   {
     "category_slug": "tank",
     "brand_slug": "uns",
     "brand_name": "UNS",
-    "name": "UNS 75P Rimless Aquarium",
-    "slug": "uns-75p",
-    "description": "UNS 75P - 40.1 Gallon Ultra Clear Rimless Aquarium",
-    "specs": {
-      "length_in": 29.52,
-      "width_in": 17.72,
-      "height_in": 17.72,
-      "glass_thickness_mm": 8,
-      "volume_gal": 40.1,
-      "volume_liters": 151.8,
-      "material": "glass",
-      "rimless": true
-    },
-    "sources": [
-      "https://buceplant.com/products/uns-75p-36gallon-ultra-clear-rimless-aquarium"
-    ],
-    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-75p-40-1-gallon-ultra-clear-rimless-aquarium-1219184530.jpg?v=1770142655"
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "uns",
-    "brand_name": "UNS",
-    "name": "UNS 120P Rimless Aquarium",
-    "slug": "uns-120p",
-    "description": "UNS 120P - 79.2 Gallon Ultra Clear Rimless Aquarium",
+    "name": "UNS 120U Rimless Aquarium",
+    "slug": "uns-120u",
+    "description": "UNS 120U ultra-clear rimless aquarium.",
     "specs": {
       "length_in": 47.24,
-      "width_in": 19.69,
-      "height_in": 19.69,
-      "glass_thickness_mm": 12,
-      "volume_gal": 79.2,
-      "volume_liters": 300,
+      "width_in": 23.62,
+      "height_in": 23.62,
+      "volume_gal": 114.1,
+      "volume_liters": 431.9,
       "material": "glass",
       "rimless": true
     },
     "sources": [
-      "https://buceplant.com/products/uns-120p-78-gallon-ultra-clear-rimless-aquarium"
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
     ],
-    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-120p-79-2-gallon-ultra-clear-rimless-aquarium-1219184516.jpg?v=1770142418"
+    "curated_rank": 3
   },
   {
     "category_slug": "tank",
@@ -135,450 +68,482 @@
     "brand_name": "UNS",
     "name": "UNS 120M Rimless Aquarium",
     "slug": "uns-120m",
-    "description": "UNS 120M - 85.5 Gallon Ultra Clear Rimless Aquarium",
+    "description": "UNS 120M ultra-clear rimless aquarium.",
     "specs": {
       "length_in": 47.24,
       "width_in": 23.62,
       "height_in": 17.72,
-      "glass_thickness_mm": 12,
       "volume_gal": 85.5,
-      "volume_liters": 324,
+      "volume_liters": 323.7,
       "material": "glass",
       "rimless": true
     },
     "sources": [
-      "https://buceplant.com/products/uns-120m-85-gallon-ultra-clear-rimless-aquarium"
-    ],
-    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-120m-85-5-gallon-ultra-clear-rimless-aquarium-1219184508.jpg?v=1770142028"
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "uns",
-    "brand_name": "UNS",
-    "name": "UNS 25T Rimless Aquarium",
-    "slug": "uns-25t",
-    "description": "UNS 25T - 5.9 Gallon Ultra Clear Rimless Aquarium",
-    "specs": {
-      "length_in": 9.84,
-      "width_in": 9.84,
-      "height_in": 14.17,
-      "glass_thickness_mm": 5,
-      "volume_gal": 5.9,
-      "volume_liters": 22.5,
-      "material": "glass",
-      "rimless": true
-    },
-    "sources": [
-      "https://buceplant.com/products/25t-5-5-gallon-ultra-clear-rimless-aquarium"
-    ],
-    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-25t-5-9-gallon-ultra-clear-rimless-aquarium-1219184543.jpg?v=1770142268"
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "uns",
-    "brand_name": "UNS",
-    "name": "UNS 3N Rimless Aquarium",
-    "slug": "uns-3n",
-    "description": "UNS 3N - 2.9 Gallon Ultra Clear Rimless Aquarium",
-    "specs": {
-      "length_in": 12.2,
-      "width_in": 7.48,
-      "height_in": 7.48,
-      "glass_thickness_mm": 5,
-      "volume_gal": 2.9,
-      "volume_liters": 11.1,
-      "material": "glass",
-      "rimless": true
-    },
-    "sources": [
-      "https://buceplant.com/products/uns-3n-3-gallon-ultra-clear-rimless-aquarium"
-    ],
-    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-3n-2-9-gallon-ultra-clear-rimless-aquarium-1219111702.jpg?v=1770109987"
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "waterbox",
-    "brand_name": "Waterbox",
-    "name": "Waterbox Clear 6",
-    "slug": "waterbox-clear-6",
-    "description": "Small rimless aquarium from the Waterbox Clear series.",
-    "specs": {
-      "volume_gal": 6,
-      "volume_liters": 22.7,
-      "length_in": 13.8,
-      "width_in": 9.8,
-      "height_in": 9.8,
-      "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 55
-    },
-    "sources": [
-      "https://waterboxaquariums.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "waterbox",
-    "brand_name": "Waterbox",
-    "name": "Waterbox Clear 10",
-    "slug": "waterbox-clear-10",
-    "description": "Rimless aquarium from Waterbox Clear series.",
-    "specs": {
-      "volume_gal": 10,
-      "volume_liters": 37.9,
-      "length_in": 17.7,
-      "width_in": 11.8,
-      "height_in": 11.8,
-      "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 95
-    },
-    "sources": [
-      "https://waterboxaquariums.com/"
-    ],
-    "curated_rank": 3
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "waterbox",
-    "brand_name": "Waterbox",
-    "name": "Waterbox Clear 16",
-    "slug": "waterbox-clear-16",
-    "description": "Mid-size rimless aquarium from Waterbox Clear series.",
-    "specs": {
-      "volume_gal": 16,
-      "volume_liters": 60.6,
-      "length_in": 23.6,
-      "width_in": 11.8,
-      "height_in": 11.8,
-      "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 155
-    },
-    "sources": [
-      "https://waterboxaquariums.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "waterbox",
-    "brand_name": "Waterbox",
-    "name": "Waterbox Clear 20",
-    "slug": "waterbox-clear-20",
-    "description": "Rimless aquarium from Waterbox Clear series.",
-    "specs": {
-      "volume_gal": 20,
-      "volume_liters": 75.7,
-      "length_in": 23.6,
-      "width_in": 14.2,
-      "height_in": 14.2,
-      "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 190
-    },
-    "sources": [
-      "https://waterboxaquariums.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "waterbox",
-    "brand_name": "Waterbox",
-    "name": "Waterbox Clear 35",
-    "slug": "waterbox-clear-35",
-    "description": "Larger rimless aquarium from Waterbox Clear series.",
-    "specs": {
-      "volume_gal": 35,
-      "volume_liters": 132.5,
-      "length_in": 35.4,
-      "width_in": 15.7,
-      "height_in": 15.7,
-      "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 330
-    },
-    "sources": [
-      "https://waterboxaquariums.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "ada",
-    "brand_name": "ADA",
-    "name": "ADA Cube Garden 45-P",
-    "slug": "ada-45p",
-    "description": "ADA standard 45 cm aquarium used in many nano aquascapes.",
-    "specs": {
-      "volume_gal": 9.6,
-      "volume_liters": 36,
-      "length_in": 17.7,
-      "width_in": 10.6,
-      "height_in": 11.8,
-      "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 95
-    },
-    "sources": [
-      "https://www.adana.co.jp/en/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "ada",
-    "brand_name": "ADA",
-    "name": "ADA Cube Garden 60-P",
-    "slug": "ada-60p",
-    "description": "ADA standard 60 cm aquarium (60P).",
-    "specs": {
-      "volume_gal": 17.1,
-      "volume_liters": 64.8,
-      "length_in": 23.6,
-      "width_in": 11.8,
-      "height_in": 14.2,
-      "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 165
-    },
-    "sources": [
-      "https://www.adana.co.jp/en/"
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
     ],
     "curated_rank": 4
   },
   {
     "category_slug": "tank",
-    "brand_slug": "ada",
-    "brand_name": "ADA",
-    "name": "ADA Cube Garden 90-P",
-    "slug": "ada-90p",
-    "description": "ADA standard 90 cm aquarium (90P).",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 120P Rimless Aquarium",
+    "slug": "uns-120p",
+    "description": "UNS 120P ultra-clear rimless aquarium.",
     "specs": {
-      "volume_gal": 48,
-      "volume_liters": 182,
-      "length_in": 35.4,
-      "width_in": 17.7,
-      "height_in": 17.7,
+      "length_in": 47.24,
+      "width_in": 19.69,
+      "height_in": 19.69,
+      "volume_gal": 79.2,
+      "volume_liters": 299.8,
       "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 450
+      "rimless": true
     },
     "sources": [
-      "https://www.adana.co.jp/en/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "fluval",
-    "brand_name": "Fluval",
-    "name": "Fluval Flex 9",
-    "slug": "fluval-flex-9",
-    "description": "All-in-one aquarium with curved front glass and rear filtration.",
-    "specs": {
-      "volume_gal": 9,
-      "volume_liters": 34.1,
-      "length_in": 13.6,
-      "width_in": 13.2,
-      "height_in": 13.2,
-      "material": "glass",
-      "rimless": false,
-      "filled_weight_lbs": 85
-    },
-    "sources": [
-      "https://fluvalaquatics.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "fluval",
-    "brand_name": "Fluval",
-    "name": "Fluval Flex 15",
-    "slug": "fluval-flex-15",
-    "description": "All-in-one aquarium with curved front glass and rear filtration.",
-    "specs": {
-      "volume_gal": 15,
-      "volume_liters": 56.8,
-      "length_in": 16.1,
-      "width_in": 15,
-      "height_in": 15,
-      "material": "glass",
-      "rimless": false,
-      "filled_weight_lbs": 150
-    },
-    "sources": [
-      "https://fluvalaquatics.com/"
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
     ],
     "curated_rank": 5
   },
   {
     "category_slug": "tank",
-    "brand_slug": "aqueon",
-    "brand_name": "Aqueon",
-    "name": "Standard 10 Gallon Aquarium",
-    "slug": "standard-10-gallon",
-    "description": "Common 10 gallon glass aquarium (standard footprint).",
-    "specs": {
-      "volume_gal": 10,
-      "volume_liters": 37.9,
-      "length_in": 20,
-      "width_in": 10,
-      "height_in": 12,
-      "material": "glass",
-      "rimless": false,
-      "filled_weight_lbs": 100
-    },
-    "sources": [
-      "https://www.aqueon.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "aqueon",
-    "brand_name": "Aqueon",
-    "name": "Standard 20 Gallon Long Aquarium",
-    "slug": "standard-20-gallon-long",
-    "description": "Common 20 gallon long glass aquarium (30 inch length).",
-    "specs": {
-      "volume_gal": 20,
-      "volume_liters": 75.7,
-      "length_in": 30,
-      "width_in": 12,
-      "height_in": 12,
-      "material": "glass",
-      "rimless": false,
-      "filled_weight_lbs": 225
-    },
-    "sources": [
-      "https://www.aqueon.com/"
-    ],
-    "curated_rank": 2
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "aqueon",
-    "brand_name": "Aqueon",
-    "name": "Standard 29 Gallon Aquarium",
-    "slug": "standard-29-gallon",
-    "description": "Common 29 gallon glass aquarium (30 inch length, taller).",
-    "specs": {
-      "volume_gal": 29,
-      "volume_liters": 109.8,
-      "length_in": 30,
-      "width_in": 12,
-      "height_in": 18,
-      "material": "glass",
-      "rimless": false,
-      "filled_weight_lbs": 310
-    },
-    "sources": [
-      "https://www.aqueon.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "aqueon",
-    "brand_name": "Aqueon",
-    "name": "Standard 40 Gallon Breeder Aquarium",
-    "slug": "standard-40-breeder",
-    "description": "Popular 40 breeder footprint for planted tanks and aquascapes.",
-    "specs": {
-      "volume_gal": 40,
-      "volume_liters": 151.4,
-      "length_in": 36,
-      "width_in": 18,
-      "height_in": 16,
-      "material": "glass",
-      "rimless": false,
-      "filled_weight_lbs": 420
-    },
-    "sources": [
-      "https://www.aqueon.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
-    "brand_slug": "lifegard",
-    "brand_name": "Lifegard Aquatics",
-    "name": "Lifegard 5 Gallon Crystal Aquarium",
-    "slug": "lifegard-5g-crystal",
-    "description": "Small rimless nano aquarium.",
-    "specs": {
-      "volume_gal": 5,
-      "volume_liters": 18.9,
-      "length_in": 11.8,
-      "width_in": 11.8,
-      "height_in": 11.8,
-      "material": "glass",
-      "rimless": true,
-      "filled_weight_lbs": 50
-    },
-    "sources": [
-      "https://lifegardaquatics.com/"
-    ]
-  },
-  {
-    "category_slug": "tank",
     "brand_slug": "uns",
     "brand_name": "UNS",
-    "name": "UNS 16T Rimless Aquarium",
-    "slug": "uns-16t",
-    "description": "UNS 16T - 1.6 Gallon Ultra Clear Rimless Aquarium",
+    "name": "UNS 120S Rimless Aquarium",
+    "slug": "uns-120s",
+    "description": "UNS 120S ultra-clear rimless aquarium.",
     "specs": {
-      "length_in": 6.29,
-      "width_in": 6.29,
-      "height_in": 9.45,
-      "glass_thickness_mm": 5,
-      "volume_gal": 1.6,
-      "volume_liters": 6.1,
+      "length_in": 47.24,
+      "width_in": 23.62,
+      "height_in": 14.17,
+      "volume_gal": 68.4,
+      "volume_liters": 258.9,
       "material": "glass",
       "rimless": true
     },
     "sources": [
-      "https://buceplant.com/products/uns-16t-2-gallon-ultra-clear-rimless-aquarium"
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
     ],
-    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-16t-1-6-gallon-ultra-clear-rimless-aquarium-1219184542.jpg?v=1770142535"
+    "curated_rank": 6
   },
   {
     "category_slug": "tank",
     "brand_slug": "uns",
     "brand_name": "UNS",
-    "name": "UNS 20C Rimless Aquarium",
-    "slug": "uns-20c",
-    "description": "UNS 20C - 2.1 Gallon Ultra Clear Rimless Aquarium",
+    "name": "UNS 120SS Rimless Aquarium",
+    "slug": "uns-120ss",
+    "description": "UNS 120SS ultra-clear rimless aquarium.",
     "specs": {
-      "length_in": 7.87,
-      "width_in": 7.87,
-      "height_in": 7.87,
-      "glass_thickness_mm": 5,
-      "volume_gal": 2.1,
-      "volume_liters": 8,
+      "length_in": 47.24,
+      "width_in": 23.62,
+      "height_in": 9.84,
+      "volume_gal": 47.6,
+      "volume_liters": 180.2,
       "material": "glass",
       "rimless": true
     },
     "sources": [
-      "https://buceplant.com/products/uns-20c-2-gallon-ultra-clear-rimless-aquarium"
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
     ],
-    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-20c-2-1-gallon-ultra-clear-rimless-aquarium-1219639376.jpg?v=1770423635"
+    "curated_rank": 7
   },
   {
     "category_slug": "tank",
     "brand_slug": "uns",
     "brand_name": "UNS",
-    "name": "UNS 30C Rimless Aquarium",
-    "slug": "uns-30c",
-    "description": "UNS 30C - 7.1 Gallon Ultra Clear Rimless Aquarium",
+    "name": "UNS 90U Rimless Aquarium",
+    "slug": "uns-90u",
+    "description": "UNS 90U ultra-clear rimless aquarium.",
     "specs": {
-      "length_in": 11.81,
+      "length_in": 35.43,
+      "width_in": 22.04,
+      "height_in": 22.04,
+      "volume_gal": 74.5,
+      "volume_liters": 282,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 8
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 90S Rimless Aquarium",
+    "slug": "uns-90s",
+    "description": "UNS 90S ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 35.43,
+      "width_in": 22.04,
+      "height_in": 14.17,
+      "volume_gal": 47.9,
+      "volume_liters": 181.3,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 9
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 90SS Rimless Aquarium",
+    "slug": "uns-90ss",
+    "description": "UNS 90SS ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 35.43,
+      "width_in": 22.04,
+      "height_in": 9.84,
+      "volume_gal": 33.3,
+      "volume_liters": 126.1,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 10
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 90P Rimless Aquarium",
+    "slug": "uns-90p",
+    "description": "UNS 90P ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 35.43,
+      "width_in": 17.72,
+      "height_in": 17.71,
+      "volume_gal": 48.1,
+      "volume_liters": 182.1,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 11
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 90L Rimless Aquarium",
+    "slug": "uns-90l",
+    "description": "UNS 90L ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 35.43,
       "width_in": 11.81,
       "height_in": 11.81,
-      "glass_thickness_mm": 5,
-      "volume_gal": 7.1,
-      "volume_liters": 27,
+      "volume_gal": 21.3,
+      "volume_liters": 80.6,
       "material": "glass",
       "rimless": true
     },
     "sources": [
-      "https://buceplant.com/products/uns-30c-7-gallon-ultra-clear-rimless-aquarium"
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
     ],
-    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-30c-7-1-gallon-ultra-clear-rimless-aquarium-1219639384.jpg?v=1770423847"
+    "curated_rank": 12
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 90B Rimless Aquarium",
+    "slug": "uns-90b",
+    "description": "UNS 90B ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 35.43,
+      "width_in": 7.87,
+      "height_in": 9.84,
+      "volume_gal": 11.8,
+      "volume_liters": 44.7,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 13
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 75P Rimless Aquarium",
+    "slug": "uns-75p",
+    "description": "UNS 75P ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 29.52,
+      "width_in": 17.72,
+      "height_in": 17.72,
+      "volume_gal": 40.1,
+      "volume_liters": 151.8,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 14
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 75S Rimless Aquarium",
+    "slug": "uns-75s",
+    "description": "UNS 75S ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 29.52,
+      "width_in": 17.72,
+      "height_in": 11.81,
+      "volume_gal": 26.7,
+      "volume_liters": 101.1,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 15
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 60T Rimless Aquarium",
+    "slug": "uns-60t",
+    "description": "UNS 60T ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 23.62,
+      "width_in": 14.17,
+      "height_in": 17.71,
+      "volume_gal": 25.6,
+      "volume_liters": 96.9,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 16
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 60U Rimless Aquarium",
+    "slug": "uns-60u",
+    "description": "UNS 60U ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 23.62,
+      "width_in": 14.17,
+      "height_in": 14.17,
+      "volume_gal": 20.5,
+      "volume_liters": 77.6,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 17
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 60S Rimless Aquarium",
+    "slug": "uns-60s",
+    "description": "UNS 60S ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 23.62,
+      "width_in": 14.17,
+      "height_in": 7.09,
+      "volume_gal": 10.2,
+      "volume_liters": 38.6,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 18
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 60L Rimless Aquarium",
+    "slug": "uns-60l",
+    "description": "UNS 60L ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 23.62,
+      "width_in": 7.87,
+      "height_in": 7.87,
+      "volume_gal": 6.3,
+      "volume_liters": 23.8,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 19
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 60C Rimless Aquarium",
+    "slug": "uns-60c",
+    "description": "UNS 60C ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 23.62,
+      "width_in": 23.62,
+      "height_in": 23.62,
+      "volume_gal": 57,
+      "volume_liters": 215.8,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 20
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 60CS Rimless Aquarium",
+    "slug": "uns-60cs",
+    "description": "UNS 60CS ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 23.62,
+      "width_in": 23.62,
+      "height_in": 11.81,
+      "volume_gal": 28.5,
+      "volume_liters": 107.9,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 21
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 50C Rimless Aquarium",
+    "slug": "uns-50c",
+    "description": "UNS 50C ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 19.68,
+      "width_in": 19.68,
+      "height_in": 19.68,
+      "volume_gal": 33,
+      "volume_liters": 124.9,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 22
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 45U Rimless Aquarium",
+    "slug": "uns-45u",
+    "description": "UNS 45U ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 17.71,
+      "width_in": 11.02,
+      "height_in": 11.02,
+      "volume_gal": 9.3,
+      "volume_liters": 35.2,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 23
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 45S Rimless Aquarium",
+    "slug": "uns-45s",
+    "description": "UNS 45S ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 17.71,
+      "width_in": 11.02,
+      "height_in": 7.09,
+      "volume_gal": 5.9,
+      "volume_liters": 22.3,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 24
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 45C Rimless Aquarium",
+    "slug": "uns-45c",
+    "description": "UNS 45C ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 17.71,
+      "width_in": 17.71,
+      "height_in": 17.71,
+      "volume_gal": 24,
+      "volume_liters": 90.8,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 25
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 45T Rimless Aquarium",
+    "slug": "uns-45t",
+    "description": "UNS 45T ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 17.71,
+      "width_in": 11.02,
+      "height_in": 14.17,
+      "volume_gal": 11.9,
+      "volume_liters": 45,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 26
   },
   {
     "category_slug": "tank",
@@ -586,20 +551,355 @@
     "brand_name": "UNS",
     "name": "UNS 45L Rimless Aquarium",
     "slug": "uns-45l",
-    "description": "UNS 45L - 3.4 Gallon Ultra Clear Rimless Aquarium",
+    "description": "UNS 45L ultra-clear rimless aquarium.",
     "specs": {
       "length_in": 17.72,
       "width_in": 6.69,
       "height_in": 6.69,
-      "glass_thickness_mm": 5,
       "volume_gal": 3.4,
-      "volume_liters": 13,
+      "volume_liters": 12.9,
       "material": "glass",
       "rimless": true
     },
     "sources": [
-      "https://buceplant.com/products/uns-45l-4-gallon-ultra-clear-rimless-aquarium"
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
     ],
-    "image_url": "https://cdn.shopify.com/s/files/1/1167/8568/files/uns-45l-3-4-gallon-ultra-clear-rimless-aquarium-1219687424.jpg?v=1770457029"
+    "curated_rank": 27
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 5N Rimless Aquarium",
+    "slug": "uns-5n",
+    "description": "UNS 5N ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 14.17,
+      "width_in": 8.66,
+      "height_in": 8.66,
+      "volume_gal": 4.6,
+      "volume_liters": 17.4,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 28
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 5T Rimless Aquarium",
+    "slug": "uns-5t",
+    "description": "UNS 5T ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 14.17,
+      "width_in": 8.66,
+      "height_in": 11.02,
+      "volume_gal": 5.8,
+      "volume_liters": 22,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 29
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 5S Rimless Aquarium",
+    "slug": "uns-5s",
+    "description": "UNS 5S ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 14.17,
+      "width_in": 8.66,
+      "height_in": 4.72,
+      "volume_gal": 2.5,
+      "volume_liters": 9.5,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 30
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 3N Rimless Aquarium",
+    "slug": "uns-3n",
+    "description": "UNS 3N ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 12.2,
+      "width_in": 7.48,
+      "height_in": 7.48,
+      "volume_gal": 2.9,
+      "volume_liters": 11,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 31
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 3T Rimless Aquarium",
+    "slug": "uns-3t",
+    "description": "UNS 3T ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 12.2,
+      "width_in": 7.48,
+      "height_in": 9.44,
+      "volume_gal": 3.7,
+      "volume_liters": 14,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 32
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 40C Rimless Aquarium",
+    "slug": "uns-40c",
+    "description": "UNS 40C ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 15.75,
+      "width_in": 15.75,
+      "height_in": 15.75,
+      "volume_gal": 16.9,
+      "volume_liters": 64,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 33
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 30C Rimless Aquarium",
+    "slug": "uns-30c",
+    "description": "UNS 30C ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 11.81,
+      "width_in": 11.81,
+      "height_in": 11.81,
+      "volume_gal": 7.1,
+      "volume_liters": 26.9,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 34
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 30T Rimless Aquarium",
+    "slug": "uns-30t",
+    "description": "UNS 30T ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 11.81,
+      "width_in": 11.81,
+      "height_in": 17.71,
+      "volume_gal": 10.6,
+      "volume_liters": 40.1,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 35
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 25C Rimless Aquarium",
+    "slug": "uns-25c",
+    "description": "UNS 25C ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 9.84,
+      "width_in": 9.84,
+      "height_in": 9.84,
+      "volume_gal": 4.1,
+      "volume_liters": 15.5,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 36
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 25T Rimless Aquarium",
+    "slug": "uns-25t",
+    "description": "UNS 25T ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 9.84,
+      "width_in": 9.84,
+      "height_in": 14.17,
+      "volume_gal": 5.9,
+      "volume_liters": 22.3,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 37
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 25S Rimless Aquarium",
+    "slug": "uns-25s",
+    "description": "UNS 25S ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 9.84,
+      "width_in": 9.84,
+      "height_in": 4.92,
+      "volume_gal": 2.1,
+      "volume_liters": 7.9,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 38
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 20C Rimless Aquarium",
+    "slug": "uns-20c",
+    "description": "UNS 20C ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 7.87,
+      "width_in": 7.87,
+      "height_in": 7.87,
+      "volume_gal": 2.1,
+      "volume_liters": 7.9,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 39
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 20T Rimless Aquarium",
+    "slug": "uns-20t",
+    "description": "UNS 20T ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 7.87,
+      "width_in": 7.87,
+      "height_in": 11.81,
+      "volume_gal": 3.1,
+      "volume_liters": 11.7,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 40
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 16C Rimless Aquarium",
+    "slug": "uns-16c",
+    "description": "UNS 16C ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 6.29,
+      "width_in": 6.29,
+      "height_in": 6.29,
+      "volume_gal": 1,
+      "volume_liters": 3.8,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 41
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 16T Rimless Aquarium",
+    "slug": "uns-16t",
+    "description": "UNS 16T ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 6.29,
+      "width_in": 6.29,
+      "height_in": 9.45,
+      "volume_gal": 1.6,
+      "volume_liters": 6.1,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 42
+  },
+  {
+    "category_slug": "tank",
+    "brand_slug": "uns",
+    "brand_name": "UNS",
+    "name": "UNS 16S Rimless Aquarium",
+    "slug": "uns-16s",
+    "description": "UNS 16S ultra-clear rimless aquarium.",
+    "specs": {
+      "length_in": 6.3,
+      "width_in": 6.3,
+      "height_in": 3.94,
+      "volume_gal": 0.5,
+      "volume_liters": 1.9,
+      "material": "glass",
+      "rimless": true
+    },
+    "sources": [
+      "https://ultumnaturesystems.com/collections/rimless-aquariums"
+    ],
+    "curated_rank": 43
   }
 ]

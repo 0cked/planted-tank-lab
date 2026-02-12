@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { applyCatalogActivationPolicy } from "@/server/catalog/activation-policy";
@@ -626,6 +626,46 @@ async function upsertCuratedBuilds(): Promise<{
   };
 }
 
+async function enforceTankCatalogFromSeed(): Promise<{
+  removedProducts: number;
+  removedOffers: number;
+}> {
+  const raw = readJson<unknown>("data/products/tanks.json");
+  const tankItems = z.array(productSeedSchema).parse(raw);
+  const allowedSlugs = Array.from(new Set(tankItems.map((item) => item.slug)));
+
+  if (allowedSlugs.length === 0) {
+    throw new Error("Tank seed list is empty; refusing to prune all tank products.");
+  }
+
+  const staleTankRows = await db
+    .select({ id: products.id })
+    .from(products)
+    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .where(and(eq(categories.slug, "tank"), notInArray(products.slug, allowedSlugs)));
+
+  if (staleTankRows.length === 0) {
+    return {
+      removedProducts: 0,
+      removedOffers: 0,
+    };
+  }
+
+  const cleanup = await pruneLegacyCatalogRows({
+    database: db,
+    targets: {
+      productIds: staleTankRows.map((row) => row.id),
+      plantIds: [],
+      offerIds: [],
+    },
+  });
+
+  return {
+    removedProducts: cleanup.deleted.products,
+    removedOffers: cleanup.deleted.offers,
+  };
+}
+
 async function main(): Promise<void> {
   const productFiles = readdirSync(join(process.cwd(), "data/products"))
     .filter((fileName) => fileName.endsWith(".json"))
@@ -657,6 +697,9 @@ async function main(): Promise<void> {
 
   console.log("Seeding: prune legacy non-provenance catalog rows...");
   const legacyCleanup = await pruneLegacyCatalogRows({ database: db });
+
+  console.log("Seeding: enforce tank catalog from seed list...");
+  const tankCatalogEnforcement = await enforceTankCatalogFromSeed();
 
   console.log("Seeding: catalog activation policy (focus products + plants)...");
   const activationPolicy = await applyCatalogActivationPolicy(db);
@@ -737,6 +780,7 @@ async function main(): Promise<void> {
           stageTimingsMs: normalization.stageTimingsMs,
         },
         legacyCleanup,
+        tankCatalogEnforcement,
         activationPolicy,
         regressionAudit,
         provenanceAudit,
