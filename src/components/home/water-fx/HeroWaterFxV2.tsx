@@ -635,7 +635,7 @@ export function HeroWaterFxV2({ enabled }: HeroWaterFxV2Props) {
       splatUniforms.point.value[0] = params.x;
       splatUniforms.point.value[1] = 1 - params.y;
 
-      const boost = clamp(params.strength * 0.0017, 0.02, 0.18);
+      const boost = clamp(params.strength * 0.0023, 0.03, 0.24);
       splatUniforms.force.value[0] = clamp(params.fx * boost, -0.7, 0.7);
       splatUniforms.force.value[1] = clamp(-params.fy * boost, -0.7, 0.7);
 
@@ -698,23 +698,23 @@ export function HeroWaterFxV2({ enabled }: HeroWaterFxV2Props) {
       const cy = textRect.top - rootRect.top + textRect.height * 0.4;
 
       const flow = field.sample(cx / Math.max(1, width), cy / Math.max(1, height));
-      const targetDx = clamp(flow.x * 24, -12, 12);
-      const targetDy = clamp(flow.y * 18, -10, 10);
+      const targetDx = clamp(flow.x * 72, -22, 22);
+      const targetDy = clamp(flow.y * 56, -16, 16);
 
       const spring = clamp(dt * 7.5, 0.06, 0.24);
       textVx += (targetDx - textDx) * spring;
       textVy += (targetDy - textDy) * spring;
-      textVx *= 0.83;
-      textVy *= 0.83;
-      textDx = clamp(textDx + textVx, -14, 14);
-      textDy = clamp(textDy + textVy, -12, 12);
+      textVx *= 0.8;
+      textVy *= 0.8;
+      textDx = clamp(textDx + textVx, -24, 24);
+      textDy = clamp(textDy + textVy, -18, 18);
 
-      const skew = clamp(textDx * 0.24, -5.5, 5.5);
+      const skew = clamp(textDx * 0.32, -8.5, 8.5);
       textRoot.style.transform = `translate3d(${textDx.toFixed(2)}px, ${textDy.toFixed(2)}px, 0px) skewX(${skew.toFixed(2)}deg)`;
 
-      const activity = clamp(Math.hypot(flow.x, flow.y) * 6.2, 0, 1);
-      heading.style.opacity = `${clamp(1 - activity * 0.22, 0.78, 1).toFixed(3)}`;
-      heading.style.filter = `drop-shadow(${(flow.x * 2.8).toFixed(2)}px ${(flow.y * 3.2).toFixed(2)}px ${(2 + activity * 8).toFixed(2)}px rgba(130, 231, 240, ${clamp(activity * 0.35, 0, 0.24).toFixed(3)}))`;
+      const activity = clamp(Math.hypot(flow.x, flow.y) * 18, 0, 1);
+      heading.style.opacity = `${clamp(1 - activity * 0.26, 0.74, 1).toFixed(3)}`;
+      heading.style.filter = `drop-shadow(${(flow.x * 8.4).toFixed(2)}px ${(flow.y * 9.6).toFixed(2)}px ${(2.2 + activity * 10).toFixed(2)}px rgba(130, 231, 240, ${clamp(activity * 0.58, 0, 0.38).toFixed(3)}))`;
     };
 
     const drawParticles = (dt: number, width: number, height: number) => {
@@ -787,7 +787,7 @@ export function HeroWaterFxV2({ enabled }: HeroWaterFxV2Props) {
       const nx = x / Math.max(1, rect.width);
       const ny = y / Math.max(1, rect.height);
 
-      field.inject(nx, ny, dx * 0.012, dy * 0.012, quality.splatRadius * 1.35);
+      field.inject(nx, ny, dx * 0.055, dy * 0.055, quality.splatRadius * 1.5);
       pendingSplats.push({
         x: nx,
         y: ny,
@@ -825,15 +825,15 @@ export function HeroWaterFxV2({ enabled }: HeroWaterFxV2Props) {
         idlePhase += 0.38;
         const nx = clamp(0.32 + Math.sin(idlePhase) * 0.06, 0.2, 0.46);
         const ny = clamp(0.34 + Math.cos(idlePhase * 0.9) * 0.05, 0.22, 0.48);
-        const fx = Math.cos(idlePhase * 1.4) * 6.5;
-        const fy = Math.sin(idlePhase * 1.2) * 5.2;
-        field.inject(nx, ny, fx * 0.012, fy * 0.012, quality.splatRadius * 1.1);
+        const fx = Math.cos(idlePhase * 1.4) * 12;
+        const fy = Math.sin(idlePhase * 1.2) * 9.5;
+        field.inject(nx, ny, fx * 0.03, fy * 0.03, quality.splatRadius * 1.25);
         pendingSplats.push({
           x: nx,
           y: ny,
           fx,
           fy,
-          strength: 7.5,
+          strength: 14,
         });
       }
 
