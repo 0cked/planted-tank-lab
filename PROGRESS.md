@@ -891,3 +891,70 @@ Each work session must add a new dated entry that includes:
     - plants still have a small missing-image set
 
 - Next: `CAT-01`, then `CAT-02`; keep `IN-12`/`IN-13` focused on closing quality-audit freshness/completeness blockers.
+
+## 2026-02-12 03:02
+
+- Work: Executed overnight catalog-readiness override with focus on ingestion reliability + user-facing catalog quality boundaries.
+  - Completed `IN-12A` reliability hardening:
+    - Added refresh-window helper + status-signal helper:
+      - `src/server/ingestion/sources/offers-refresh-window.ts`
+      - `src/server/ingestion/sources/availability-signal.ts`
+    - Updated bulk refresh payload semantics (`olderThanHours` + `olderThanDays` compatibility):
+      - `src/server/ingestion/job-queue.ts`
+      - `src/server/ingestion/worker.ts`
+    - Updated bulk refresh selection to deterministic stale-first ordering and SQL interval cutoff (fixed Date-bind query failures in bulk jobs):
+      - `src/server/ingestion/sources/offers-head.ts`
+      - `src/server/ingestion/sources/offers-detail.ts`
+    - Hardened canonical mutation safety:
+      - transport failures no longer mutate stock/freshness
+      - ambiguous HEAD statuses (405/429/5xx) now avoid unsafe stock flips
+      - `src/server/normalization/offers.ts` (`applyOfferHeadObservation` now tri-state-safe)
+  - Completed `IN-12B` catalog quality boundary enforcement:
+    - Added canonical activation policy + executable command:
+      - `src/server/catalog/activation-policy.ts`
+      - `scripts/catalog-activation-policy.ts`
+      - `package.json` script: `pnpm catalog:curate:activation`
+    - Seed pipeline now applies activation curation before regression audit:
+      - `scripts/seed.ts`
+    - Public read-paths now only surface `status=active` catalog rows:
+      - `src/server/trpc/routers/products.ts`
+      - `src/server/trpc/routers/plants.ts`
+  - Updated verification/runbook docs:
+    - `VERIFY.md`
+    - `PLAN_EXEC.md`
+    - `AUTOPILOT.md`
+
+- Test/verification coverage added/updated:
+  - New tests:
+    - `tests/server/ingestion-offers-refresh-utils.test.ts`
+    - `tests/server/catalog-activation-policy.test.ts`
+  - Updated tests:
+    - `tests/server/ingestion-offers-head.test.ts`
+    - `tests/server/ingestion-offers-detail.test.ts`
+    - `tests/server/ingestion-scheduler.test.ts`
+    - `tests/api/products.test.ts`
+    - `tests/api/plants.test.ts`
+    - `tests/e2e/builder.spec.ts` (tank compatibility fixture updated for active-catalog policy)
+
+- Commands run:
+  - `pnpm vitest run tests/server/ingestion-offers-refresh-utils.test.ts tests/server/catalog-activation-policy.test.ts` (PASS)
+  - `pnpm vitest run tests/server/ingestion-offers-head.test.ts tests/server/ingestion-offers-detail.test.ts tests/server/ingestion-scheduler.test.ts tests/api/products.test.ts tests/api/plants.test.ts` (PASS)
+  - `pnpm test` (PASS)
+  - `pnpm typecheck` (PASS)
+  - `pnpm verify:gates` (PASS)
+  - `pnpm seed` (PASS)
+    - activation policy results during seed: focus products deactivated `49`; plants deactivated `3`
+  - `pnpm catalog:curate:activation` (PASS; idempotent on rerun)
+  - `pnpm catalog:audit:regressions` (PASS)
+  - `pnpm catalog:audit:quality` (FAIL by design; freshness/image findings)
+  - `pnpm verify` (PASS; lint + typecheck + unit/integration + e2e)
+
+- Outcome deltas (quality audit):
+  - Offer freshness improved from `0%` to `92.23%` (`95/103` checked within 24h).
+  - Focus-category missing-offer warnings eliminated (`productsWithoutAnyOffer=0` across tank/light/filter/substrate/hardscape).
+  - Active plants missing-image debt eliminated (`61/61` active plants with images).
+  - Remaining blocker: freshness still below SLO (`92.23%` vs `95%`) + focus-category image coverage warnings.
+
+- Remaining next steps:
+  - `IN-12C`: admin ingestion ops dashboard/runbook visibility + queue recovery controls.
+  - `IN-13`: push freshness from 92.23% to >=95% and continue focus-category image debt remediation.

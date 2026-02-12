@@ -108,13 +108,14 @@ export async function applyOfferDetailObservation(params: {
 export async function applyOfferHeadObservation(params: {
   db: DbClient;
   offerId: string;
-  ok: boolean;
+  ok: boolean | null;
   checkedAt: Date;
 }): Promise<void> {
   await applyOfferDetailObservation({
     db: params.db,
     offerId: params.offerId,
     checkedAt: params.checkedAt,
-    observedInStock: params.ok,
+    observedInStock:
+      typeof params.ok === "boolean" ? params.ok : undefined,
   });
 }

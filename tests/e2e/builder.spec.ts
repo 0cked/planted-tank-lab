@@ -18,9 +18,14 @@ test("builder compatibility: tank length filters lights; show incompatible revea
   await dismissCookies(page);
   await waitBuilderReady(page);
 
+  // Activation policy can de-list incomplete curated picks; disable this global
+  // filter before opening the tank picker so the test can target a known-length
+  // fixture tank.
+  await page.getByLabel("Curated picks").uncheck();
+
   await page.getByTestId("category-row-tank-action").click();
 
-  await page.getByPlaceholder("Search...").fill("UNS 90U");
+  await page.getByPlaceholder("Search...").fill("UNS 120P");
   await page.getByRole("button", { name: "Add" }).first().click();
 
   // Phase A builder UX auto-advances to the next core step. If it doesn't, open manually.

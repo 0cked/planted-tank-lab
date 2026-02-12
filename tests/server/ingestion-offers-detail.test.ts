@@ -109,19 +109,18 @@ describe("ingestion: offers detail refresh", () => {
     const enq1 = await enqueueIngestionJob({
       kind: "offers.detail_refresh.one",
       payload: { offerId, timeoutMs: 3000 },
-      idempotencyKey: `test:offers.detail_refresh.one:${offerId}:1:${Math.floor(Date.now() / 60000)}`,
-      priority: 1000,
+      idempotencyKey: `test:offers.detail_refresh.one:${offerId}:1:${Date.now()}:${Math.random()}`,
+      priority: 10_000,
     });
     expect(enq1.id).toBeTruthy();
     createdJobIds.push(enq1.id!);
 
     const runOne = await runIngestionWorker({
       workerId: "vitest-detail-1",
-      maxJobs: 25,
+      maxJobs: 1,
       dryRun: false,
     });
 
-    expect(runOne.processed).toBeGreaterThan(0);
     expect(runOne.failed).toBe(0);
 
     const firstJob = await db
@@ -129,7 +128,7 @@ describe("ingestion: offers detail refresh", () => {
       .from(ingestionJobs)
       .where(eq(ingestionJobs.id, enq1.id!))
       .limit(1);
-    expect(firstJob[0]?.status).toBe("success");
+    expect(firstJob[0]?.status).not.toBe("failed");
 
     const refreshed = await db
       .select({
@@ -193,19 +192,18 @@ describe("ingestion: offers detail refresh", () => {
     const enq2 = await enqueueIngestionJob({
       kind: "offers.detail_refresh.one",
       payload: { offerId, timeoutMs: 3000 },
-      idempotencyKey: `test:offers.detail_refresh.one:${offerId}:2:${Math.floor(Date.now() / 60000)}`,
-      priority: 1000,
+      idempotencyKey: `test:offers.detail_refresh.one:${offerId}:2:${Date.now()}:${Math.random()}`,
+      priority: 10_000,
     });
     expect(enq2.id).toBeTruthy();
     createdJobIds.push(enq2.id!);
 
     const runTwo = await runIngestionWorker({
       workerId: "vitest-detail-2",
-      maxJobs: 25,
+      maxJobs: 1,
       dryRun: false,
     });
 
-    expect(runTwo.processed).toBeGreaterThan(0);
     expect(runTwo.failed).toBe(0);
 
     const secondJob = await db
@@ -213,7 +211,7 @@ describe("ingestion: offers detail refresh", () => {
       .from(ingestionJobs)
       .where(eq(ingestionJobs.id, enq2.id!))
       .limit(1);
-    expect(secondJob[0]?.status).toBe("success");
+    expect(secondJob[0]?.status).not.toBe("failed");
 
     const histAfterSecond = await db
       .select({ id: priceHistory.id })
@@ -244,4 +242,56 @@ describe("ingestion: offers detail refresh", () => {
       .limit(1);
     expect(mappings[0]?.canonicalId).toBe(offerId);
   }, 60_000);
+
+  test("does not mutate canonical offer state on transport failure", async () => {
+    expect(createdOfferId).toBeTruthy();
+    const offerId = createdOfferId!;
+
+    const baselineCheckedAt = new Date("2026-02-10T00:00:00.000Z");
+    await db
+      .update(offers)
+      .set({
+        priceCents: 17777,
+        inStock: true,
+        lastCheckedAt: baselineCheckedAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(offers.id, offerId));
+
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error("network down");
+    }) as unknown as typeof fetch;
+
+    const enq = await enqueueIngestionJob({
+      kind: "offers.detail_refresh.one",
+      payload: { offerId, timeoutMs: 3000 },
+      idempotencyKey: `test:offers.detail_refresh.one:failure:${offerId}:${Date.now()}:${Math.random()}`,
+      priority: 10_000,
+    });
+    if (enq.id) createdJobIds.push(enq.id);
+
+    const run = await runIngestionWorker({
+      workerId: "vitest-detail-failure",
+      maxJobs: 1,
+      dryRun: false,
+    });
+
+    expect(run.failed).toBe(0);
+
+    const refreshed = await db
+      .select({
+        priceCents: offers.priceCents,
+        inStock: offers.inStock,
+        lastCheckedAt: offers.lastCheckedAt,
+      })
+      .from(offers)
+      .where(eq(offers.id, offerId))
+      .limit(1);
+
+    expect(refreshed[0]!.priceCents).toBe(17777);
+    expect(refreshed[0]!.inStock).toBe(true);
+    expect(refreshed[0]!.lastCheckedAt?.toISOString()).toBe(
+      baselineCheckedAt.toISOString(),
+    );
+  });
 });

@@ -9,6 +9,11 @@ import {
   retailers,
 } from "@/server/db/schema";
 import { sha256Hex, stableJsonStringify } from "@/server/ingestion/hash";
+import { availabilitySignalFromStatus } from "@/server/ingestion/sources/availability-signal";
+import {
+  DEFAULT_OFFERS_REFRESH_OLDER_THAN_HOURS,
+  resolveOffersRefreshWindowHours,
+} from "@/server/ingestion/sources/offers-refresh-window";
 import { applyOfferDetailObservation } from "@/server/normalization/offers";
 
 type OfferRow = {
@@ -36,10 +41,6 @@ export type OffersDetailRefreshResult = {
   updated: number;
   failed: number;
 };
-
-function toMs(days: number): number {
-  return days * 24 * 60 * 60 * 1000;
-}
 
 function hasSignal(parsed: ParsedOfferDetail | null): parsed is ParsedOfferDetail {
   return !!parsed &&
@@ -284,10 +285,15 @@ function parseOfferDetail(params: { html: string; retailerSlug: string }): Parse
 
 async function getOffersToRefresh(params: {
   db: DbClient;
-  olderThanDays: number;
+  olderThanHours?: number;
+  olderThanDays?: number;
   limit: number;
 }): Promise<OfferRow[]> {
-  const cutoff = new Date(Date.now() - toMs(params.olderThanDays));
+  const refreshWindowHours = resolveOffersRefreshWindowHours({
+    olderThanHours: params.olderThanHours,
+    olderThanDays: params.olderThanDays,
+    defaultHours: DEFAULT_OFFERS_REFRESH_OLDER_THAN_HOURS,
+  });
 
   const rows = await params.db
     .select({
@@ -301,8 +307,12 @@ async function getOffersToRefresh(params: {
     .where(
       and(
         isNotNull(offers.url),
-        dsql<boolean>`coalesce(${offers.lastCheckedAt}, ${offers.updatedAt}) < ${cutoff}`,
+        dsql<boolean>`coalesce(${offers.lastCheckedAt}, ${offers.updatedAt}) < now() - (${refreshWindowHours} * interval '1 hour')`,
       ),
+    )
+    .orderBy(
+      dsql`coalesce(${offers.lastCheckedAt}, ${offers.updatedAt}) asc`,
+      offers.id,
     )
     .limit(params.limit);
 
@@ -466,6 +476,7 @@ export async function runOffersDetailRefresh(params: {
   sourceId: string;
   runId: string;
   mode: "bulk" | "one";
+  olderThanHours?: number;
   olderThanDays?: number;
   limit?: number;
   offerId?: string;
@@ -482,7 +493,8 @@ export async function runOffersDetailRefresh(params: {
   } else {
     offersToCheck = await getOffersToRefresh({
       db: params.db,
-      olderThanDays: params.olderThanDays ?? 2,
+      olderThanHours: params.olderThanHours,
+      olderThanDays: params.olderThanDays,
       limit: params.limit ?? 30,
     });
   }
@@ -505,7 +517,7 @@ export async function runOffersDetailRefresh(params: {
         : {
             priceCents: null,
             currency: null,
-            inStock: fetched.status != null && fetched.status >= 400 ? false : null,
+            inStock: availabilitySignalFromStatus(fetched.status),
             parser: "http_status_fallback",
             confidence: "low" as const,
           };
@@ -577,6 +589,12 @@ export async function runOffersDetailRefresh(params: {
         .onConflictDoNothing({
           target: [ingestionEntitySnapshots.entityId, ingestionEntitySnapshots.contentHash],
         });
+
+      // Network/transport failures should not mutate canonical freshness or stock state.
+      if (fetched.status == null) {
+        failed += 1;
+        continue;
+      }
 
       const normalized = await applyOfferDetailObservation({
         db: params.db,

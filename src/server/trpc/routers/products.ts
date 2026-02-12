@@ -5,6 +5,8 @@ import { and, desc, eq, ilike, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { buildItems, brands, categories, products } from "@/server/db/schema";
 import { createTRPCRouter, publicProcedure } from "@/server/trpc/trpc";
 
+const ACTIVE_PRODUCT_STATUS = "active" as const;
+
 export const productsRouter = createTRPCRouter({
   list: publicProcedure
     .input(
@@ -16,7 +18,11 @@ export const productsRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const limit = input?.limit ?? 50;
-      return ctx.db.select().from(products).limit(limit);
+      return ctx.db
+        .select()
+        .from(products)
+        .where(eq(products.status, ACTIVE_PRODUCT_STATUS))
+        .limit(limit);
     }),
 
   categoriesList: publicProcedure.query(async ({ ctx }) => {
@@ -57,7 +63,13 @@ export const productsRouter = createTRPCRouter({
         })
         .from(products)
         .innerJoin(brands, eq(products.brandId, brands.id))
-        .where(and(eq(products.categoryId, categoryId), isNotNull(products.brandId)))
+        .where(
+          and(
+            eq(products.categoryId, categoryId),
+            eq(products.status, ACTIVE_PRODUCT_STATUS),
+            isNotNull(products.brandId),
+          ),
+        )
         .orderBy(brands.name);
 
       return rows;
@@ -87,7 +99,12 @@ export const productsRouter = createTRPCRouter({
         })
         .from(products)
         .leftJoin(brands, eq(products.brandId, brands.id))
-        .where(eq(products.categoryId, categoryId))
+        .where(
+          and(
+            eq(products.categoryId, categoryId),
+            eq(products.status, ACTIVE_PRODUCT_STATUS),
+          ),
+        )
         .orderBy(products.name)
         .limit(input.limit);
 
@@ -118,6 +135,7 @@ export const productsRouter = createTRPCRouter({
 
       const where = and(
         eq(products.categoryId, categoryId),
+        eq(products.status, ACTIVE_PRODUCT_STATUS),
         input.q ? ilike(products.name, `%${input.q}%`) : undefined,
         input.brandSlug ? eq(brands.slug, input.brandSlug) : undefined,
       );
@@ -151,7 +169,12 @@ export const productsRouter = createTRPCRouter({
         .from(products)
         .innerJoin(categories, eq(products.categoryId, categories.id))
         .leftJoin(brands, eq(products.brandId, brands.id))
-        .where(eq(products.slug, input.slug))
+        .where(
+          and(
+            eq(products.slug, input.slug),
+            eq(products.status, ACTIVE_PRODUCT_STATUS),
+          ),
+        )
         .limit(1);
 
       const row = rows[0];
@@ -214,7 +237,12 @@ export const productsRouter = createTRPCRouter({
         .from(products)
         .innerJoin(categories, eq(products.categoryId, categories.id))
         .leftJoin(brands, eq(products.brandId, brands.id))
-        .where(inArray(products.id, ids))
+        .where(
+          and(
+            inArray(products.id, ids),
+            eq(products.status, ACTIVE_PRODUCT_STATUS),
+          ),
+        )
         .limit(input.limit);
 
       const usesById = new Map(

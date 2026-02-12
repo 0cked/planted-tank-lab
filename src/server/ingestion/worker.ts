@@ -25,7 +25,8 @@ async function ensureOffersHeadSource(): Promise<string> {
     scheduleEveryMinutes: 60,
     config: {
       jobKind: "offers.head_refresh.bulk",
-      jobPayload: { olderThanDays: 2, limit: 50, timeoutMs: 6000 },
+      // Keep checks fresher than 24h SLO with enough time for queue drain.
+      jobPayload: { olderThanHours: 20, limit: 75, timeoutMs: 6000 },
       idempotencyPrefix: "schedule:offers-head",
     },
   });
@@ -40,7 +41,9 @@ async function ensureOffersDetailSource(): Promise<string> {
     scheduleEveryMinutes: 120,
     config: {
       jobKind: "offers.detail_refresh.bulk",
-      jobPayload: { olderThanDays: 2, limit: 50, timeoutMs: 12000 },
+      // Detail checks are slower than HEAD; keep a slightly smaller batch while
+      // still satisfying 24h freshness SLO for current catalog volume.
+      jobPayload: { olderThanHours: 20, limit: 60, timeoutMs: 12000 },
       idempotencyPrefix: "schedule:offers-detail",
     },
   });
@@ -125,6 +128,7 @@ export async function runIngestionWorker(params: {
           sourceId,
           runId,
           mode: "bulk",
+          olderThanHours: payload.olderThanHours,
           olderThanDays: payload.olderThanDays,
           limit: payload.limit,
           timeoutMs: payload.timeoutMs ?? 6000,
@@ -166,6 +170,7 @@ export async function runIngestionWorker(params: {
           sourceId,
           runId,
           mode: "bulk",
+          olderThanHours: payload.olderThanHours,
           olderThanDays: payload.olderThanDays,
           limit: payload.limit,
           timeoutMs: payload.timeoutMs ?? 12000,

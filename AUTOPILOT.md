@@ -20,9 +20,9 @@ Deprecated and archived:
 ## Current Mission
 
 Primary objective: complete **Top Priority #1** to production-grade quality:
-- trusted ingestion + normalization + canonical data freshness pipeline.
+- trusted ingestion + normalization + canonical freshness + user-facing catalog quality boundaries.
 
-Current phase: `CAT-1 / ING-5` (template-build curation + ops closeout) — `IN-11A` is complete end-to-end; focus has shifted to template builds plus explicit catalog quality/freshness remediation ahead of final readiness gates.
+Current phase: `ING-5 / IN-12` (reliability hardening + ops closeout) — `IN-11A` remains clean; `IN-12A` + `IN-12B` are now complete; `IN-12C` + `IN-13` remain before resuming template-build work.
 
 ## Current State Snapshot
 
@@ -32,49 +32,64 @@ Completed prerequisites:
 - Supabase RLS hardening migration applied (`0010_enable_rls`).
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 - `IN-11A` complete: provenance clean + placeholder regressions cleared in canonical/displayed catalog paths.
+- `IN-12A` complete:
+  - bulk refresh jobs now support `olderThanHours` (with `olderThanDays` compatibility fallback).
+  - bulk offer selection is stale-first deterministic.
+  - transport failures no longer mutate canonical stock/freshness.
+  - bulk selection query now uses SQL interval math (`now() - interval`) to avoid Date-bind failures.
+- `IN-12B` complete:
+  - public products/plants read paths enforce `status=active`.
+  - seed now applies activation policy curation (focus products require in-stock priced offers; plants require image+sources+description).
+  - executable curation command added: `pnpm catalog:curate:activation`.
+
+Current quality/freshness posture (`pnpm catalog:audit:quality`):
+- offer freshness improved from **0%** to **92.23%** (95/103 checked <24h), but still below 95% SLO.
+- focus-category offer completeness warnings for missing offers are eliminated (`productsWithoutAnyOffer=0` across focus categories).
+- active plants missing-image debt is eliminated (61/61 active plants have images).
+- focus-category image debt remains (tank/light/filter/substrate/hardscape).
 
 Remaining critical gaps:
-- Catalog quality/freshness debt is now explicitly measurable via `pnpm catalog:audit:quality` and currently fails readiness expectations:
-  - offer freshness in the last 24h window is below SLO (0% vs 95% target)
-  - significant image/offer coverage gaps remain in focus categories (tank/light/filter/substrate/hardscape)
-  - a small set of active plants still have missing images
-- ingestion ops dashboard/runbook and final gate closeout remain pending (`IN-12`, `IN-13`).
+- freshness SLO still short by 8 stale offers (mostly tank category).
+- focus-category image coverage remains incomplete.
+- `IN-12C` admin ingestion ops dashboard/runbook UX remains pending.
 
 ## What Changed Last
 
-- Closed `IN-11A4` blocker with deterministic seed observability + data-state verification:
-  - `src/server/normalization/manual-seed.ts` now emits per-stage snapshot/progress/completion timing events.
-  - `scripts/seed.ts` now logs normalization progress in long-running runs and includes `stageTimingsMs` in final summary output.
-  - `pnpm seed` now completes reliably with explicit forward progress in logs (products/plants/offers + summary refresh timings).
-- Added canonical launch-readiness quality audit:
-  - `src/server/catalog/quality-audit.ts`
-  - `scripts/catalog-quality-audit.ts`
-  - `pnpm catalog:audit:quality`
-  - `tests/server/catalog-quality-audit.test.ts`
-- Verification notes:
-  - `pnpm typecheck` PASS
-  - `pnpm vitest run tests/server/catalog-quality-audit.test.ts` PASS
-  - `pnpm vitest run tests/ingestion/idempotency.test.ts tests/ingestion/normalization-overrides.test.ts` PASS
+- Added and wired catalog activation policy:
+  - `src/server/catalog/activation-policy.ts`
+  - `scripts/catalog-activation-policy.ts`
+  - `pnpm catalog:curate:activation`
+  - seed integration in `scripts/seed.ts`.
+- Hardened offer refresh reliability semantics:
+  - `src/server/ingestion/sources/offers-refresh-window.ts`
+  - `src/server/ingestion/sources/availability-signal.ts`
+  - updated `offers-head` + `offers-detail` bulk refresh selection and failure handling.
+  - scheduler/worker defaults now target 24h freshness SLO windows (`olderThanHours: 20`).
+- Enforced active-only catalog on public APIs:
+  - `src/server/trpc/routers/products.ts`
+  - `src/server/trpc/routers/plants.ts`.
+- Verification highlights:
   - `pnpm test` PASS
   - `pnpm verify` PASS
   - `pnpm verify:gates` PASS
-  - `node --import tsx scripts/gates.ts` PASS
-  - `pnpm seed` PASS (with stage telemetry)
-  - `pnpm catalog:audit:regressions` PASS (placeholder/provenance clean)
-  - `pnpm catalog:audit:quality` FAIL (expected blocker report for freshness/completeness remediation)
+  - `pnpm seed` PASS
+  - `pnpm catalog:audit:regressions` PASS
+  - `pnpm catalog:curate:activation` PASS
+  - `pnpm catalog:audit:quality` FAIL (expected remaining blocker: freshness 92.23% < 95% + image debt warnings)
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `CAT-01` Define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant counts.
-2. `CAT-02` Add one-click "Start from template" UX.
-3. `IN-12` Ingestion ops dashboard and runbook checks.
-4. `IN-13` Final gate check for data-pipeline readiness (using `catalog:audit:quality` + freshness/completeness remediation output).
+1. `IN-12C` Admin ingestion ops dashboard surface + explicit queue recovery runbook.
+2. `IN-13` Final gate closeout (`catalog:audit:quality` freshness/image blockers to acceptable threshold).
+3. `CAT-01` Define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant counts.
+4. `CAT-02` Add one-click "Start from template" UX.
 
 ## Known Risks / Blockers
 
-- Offer freshness SLO is currently unmet (`catalog:audit:quality`: 0% checked within 24h).
-- Core focus-category media/offer completeness remains uneven (especially missing product imagery in non-tank gear categories).
+- Freshness remains below SLO (`catalog:audit:quality`: 92.23% vs 95% target).
+- Focus-category image coverage remains uneven (especially non-tank gear categories).
+- Some older queued ingestion jobs were created before the interval-query fix and may need operational cleanup/retry handling via `IN-12C` dashboard/runbook.
 - In-memory rate limit implementation is acceptable now but not horizontally durable.
 - Sentry alerting still requires ongoing production tuning.
 

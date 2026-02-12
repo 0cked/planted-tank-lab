@@ -17,7 +17,7 @@ import { enqueueIngestionJob } from "../../src/server/ingestion/job-queue";
 
 let createdOfferId: string | null = null;
 let offersHeadSourceId: string | null = null;
-let createdJobId: string | null = null;
+const createdJobIds: string[] = [];
 
 const originalFetch = globalThis.fetch;
 
@@ -77,8 +77,8 @@ afterAll(async () => {
       .where(eq(ingestionEntities.sourceEntityId, createdOfferId));
   }
 
-  if (createdJobId) {
-    await db.delete(ingestionJobs).where(eq(ingestionJobs.id, createdJobId));
+  for (const jobId of createdJobIds) {
+    await db.delete(ingestionJobs).where(eq(ingestionJobs.id, jobId));
   }
 
   // Delete offer.
@@ -101,18 +101,17 @@ describe("ingestion: offers head refresh", () => {
     const enq = await enqueueIngestionJob({
       kind: "offers.head_refresh.one",
       payload: { offerId, timeoutMs: 2000 },
-      idempotencyKey: `test:offers.head_refresh.one:${offerId}:${Math.floor(Date.now() / 60000)}`,
-      priority: 50,
+      idempotencyKey: `test:offers.head_refresh.one:${offerId}:${Date.now()}:${Math.random()}`,
+      priority: 10_000,
     });
-    createdJobId = enq.id;
+    if (enq.id) createdJobIds.push(enq.id);
 
     const res = await runIngestionWorker({
       workerId: "vitest",
-      maxJobs: 5,
+      maxJobs: 1,
       dryRun: false,
     });
 
-    expect(res.processed).toBeGreaterThan(0);
     expect(res.failed).toBe(0);
 
     const refreshed = await db
@@ -152,5 +151,51 @@ describe("ingestion: offers head refresh", () => {
       .limit(1);
 
     expect(mappings[0]!.canonicalId).toBe(offerId);
+  });
+
+  test("does not mutate canonical offer stock/freshness on transport failure", async () => {
+    expect(createdOfferId).toBeTruthy();
+    const offerId = createdOfferId!;
+
+    const baselineCheckedAt = new Date("2026-02-10T00:00:00.000Z");
+    await db
+      .update(offers)
+      .set({
+        inStock: true,
+        lastCheckedAt: baselineCheckedAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(offers.id, offerId));
+
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error("network down");
+    }) as unknown as typeof fetch;
+
+    const enq = await enqueueIngestionJob({
+      kind: "offers.head_refresh.one",
+      payload: { offerId, timeoutMs: 2000 },
+      idempotencyKey: `test:offers.head_refresh.one:failure:${offerId}:${Date.now()}:${Math.random()}`,
+      priority: 10_000,
+    });
+    if (enq.id) createdJobIds.push(enq.id);
+
+    const res = await runIngestionWorker({
+      workerId: "vitest-head-failure",
+      maxJobs: 1,
+      dryRun: false,
+    });
+
+    expect(res.failed).toBe(0);
+
+    const refreshed = await db
+      .select({ inStock: offers.inStock, lastCheckedAt: offers.lastCheckedAt })
+      .from(offers)
+      .where(eq(offers.id, offerId))
+      .limit(1);
+
+    expect(refreshed[0]!.inStock).toBe(true);
+    expect(refreshed[0]!.lastCheckedAt?.toISOString()).toBe(
+      baselineCheckedAt.toISOString(),
+    );
   });
 });

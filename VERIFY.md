@@ -26,6 +26,12 @@ Prints G0-G11 pass/fail/unknown from `config/gates.json` plus verification guida
 Runs provenance + placeholder regression checks against canonical/displayed catalog rows.
 Exits non-zero when placeholder/provenance violations are present.
 
+### `pnpm catalog:curate:activation`
+
+Applies canonical activation policy for user-facing catalog safety:
+- focus products (`tank/light/filter/substrate/hardscape`) require specs + at least one in-stock priced offer
+- plants require image + sources + description
+
 ### `pnpm catalog:audit:quality`
 
 Runs canonical catalog readiness metrics for focus categories (`tank/light/filter/substrate/hardscape`), plants coverage, and offer freshness.

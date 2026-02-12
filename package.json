@@ -16,6 +16,7 @@
     "ingest": "tsx scripts/ingest.ts",
     "catalog:check": "tsx scripts/catalog-check.ts",
     "catalog:cleanup:legacy": "tsx scripts/catalog-legacy-prune.ts",
+    "catalog:curate:activation": "tsx scripts/catalog-activation-policy.ts",
     "catalog:audit:provenance": "tsx scripts/catalog-provenance-audit.ts",
     "catalog:audit:regressions": "tsx scripts/catalog-regression-audit.ts",
     "catalog:audit:quality": "tsx scripts/catalog-quality-audit.ts",

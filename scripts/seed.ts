@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { applyCatalogActivationPolicy } from "@/server/catalog/activation-policy";
 import { pruneLegacyCatalogRows } from "@/server/catalog/legacy-prune";
 import { runCatalogRegressionAudit } from "@/server/catalog/regression-audit";
 import { db } from "@/server/db";
@@ -417,6 +418,9 @@ async function main(): Promise<void> {
   console.log("Seeding: prune legacy non-provenance catalog rows...");
   const legacyCleanup = await pruneLegacyCatalogRows({ database: db });
 
+  console.log("Seeding: catalog activation policy (focus products + plants)...");
+  const activationPolicy = await applyCatalogActivationPolicy(db);
+
   console.log("Seeding: regression audit (provenance + placeholders)...");
   const regressionAudit = await runCatalogRegressionAudit(db);
   const provenanceAudit = regressionAudit.provenance;
@@ -484,6 +488,7 @@ async function main(): Promise<void> {
           stageTimingsMs: normalization.stageTimingsMs,
         },
         legacyCleanup,
+        activationPolicy,
         regressionAudit,
         provenanceAudit,
         categories: categoriesCount[0]?.c,

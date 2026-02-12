@@ -24,7 +24,7 @@ describe("ingestion scheduler", () => {
       scheduleEveryMinutes: 60,
       config: {
         jobKind: "offers.detail_refresh.bulk",
-        jobPayload: { olderThanDays: 2, limit: 10, timeoutMs: 12000 },
+        jobPayload: { olderThanHours: 20, limit: 10, timeoutMs: 12000 },
         idempotencyPrefix: "test:schedule:offers-detail",
       },
     });
@@ -37,12 +37,18 @@ describe("ingestion scheduler", () => {
     expect(res.scanned).toBeGreaterThan(0);
 
     const rows = await db
-      .select({ id: ingestionJobs.id, kind: ingestionJobs.kind, idempotencyKey: ingestionJobs.idempotencyKey })
+      .select({
+        id: ingestionJobs.id,
+        kind: ingestionJobs.kind,
+        payload: ingestionJobs.payload,
+        idempotencyKey: ingestionJobs.idempotencyKey,
+      })
       .from(ingestionJobs)
       .where(eq(ingestionJobs.idempotencyKey, idempotencyKey))
       .limit(1);
 
     expect(rows[0]?.kind).toBe("offers.detail_refresh.bulk");
+    expect(rows[0]?.payload).toMatchObject({ olderThanHours: 20, limit: 10 });
     createdJobId = rows[0]?.id ?? null;
 
     // Second run in the same bucket should dedupe.

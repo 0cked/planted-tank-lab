@@ -349,19 +349,32 @@ No direct canonical bypass for import/seed paths.
     - `src/components/builder/*`
 
 
-- [ ] IN-12 (P0) Add ingestion ops dashboard and runbook checks.
+- [ ] IN-12 (P0) Ingestion reliability + ops dashboard/runbook checks.
   - Gates: G7, G11
+  - Subtasks:
+    - [x] IN-12A Align offer refresh scheduling/query semantics to the 24h freshness SLO and harden failure handling.
+      - `olderThanHours` support for bulk jobs (with `olderThanDays` compatibility fallback).
+      - stale-first deterministic selection for bulk refresh batches.
+      - do not mutate canonical stock/freshness on transport failures.
+    - [x] IN-12B Enforce activation/read-path quality boundaries for user-facing catalog.
+      - public product/plant routers only return `status=active` rows.
+      - seed-time activation policy curation deactivates focus products with no in-stock priced offers and plants missing media/sources/description.
+      - add executable curation command + verification docs (`pnpm catalog:curate:activation`).
+    - [ ] IN-12C Add admin ingestion ops dashboard surface + explicit queue recovery runbook (remaining).
   - Acceptance:
     - Admin can see run status, queue depth, failures, stale offers, and unmapped entity counts.
     - Recovery steps documented in `VERIFY.md`.
   - Verify:
     - `pnpm verify:gates`
+    - `pnpm catalog:curate:activation`
     - Manual: simulate failure and confirm visibility.
   - Dependencies: IN-07, IN-09
   - Entry points:
     - `src/app/admin/ingestion/page.tsx`
     - `VERIFY.md`
     - `config/gates.json`
+    - `src/server/ingestion/*`
+    - `src/server/catalog/activation-policy.ts`
 
 - [ ] IN-13 (P0) Final gate check for data-pipeline readiness.
   - Gates: G0, G4, G7, G8, G9
@@ -380,4 +393,6 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `CAT-01`, then continue to `CAT-02`.
+1. Finish `IN-12C` (admin ingestion ops dashboard + explicit recovery runbook wiring).
+2. Execute `IN-13` closeout on quality/freshness blockers (`catalog:audit:quality` -> reach 95% freshness SLO and shrink focus-category image debt).
+3. Resume `CAT-01`, then `CAT-02`. 

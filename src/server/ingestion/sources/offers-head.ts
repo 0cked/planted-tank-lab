@@ -7,8 +7,13 @@ import {
   ingestionEntitySnapshots,
   offers,
 } from "@/server/db/schema";
-import { applyOfferHeadObservation } from "@/server/normalization/offers";
 import { sha256Hex, stableJsonStringify } from "@/server/ingestion/hash";
+import { availabilitySignalFromStatus } from "@/server/ingestion/sources/availability-signal";
+import {
+  DEFAULT_OFFERS_REFRESH_OLDER_THAN_HOURS,
+  resolveOffersRefreshWindowHours,
+} from "@/server/ingestion/sources/offers-refresh-window";
+import { applyOfferHeadObservation } from "@/server/normalization/offers";
 
 type OfferRow = {
   id: string;
@@ -21,16 +26,17 @@ export type OffersHeadRefreshResult = {
   failed: number;
 };
 
-function toMs(days: number): number {
-  return days * 24 * 60 * 60 * 1000;
-}
-
 async function getOffersToRefresh(params: {
   db: DbClient;
-  olderThanDays: number;
+  olderThanHours?: number;
+  olderThanDays?: number;
   limit: number;
 }): Promise<OfferRow[]> {
-  const cutoff = new Date(Date.now() - toMs(params.olderThanDays));
+  const refreshWindowHours = resolveOffersRefreshWindowHours({
+    olderThanHours: params.olderThanHours,
+    olderThanDays: params.olderThanDays,
+    defaultHours: DEFAULT_OFFERS_REFRESH_OLDER_THAN_HOURS,
+  });
 
   const rows = await params.db
     .select({ id: offers.id, url: offers.url })
@@ -38,8 +44,12 @@ async function getOffersToRefresh(params: {
     .where(
       and(
         isNotNull(offers.url),
-        dsql<boolean>`coalesce(${offers.lastCheckedAt}, ${offers.updatedAt}) < ${cutoff}`,
+        dsql<boolean>`coalesce(${offers.lastCheckedAt}, ${offers.updatedAt}) < now() - (${refreshWindowHours} * interval '1 hour')`,
       ),
+    )
+    .orderBy(
+      dsql`coalesce(${offers.lastCheckedAt}, ${offers.updatedAt}) asc`,
+      offers.id,
     )
     .limit(params.limit);
 
@@ -140,7 +150,12 @@ async function upsertCanonicalMapping(params: {
 async function headCheck(params: {
   url: string;
   timeoutMs: number;
-}): Promise<{ ok: boolean; status: number | null; finalUrl: string | null; contentType: string | null }> {
+}): Promise<{
+  availabilitySignal: boolean | null;
+  status: number | null;
+  finalUrl: string | null;
+  contentType: string | null;
+}> {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), params.timeoutMs);
   try {
@@ -153,15 +168,20 @@ async function headCheck(params: {
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
     });
-    const ok = res.status >= 200 && res.status < 400;
+
     return {
-      ok,
+      availabilitySignal: availabilitySignalFromStatus(res.status),
       status: res.status,
       finalUrl: res.url || null,
       contentType: res.headers.get("content-type"),
     };
   } catch {
-    return { ok: false, status: null, finalUrl: null, contentType: null };
+    return {
+      availabilitySignal: null,
+      status: null,
+      finalUrl: null,
+      contentType: null,
+    };
   } finally {
     clearTimeout(t);
   }
@@ -172,6 +192,7 @@ export async function runOffersHeadRefresh(params: {
   sourceId: string;
   runId: string;
   mode: "bulk" | "one";
+  olderThanHours?: number;
   olderThanDays?: number;
   limit?: number;
   offerId?: string;
@@ -187,7 +208,8 @@ export async function runOffersHeadRefresh(params: {
   } else {
     offersToCheck = await getOffersToRefresh({
       db: params.db,
-      olderThanDays: params.olderThanDays ?? 2,
+      olderThanHours: params.olderThanHours,
+      olderThanDays: params.olderThanDays,
       limit: params.limit ?? 30,
     });
   }
@@ -215,10 +237,20 @@ export async function runOffersHeadRefresh(params: {
         finalUrl: result.finalUrl,
         status: result.status,
         contentType: result.contentType,
-        ok: result.ok,
+        availabilitySignal: result.availabilitySignal,
         observedMinute: minuteBucket,
       };
       const contentHash = sha256Hex(stableJsonStringify(rawJson));
+
+      const extractedFields: Record<string, { value: unknown; trust: "retailer" }> = {};
+      const trustFields: Record<string, "retailer"> = {};
+      if (result.availabilitySignal != null) {
+        extractedFields.in_stock = {
+          value: result.availabilitySignal,
+          trust: "retailer",
+        };
+        trustFields.in_stock = "retailer";
+      }
 
       const inserted = await params.db
         .insert(ingestionEntitySnapshots)
@@ -230,11 +262,9 @@ export async function runOffersHeadRefresh(params: {
           contentType: result.contentType ?? undefined,
           rawJson,
           extracted: {
-            fields: {
-              in_stock: { value: result.ok, trust: "retailer" },
-            },
+            fields: extractedFields,
           },
-          trust: { in_stock: "retailer" },
+          trust: trustFields,
           contentHash,
         })
         .onConflictDoNothing({
@@ -242,11 +272,16 @@ export async function runOffersHeadRefresh(params: {
         })
         .returning({ id: ingestionEntitySnapshots.id });
 
-      // Even if we dedupe snapshots within a minute window, we still update the canonical status.
+      if (result.status == null) {
+        failed += 1;
+        continue;
+      }
+
+      // Even if we dedupe snapshots within a minute window, we still update canonical freshness.
       await applyOfferHeadObservation({
         db: params.db,
         offerId: offer.id,
-        ok: result.ok,
+        ok: result.availabilitySignal,
         checkedAt,
       });
 

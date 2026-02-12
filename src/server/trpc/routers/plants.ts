@@ -5,6 +5,8 @@ import { and, eq, ilike, or } from "drizzle-orm";
 import { plants } from "@/server/db/schema";
 import { createTRPCRouter, publicProcedure } from "@/server/trpc/trpc";
 
+const ACTIVE_PLANT_STATUS = "active" as const;
+
 export const plantsRouter = createTRPCRouter({
   list: publicProcedure
     .input(
@@ -16,7 +18,12 @@ export const plantsRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const limit = input?.limit ?? 200;
-      return ctx.db.select().from(plants).orderBy(plants.commonName).limit(limit);
+      return ctx.db
+        .select()
+        .from(plants)
+        .where(eq(plants.status, ACTIVE_PLANT_STATUS))
+        .orderBy(plants.commonName)
+        .limit(limit);
     }),
 
   search: publicProcedure
@@ -38,6 +45,7 @@ export const plantsRouter = createTRPCRouter({
       const limit = input?.limit ?? 50;
 
       const where = and(
+        eq(plants.status, ACTIVE_PLANT_STATUS),
         input?.difficulty ? eq(plants.difficulty, input.difficulty) : undefined,
         input?.lightDemand ? eq(plants.lightDemand, input.lightDemand) : undefined,
         input?.co2Demand ? eq(plants.co2Demand, input.co2Demand) : undefined,
@@ -65,7 +73,12 @@ export const plantsRouter = createTRPCRouter({
       const rows = await ctx.db
         .select()
         .from(plants)
-        .where(eq(plants.slug, input.slug))
+        .where(
+          and(
+            eq(plants.slug, input.slug),
+            eq(plants.status, ACTIVE_PLANT_STATUS),
+          ),
+        )
         .limit(1);
       const row = rows[0];
       if (!row) throw new TRPCError({ code: "NOT_FOUND" });

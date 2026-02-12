@@ -57,6 +57,38 @@ async function ensurePlantFixture(): Promise<{ slug: string; difficulty: string 
   return { slug: row.slug, difficulty: row.difficulty };
 }
 
+async function createInactivePlantFixture(): Promise<{ slug: string }> {
+  const slug = `vitest-inactive-plant-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+  const inserted = await db
+    .insert(plants)
+    .values({
+      commonName: "Vitest Inactive Plant",
+      scientificName: "Testa inactiveus",
+      slug,
+      difficulty: "easy",
+      lightDemand: "low",
+      co2Demand: "none",
+      placement: "foreground",
+      description: "Inactive fixture plant for visibility filtering tests.",
+      sources: ["https://example.com/plant-source"],
+      imageUrl: "https://example.com/plant.jpg",
+      status: "inactive",
+      beginnerFriendly: true,
+      shrimpSafe: true,
+      updatedAt: new Date(),
+    })
+    .returning({ id: plants.id, slug: plants.slug });
+
+  const row = inserted[0];
+  if (!row) {
+    throw new Error("Failed to create inactive plant fixture.");
+  }
+
+  createdPlantIds.push(row.id);
+  return { slug: row.slug };
+}
+
 afterAll(async () => {
   if (createdPlantIds.length > 0) {
     await db.delete(plants).where(inArray(plants.id, createdPlantIds));
@@ -81,5 +113,20 @@ describe("tRPC plants router", () => {
     const rows = await caller.plants.search({ difficulty: fixture.difficulty, limit: 200 });
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.every((r) => r.difficulty === fixture.difficulty)).toBe(true);
+  });
+
+  test("search/getBySlug exclude inactive plants", async () => {
+    const caller = await getCaller();
+    const fixture = await createInactivePlantFixture();
+
+    const rows = await caller.plants.search({
+      q: "Vitest Inactive Plant",
+      limit: 200,
+    });
+    expect(rows.some((row) => row.slug === fixture.slug)).toBe(false);
+
+    await expect(caller.plants.getBySlug({ slug: fixture.slug })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
   });
 });
