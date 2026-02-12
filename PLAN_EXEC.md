@@ -202,13 +202,13 @@ No direct canonical bypass for import/seed paths.
       - `pnpm verify:gates` PASS
       - `pnpm verify` PASS
 
-- [ ] IN-11A (P0) Catalog production hardening: remove pre-ingestion legacy rows + all placeholders.
+- [x] IN-11A (P0) Catalog production hardening: remove pre-ingestion legacy rows + all placeholders.
   - Gates: G0, G4, G8, G9
   - Subtasks (execute in order):
     - [x] IN-11A1 Codify legacy/pre-ingestion detection + provenance audit checks (products/plants/offers/categories/parts).
     - [x] IN-11A2 Harden seed/import normalization boundary and archive/prune legacy rows so production surfaces only show ingestion-backed canonical data.
     - [x] IN-11A3 Remove placeholder assets/copy/spec filler from production catalog surfaces (Products/Plants/Builder) with explicit no-data UX.
-    - [ ] IN-11A4 Add guardrails/tests to prevent placeholder/provenance regressions.
+    - [x] IN-11A4 Add guardrails/tests to prevent placeholder/provenance regressions.
       - [x] IN-11A4a Add centralized placeholder marker guardrails (image URL + filler-copy tokens) used by normalization/read helpers.
       - [x] IN-11A4b Add regression tests that enforce placeholder guard behavior and verify API/router tests do not rely on pre-ingestion seeded slugs.
       - [x] IN-11A4c Add executable verification guardrail command(s) for provenance + placeholder audits and wire into seed/import verification flow.
@@ -254,7 +254,7 @@ No direct canonical bypass for import/seed paths.
       - `pnpm verify:gates` PASS
       - `pnpm verify` FAIL (pre-existing seeded-data expectations after provenance cleanup: `tests/api/offers.test.ts`, `tests/api/builds.test.ts`, `tests/api/plants.test.ts`)
       - `pnpm seed` STARTED for data refresh, reached normalization phase, no completion signal (terminated manually).
-  - Notes (2026-02-11/12, IN-11A4 in progress):
+  - Notes (2026-02-11/12, IN-11A4 complete):
     - Added centralized placeholder guardrails:
       - `src/lib/catalog-guardrails.ts`
       - sanitizers wired into `src/server/normalization/manual-seed.ts` and catalog read helpers (`src/lib/catalog-no-data.ts`, Products/Plants/Builder surfaces).
@@ -271,18 +271,27 @@ No direct canonical bypass for import/seed paths.
     - Added guardrail unit coverage:
       - `tests/lib/catalog-guardrails.test.ts`
       - updated `tests/lib/catalog-no-data.test.ts`.
+    - Added normalization observability telemetry for long-running seed runs:
+      - `src/server/normalization/manual-seed.ts` now emits deterministic per-stage progress/timing events.
+      - `scripts/seed.ts` now logs stage snapshots/progress/summary-refresh/overall timings and emits `stageTimingsMs` in seed summary output.
+    - Added canonical quality/freshness audit for launch-readiness triage:
+      - `src/server/catalog/quality-audit.ts`
+      - `scripts/catalog-quality-audit.ts`
+      - `pnpm catalog:audit:quality`
+      - `tests/server/catalog-quality-audit.test.ts`
     - Verification (host):
-      - `pnpm lint` PASS
       - `pnpm typecheck` PASS
+      - `pnpm vitest run tests/server/catalog-quality-audit.test.ts` PASS
+      - `pnpm vitest run tests/ingestion/idempotency.test.ts tests/ingestion/normalization-overrides.test.ts` PASS
       - `pnpm test` PASS
-      - `pnpm test:e2e` PASS
       - `pnpm verify` PASS
       - `pnpm verify:gates` PASS
-      - `pnpm catalog:audit:provenance` PASS
-      - `pnpm catalog:audit:regressions` FAIL (placeholder image markers still present on 18 active products).
-      - `pnpm seed` reached normalization phase twice with no completion signal; terminated manually.
-    - Blocker:
-      - Existing canonical product rows still contain placeholder image markers; remediation depends on completing `pnpm seed`/normalization cleanup run that currently stalls in normalization phase.
+      - `node --import tsx scripts/gates.ts` PASS
+      - `pnpm seed` PASS (normalization completed with deterministic progress logs)
+      - `pnpm catalog:audit:regressions` PASS (`placeholder.products=0`, provenance clean)
+      - `pnpm catalog:audit:quality` FAIL (expected launch-readiness blocker: offer freshness 0% in <24h window + large image/offer coverage gaps in focus categories)
+    - Remaining blocker for later phases (IN-12/IN-13):
+      - catalog quality/freshness audit now explicitly reports unresolved freshness/completeness debt (focus categories + plants imagery).
   - Acceptance:
     - Define and codify "legacy/pre-ingestion" detection (products/plants/offers/categories/parts lacking ingestion provenance or canonical mapping consistency).
     - Remove or archive legacy pre-ingestion catalog rows so production surfaces only show ingestion-backed canonical data.
@@ -371,4 +380,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-11A4`, then continue to `CAT-01`.
+Start with `CAT-01`, then continue to `CAT-02`.

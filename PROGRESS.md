@@ -852,3 +852,42 @@ Each work session must add a new dated entry that includes:
   - Existing placeholder image rows (18 products) still require successful seed/normalization remediation run; `pnpm seed` currently stalls in normalization with no completion signal.
 
 - Next: `IN-11A4` blocker-closeout (complete seed normalization/remediation so `pnpm catalog:audit:regressions` passes), then `CAT-01`.
+
+## 2026-02-12 00:45
+
+- Work: Closed `IN-11A4` blocker and hardened seed/quality observability for overnight production-readiness execution.
+  - Completed the partial normalization telemetry refactor in `src/server/normalization/manual-seed.ts`:
+    - added deterministic per-stage progress events (`products`/`plants`/`offers`) for snapshot scan, progress checkpoints, stage completion, offers summary refresh, and overall normalization completion.
+    - added stage timing capture (`snapshotScanMs`, `normalizationMs`, `totalMs`, and offer-summary refresh timing).
+  - Wired seed progress logging in `scripts/seed.ts`:
+    - seed now prints compact normalization progress checkpoints every 25 records and final stage summaries.
+    - final seed JSON now includes `normalization.stageTimingsMs` for ops visibility.
+  - Added canonical catalog quality/freshness audit:
+    - `src/server/catalog/quality-audit.ts`
+    - `scripts/catalog-quality-audit.ts`
+    - `package.json` script: `pnpm catalog:audit:quality`
+    - deterministic findings output with `violations` + `warnings` for focus categories (`tank/light/filter/substrate/hardscape`), plant coverage, and offer freshness SLO.
+  - Added targeted coverage:
+    - `tests/server/catalog-quality-audit.test.ts`
+
+- Commands run:
+  - `pnpm typecheck` (PASS)
+  - `pnpm vitest run tests/server/catalog-quality-audit.test.ts` (PASS)
+  - `pnpm vitest run tests/ingestion/idempotency.test.ts tests/ingestion/normalization-overrides.test.ts` (PASS)
+  - `pnpm catalog:audit:quality` (FAIL with exit 2 by design; emitted explicit readiness findings)
+  - `pnpm catalog:audit:regressions` (PASS; placeholder/provenance clean)
+  - `node --import tsx scripts/gates.ts` (PASS)
+  - `pnpm verify:gates` (PASS)
+  - `pnpm seed` (PASS; normalization completed with deterministic progress logs + timings)
+  - `pnpm test` (PASS)
+  - `pnpm verify` (PASS; includes e2e)
+
+- Results:
+  - `IN-11A4` is now complete in code + execution evidence: seed finishes, regression audit passes, placeholders/provenance remain clean.
+  - Seed normalization is no longer “silent” during long phases; operators now get explicit forward-progress checkpoints and stage timings.
+  - Launch-readiness quality debt is now explicit and measurable:
+    - `catalog:audit:quality` reports `offer_freshness_below_slo` (0% checked <24h vs 95% target)
+    - focus categories still have significant missing image/offer coverage warnings
+    - plants still have a small missing-image set
+
+- Next: `CAT-01`, then `CAT-02`; keep `IN-12`/`IN-13` focused on closing quality-audit freshness/completeness blockers.

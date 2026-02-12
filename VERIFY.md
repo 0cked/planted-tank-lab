@@ -21,6 +21,16 @@ Runs lint + typecheck + unit tests + e2e smoke + build.
 
 Prints G0-G11 pass/fail/unknown from `config/gates.json` plus verification guidance.
 
+### `pnpm catalog:audit:regressions`
+
+Runs provenance + placeholder regression checks against canonical/displayed catalog rows.
+Exits non-zero when placeholder/provenance violations are present.
+
+### `pnpm catalog:audit:quality`
+
+Runs canonical catalog readiness metrics for focus categories (`tank/light/filter/substrate/hardscape`), plants coverage, and offer freshness.
+Exits non-zero when launch-readiness violations are present (e.g., freshness SLO misses, empty focus categories).
+
 ## Local Setup (when needed)
 
 1. Install deps: `pnpm install`

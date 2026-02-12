@@ -24,6 +24,7 @@ import {
   ingestManualSeedSnapshot,
 } from "@/server/ingestion/sources/manual-seed";
 import {
+  type ManualSeedNormalizationProgressEvent,
   manualSeedOfferSchema as offerSeedSchema,
   manualSeedPlantSchema as plantSeedSchema,
   manualSeedProductSchema as productSeedSchema,
@@ -69,6 +70,59 @@ const retailerSeedSchema = z.object({
 function readJson<T>(relPath: string): T {
   const abs = join(process.cwd(), relPath);
   return JSON.parse(readFileSync(abs, "utf8")) as T;
+}
+
+function formatDurationMs(value: number): string {
+  return `${Math.max(0, Math.round(value))}ms`;
+}
+
+function logNormalizationProgress(event: ManualSeedNormalizationProgressEvent): void {
+  switch (event.event) {
+    case "normalization.stage.started": {
+      console.log(`Seeding: normalization ${event.stage} started...`);
+      return;
+    }
+    case "normalization.stage.snapshot_scan.started": {
+      console.log(`Seeding: normalization ${event.stage} snapshot scan started...`);
+      return;
+    }
+    case "normalization.stage.snapshot_scan.completed": {
+      console.log(
+        `Seeding: normalization ${event.stage} snapshot scan complete (${event.snapshotCount} snapshots, ${formatDurationMs(event.durationMs)})...`,
+      );
+      return;
+    }
+    case "normalization.stage.progress": {
+      console.log(
+        `Seeding: normalization ${event.stage} progress ${event.processed}/${event.total} (inserted=${event.inserted}, updated=${event.updated}, mappings=${event.mappingsUpserted}, ${formatDurationMs(event.durationMs)})...`,
+      );
+      return;
+    }
+    case "normalization.offers.summary_refresh.started": {
+      console.log(
+        `Seeding: normalization offers summary refresh started (${event.productCount} products)...`,
+      );
+      return;
+    }
+    case "normalization.offers.summary_refresh.completed": {
+      console.log(
+        `Seeding: normalization offers summary refresh complete (${event.productCount} products, ${formatDurationMs(event.durationMs)})...`,
+      );
+      return;
+    }
+    case "normalization.stage.completed": {
+      console.log(
+        `Seeding: normalization ${event.stage} complete (processed=${event.processed}, inserted=${event.inserted}, updated=${event.updated}, mappings=${event.mappingsUpserted}, snapshots=${event.snapshotCount}, ${formatDurationMs(event.durationMs)})...`,
+      );
+      return;
+    }
+    case "normalization.completed": {
+      console.log(
+        `Seeding: normalization complete (${formatDurationMs(event.durationMs)})...`,
+      );
+      return;
+    }
+  }
 }
 
 async function ingestManualSeedData(productFiles: string[]): Promise<{
@@ -357,6 +411,7 @@ async function main(): Promise<void> {
   );
   const normalization = await normalizeManualSeedSnapshots({
     sourceId: ingestion.sourceId,
+    onProgress: logNormalizationProgress,
   });
 
   console.log("Seeding: prune legacy non-provenance catalog rows...");
@@ -426,6 +481,7 @@ async function main(): Promise<void> {
           mappingsUpserted: normalization.mappingsUpserted,
           totalInserted: normalization.totalInserted,
           totalUpdated: normalization.totalUpdated,
+          stageTimingsMs: normalization.stageTimingsMs,
         },
         legacyCleanup,
         regressionAudit,

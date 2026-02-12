@@ -132,6 +132,77 @@ type NormalizationStats = {
   updated: number;
 };
 
+export type ManualSeedNormalizationStage = "products" | "plants" | "offers";
+
+export type ManualSeedNormalizationProgressEvent =
+  | {
+      event: "normalization.stage.started";
+      sourceId: string;
+      stage: ManualSeedNormalizationStage;
+    }
+  | {
+      event: "normalization.stage.snapshot_scan.started";
+      sourceId: string;
+      stage: ManualSeedNormalizationStage;
+    }
+  | {
+      event: "normalization.stage.snapshot_scan.completed";
+      sourceId: string;
+      stage: ManualSeedNormalizationStage;
+      snapshotCount: number;
+      durationMs: number;
+    }
+  | {
+      event: "normalization.stage.progress";
+      sourceId: string;
+      stage: ManualSeedNormalizationStage;
+      processed: number;
+      total: number;
+      inserted: number;
+      updated: number;
+      mappingsUpserted: number;
+      durationMs: number;
+    }
+  | {
+      event: "normalization.stage.completed";
+      sourceId: string;
+      stage: ManualSeedNormalizationStage;
+      processed: number;
+      inserted: number;
+      updated: number;
+      mappingsUpserted: number;
+      durationMs: number;
+      snapshotCount: number;
+    }
+  | {
+      event: "normalization.offers.summary_refresh.started";
+      sourceId: string;
+      stage: "offers";
+      productCount: number;
+    }
+  | {
+      event: "normalization.offers.summary_refresh.completed";
+      sourceId: string;
+      stage: "offers";
+      productCount: number;
+      durationMs: number;
+    }
+  | {
+      event: "normalization.completed";
+      sourceId: string;
+      durationMs: number;
+    };
+
+export type ManualSeedNormalizationProgressHandler = (
+  event: ManualSeedNormalizationProgressEvent,
+) => void;
+
+type NormalizationStageTiming = {
+  snapshotScanMs: number;
+  normalizationMs: number;
+  totalMs: number;
+};
+
 export type ManualSeedNormalizationSummary = {
   products: NormalizationStats;
   plants: NormalizationStats;
@@ -139,6 +210,14 @@ export type ManualSeedNormalizationSummary = {
   mappingsUpserted: number;
   totalInserted: number;
   totalUpdated: number;
+  stageTimingsMs: {
+    products: NormalizationStageTiming;
+    plants: NormalizationStageTiming;
+    offers: NormalizationStageTiming & {
+      offerSummaryRefreshMs: number;
+    };
+    total: number;
+  };
 };
 
 type ManualSeedProduct = z.infer<typeof manualSeedProductSchema>;
@@ -302,14 +381,54 @@ async function upsertCanonicalMapping(params: {
     });
 }
 
-async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
+const NORMALIZATION_PROGRESS_INTERVAL = 25;
+
+function shouldEmitNormalizationProgress(processed: number, total: number): boolean {
+  if (processed <= 0) return false;
+  return (
+    processed % NORMALIZATION_PROGRESS_INTERVAL === 0 || processed === total
+  );
+}
+
+async function normalizeProductsFromSnapshots(params: {
+  sourceId: string;
+  onProgress?: ManualSeedNormalizationProgressHandler;
+}): Promise<{
   stats: NormalizationStats;
   mappingsUpserted: number;
+  timingsMs: NormalizationStageTiming;
+  snapshotCount: number;
 }> {
+  const stage: ManualSeedNormalizationStage = "products";
+  const stageStartedAt = Date.now();
+
+  params.onProgress?.({
+    event: "normalization.stage.started",
+    sourceId: params.sourceId,
+    stage,
+  });
+  params.onProgress?.({
+    event: "normalization.stage.snapshot_scan.started",
+    sourceId: params.sourceId,
+    stage,
+  });
+
+  const snapshotScanStartedAt = Date.now();
   const snapshots = parseSnapshots({
-    rows: await getLatestSnapshots({ sourceId, entityType: "product" }),
+    rows: await getLatestSnapshots({ sourceId: params.sourceId, entityType: "product" }),
     schema: manualSeedProductSchema,
   });
+  const snapshotScanMs = Date.now() - snapshotScanStartedAt;
+
+  params.onProgress?.({
+    event: "normalization.stage.snapshot_scan.completed",
+    sourceId: params.sourceId,
+    stage,
+    snapshotCount: snapshots.length,
+    durationMs: snapshotScanMs,
+  });
+
+  const normalizationStartedAt = Date.now();
 
   const categoryRows = await db
     .select({ id: categories.id, slug: categories.slug })
@@ -351,7 +470,7 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
   let updated = 0;
   let mappingsUpserted = 0;
 
-  for (const snapshot of snapshots) {
+  for (const [index, snapshot] of snapshots.entries()) {
     const item = snapshot.payload;
 
     const categoryId = categoryIdBySlug.get(item.category_slug);
@@ -461,7 +580,37 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
       notes: mappingNotes,
     });
     mappingsUpserted += 1;
+
+    const processed = index + 1;
+    if (shouldEmitNormalizationProgress(processed, snapshots.length)) {
+      params.onProgress?.({
+        event: "normalization.stage.progress",
+        sourceId: params.sourceId,
+        stage,
+        processed,
+        total: snapshots.length,
+        inserted,
+        updated,
+        mappingsUpserted,
+        durationMs: Date.now() - normalizationStartedAt,
+      });
+    }
   }
+
+  const normalizationMs = Date.now() - normalizationStartedAt;
+  const totalMs = Date.now() - stageStartedAt;
+
+  params.onProgress?.({
+    event: "normalization.stage.completed",
+    sourceId: params.sourceId,
+    stage,
+    processed: snapshots.length,
+    inserted,
+    updated,
+    mappingsUpserted,
+    durationMs: totalMs,
+    snapshotCount: snapshots.length,
+  });
 
   return {
     stats: {
@@ -470,17 +619,54 @@ async function normalizeProductsFromSnapshots(sourceId: string): Promise<{
       updated,
     },
     mappingsUpserted,
+    timingsMs: {
+      snapshotScanMs,
+      normalizationMs,
+      totalMs,
+    },
+    snapshotCount: snapshots.length,
   };
 }
 
-async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
+async function normalizePlantsFromSnapshots(params: {
+  sourceId: string;
+  onProgress?: ManualSeedNormalizationProgressHandler;
+}): Promise<{
   stats: NormalizationStats;
   mappingsUpserted: number;
+  timingsMs: NormalizationStageTiming;
+  snapshotCount: number;
 }> {
+  const stage: ManualSeedNormalizationStage = "plants";
+  const stageStartedAt = Date.now();
+
+  params.onProgress?.({
+    event: "normalization.stage.started",
+    sourceId: params.sourceId,
+    stage,
+  });
+  params.onProgress?.({
+    event: "normalization.stage.snapshot_scan.started",
+    sourceId: params.sourceId,
+    stage,
+  });
+
+  const snapshotScanStartedAt = Date.now();
   const snapshots = parseSnapshots({
-    rows: await getLatestSnapshots({ sourceId, entityType: "plant" }),
+    rows: await getLatestSnapshots({ sourceId: params.sourceId, entityType: "plant" }),
     schema: manualSeedPlantSchema,
   });
+  const snapshotScanMs = Date.now() - snapshotScanStartedAt;
+
+  params.onProgress?.({
+    event: "normalization.stage.snapshot_scan.completed",
+    sourceId: params.sourceId,
+    stage,
+    snapshotCount: snapshots.length,
+    durationMs: snapshotScanMs,
+  });
+
+  const normalizationStartedAt = Date.now();
 
   const existingPlants = await db
     .select({
@@ -508,7 +694,7 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
   let updated = 0;
   let mappingsUpserted = 0;
 
-  for (const snapshot of snapshots) {
+  for (const [index, snapshot] of snapshots.entries()) {
     const item = snapshot.payload;
 
     const match = matchCanonicalPlant({
@@ -614,7 +800,37 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
       notes: mappingNotes,
     });
     mappingsUpserted += 1;
+
+    const processed = index + 1;
+    if (shouldEmitNormalizationProgress(processed, snapshots.length)) {
+      params.onProgress?.({
+        event: "normalization.stage.progress",
+        sourceId: params.sourceId,
+        stage,
+        processed,
+        total: snapshots.length,
+        inserted,
+        updated,
+        mappingsUpserted,
+        durationMs: Date.now() - normalizationStartedAt,
+      });
+    }
   }
+
+  const normalizationMs = Date.now() - normalizationStartedAt;
+  const totalMs = Date.now() - stageStartedAt;
+
+  params.onProgress?.({
+    event: "normalization.stage.completed",
+    sourceId: params.sourceId,
+    stage,
+    processed: snapshots.length,
+    inserted,
+    updated,
+    mappingsUpserted,
+    durationMs: totalMs,
+    snapshotCount: snapshots.length,
+  });
 
   return {
     stats: {
@@ -623,17 +839,55 @@ async function normalizePlantsFromSnapshots(sourceId: string): Promise<{
       updated,
     },
     mappingsUpserted,
+    timingsMs: {
+      snapshotScanMs,
+      normalizationMs,
+      totalMs,
+    },
+    snapshotCount: snapshots.length,
   };
 }
 
-async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
+async function normalizeOffersFromSnapshots(params: {
+  sourceId: string;
+  onProgress?: ManualSeedNormalizationProgressHandler;
+}): Promise<{
   stats: NormalizationStats;
   mappingsUpserted: number;
+  timingsMs: NormalizationStageTiming;
+  offerSummaryRefreshMs: number;
+  snapshotCount: number;
 }> {
+  const stage: ManualSeedNormalizationStage = "offers";
+  const stageStartedAt = Date.now();
+
+  params.onProgress?.({
+    event: "normalization.stage.started",
+    sourceId: params.sourceId,
+    stage,
+  });
+  params.onProgress?.({
+    event: "normalization.stage.snapshot_scan.started",
+    sourceId: params.sourceId,
+    stage,
+  });
+
+  const snapshotScanStartedAt = Date.now();
   const snapshots = parseSnapshots({
-    rows: await getLatestSnapshots({ sourceId, entityType: "offer" }),
+    rows: await getLatestSnapshots({ sourceId: params.sourceId, entityType: "offer" }),
     schema: manualSeedOfferSchema,
   });
+  const snapshotScanMs = Date.now() - snapshotScanStartedAt;
+
+  params.onProgress?.({
+    event: "normalization.stage.snapshot_scan.completed",
+    sourceId: params.sourceId,
+    stage,
+    snapshotCount: snapshots.length,
+    durationMs: snapshotScanMs,
+  });
+
+  const normalizationStartedAt = Date.now();
 
   const productRows = await db
     .select({ id: products.id, slug: products.slug })
@@ -675,7 +929,7 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
   let mappingsUpserted = 0;
   const touchedProductIds = new Set<string>();
 
-  for (const snapshot of snapshots) {
+  for (const [index, snapshot] of snapshots.entries()) {
     const item = snapshot.payload;
 
     const productId = productIdBySlug.get(item.product_slug);
@@ -781,11 +1035,59 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
       notes: mappingNotes,
     });
     mappingsUpserted += 1;
+
+    const processed = index + 1;
+    if (shouldEmitNormalizationProgress(processed, snapshots.length)) {
+      params.onProgress?.({
+        event: "normalization.stage.progress",
+        sourceId: params.sourceId,
+        stage,
+        processed,
+        total: snapshots.length,
+        inserted,
+        updated,
+        mappingsUpserted,
+        durationMs: Date.now() - normalizationStartedAt,
+      });
+    }
   }
 
+  const touchedProductCount = touchedProductIds.size;
+  params.onProgress?.({
+    event: "normalization.offers.summary_refresh.started",
+    sourceId: params.sourceId,
+    stage,
+    productCount: touchedProductCount,
+  });
+
+  const offerSummaryRefreshStartedAt = Date.now();
   await refreshOfferSummariesForProductIds({
     db,
     productIds: [...touchedProductIds],
+  });
+  const offerSummaryRefreshMs = Date.now() - offerSummaryRefreshStartedAt;
+
+  params.onProgress?.({
+    event: "normalization.offers.summary_refresh.completed",
+    sourceId: params.sourceId,
+    stage,
+    productCount: touchedProductCount,
+    durationMs: offerSummaryRefreshMs,
+  });
+
+  const normalizationMs = Date.now() - normalizationStartedAt;
+  const totalMs = Date.now() - stageStartedAt;
+
+  params.onProgress?.({
+    event: "normalization.stage.completed",
+    sourceId: params.sourceId,
+    stage,
+    processed: snapshots.length,
+    inserted,
+    updated,
+    mappingsUpserted,
+    durationMs: totalMs,
+    snapshotCount: snapshots.length,
   });
 
   return {
@@ -795,15 +1097,34 @@ async function normalizeOffersFromSnapshots(sourceId: string): Promise<{
       updated,
     },
     mappingsUpserted,
+    timingsMs: {
+      snapshotScanMs,
+      normalizationMs,
+      totalMs,
+    },
+    offerSummaryRefreshMs,
+    snapshotCount: snapshots.length,
   };
 }
 
 export async function normalizeManualSeedSnapshots(params: {
   sourceId: string;
+  onProgress?: ManualSeedNormalizationProgressHandler;
 }): Promise<ManualSeedNormalizationSummary> {
-  const productsResult = await normalizeProductsFromSnapshots(params.sourceId);
-  const plantsResult = await normalizePlantsFromSnapshots(params.sourceId);
-  const offersResult = await normalizeOffersFromSnapshots(params.sourceId);
+  const startedAt = Date.now();
+
+  const productsResult = await normalizeProductsFromSnapshots({
+    sourceId: params.sourceId,
+    onProgress: params.onProgress,
+  });
+  const plantsResult = await normalizePlantsFromSnapshots({
+    sourceId: params.sourceId,
+    onProgress: params.onProgress,
+  });
+  const offersResult = await normalizeOffersFromSnapshots({
+    sourceId: params.sourceId,
+    onProgress: params.onProgress,
+  });
 
   const totalInserted =
     productsResult.stats.inserted +
@@ -813,6 +1134,13 @@ export async function normalizeManualSeedSnapshots(params: {
     productsResult.stats.updated +
     plantsResult.stats.updated +
     offersResult.stats.updated;
+  const totalDurationMs = Date.now() - startedAt;
+
+  params.onProgress?.({
+    event: "normalization.completed",
+    sourceId: params.sourceId,
+    durationMs: totalDurationMs,
+  });
 
   return {
     products: productsResult.stats,
@@ -824,5 +1152,14 @@ export async function normalizeManualSeedSnapshots(params: {
       offersResult.mappingsUpserted,
     totalInserted,
     totalUpdated,
+    stageTimingsMs: {
+      products: productsResult.timingsMs,
+      plants: plantsResult.timingsMs,
+      offers: {
+        ...offersResult.timingsMs,
+        offerSummaryRefreshMs: offersResult.offerSummaryRefreshMs,
+      },
+      total: totalDurationMs,
+    },
   };
 }
