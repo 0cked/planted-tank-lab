@@ -2,7 +2,7 @@
 
 Date: 2026-02-08
 
-Related: `PLAN_EXEC.md` A-05
+Related: `PLANS.md` (legacy reference: A-05)
 
 ## Context
 
@@ -43,4 +43,3 @@ Choose Option A (Sentry) for v1. Keep the integration minimal:
 
 - We must configure `SENTRY_DSN` (and optionally a public DSN) in Vercel env vars for production capture.
 - If Sentry is not configured, the app should continue to work and log errors to stdout.
-

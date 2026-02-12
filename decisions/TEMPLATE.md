@@ -2,7 +2,7 @@
 
 Date: YYYY-MM-DD
 
-Related: `PLAN_EXEC.md` <task IDs>
+Related: `PLANS.md` <task IDs>
 
 ## Context
 
@@ -17,4 +17,3 @@ Option C (optional):
 ## Decision
 
 ## Consequences
-

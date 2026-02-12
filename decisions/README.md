@@ -10,11 +10,10 @@ Purpose: capture high-impact technical decisions so future sessions can resume s
   - Decision (what we picked)
   - Consequences (tradeoffs)
   - Date
-  - Related task IDs from `PLAN_EXEC.md`
+  - Related task IDs from `PLANS.md`
 - ADR filenames are numbered: `0001-short-title.md`, `0002-...`
-- Link any new ADRs from `AUTOPILOT.md`.
+- Reference any new ADRs from `PLANS.md`.
 
 ## Template
 
 Copy `decisions/TEMPLATE.md`.
-

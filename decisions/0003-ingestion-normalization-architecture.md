@@ -2,7 +2,7 @@
 
 Date: 2026-02-10
 
-Related tasks: (to be updated in `PLAN_EXEC.md`) E-01, E-02, E-03, E-04, E-05
+Related tasks: (tracked in `PLANS.md`) ingestion/normalization hardening milestones
 
 ## Context
 
@@ -57,4 +57,3 @@ Adopt **Option 2**:
   - cache invalidation hooks for derived views
 - Scheduling will be done via an external scheduler invoking the ingestion runner (local cron / GitHub Actions / dedicated worker),
   not via request-path execution.
-

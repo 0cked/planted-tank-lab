@@ -2,17 +2,18 @@
 
 > *"The PCPartPicker for Planted Aquariums"*
 
-Note: This file is a product/spec reference. For current execution status and next steps, see `AUTOPILOT.md`.
+Note: This file is a product/spec reference. For current execution status and next steps, see `PLANS.md`.
+Operational/deployment details in this file may be historical; `AGENTS.md` is authoritative for active architecture/runtime.
 
 ## Infrastructure & Hosting
 
 - **Domain**: plantedtanklab.com
-- **Hosting**: Vercel (auto-deploys from GitHub `main` branch)
+- **Hosting**: Fly.io (web + worker + scheduler)
 - **Database**: Supabase (PostgreSQL, managed). Connection via transaction pooler.
-- **DNS**: Cloudflare (DNS-only mode, CNAME → cname.vercel-dns.com)
+- **DNS**: Cloudflare (DNS to Fly.io app/certs)
 - **Repo**: github.com/{owner}/planted-tank-lab
 - **Credentials**: stored in `.secrets/` directory (gitignored). See `AGENTS.md` for details.
-- **Authenticated CLIs**: `vercel`, `gh` (GitHub CLI), `pnpm`
+- **Authenticated CLIs**: `fly`, `gh` (GitHub CLI), `pnpm`
 
 ---
 

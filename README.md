@@ -2,14 +2,11 @@ PlantedTankLab is “PCPartPicker for planted aquariums.” Build a planted tank
 
 ## Start Here (Humans + Agents)
 
-- **Single source of truth (status + next work):** `AUTOPILOT.md`
-- **Execution checklist (task IDs + acceptance criteria):** `PLAN_EXEC.md`
-- **Verification playbook:** `VERIFY.md`
-- **Append-only session log:** `PROGRESS.md`
+- **Single source of truth (status + next work):** `PLANS.md`
+- **Agent operating contract:** `AGENTS.md`
 - **Historical planning archives:** `archive/planning/` (non-authoritative)
-- **Launch gates dashboard:** `pnpm verify:gates` (reads `config/gates.json`)
 
-If anything conflicts with chat history or older docs, `AUTOPILOT.md` wins.
+If anything conflicts with chat history or older docs, `PLANS.md` wins.
 
 ## Quickstart (Local Dev)
 
@@ -47,11 +44,6 @@ pnpm dev
 - `pnpm ingest run` backend-only ingestion worker (processes queued ingestion jobs; no request-path scraping)
 - `pnpm ingest daemon` long-running ingestion worker (for Fly worker process)
 - `pnpm ingest schedule --loop` long-running scheduler (enqueues periodic ingestion jobs)
-
-### Homepage Water FX V2
-
-- Feature flag: `HERO_WATER_FX_V2=true` (or `1`) enables the WebGL hero water interaction by default.
-- Preview override: open `/?fx=water-v2` to force-enable, or `/?fx=off` to force-disable for QA.
 
 ## Deployment (Fly.io)
 

@@ -2,7 +2,7 @@
 
 Date: 2026-02-08
 
-Related: `PLAN_EXEC.md` A-03
+Related: `PLANS.md` (legacy reference: A-03)
 
 ## Context
 
@@ -38,4 +38,3 @@ Choose Option A for v1: implement a fixed-window, in-memory rate limiter in `src
 
 - We get immediate protection against naive abuse without blocking the release.
 - Sophisticated/distributed abuse may still bypass limits; if that becomes a problem, migrate to Redis/KV.
-
