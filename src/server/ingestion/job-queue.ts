@@ -10,6 +10,7 @@ export const IngestionJobKinds = [
   "offers.head_refresh.one",
   "offers.detail_refresh.bulk",
   "offers.detail_refresh.one",
+  "offers.buceplant_variants_refresh",
 ] as const;
 export type IngestionJobKind = (typeof IngestionJobKinds)[number];
 export const IngestionJobKindSchema = z.enum(IngestionJobKinds);
@@ -36,6 +37,10 @@ export const OffersDetailRefreshBulkPayloadSchema = z.object({
 export const OffersDetailRefreshOnePayloadSchema = z.object({
   offerId: z.string().uuid(),
   timeoutMs: z.number().int().min(500).max(60000).default(12000).optional(),
+});
+
+export const OffersBuceplantVariantsRefreshPayloadSchema = z.object({
+  timeoutMs: z.number().int().min(1000).max(60000).default(15000).optional(),
 });
 
 const JobRowSchema = z.object({

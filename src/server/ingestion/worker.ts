@@ -7,12 +7,14 @@ import {
   claimNextJob,
   markJobFailure,
   markJobSuccess,
+  OffersBuceplantVariantsRefreshPayloadSchema,
   OffersDetailRefreshBulkPayloadSchema,
   OffersDetailRefreshOnePayloadSchema,
   OffersHeadRefreshBulkPayloadSchema,
   OffersHeadRefreshOnePayloadSchema,
 } from "@/server/ingestion/job-queue";
 import { ensureIngestionSource } from "@/server/ingestion/sources";
+import { runOffersBuceplantVariantsRefresh } from "@/server/ingestion/sources/offers-buceplant-variants";
 import { runOffersDetailRefresh } from "@/server/ingestion/sources/offers-detail";
 import { runOffersHeadRefresh } from "@/server/ingestion/sources/offers-head";
 
@@ -45,6 +47,21 @@ async function ensureOffersDetailSource(): Promise<string> {
       // still satisfying 24h freshness SLO for current catalog volume.
       jobPayload: { olderThanHours: 20, limit: 60, timeoutMs: 12000 },
       idempotencyPrefix: "schedule:offers-detail",
+    },
+  });
+}
+
+async function ensureBuceplantVariantsSource(): Promise<string> {
+  return ensureIngestionSource({
+    slug: "offers-buceplant-variants",
+    name: "BucePlant variant product checks",
+    kind: "offer_detail",
+    defaultTrust: "retailer",
+    scheduleEveryMinutes: 240,
+    config: {
+      jobKind: "offers.buceplant_variants_refresh",
+      jobPayload: { timeoutMs: 15000 },
+      idempotencyPrefix: "schedule:offers-buceplant-variants",
     },
   });
 }
@@ -194,6 +211,24 @@ export async function runIngestionWorker(params: {
           mode: "one",
           offerId: payload.offerId,
           timeoutMs: payload.timeoutMs ?? 12000,
+        });
+
+        await finishIngestionRunSuccess({ runId, stats: result });
+        await markJobSuccess(job.id);
+        succeeded += 1;
+        continue;
+      }
+
+      if (job.kind === "offers.buceplant_variants_refresh") {
+        const payload = OffersBuceplantVariantsRefreshPayloadSchema.parse(job.payload);
+        const sourceId = await ensureBuceplantVariantsSource();
+        const runId = await createIngestionRun(sourceId);
+
+        const result = await runOffersBuceplantVariantsRefresh({
+          db,
+          sourceId,
+          runId,
+          timeoutMs: payload.timeoutMs ?? 15000,
         });
 
         await finishIngestionRunSuccess({ runId, stats: result });

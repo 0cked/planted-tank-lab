@@ -24,12 +24,27 @@ export async function POST(req: Request) {
     priority: 5,
   });
 
+  const minuteBucket = new Date().toISOString().slice(0, 16);
+  const buceQueued = await enqueueIngestionJob({
+    kind: "offers.buceplant_variants_refresh",
+    payload: { timeoutMs: 15000 },
+    idempotencyKey: `admin:offers.buceplant_variants_refresh:${minuteBucket}`,
+    priority: 8,
+  });
+
   await logAdminAction({
     actorUserId: session.user.id ?? null,
     action: "offers.refresh.bulk",
     targetType: "offers",
     targetId: null,
-    meta: { jobId: queued.id, deduped: queued.deduped, olderThanDays: parsedOlder, limit: parsedLimit },
+    meta: {
+      jobId: queued.id,
+      deduped: queued.deduped,
+      buceVariantJobId: buceQueued.id,
+      buceVariantDeduped: buceQueued.deduped,
+      olderThanDays: parsedOlder,
+      limit: parsedLimit,
+    },
   });
 
   const u = new URL("/admin/offers", req.url);

@@ -87,6 +87,7 @@ export type IngestionRecoveryResult = {
   enqueued?: {
     head: { id: string | null; deduped: boolean };
     detail: { id: string | null; deduped: boolean };
+    buceVariants: { id: string | null; deduped: boolean };
   };
 };
 
@@ -446,15 +447,27 @@ export async function applyIngestionRecoveryAction(params: {
       idempotencyKey: `admin-recovery:offers-detail:${bucket}`,
       priority: 20,
     });
+    const buceVariants = await enqueueIngestionJob({
+      kind: "offers.buceplant_variants_refresh",
+      payload: {
+        timeoutMs: 15000,
+      },
+      idempotencyKey: `admin-recovery:offers-buceplant-variants:${bucket}`,
+      priority: 20,
+    });
 
     return {
       action: params.action,
-      affectedJobIds: [head.id, detail.id].filter((value): value is string => Boolean(value)),
-      affectedCount: [head.id, detail.id].filter((value) => value != null).length,
+      affectedJobIds: [head.id, detail.id, buceVariants.id].filter(
+        (value): value is string => Boolean(value),
+      ),
+      affectedCount: [head.id, detail.id, buceVariants.id].filter(
+        (value) => value != null,
+      ).length,
       limit,
       staleQueuedMinutes,
       stuckRunningMinutes,
-      enqueued: { head, detail },
+      enqueued: { head, detail, buceVariants },
     };
   }
 
