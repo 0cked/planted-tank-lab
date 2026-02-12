@@ -22,7 +22,7 @@ Deprecated and archived:
 Primary objective: complete **Top Priority #1** to production-grade quality:
 - trusted ingestion + normalization + canonical data freshness pipeline.
 
-Current phase: `ING-5/CAT-1` (ops closeout + template-build curation) — `IN-11A1` and `IN-11A2` are complete; `IN-11A3` (placeholder/content cleanup across production catalog surfaces) is now active.
+Current phase: `ING-5/CAT-1` (ops closeout + template-build curation) — `IN-11A1`, `IN-11A2`, and `IN-11A3` are complete; `IN-11A4` (placeholder/provenance anti-regression guardrails) is now active.
 
 ## Current State Snapshot
 
@@ -33,47 +33,45 @@ Completed prerequisites:
 - Ingestion foundation exists (jobs, runs, sources, entities, snapshots, mapping tables).
 
 Remaining critical gap:
-- complete `IN-11A3`/`IN-11A4` to remove placeholder catalog surface content and lock in anti-regression guardrails.
+- complete `IN-11A4` to lock in anti-regression guardrails for placeholder/provenance regressions.
 - ingestion ops dashboard/runbook and final gate closeout remain pending (`IN-12`, `IN-13`).
 
 ## What Changed Last
 
-- Completed `IN-11A2` end-to-end (code + host-side DB cleanup/audit verification).
-- Added legacy prune module:
-  - `src/server/catalog/legacy-prune.ts`
-  - detects non-provenance canonical products/plants/offers
-  - prunes legacy canonical rows and dependent refs (`build_items`, `user_favorites`, `price_history`, overrides/mappings), then refreshes affected offer summaries
-- Added executable cleanup command:
-  - `scripts/catalog-legacy-prune.ts`
-  - `pnpm catalog:cleanup:legacy`
-- Hardened seed flow boundary:
-  - `scripts/seed.ts` now always runs normalization (no snapshot-created skip path), executes legacy prune, and fails fast if provenance audit still reports displayed violations.
-- Added regression coverage:
-  - `tests/server/catalog-legacy-prune.test.ts` (deterministic prune-plan behavior)
-- Host verification notes:
+- Completed `IN-11A3` placeholder/content cleanup across production catalog surfaces.
+- Added explicit no-data helper + regression coverage:
+  - `src/lib/catalog-no-data.ts`
+  - `tests/lib/catalog-no-data.test.ts`
+- Removed placeholder hero-image fallbacks and filler copy from:
+  - `src/app/products/page.tsx`
+  - `src/app/products/[category]/page.tsx`
+  - `src/app/products/[category]/[slug]/page.tsx`
+  - `src/app/plants/page.tsx`
+  - `src/app/plants/[slug]/page.tsx`
+  - `src/components/builder/BuilderPage.tsx`
+- Verification notes:
+  - `pnpm vitest run tests/lib/catalog-no-data.test.ts` PASS
+  - `pnpm lint` PASS
+  - `pnpm typecheck` PASS
   - `pnpm verify:gates` PASS
-  - `pnpm verify` PASS
-  - `pnpm catalog:cleanup:legacy` PASS
-    - cleanup removed: products `31`, plants `74`, offers `104`
-  - `pnpm catalog:audit:provenance` PASS
-    - post-cleanup audit: products `0`, plants `0`, offers `0`, categories `0`, build parts total `0`
+  - `pnpm verify` FAIL due existing seeded-data assumptions after provenance cleanup (`tests/api/offers.test.ts`, `tests/api/builds.test.ts`, `tests/api/plants.test.ts`)
+  - `pnpm seed` reached normalization phase and produced no completion signal (terminated manually).
 
 ## Active Task Queue (from `PLAN_EXEC.md`)
 
 Execute in this order:
-1. `IN-11A3` Remove placeholder assets/copy/spec filler from Products/Plants/Builder.
-2. `IN-11A4` Add guardrails/tests to prevent placeholder/provenance regressions.
-3. `CAT-01` Define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant counts.
-4. `CAT-02` Add one-click "Start from template" UX.
-5. `IN-12` Ingestion ops dashboard and runbook checks.
-6. `IN-13` Final gate check for data-pipeline readiness.
+1. `IN-11A4` Add guardrails/tests to prevent placeholder/provenance regressions.
+2. `CAT-01` Define baseline curated builds (Budget/Mid/Premium) with exact BOM + plant counts.
+3. `CAT-02` Add one-click "Start from template" UX.
+4. `IN-12` Ingestion ops dashboard and runbook checks.
+5. `IN-13` Final gate check for data-pipeline readiness.
 
 ## Known Risks / Blockers
 
 - Offer data completeness still depends on source coverage and parser quality.
 - In-memory rate limit implementation is acceptable now but not horizontally durable.
 - Sentry alerting still requires ongoing production tuning.
-- Provenance baseline is now clean post-`IN-11A2`, but placeholder/spec-content cleanup across Products/Plants/Builder remains outstanding (`IN-11A3`).
+- Provenance baseline is clean and placeholder/content cleanup is complete (`IN-11A3`); anti-regression coverage (`IN-11A4`) is still pending.
 
 ## Resume In <2 Minutes
 

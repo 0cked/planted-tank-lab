@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { markSignupTracked, trackEvent } from "@/lib/analytics";
+import { missingSourceImageCopy, normalizePickerDetails } from "@/lib/catalog-no-data";
 import {
   deriveOfferSummaryState,
   formatOfferSummaryCheckedAt,
@@ -724,6 +725,7 @@ function ProductPicker(props: {
     const article = ["a", "e", "i", "o", "u"].includes(first) ? "an" : "a";
     return `Choose ${article} ${name}`;
   })();
+  const missingProductImage = missingSourceImageCopy("product");
 
   return (
     <PickerDialog
@@ -827,7 +829,6 @@ function ProductPicker(props: {
               const r = x.row;
               const label = r.brand?.name ? `${r.brand.name} ${r.name}` : r.name;
               const img = firstImageUrl({ imageUrl: r.imageUrl ?? null, imageUrls: r.imageUrls });
-              const displayImg = img ?? "/images/aquascape-hero-2400.jpg";
               const chips = productPreviewChips({ categorySlug: props.categorySlug, specs: r.specs });
               const badge = x.blocked ? (
                 <span
@@ -855,16 +856,22 @@ function ProductPicker(props: {
                 >
                   <div className="flex min-w-0 items-start gap-3">
                     <div
-                      className="ptl-image-ph h-14 w-14 overflow-hidden rounded-2xl border"
+                      className="h-14 w-14 overflow-hidden rounded-2xl border"
                       style={{ borderColor: "var(--ptl-border)" }}
                     >
-                      <SmartImage
-                        src={displayImg}
-                        alt=""
-                        width={128}
-                        height={128}
-                        className={"h-full w-full object-cover " + (img ? "" : "opacity-80")}
-                      />
+                      {img ? (
+                        <SmartImage
+                          src={img}
+                          alt=""
+                          width={128}
+                          height={128}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="ptl-image-ph no-image flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-semibold text-neutral-700">
+                          {missingProductImage.title}
+                        </div>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -894,11 +901,11 @@ function ProductPicker(props: {
                             <span className="font-semibold text-red-700">Incompatible:</span>
                           )
                         ) : null}{" "}
-                            <span className="text-neutral-600">
-                              {x.blocked
-                                ? x.reasons[0]?.message ?? "Doesn’t fit the current setup."
-                                : r.slug}
-                            </span>
+                        <span className="text-neutral-600">
+                          {x.blocked
+                            ? x.reasons[0]?.message ?? "Doesn’t fit the current setup."
+                            : normalizePickerDetails(r.description)}
+                        </span>
                       </div>
                       {x.blocked && x.reasons[0]?.fixSuggestion ? (
                         <div className="mt-0.5 line-clamp-2 text-xs text-neutral-600">
@@ -1066,6 +1073,7 @@ function PlantPicker(props: {
 
   const visibleItems = useMemo(() => items.filter((x) => !x.blocked), [items]);
   const effectiveItems = showIncompatible ? items : visibleItems;
+  const missingPlantImage = missingSourceImageCopy("plant");
 
   return (
     <PickerDialog
@@ -1121,7 +1129,6 @@ function PlantPicker(props: {
                 ? `${p.commonName} (${p.scientificName})`
                 : p.commonName;
               const img = firstImageUrl({ imageUrl: p.imageUrl ?? null, imageUrls: p.imageUrls });
-              const displayImg = img ?? "/images/aquascape-hero-2400.jpg";
               const chips = [
                 p.difficulty,
                 `${p.lightDemand} light`,
@@ -1154,16 +1161,22 @@ function PlantPicker(props: {
                 >
                   <div className="flex min-w-0 items-start gap-3">
                     <div
-                      className="ptl-image-ph h-14 w-14 overflow-hidden rounded-2xl border"
+                      className="h-14 w-14 overflow-hidden rounded-2xl border"
                       style={{ borderColor: "var(--ptl-border)" }}
                     >
-                      <SmartImage
-                        src={displayImg}
-                        alt=""
-                        width={128}
-                        height={128}
-                        className={"h-full w-full object-cover " + (img ? "" : "opacity-80")}
-                      />
+                      {img ? (
+                        <SmartImage
+                          src={img}
+                          alt=""
+                          width={128}
+                          height={128}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="ptl-image-ph no-image flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-semibold text-neutral-700">
+                          {missingPlantImage.title}
+                        </div>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">

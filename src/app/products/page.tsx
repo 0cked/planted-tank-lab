@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { SmartImage } from "@/components/SmartImage";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 export const metadata: Metadata = {
@@ -12,21 +11,6 @@ export const metadata: Metadata = {
 export default async function ProductsPage() {
   const caller = await getServerCaller();
   const categories = await caller.products.categoriesList();
-
-  const coverPosClassBySlug: Record<string, string> = {
-    tank: "object-[65%_55%]",
-    stand: "object-[55%_70%]",
-    light: "object-[70%_25%]",
-    filter: "object-[60%_60%]",
-    co2: "object-[20%_55%]",
-    substrate: "object-[55%_80%]",
-    hardscape: "object-[80%_70%]",
-    fertilizer: "object-[25%_65%]",
-    heater: "object-[85%_35%]",
-    test_kit: "object-[15%_25%]",
-    accessories: "object-[60%_75%]",
-    plants: "object-[70%_60%]",
-  };
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -43,7 +27,6 @@ export default async function ProductsPage() {
         {categories
           .filter((c) => c.slug !== "plants")
           .map((c) => {
-            const posClass = coverPosClassBySlug[c.slug] ?? "object-[50%_50%]";
             return (
               <Link
                 key={c.id}
@@ -51,15 +34,18 @@ export default async function ProductsPage() {
                 className="group overflow-hidden rounded-3xl border bg-white/60 shadow-sm backdrop-blur-sm transition hover:bg-white/75 ptl-hover-lift"
                 style={{ borderColor: "var(--ptl-border)" }}
               >
-                <div className="relative aspect-[16/10] overflow-hidden">
-                  <SmartImage
-                    src="/images/aquascape-hero-2400.jpg"
-                    alt=""
-                    fill
-                    sizes="(max-width: 1024px) 50vw, 33vw"
-                    className={`object-cover ${posClass} transition duration-700 group-hover:scale-[1.03]`}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-black/0" />
+                <div
+                  className="ptl-image-ph flex aspect-[16/10] items-center justify-center border-b bg-white/25 px-6 text-center"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                >
+                  <div className="max-w-[28ch]">
+                    <div className="text-sm font-semibold text-neutral-900">
+                      No source image
+                    </div>
+                    <div className="mt-1 text-xs text-neutral-700">
+                      Category media appears when source-linked imagery is available.
+                    </div>
+                  </div>
                 </div>
 
                 <div className="p-6">

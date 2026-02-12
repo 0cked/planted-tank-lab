@@ -207,7 +207,7 @@ No direct canonical bypass for import/seed paths.
   - Subtasks (execute in order):
     - [x] IN-11A1 Codify legacy/pre-ingestion detection + provenance audit checks (products/plants/offers/categories/parts).
     - [x] IN-11A2 Harden seed/import normalization boundary and archive/prune legacy rows so production surfaces only show ingestion-backed canonical data.
-    - [ ] IN-11A3 Remove placeholder assets/copy/spec filler from production catalog surfaces (Products/Plants/Builder) with explicit no-data UX.
+    - [x] IN-11A3 Remove placeholder assets/copy/spec filler from production catalog surfaces (Products/Plants/Builder) with explicit no-data UX.
     - [ ] IN-11A4 Add guardrails/tests to prevent placeholder/provenance regressions.
   - Notes (2026-02-11):
     - Added `src/server/catalog/provenance.ts` with canonical/displayed/build-part provenance audits.
@@ -232,6 +232,25 @@ No direct canonical bypass for import/seed paths.
       - `pnpm catalog:cleanup:legacy` PASS
       - `pnpm catalog:audit:provenance` PASS (`products=0, plants=0, offers=0, categories=0, build parts total=0`)
       - Cleanup removed 31 products, 74 plants, 104 offers and deleted dependent price history + stale offer references.
+  - Notes (2026-02-11, IN-11A3 complete):
+    - Added explicit no-data copy helpers:
+      - `src/lib/catalog-no-data.ts`
+      - `tests/lib/catalog-no-data.test.ts`
+    - Removed placeholder hero-image fallbacks from production catalog surfaces:
+      - `src/app/products/page.tsx`
+      - `src/app/products/[category]/page.tsx`
+      - `src/app/products/[category]/[slug]/page.tsx`
+      - `src/app/plants/page.tsx`
+      - `src/app/plants/[slug]/page.tsx`
+      - `src/components/builder/BuilderPage.tsx`
+    - Replaced placeholder/filler copy with explicit source-unavailable wording (photos/specs/offers/details).
+    - Verification:
+      - `pnpm vitest run tests/lib/catalog-no-data.test.ts` PASS
+      - `pnpm lint` PASS
+      - `pnpm typecheck` PASS
+      - `pnpm verify:gates` PASS
+      - `pnpm verify` FAIL (pre-existing seeded-data expectations after provenance cleanup: `tests/api/offers.test.ts`, `tests/api/builds.test.ts`, `tests/api/plants.test.ts`)
+      - `pnpm seed` STARTED for data refresh, reached normalization phase, no completion signal (terminated manually).
   - Acceptance:
     - Define and codify "legacy/pre-ingestion" detection (products/plants/offers/categories/parts lacking ingestion provenance or canonical mapping consistency).
     - Remove or archive legacy pre-ingestion catalog rows so production surfaces only show ingestion-backed canonical data.
@@ -320,4 +339,4 @@ No direct canonical bypass for import/seed paths.
 
 ## Next Task
 
-Start with `IN-11A3`, then continue to `IN-11A4`.
+Start with `IN-11A4`, then continue to `CAT-01`.

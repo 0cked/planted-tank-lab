@@ -9,6 +9,7 @@ import {
   formatOfferSummaryCheckedAt,
   type OfferSummaryLike,
 } from "@/lib/offer-summary";
+import { missingSourceImageCopy } from "@/lib/catalog-no-data";
 import { formatSpecs } from "@/lib/specs";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
@@ -143,6 +144,7 @@ export default async function ProductDetailPage(props: {
     ? p.imageUrls.filter((u): u is string => typeof u === "string")
     : [];
   const primaryImage = firstImageUrl(p.imageUrl ?? null, gallery) ?? null;
+  const missingProductImage = missingSourceImageCopy("product");
 
   const centsByDay = (() => {
     const m = new Map<string, number>();
@@ -207,32 +209,13 @@ export default async function ProductDetailPage(props: {
                 className="aspect-square w-full object-cover"
               />
             ) : (
-              <div className="relative aspect-square w-full overflow-hidden">
-                <SmartImage
-                  src="/images/aquascape-hero-2400.jpg"
-                  alt=""
-                  width={720}
-                  height={720}
-                  className="h-full w-full object-cover opacity-80"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-black/0" />
-                <div className="absolute left-4 top-4 rounded-full border bg-white/75 px-3 py-1 text-[11px] font-semibold text-neutral-900" style={{ borderColor: "var(--ptl-border)" }}>
-                  Photo coming soon
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="max-w-[34ch] rounded-2xl border bg-white/80 px-5 py-4 text-center" style={{ borderColor: "var(--ptl-border)" }}>
-                    <div className="text-sm font-semibold text-neutral-900">No product photo yet</div>
-                    <div className="mt-1 text-xs text-neutral-700">
-                      We’re still filling in the catalog. Specs and pricing should be correct, even if the photo isn’t here yet.
-                    </div>
-                    <div className="mt-3">
-                      <Link
-                        href={`/products/${p.category.slug}`}
-                        className="text-xs font-semibold text-[color:var(--ptl-accent)] hover:underline"
-                      >
-                        Browse more {p.category.name.toLowerCase()}
-                      </Link>
-                    </div>
+              <div className="ptl-image-ph flex aspect-square w-full items-center justify-center">
+                <div className="max-w-[34ch] px-5 py-4 text-center">
+                  <div className="text-sm font-semibold text-neutral-900">
+                    {missingProductImage.title}
+                  </div>
+                  <div className="mt-1 text-xs text-neutral-700">
+                    {missingProductImage.body}
                   </div>
                 </div>
               </div>
@@ -260,14 +243,14 @@ export default async function ProductDetailPage(props: {
           ) : null}
 
           <div className="mt-4 text-xs text-neutral-500">
-            Product photos are being added over time.
+            Photos appear only when source-linked media is available.
           </div>
         </aside>
 
         <section className="ptl-surface p-6">
           <div className="text-sm font-medium">Specs</div>
           {specs.length === 0 ? (
-            <div className="mt-3 text-sm text-neutral-600">No specs yet.</div>
+            <div className="mt-3 text-sm text-neutral-600">Specs unavailable from current sources.</div>
           ) : (
             <div
               className="mt-4 overflow-hidden rounded-xl border bg-white/70"
@@ -306,7 +289,7 @@ export default async function ProductDetailPage(props: {
             </div>
           ) : null}
           {offers.length === 0 ? (
-            <div className="mt-3 text-sm text-neutral-600">No offers yet.</div>
+            <div className="mt-3 text-sm text-neutral-600">No offers available from tracked retailers.</div>
           ) : (
             <ul className="mt-4 space-y-3">
               {offers.map((o) => (

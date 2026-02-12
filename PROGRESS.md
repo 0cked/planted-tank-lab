@@ -766,3 +766,37 @@ Each work session must add a new dated entry that includes:
   - Full gate verification is green on host (`pnpm verify`, `pnpm verify:gates`).
 
 - Next: `IN-11A3` (remove placeholder assets/copy/spec filler from production catalog surfaces).
+
+## 2026-02-11 20:27
+
+- Work: Completed `IN-11A3` placeholder/content cleanup across production catalog surfaces (implemented via Codex CLI, `gpt-5.3-codex` with `xhigh` reasoning).
+  - Added explicit no-data helper + tests:
+    - `src/lib/catalog-no-data.ts`
+    - `tests/lib/catalog-no-data.test.ts`
+  - Removed placeholder hero-image/media fallbacks and filler copy from:
+    - `src/app/products/page.tsx`
+    - `src/app/products/[category]/page.tsx`
+    - `src/app/products/[category]/[slug]/page.tsx`
+    - `src/app/plants/page.tsx`
+    - `src/app/plants/[slug]/page.tsx`
+    - `src/components/builder/BuilderPage.tsx`
+  - Replaced slug-as-description fallback in Builder product picker with normalized explicit details via `normalizePickerDetails`.
+
+- Commands run:
+  - `pnpm vitest run tests/lib/catalog-no-data.test.ts` (PASS)
+  - `pnpm lint` (PASS)
+  - `pnpm typecheck` (PASS)
+  - `pnpm verify:gates` (PASS)
+  - `pnpm verify` (FAIL)
+    - failing suites are seeded-data expectations after provenance cleanup:
+      - `tests/api/offers.test.ts` (2 failures)
+      - `tests/api/builds.test.ts` (1 failure)
+      - `tests/api/plants.test.ts` (2 failures)
+  - `pnpm seed` (STARTED; progressed through ingestion/categories/brands/rules/retailers and reached normalization; no completion signal; terminated manually)
+  - `rg -n "aquascape-hero-2400|Photo coming soon|still filling|Open for care details|No photo yet|No details yet|No specs yet|No offers yet" src/app/products src/app/plants src/components/builder` (no matches)
+
+- Results:
+  - `IN-11A3` scope is complete: Products/Plants/Builder now use explicit source-unavailable UX instead of placeholder assets/copy/spec filler.
+  - Guardrail work remains next (`IN-11A4`).
+
+- Next: `IN-11A4`.

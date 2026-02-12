@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SmartImage } from "@/components/SmartImage";
+import { missingSourceImageCopy } from "@/lib/catalog-no-data";
 import {
   deriveOfferSummaryState,
   formatOfferSummaryCheckedAt,
@@ -217,6 +218,7 @@ export default async function ProductCategoryPage(props: {
   const summaryById = new Map(summaries.map((row) => [row.productId, row] as const));
 
   const title = `${category.name} Products`;
+  const missingProductImage = missingSourceImageCopy("product");
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -291,7 +293,6 @@ export default async function ProductCategoryPage(props: {
                     : [];
                   const brandName = p.brand?.name ?? null;
                   const productImg = firstImageUrl(p.imageUrl ?? null, p.imageUrls);
-                  const img = productImg ?? "/images/aquascape-hero-2400.jpg";
                   return (
                     <li key={p.id} className="px-5 py-4">
                       <div className="flex items-start gap-4">
@@ -299,17 +300,20 @@ export default async function ProductCategoryPage(props: {
                           className="ptl-image-ph h-16 w-16 shrink-0 overflow-hidden rounded-2xl border"
                           style={{ borderColor: "var(--ptl-border)" }}
                         >
-                          {/* `SmartImage` uses next/image for local assets and <img> for remote URLs. */}
-                          <SmartImage
-                            src={img}
-                            alt=""
-                            width={256}
-                            height={256}
-                            className={
-                              "h-full w-full object-cover " +
-                              (productImg ? "" : "opacity-80")
-                            }
-                          />
+                          {productImg ? (
+                            /* `SmartImage` uses next/image for local assets and <img> for remote URLs. */
+                            <SmartImage
+                              src={productImg}
+                              alt=""
+                              width={256}
+                              height={256}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-semibold leading-tight text-neutral-600">
+                              {missingProductImage.title}
+                            </div>
+                          )}
                         </div>
 
                         <div className="min-w-0 flex-1">

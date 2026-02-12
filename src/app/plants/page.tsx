@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { SmartImage } from "@/components/SmartImage";
 import { PlantsFilters } from "@/components/plants/PlantsFilters";
+import { missingSourceImageCopy } from "@/lib/catalog-no-data";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 export const metadata: Metadata = {
@@ -49,6 +50,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
     shrimpSafe: shrimpSafe ? true : undefined,
     limit: 200,
   });
+  const missingPlantImage = missingSourceImageCopy("plant");
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -110,7 +112,11 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                             className="object-cover transition duration-500 group-hover:scale-[1.04]"
                           />
                         ) : (
-                          <div className="ptl-image-ph absolute inset-0" />
+                          <div className="ptl-image-ph absolute inset-0 p-3">
+                            <span className="inline-flex rounded-full border border-neutral-300/60 bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-700">
+                              {missingPlantImage.title}
+                            </span>
+                          </div>
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-black/0" />
                         <div className="absolute bottom-3 left-3 right-3">
@@ -152,7 +158,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                         </div>
 
                         <div className="mt-3 line-clamp-2 text-sm text-neutral-700">
-                          {p.description ?? "Open for care details, growth notes, and sources."}
+                          {p.description ?? "Care details are unavailable from current sources."}
                         </div>
 
                         <div className="mt-4 text-xs font-semibold text-emerald-800">

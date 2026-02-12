@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SmartImage } from "@/components/SmartImage";
+import { missingSourceImageCopy } from "@/lib/catalog-no-data";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 function sourcesList(value: unknown): string[] {
@@ -92,6 +93,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
   const sources = sourcesList((p as { sources?: unknown }).sources);
   const updated = p.updatedAt ? new Date(p.updatedAt).toISOString().slice(0, 10) : null;
   const typeLabel = p.substrateType ?? p.placement;
+  const missingPlantImage = missingSourceImageCopy("plant");
 
   const plantInfoRows: Array<{ label: string; value: string }> = [
     { label: "Type", value: titleWords(typeLabel) },
@@ -155,10 +157,8 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
               ) : (
                 <div className="ptl-image-ph flex h-full w-full items-center justify-center">
                   <div className="px-6 text-center">
-                    <div className="text-sm font-semibold text-neutral-800">No photo yet</div>
-                    <div className="mt-1 text-xs text-neutral-600">
-                      We’re still filling in the catalog. If you’ve got a solid reference photo, we’ll take it.
-                    </div>
+                    <div className="text-sm font-semibold text-neutral-800">{missingPlantImage.title}</div>
+                    <div className="mt-1 text-xs text-neutral-600">{missingPlantImage.body}</div>
                     <div className="mt-3">
                       <Link href="/plants" className="text-xs font-semibold text-[color:var(--ptl-accent)] hover:underline">
                         Browse other plants
@@ -231,7 +231,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
             style={{ borderColor: "var(--ptl-border)" }}
           >
             {plantInfoRows.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-neutral-600">No details yet.</div>
+              <div className="px-4 py-3 text-sm text-neutral-600">Detailed plant information is unavailable from current sources.</div>
             ) : (
               <table className="w-full text-left text-sm">
                 <tbody className="divide-y divide-neutral-200">
