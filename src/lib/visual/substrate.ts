@@ -9,6 +9,8 @@ export const DEFAULT_SUBSTRATE_PROFILE: VisualSubstrateProfile = {
   leftDepthIn: 1.5,
   centerDepthIn: 2.5,
   rightDepthIn: 1.8,
+  frontDepthIn: 1.4,
+  backDepthIn: 3.2,
   moundHeightIn: 0.8,
   moundPosition: 0.54,
 };
@@ -46,6 +48,14 @@ export function normalizeSubstrateProfile(
       source.rightDepthIn ?? DEFAULT_SUBSTRATE_PROFILE.rightDepthIn,
       safeHeight,
     ),
+    frontDepthIn: clampDepth(
+      source.frontDepthIn ?? DEFAULT_SUBSTRATE_PROFILE.frontDepthIn,
+      safeHeight,
+    ),
+    backDepthIn: clampDepth(
+      source.backDepthIn ?? DEFAULT_SUBSTRATE_PROFILE.backDepthIn,
+      safeHeight,
+    ),
     moundHeightIn: clampMound(
       source.moundHeightIn ?? DEFAULT_SUBSTRATE_PROFILE.moundHeightIn,
       safeHeight,
@@ -72,8 +82,10 @@ export function estimateSubstrateVolume(params: {
   const averageDepthIn =
     (normalizedProfile.leftDepthIn +
       normalizedProfile.centerDepthIn +
-      normalizedProfile.rightDepthIn) /
-    3;
+      normalizedProfile.rightDepthIn +
+      normalizedProfile.frontDepthIn +
+      normalizedProfile.backDepthIn) /
+    5;
 
   const baseVolumeCubicIn = tankWidthIn * tankDepthIn * averageDepthIn;
   // Approximation for a localized mound. 0.18 reflects that the mound is not full-width.
@@ -111,6 +123,8 @@ export function substrateContourPercentages(params: {
   leftTopPct: number;
   centerTopPct: number;
   rightTopPct: number;
+  frontTopPct: number;
+  backTopPct: number;
   moundTopPct: number;
   moundPositionPct: number;
   averageDepthPct: number;
@@ -122,11 +136,17 @@ export function substrateContourPercentages(params: {
   const leftTopPct = toTopPct(normalized.leftDepthIn);
   const centerTopPct = toTopPct(normalized.centerDepthIn);
   const rightTopPct = toTopPct(normalized.rightDepthIn);
+  const frontTopPct = toTopPct(normalized.frontDepthIn);
+  const backTopPct = toTopPct(normalized.backDepthIn);
   const moundTopPct = toTopPct(normalized.centerDepthIn + normalized.moundHeightIn);
 
   const averageDepthPct = clamp(
-    ((normalized.leftDepthIn + normalized.centerDepthIn + normalized.rightDepthIn) /
-      3 /
+    ((normalized.leftDepthIn +
+      normalized.centerDepthIn +
+      normalized.rightDepthIn +
+      normalized.frontDepthIn +
+      normalized.backDepthIn) /
+      5 /
       Math.max(1, params.tankHeightIn)) *
       100,
     2,
@@ -137,9 +157,10 @@ export function substrateContourPercentages(params: {
     leftTopPct,
     centerTopPct,
     rightTopPct,
+    frontTopPct,
+    backTopPct,
     moundTopPct,
     moundPositionPct: normalized.moundPosition * 100,
     averageDepthPct,
   };
 }
-

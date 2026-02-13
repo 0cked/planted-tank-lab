@@ -21,6 +21,7 @@ import {
   normalizeSubstrateProfile,
 } from "@/lib/visual/substrate";
 import { buildTankIllustrationUrl, tankModelFromSlug } from "@/lib/tank-visual";
+import type { VisualSubstrateProfile } from "@/components/builder/visual/types";
 
 type ProductRow = {
   id: string;
@@ -53,6 +54,7 @@ type VisualCanvasItem = {
   categorySlug: string;
   x: number;
   y: number;
+  z: number;
   scale: number;
   rotation: number;
   layer: number;
@@ -67,6 +69,7 @@ const canvasItemSchema = z.object({
   categorySlug: z.string().min(1).max(80),
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
+  z: z.number().min(0).max(1).optional().default(0.5),
   scale: z.number().min(0.1).max(6),
   rotation: z.number().min(-180).max(180),
   layer: z.number().int().min(0).max(5000),
@@ -76,6 +79,8 @@ const substrateProfileSchema = z.object({
   leftDepthIn: z.number().min(0.2).max(200),
   centerDepthIn: z.number().min(0.2).max(200),
   rightDepthIn: z.number().min(0.2).max(200),
+  frontDepthIn: z.number().min(0.2).max(200).optional(),
+  backDepthIn: z.number().min(0.2).max(200).optional(),
   moundHeightIn: z.number().min(0).max(200),
   moundPosition: z.number().min(0.2).max(0.8),
 });
@@ -310,7 +315,7 @@ function parseCanvasState(value: unknown): {
   widthIn: number;
   heightIn: number;
   depthIn: number;
-  substrateProfile: z.infer<typeof substrateProfileSchema>;
+  substrateProfile: VisualSubstrateProfile;
   items: VisualCanvasItem[];
 } {
   const parsed = canvasStateSchema.safeParse(value);

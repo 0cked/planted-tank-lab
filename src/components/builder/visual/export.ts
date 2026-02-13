@@ -7,6 +7,28 @@ type ExportParams = {
   fileName?: string;
 };
 
+const DEPTH_SIDE_INSET = 0.18;
+const DEPTH_TOP_LIFT = 0.2;
+const DEPTH_SCALE_DECAY = 0.28;
+
+function projectCanvasPoint(point: { x: number; y: number; z: number }): {
+  x: number;
+  y: number;
+  scale: number;
+} {
+  const z = Math.min(1, Math.max(0, point.z));
+  const inset = z * DEPTH_SIDE_INSET;
+  const widthFactor = Math.max(0.2, 1 - inset * 2);
+  const projectedX = inset + point.x * widthFactor;
+  const projectedY = point.y - z * DEPTH_TOP_LIFT * 0.62;
+  const projectedScale = 1 - z * DEPTH_SCALE_DECAY;
+  return {
+    x: Math.min(1, Math.max(0, projectedX)),
+    y: Math.min(1, Math.max(0, projectedY)),
+    scale: Math.min(1.25, Math.max(0.55, projectedScale)),
+  };
+}
+
 const imageCache = new Map<string, Promise<HTMLImageElement | null>>();
 
 function loadImage(src: string | null): Promise<HTMLImageElement | null> {
@@ -52,17 +74,24 @@ export async function exportVisualLayoutPng(params: ExportParams): Promise<void>
   ctx.lineWidth = 8;
   ctx.strokeRect(14, 14, canvas.width - 28, canvas.height - 28);
 
-  const sorted = [...params.items].sort((a, b) => a.layer - b.layer);
+  const sorted = [...params.items].sort((a, b) => (a.z - b.z) || (a.layer - b.layer));
 
   for (const item of sorted) {
     const asset = params.assetsById.get(item.assetId);
     if (!asset) continue;
 
     const img = await loadImage(asset.imageUrl);
-    const drawWidth = (asset.widthIn / params.tank.widthIn) * canvas.width * item.scale;
-    const drawHeight = (asset.heightIn / params.tank.heightIn) * canvas.height * item.scale;
-    const cx = item.x * canvas.width;
-    const cy = item.y * canvas.height;
+    const projection = projectCanvasPoint({
+      x: item.x,
+      y: item.y,
+      z: typeof item.z === "number" ? item.z : 0.5,
+    });
+    const drawWidth =
+      (asset.widthIn / params.tank.widthIn) * canvas.width * item.scale * projection.scale;
+    const drawHeight =
+      (asset.heightIn / params.tank.heightIn) * canvas.height * item.scale * projection.scale;
+    const cx = projection.x * canvas.width;
+    const cy = projection.y * canvas.height;
 
     ctx.save();
     ctx.translate(cx, cy);

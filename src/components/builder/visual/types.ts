@@ -73,6 +73,8 @@ export type VisualSubstrateProfile = {
   leftDepthIn: number;
   centerDepthIn: number;
   rightDepthIn: number;
+  frontDepthIn: number;
+  backDepthIn: number;
   moundHeightIn: number;
   moundPosition: number;
 };
@@ -84,6 +86,8 @@ export type VisualCanvasItem = {
   categorySlug: string;
   x: number;
   y: number;
+  // Depth axis: 0 = front glass, 1 = back glass.
+  z: number;
   scale: number;
   rotation: number;
   layer: number;

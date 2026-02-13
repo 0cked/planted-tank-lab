@@ -140,6 +140,47 @@ function severityClasses(sev: Severity): string {
   }
 }
 
+const DEPTH_SIDE_INSET = 0.18;
+const DEPTH_TOP_LIFT = 0.2;
+const DEPTH_SCALE_DECAY = 0.28;
+
+function defaultDepthForCategory(categorySlug: string): number {
+  if (categorySlug === "hardscape") return 0.56;
+  if (categorySlug === "plants") return 0.62;
+  return 0.45;
+}
+
+function projectCanvasPoint(point: { x: number; y: number; z: number }): {
+  x: number;
+  y: number;
+  scale: number;
+} {
+  const z = Math.min(1, Math.max(0, point.z));
+  const inset = z * DEPTH_SIDE_INSET;
+  const widthFactor = Math.max(0.2, 1 - inset * 2);
+  const projectedX = inset + point.x * widthFactor;
+  const projectedY = point.y - z * DEPTH_TOP_LIFT * 0.62;
+  const projectedScale = 1 - z * DEPTH_SCALE_DECAY;
+
+  return {
+    x: Math.min(1, Math.max(0, projectedX)),
+    y: Math.min(1, Math.max(0, projectedY)),
+    scale: Math.min(1.25, Math.max(0.55, projectedScale)),
+  };
+}
+
+function unprojectCanvasPoint(point: { x: number; y: number; z: number }): { x: number; y: number } {
+  const z = Math.min(1, Math.max(0, point.z));
+  const inset = z * DEPTH_SIDE_INSET;
+  const widthFactor = Math.max(0.2, 1 - inset * 2);
+  const worldX = (point.x - inset) / widthFactor;
+  const worldY = point.y + z * DEPTH_TOP_LIFT * 0.62;
+  return {
+    x: Math.min(1, Math.max(0, worldX)),
+    y: Math.min(1, Math.max(0, worldY)),
+  };
+}
+
 function buildBomLines(params: {
   tank: VisualTank | null;
   assetsById: Map<string, VisualAsset>;
@@ -562,6 +603,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragStateRef = useRef<{
     itemId: string;
+    z: number;
     pointerId: number;
     element: HTMLDivElement | null;
   } | null>(null);
@@ -591,9 +633,14 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     const rect = canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
 
-    const x = (event.clientX - rect.left) / rect.width;
-    const y = (event.clientY - rect.top) / rect.height;
-    queueDragUpdate(drag.itemId, Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y)));
+    const projectedX = (event.clientX - rect.left) / rect.width;
+    const projectedY = (event.clientY - rect.top) / rect.height;
+    const world = unprojectCanvasPoint({
+      x: Math.min(1, Math.max(0, projectedX)),
+      y: Math.min(1, Math.max(0, projectedY)),
+      z: drag.z,
+    });
+    queueDragUpdate(drag.itemId, world.x, world.y);
   };
 
   const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -609,8 +656,10 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     if (event.button !== 0) return;
     setSelectedItem(itemId);
     event.currentTarget.setPointerCapture(event.pointerId);
+    const selected = canvasState.items.find((item) => item.id === itemId);
     dragStateRef.current = {
       itemId,
+      z: selected?.z ?? 0.5,
       pointerId: event.pointerId,
       element: event.currentTarget,
     };
@@ -670,9 +719,15 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     const rect = event.currentTarget.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
 
-    const x = (event.clientX - rect.left) / rect.width;
-    const y = (event.clientY - rect.top) / rect.height;
-    addCanvasItemFromAsset(asset, { x, y });
+    const z = defaultDepthForCategory(asset.categorySlug);
+    const projectedX = (event.clientX - rect.left) / rect.width;
+    const projectedY = (event.clientY - rect.top) / rect.height;
+    const world = unprojectCanvasPoint({
+      x: Math.min(1, Math.max(0, projectedX)),
+      y: Math.min(1, Math.max(0, projectedY)),
+      z,
+    });
+    addCanvasItemFromAsset(asset, { x: world.x, y: world.y, z });
   };
 
   const saveBuild = async (publish: boolean) => {
@@ -951,8 +1006,8 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
           </div>
         </section>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
-          <aside className="ptl-surface p-4">
+        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[250px_minmax(0,1.85fr)_320px]">
+          <aside className="order-2 ptl-surface p-3 xl:order-1">
             <h2 className="ptl-card-title text-neutral-900">{STEP_META[currentStep].title}</h2>
             <p className="mt-1 text-sm text-neutral-700">{STEP_META[currentStep].summary}</p>
 
@@ -1087,6 +1142,34 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                       />
                     </label>
                     <label className="block text-[11px] text-neutral-700">
+                      Front depth ({substrateVolume.normalizedProfile.frontDepthIn.toFixed(1)} in)
+                      <input
+                        type="range"
+                        min={0.2}
+                        max={Math.max(2, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.62)}
+                        step={0.1}
+                        value={substrateVolume.normalizedProfile.frontDepthIn}
+                        onChange={(event) =>
+                          setSubstrateProfile({ frontDepthIn: Number(event.target.value) })
+                        }
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                    <label className="block text-[11px] text-neutral-700">
+                      Back depth ({substrateVolume.normalizedProfile.backDepthIn.toFixed(1)} in)
+                      <input
+                        type="range"
+                        min={0.2}
+                        max={Math.max(2, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.62)}
+                        step={0.1}
+                        value={substrateVolume.normalizedProfile.backDepthIn}
+                        onChange={(event) =>
+                          setSubstrateProfile({ backDepthIn: Number(event.target.value) })
+                        }
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                    <label className="block text-[11px] text-neutral-700">
                       Mound height ({substrateVolume.normalizedProfile.moundHeightIn.toFixed(1)} in)
                       <input
                         type="range"
@@ -1128,7 +1211,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                   </div>
                 ) : null}
 
-                <div className="max-h-[56vh] space-y-2 overflow-auto pr-1">
+                <div className="max-h-[44vh] space-y-1.5 overflow-auto pr-1">
                   {filteredAssets.map((asset) => {
                     const selectedProductId = selectedProductByCategory[asset.categorySlug] ?? null;
                     const isSelectedEquipment =
@@ -1142,11 +1225,14 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                           event.dataTransfer.setData("text/asset-id", asset.id);
                           event.dataTransfer.effectAllowed = "copy";
                         }}
-                        className="rounded-xl border bg-white/80 p-2"
+                        className="rounded-lg border bg-white/80 p-2"
                         style={{ borderColor: "var(--ptl-border)" }}
                       >
-                        <div className="flex items-start gap-2">
-                          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border bg-white" style={{ borderColor: "var(--ptl-border)" }}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white"
+                            style={{ borderColor: "var(--ptl-border)" }}
+                          >
                             {asset.imageUrl ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
@@ -1162,24 +1248,15 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-xs font-semibold text-neutral-900">{asset.name}</div>
-                            <div className="mt-0.5 text-[11px] text-neutral-600">{asset.categoryName}</div>
-                            <div className="mt-0.5 text-[11px] text-neutral-600">
-                              {asset.sourceMode === "design_archetype" ? "Design asset" : "Catalog item"}
-                            </div>
-                            <div className="mt-0.5 text-[11px] text-neutral-600">
-                              {asset.widthIn.toFixed(1)} in x {asset.depthIn.toFixed(1)} in x {asset.heightIn.toFixed(1)} in
-                            </div>
-                            <div className="mt-0.5 text-[11px] text-neutral-700">
+                            <div className="mt-0.5 text-[10px] text-neutral-600">
+                              {asset.sourceMode === "design_archetype" ? "Design archetype" : "Catalog item"} ·{" "}
                               {formatMoney(lineUnitPrice(asset))}
                               {asset.sourceMode === "design_archetype" ? " est." : ""}
                             </div>
                           </div>
-                        </div>
-
-                        <div className="mt-2 flex gap-2">
                           <button
                             onClick={() => handleChooseAsset(asset)}
-                            className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+                            className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold ${
                               isSelectedEquipment
                                 ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                                 : "border-emerald-600 bg-emerald-600 text-white"
@@ -1187,23 +1264,11 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                             style={isSelectedEquipment ? undefined : { borderColor: "#157f5a" }}
                           >
                             {CANVAS_CATEGORIES.has(asset.categorySlug)
-                              ? "Add to canvas"
+                              ? "Add"
                               : isSelectedEquipment
                                 ? "Selected"
                                 : "Select"}
                           </button>
-
-                          {asset.purchaseUrl ? (
-                            <a
-                              href={asset.purchaseUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="rounded-lg border bg-white px-2 py-1 text-[11px] font-semibold text-neutral-700"
-                              style={{ borderColor: "var(--ptl-border)" }}
-                            >
-                              View
-                            </a>
-                          ) : null}
                         </div>
                       </div>
                     );
@@ -1254,12 +1319,12 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
             ) : null}
           </aside>
 
-          <section className="ptl-surface p-3 sm:p-4">
+          <section className="order-1 ptl-surface p-3 sm:p-4 xl:order-2">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-2">
               <div>
-                <h2 className="text-base font-semibold text-neutral-900">Visual canvas</h2>
+                <h2 className="text-base font-semibold text-neutral-900">3D tank canvas</h2>
                 <p className="text-xs text-neutral-600">
-                  Drag items into the glass tank. Layout scales to real tank dimensions.
+                  Drag in 3D space. Use depth to place objects front-to-back and shape realistic slopes.
                 </p>
               </div>
               {selectedTank ? (
@@ -1270,13 +1335,13 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
             </div>
 
             <div
-              className="mx-auto w-full max-w-[1020px] rounded-[28px] border p-2 sm:p-3"
+              className="mx-auto w-full max-w-[1180px] rounded-[28px] border p-2 sm:p-3"
               style={{
                 borderColor: "rgba(84, 108, 113, 0.45)",
                 background:
-                  "linear-gradient(180deg, rgba(240,248,252,0.95), rgba(226,239,243,0.92))",
+                  "linear-gradient(180deg, rgba(240,248,252,0.98), rgba(228,239,243,0.95))",
                 boxShadow:
-                  "inset 0 1px 0 rgba(255,255,255,0.9), 0 16px 32px rgba(13,33,34,0.16)",
+                  "inset 0 1px 0 rgba(255,255,255,0.95), 0 16px 30px rgba(13,33,34,0.14)",
               }}
             >
               <div
@@ -1290,15 +1355,46 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 style={{
                   borderColor: "rgba(109, 140, 149, 0.85)",
                   background:
-                    "linear-gradient(180deg, rgba(214,240,252,0.9) 0%, rgba(191,226,241,0.88) 55%, rgba(178,218,234,0.9) 100%)",
+                    "linear-gradient(180deg, rgba(213,235,247,0.96) 0%, rgba(192,223,236,0.92) 62%, rgba(176,214,229,0.95) 100%)",
                   aspectRatio: selectedTank
                     ? `${selectedTank.widthIn} / ${selectedTank.heightIn}`
                     : `${canvasState.widthIn} / ${canvasState.heightIn}`,
                 }}
               >
-                <div className="pointer-events-none absolute inset-0 opacity-18" style={{ backgroundImage: "url('/images/builder-hero-960.jpg')", backgroundSize: "cover", backgroundPosition: "center" }} />
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-[16%] bg-gradient-to-b from-white/70 to-transparent" />
-                <div className="pointer-events-none absolute inset-x-0 top-[14%] h-px bg-white/90" />
+                <div
+                  className="pointer-events-none absolute left-[4%] right-[4%] top-[6%] h-[12%] rounded-md border"
+                  style={{
+                    borderColor: "rgba(255,255,255,0.48)",
+                    background:
+                      "linear-gradient(180deg, rgba(224,244,252,0.42), rgba(178,212,227,0.2))",
+                  }}
+                />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[17%] bg-gradient-to-b from-white/72 to-transparent" />
+                <div className="pointer-events-none absolute inset-x-0 top-[15%] h-px bg-white/90" />
+                <div
+                  className="pointer-events-none absolute inset-y-[12%] right-0 border-l"
+                  style={{
+                    width: `${tankDepthPanePercent}%`,
+                    borderColor: "rgba(255,255,255,0.6)",
+                    background:
+                      "linear-gradient(270deg, rgba(132,176,191,0.4), rgba(132,176,191,0.08))",
+                  }}
+                />
+                <div
+                  className="pointer-events-none absolute left-[2%] right-[2%]"
+                  style={{
+                    top: `${substrateContour.backTopPct}%`,
+                    height: `${Math.max(
+                      4,
+                      substrateContour.frontTopPct - substrateContour.backTopPct,
+                    )}%`,
+                    background:
+                      "linear-gradient(180deg, rgba(214,191,144,0.82), rgba(192,164,116,0.56))",
+                    borderTop: "1px solid rgba(252,242,218,0.52)",
+                    clipPath:
+                      "polygon(0% 0%, 100% 0%, 92% 100%, 8% 100%)",
+                  }}
+                />
                 <div
                   className="pointer-events-none absolute inset-0"
                   style={{
@@ -1338,40 +1434,37 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 <div
                   className="pointer-events-none absolute left-0 right-0 h-px"
                   style={{
-                    top: `${substrateContour.centerTopPct}%`,
+                    top: `${substrateContour.frontTopPct}%`,
                     background:
                       "linear-gradient(90deg, rgba(133,108,72,0.45), rgba(245,236,216,0.7), rgba(133,108,72,0.45))",
                   }}
                 />
-                <div
-                  className="pointer-events-none absolute inset-y-[9%] right-0 border-l"
-                  style={{
-                    width: `${tankDepthPanePercent}%`,
-                    borderColor: "rgba(255,255,255,0.55)",
-                    background:
-                      "linear-gradient(270deg, rgba(132,176,191,0.35), rgba(132,176,191,0.08))",
-                  }}
-                />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_24%,rgba(255,255,255,0.38),rgba(255,255,255,0)_56%)]" />
 
                 {canvasState.items
                   .slice()
-                  .sort((a, b) => a.layer - b.layer)
+                  .sort((a, b) => (a.z - b.z) || (a.layer - b.layer))
                   .map((item) => {
                     const asset = assetsById.get(item.assetId);
                     if (!asset) return null;
 
                     const tankWidth = selectedTank?.widthIn ?? canvasState.widthIn;
                     const tankHeight = selectedTank?.heightIn ?? canvasState.heightIn;
-                    const widthPct = ((asset.widthIn / tankWidth) * 100) * item.scale;
-                    const heightPct = ((asset.heightIn / tankHeight) * 100) * item.scale;
+                    const projection = projectCanvasPoint({ x: item.x, y: item.y, z: item.z });
+                    const widthPct =
+                      ((asset.widthIn / tankWidth) * 100) * item.scale * projection.scale;
+                    const heightPct =
+                      ((asset.heightIn / tankHeight) * 100) * item.scale * projection.scale;
+                    const itemZIndex = Math.round(item.z * 100) + item.layer;
 
                     return (
                       <div
                         key={item.id}
-                        className={`absolute select-none ${selectedItemId === item.id ? "z-30" : "z-10"}`}
+                        className="absolute select-none"
                         style={{
-                          left: `${item.x * 100}%`,
-                          top: `${item.y * 100}%`,
+                          zIndex: selectedItemId === item.id ? 240 : 10 + itemZIndex,
+                          left: `${projection.x * 100}%`,
+                          top: `${projection.y * 100}%`,
                           width: `${Math.max(widthPct, 1.8)}%`,
                           height: `${Math.max(heightPct, 1.8)}%`,
                           transform: `translate(-50%, -50%) rotate(${item.rotation}deg)`,
@@ -1414,12 +1507,13 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
 
             <div className="mt-3 rounded-xl border bg-white/70 p-3" style={{ borderColor: "var(--ptl-border)" }}>
               {selectedItem && selectedAsset ? (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px_220px_auto] md:items-center">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px_180px_180px_auto] md:items-center">
                   <div>
                     <div className="text-xs uppercase tracking-[0.14em] text-neutral-600">Selected item</div>
                     <div className="text-sm font-semibold text-neutral-900">{selectedAsset.name}</div>
                     <div className="text-xs text-neutral-600">
-                      {selectedAsset.categoryName} · layer {selectedItem.layer + 1}
+                      {selectedAsset.categoryName} · layer {selectedItem.layer + 1} · depth{" "}
+                      {Math.round(selectedItem.z * 100)}%
                     </div>
                   </div>
 
@@ -1433,6 +1527,21 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                       value={selectedItem.scale}
                       onChange={(event) =>
                         updateCanvasItem(selectedItem.id, { scale: Number(event.target.value) })
+                      }
+                      className="mt-1 w-full"
+                    />
+                  </label>
+
+                  <label className="text-xs text-neutral-700">
+                    Depth (front ↔ back)
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={selectedItem.z}
+                      onChange={(event) =>
+                        updateCanvasItem(selectedItem.id, { z: Number(event.target.value) })
                       }
                       className="mt-1 w-full"
                     />
@@ -1484,13 +1593,13 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 </div>
               ) : (
                 <div className="text-xs text-neutral-600">
-                  Select an object on the canvas to adjust scale, rotation, layering, duplicate, or delete.
+                  Select an object to tune scale, depth, rotation, layering, duplicate, or delete.
                 </div>
               )}
             </div>
           </section>
 
-          <aside className="ptl-surface p-4">
+          <aside className="order-3 ptl-surface p-4">
             <h2 className="text-sm font-semibold text-neutral-900">Bill of Materials</h2>
             <div className="mt-1 text-xs text-neutral-600">
               Live pricing is best-effort from current in-stock offers.

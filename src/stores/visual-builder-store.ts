@@ -51,7 +51,10 @@ type VisualBuilderState = {
 
   setSelectedProduct: (categorySlug: string, productId: string | null) => void;
 
-  addCanvasItemFromAsset: (asset: VisualAsset, pos?: { x: number; y: number }) => void;
+  addCanvasItemFromAsset: (
+    asset: VisualAsset,
+    pos?: { x: number; y: number; z?: number },
+  ) => void;
   updateCanvasItem: (itemId: string, patch: Partial<VisualCanvasItem>) => void;
   removeCanvasItem: (itemId: string) => void;
   duplicateCanvasItem: (itemId: string) => void;
@@ -87,6 +90,10 @@ function clamp01(value: number): number {
   return value;
 }
 
+function clampDepthAxis(value: number): number {
+  return clamp01(value);
+}
+
 function clampScale(value: number): number {
   if (!Number.isFinite(value)) return 1;
   if (value < 0.1) return 0.1;
@@ -101,6 +108,12 @@ function clampRotation(value: number): number {
   return value;
 }
 
+function defaultDepthForCategory(categorySlug: string): number {
+  if (categorySlug === "hardscape") return 0.56;
+  if (categorySlug === "plants") return 0.62;
+  return 0.45;
+}
+
 function normalizeItems(items: VisualCanvasItem[]): VisualCanvasItem[] {
   return items
     .map((item, index) => ({
@@ -108,6 +121,11 @@ function normalizeItems(items: VisualCanvasItem[]): VisualCanvasItem[] {
       id: item.id || nanoid(10),
       x: clamp01(item.x),
       y: clamp01(item.y),
+      z: clampDepthAxis(
+        typeof item.z === "number" && Number.isFinite(item.z)
+          ? item.z
+          : defaultDepthForCategory(item.categorySlug),
+      ),
       scale: clampScale(item.scale),
       rotation: clampRotation(item.rotation),
       layer: Number.isFinite(item.layer) ? Math.max(0, Math.floor(item.layer)) : index,
@@ -229,6 +247,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
               categorySlug: asset.categorySlug,
               x: clamp01(pos?.x ?? 0.5),
               y: clamp01(pos?.y ?? 0.56),
+              z: clampDepthAxis(pos?.z ?? defaultDepthForCategory(asset.categorySlug)),
               scale: clampScale(asset.defaultScale),
               rotation: 0,
               layer: state.canvasState.items.length,
@@ -254,6 +273,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
                     ...patch,
                     x: patch.x != null ? clamp01(patch.x) : item.x,
                     y: patch.y != null ? clamp01(patch.y) : item.y,
+                    z: patch.z != null ? clampDepthAxis(patch.z) : item.z,
                     scale: patch.scale != null ? clampScale(patch.scale) : item.scale,
                     rotation:
                       patch.rotation != null ? clampRotation(patch.rotation) : item.rotation,
