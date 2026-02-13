@@ -24,6 +24,10 @@ function isRemoteSrc(src: string): boolean {
   return src.startsWith("http://") || src.startsWith("https://");
 }
 
+function isGeneratedTankIllustration(src: string): boolean {
+  return src.startsWith("/api/tank-illustration");
+}
+
 function safeHostname(src: string): string | null {
   try {
     return new URL(src).hostname;
@@ -53,6 +57,21 @@ function shouldOptimizeRemote(src: string): boolean {
 export function SmartImage(props: SmartImageProps) {
   const { src, alt, className, sizes, priority } = props;
   const fill = "fill" in props && props.fill === true;
+
+  // Generated tank art is served from an API route as SVG; bypass next/image
+  // optimization so query-stringed local URLs render reliably in production.
+  if (isGeneratedTankIllustration(src)) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={alt}
+        {...(fill ? {} : { width: props.width, height: props.height })}
+        loading={priority ? "eager" : "lazy"}
+        className={className}
+      />
+    );
+  }
 
   if (isRemoteSrc(src)) {
     // Only optimize remote images from known allow-listed hosts; fall back to <img>

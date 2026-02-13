@@ -84,6 +84,7 @@ export const productsRouter = createTRPCRouter({
         .limit(1);
       const categoryId = cat[0]?.id;
       if (!categoryId) return [];
+      const restrictToActive = input.categorySlug !== "tank";
 
       // Distinct brands used in this category.
       const rows = await ctx.db
@@ -97,7 +98,7 @@ export const productsRouter = createTRPCRouter({
         .where(
           and(
             eq(products.categoryId, categoryId),
-            eq(products.status, ACTIVE_PRODUCT_STATUS),
+            restrictToActive ? eq(products.status, ACTIVE_PRODUCT_STATUS) : undefined,
             isNotNull(products.brandId),
           ),
         )
@@ -122,6 +123,7 @@ export const productsRouter = createTRPCRouter({
 
       const categoryId = categoryRow[0]?.id;
       if (!categoryId) return [];
+      const restrictToActive = input.categorySlug !== "tank";
 
       const rows = await ctx.db
         .select({
@@ -133,7 +135,7 @@ export const productsRouter = createTRPCRouter({
         .where(
           and(
             eq(products.categoryId, categoryId),
-            eq(products.status, ACTIVE_PRODUCT_STATUS),
+            restrictToActive ? eq(products.status, ACTIVE_PRODUCT_STATUS) : undefined,
           ),
         )
         .orderBy(products.name)
@@ -163,10 +165,11 @@ export const productsRouter = createTRPCRouter({
 
       const categoryId = categoryRow[0]?.id;
       if (!categoryId) return [];
+      const restrictToActive = input.categorySlug !== "tank";
 
       const where = and(
         eq(products.categoryId, categoryId),
-        eq(products.status, ACTIVE_PRODUCT_STATUS),
+        restrictToActive ? eq(products.status, ACTIVE_PRODUCT_STATUS) : undefined,
         input.q ? ilike(products.name, `%${input.q}%`) : undefined,
         input.brandSlug ? eq(brands.slug, input.brandSlug) : undefined,
       );
@@ -200,16 +203,14 @@ export const productsRouter = createTRPCRouter({
         .from(products)
         .innerJoin(categories, eq(products.categoryId, categories.id))
         .leftJoin(brands, eq(products.brandId, brands.id))
-        .where(
-          and(
-            eq(products.slug, input.slug),
-            eq(products.status, ACTIVE_PRODUCT_STATUS),
-          ),
-        )
+        .where(eq(products.slug, input.slug))
         .limit(1);
 
       const row = rows[0];
       if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+      if (row.category.slug !== "tank" && row.product.status !== ACTIVE_PRODUCT_STATUS) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
 
       return {
         ...withTankPrimaryImage(row.product, row.category.slug),

@@ -14,14 +14,14 @@ async function getCaller() {
 
 const createdProductIds: string[] = [];
 
-async function createInactiveProductFixture(): Promise<{ slug: string }> {
+async function createInactiveProductFixture(categorySlug: string): Promise<{ slug: string }> {
   const categoryRow = await db
     .select({ id: categories.id })
     .from(categories)
-    .where(eq(categories.slug, "tank"))
+    .where(eq(categories.slug, categorySlug))
     .limit(1);
   if (!categoryRow[0]?.id) {
-    throw new Error("Missing tank category fixture.");
+    throw new Error(`Missing category fixture for ${categorySlug}.`);
   }
 
   const brandRow = await db
@@ -33,15 +33,15 @@ async function createInactiveProductFixture(): Promise<{ slug: string }> {
     throw new Error("Missing UNS brand fixture.");
   }
 
-  const slug = `vitest-inactive-product-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const slug = `vitest-inactive-${categorySlug}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   const inserted = await db
     .insert(products)
     .values({
       categoryId: categoryRow[0].id,
       brandId: brandRow[0].id,
-      name: "Vitest Inactive Product",
+      name: `Vitest Inactive ${categorySlug}`,
       slug,
-      specs: { volume_gal: 10 },
+      specs: categorySlug === "tank" ? { volume_gal: 10 } : { par_at_substrate: 30 },
       status: "inactive",
       source: "manual_seed",
       verified: false,
@@ -88,19 +88,36 @@ describe("tRPC products router", () => {
     expect(rows.some((r) => r.slug === "uns-60u")).toBe(true);
   });
 
-  test("search/getBySlug exclude inactive products", async () => {
+  test("tank search/getBySlug include inactive products", async () => {
     const caller = await getCaller();
-    const fixture = await createInactiveProductFixture();
+    const fixture = await createInactiveProductFixture("tank");
 
     const rows = await caller.products.search({
       categorySlug: "tank",
-      q: "Vitest Inactive Product",
+      q: "Vitest Inactive tank",
+      limit: 50,
+    });
+    expect(rows.some((row) => row.slug === fixture.slug)).toBe(true);
+
+    await expect(caller.products.getBySlug({ slug: fixture.slug })).resolves.toMatchObject({
+      slug: fixture.slug,
+      category: { slug: "tank" },
+    });
+  });
+
+  test("non-tank search/getBySlug exclude inactive products", async () => {
+    const caller = await getCaller();
+    const fixture = await createInactiveProductFixture("light");
+
+    const rows = await caller.products.search({
+      categorySlug: "light",
+      q: "Vitest Inactive light",
       limit: 50,
     });
     expect(rows.some((row) => row.slug === fixture.slug)).toBe(false);
 
-    await expect(
-      caller.products.getBySlug({ slug: fixture.slug }),
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(caller.products.getBySlug({ slug: fixture.slug })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
   });
 });
