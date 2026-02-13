@@ -9,6 +9,16 @@ import { trpc } from "@/components/TRPCProvider";
 import { SmartImage } from "@/components/SmartImage";
 import { evaluateVisualCompatibility } from "@/components/builder/visual/compatibility";
 import { exportVisualLayoutPng } from "@/components/builder/visual/export";
+import {
+  VisualBuilderScene,
+  type BuilderSceneQualityTier,
+  type BuilderSceneStep,
+  type BuilderSceneToolMode,
+} from "@/components/builder/visual/VisualBuilderScene";
+import {
+  buildSubstratePreset,
+  type SubstrateBrushMode,
+} from "@/components/builder/visual/scene-utils";
 import type {
   VisualAsset,
   VisualCanvasItem,
@@ -40,7 +50,7 @@ type BomLine = {
   type: "product" | "plant" | "tank" | "design";
 };
 
-type BuilderStepId = "tank" | "substrate" | "hardscape" | "plants" | "equipment" | "review";
+type BuilderStepId = BuilderSceneStep;
 
 type StepMeta = {
   id: BuilderStepId;
@@ -61,32 +71,32 @@ const STEP_META: Record<BuilderStepId, StepMeta> = {
   tank: {
     id: "tank",
     title: "Choose tank",
-    summary: "Pick the physical dimensions first. Everything else is constrained around this.",
+    summary: "Pick dimensions and framing first. It drives scene scale and compatibility.",
   },
   substrate: {
     id: "substrate",
-    title: "Select substrate",
-    summary: "Set your substrate to guide plant/rooting and compatibility assumptions.",
+    title: "Sculpt substrate",
+    summary: "Shape terrain with presets and brush controls. This is your composition foundation.",
   },
   hardscape: {
     id: "hardscape",
     title: "Place hardscape",
-    summary: "Arrange rocks/wood to establish layout structure and swimming lanes.",
+    summary: "Set structural rhythm with rock/wood massing before planting.",
   },
   plants: {
     id: "plants",
-    title: "Add plants",
-    summary: "Layer foreground/midground/background plants and tune density.",
+    title: "Plant zones",
+    summary: "Build foreground, midground, and background depth with cluster placement.",
   },
   equipment: {
     id: "equipment",
-    title: "Finish equipment",
-    summary: "Pick light/filter/CO2 and related gear to complete a workable setup.",
+    title: "Add equipment",
+    summary: "Place practical gear while keeping visual hierarchy focused on the aquascape.",
   },
   review: {
     id: "review",
     title: "Review and publish",
-    summary: "Check BOM, compatibility warnings, and save or share your build.",
+    summary: "Finalize BOM, compatibility checks, and share/export output.",
   },
 };
 
@@ -130,55 +140,14 @@ function categoryLabel(slug: string): string {
 function severityClasses(sev: Severity): string {
   switch (sev) {
     case "error":
-      return "border-red-300 bg-red-50 text-red-800";
+      return "border-red-300 bg-red-50/95 text-red-800";
     case "warning":
-      return "border-amber-300 bg-amber-50 text-amber-800";
+      return "border-amber-300 bg-amber-50/95 text-amber-800";
     case "recommendation":
-      return "border-sky-300 bg-sky-50 text-sky-800";
+      return "border-sky-300 bg-sky-50/95 text-sky-800";
     case "completeness":
-      return "border-neutral-300 bg-neutral-100 text-neutral-700";
+      return "border-neutral-300 bg-neutral-100/95 text-neutral-700";
   }
-}
-
-const DEPTH_SIDE_INSET = 0.18;
-const DEPTH_TOP_LIFT = 0.2;
-const DEPTH_SCALE_DECAY = 0.28;
-
-function defaultDepthForCategory(categorySlug: string): number {
-  if (categorySlug === "hardscape") return 0.56;
-  if (categorySlug === "plants") return 0.62;
-  return 0.45;
-}
-
-function projectCanvasPoint(point: { x: number; y: number; z: number }): {
-  x: number;
-  y: number;
-  scale: number;
-} {
-  const z = Math.min(1, Math.max(0, point.z));
-  const inset = z * DEPTH_SIDE_INSET;
-  const widthFactor = Math.max(0.2, 1 - inset * 2);
-  const projectedX = inset + point.x * widthFactor;
-  const projectedY = point.y - z * DEPTH_TOP_LIFT * 0.62;
-  const projectedScale = 1 - z * DEPTH_SCALE_DECAY;
-
-  return {
-    x: Math.min(1, Math.max(0, projectedX)),
-    y: Math.min(1, Math.max(0, projectedY)),
-    scale: Math.min(1.25, Math.max(0.55, projectedScale)),
-  };
-}
-
-function unprojectCanvasPoint(point: { x: number; y: number; z: number }): { x: number; y: number } {
-  const z = Math.min(1, Math.max(0, point.z));
-  const inset = z * DEPTH_SIDE_INSET;
-  const widthFactor = Math.max(0.2, 1 - inset * 2);
-  const worldX = (point.x - inset) / widthFactor;
-  const worldY = point.y + z * DEPTH_TOP_LIFT * 0.62;
-  return {
-    x: Math.min(1, Math.max(0, worldX)),
-    y: Math.min(1, Math.max(0, worldY)),
-  };
 }
 
 function buildBomLines(params: {
@@ -312,6 +281,32 @@ function stepAllowsAsset(step: BuilderStepId, asset: VisualAsset, equipmentCateg
   return false;
 }
 
+function clampRotationDeg(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  if (value < -180) return -180;
+  if (value > 180) return 180;
+  return value;
+}
+
+async function exportCanvasPng(canvas: HTMLCanvasElement, fileName?: string): Promise<void> {
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((nextBlob) => {
+      if (!nextBlob) {
+        reject(new Error("Unable to capture scene PNG."));
+        return;
+      }
+      resolve(nextBlob);
+    }, "image/png");
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName ?? `plantedtanklab-build-${Date.now()}.png`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse | null }) {
   const router = useRouter();
   const { status } = useSession();
@@ -323,6 +318,14 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     type: "idle",
     message: "",
   });
+  const [toolMode, setToolMode] = useState<BuilderSceneToolMode>("move");
+  const [placementAssetId, setPlacementAssetId] = useState<string | null>(null);
+  const [placementRotationDeg, setPlacementRotationDeg] = useState(0);
+  const [clusterBrushCount, setClusterBrushCount] = useState(4);
+  const [sculptMode, setSculptMode] = useState<SubstrateBrushMode>("raise");
+  const [sculptBrushSize, setSculptBrushSize] = useState(0.25);
+  const [sculptStrength, setSculptStrength] = useState(0.42);
+  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
 
   const buildId = useVisualBuilderStore((s) => s.buildId);
   const shareSlug = useVisualBuilderStore((s) => s.shareSlug);
@@ -342,6 +345,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const setPublic = useVisualBuilderStore((s) => s.setPublic);
   const setTank = useVisualBuilderStore((s) => s.setTank);
   const setSubstrateProfile = useVisualBuilderStore((s) => s.setSubstrateProfile);
+  const setSceneSettings = useVisualBuilderStore((s) => s.setSceneSettings);
   const setSelectedProduct = useVisualBuilderStore((s) => s.setSelectedProduct);
   const setCompatibilityEnabled = useVisualBuilderStore((s) => s.setCompatibilityEnabled);
   const setLowTechNoCo2 = useVisualBuilderStore((s) => s.setLowTechNoCo2);
@@ -355,6 +359,8 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const hydrateFromBuild = useVisualBuilderStore((s) => s.hydrateFromBuild);
   const resetAll = useVisualBuilderStore((s) => s.resetAll);
   const toBuildPayload = useVisualBuilderStore((s) => s.toBuildPayload);
+
+  const sceneCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const catalogQuery = trpc.visualBuilder.catalog.useQuery(undefined, {
     staleTime: 60_000,
@@ -448,12 +454,20 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
       equipment: Boolean(selectedProductByCategory.light) && Boolean(selectedProductByCategory.filter),
       review: false,
     } satisfies Record<BuilderStepId, boolean>;
-  }, [hardscapeCount, plantCount, selectedProductByCategory.filter, selectedProductByCategory.light, selectedProductByCategory.substrate, selectedTank]);
+  }, [
+    hardscapeCount,
+    plantCount,
+    selectedProductByCategory.filter,
+    selectedProductByCategory.light,
+    selectedProductByCategory.substrate,
+    selectedTank,
+  ]);
 
   const currentStepIndex = STEP_ORDER.indexOf(currentStep);
-  const nextStep = currentStepIndex >= 0 && currentStepIndex < STEP_ORDER.length - 1
-    ? STEP_ORDER[currentStepIndex + 1]
-    : null;
+  const nextStep =
+    currentStepIndex >= 0 && currentStepIndex < STEP_ORDER.length - 1
+      ? STEP_ORDER[currentStepIndex + 1]
+      : null;
   const previousStep = currentStepIndex > 0 ? STEP_ORDER[currentStepIndex - 1] : null;
 
   const canContinueCurrentStep =
@@ -499,6 +513,11 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
         return a.name.localeCompare(b.name);
       });
   }, [activeEquipmentCategory, assets, currentStep, search]);
+
+  const placementAsset = useMemo(() => {
+    if (!placementAssetId) return null;
+    return assetsById.get(placementAssetId) ?? null;
+  }, [assetsById, placementAssetId]);
 
   const selectedSubstrateAsset = useMemo(() => {
     const substrateId = selectedProductByCategory.substrate;
@@ -600,134 +619,69 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
 
   const selectedAsset = selectedItem ? assetsById.get(selectedItem.assetId) ?? null : null;
 
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const dragStateRef = useRef<{
-    itemId: string;
-    z: number;
-    pointerId: number;
-    element: HTMLDivElement | null;
-  } | null>(null);
-  const dragRafRef = useRef<number | null>(null);
-  const dragQueuedRef = useRef<{ itemId: string; x: number; y: number } | null>(null);
-
-  const flushQueuedDrag = () => {
-    const queued = dragQueuedRef.current;
-    dragQueuedRef.current = null;
-    dragRafRef.current = null;
-    if (!queued) return;
-    updateCanvasItem(queued.itemId, { x: queued.x, y: queued.y });
-  };
-
-  const queueDragUpdate = (itemId: string, x: number, y: number) => {
-    dragQueuedRef.current = { itemId, x, y };
-    if (dragRafRef.current != null) return;
-    dragRafRef.current = window.requestAnimationFrame(flushQueuedDrag);
-  };
-
-  const onPointerMoveCanvasItem = (event: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dragStateRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return;
-
-    const projectedX = (event.clientX - rect.left) / rect.width;
-    const projectedY = (event.clientY - rect.top) / rect.height;
-    const world = unprojectCanvasPoint({
-      x: Math.min(1, Math.max(0, projectedX)),
-      y: Math.min(1, Math.max(0, projectedY)),
-      z: drag.z,
-    });
-    queueDragUpdate(drag.itemId, world.x, world.y);
-  };
-
-  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dragStateRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    if (drag.element && drag.element.hasPointerCapture(event.pointerId)) {
-      drag.element.releasePointerCapture(event.pointerId);
-    }
-    dragStateRef.current = null;
-  };
-
-  const onPointerDownCanvasItem = (itemId: string, event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
-    setSelectedItem(itemId);
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const selected = canvasState.items.find((item) => item.id === itemId);
-    dragStateRef.current = {
-      itemId,
-      z: selected?.z ?? 0.5,
-      pointerId: event.pointerId,
-      element: event.currentTarget,
-    };
-  };
-
-  useEffect(() => {
-    return () => {
-      if (dragRafRef.current != null) {
-        window.cancelAnimationFrame(dragRafRef.current);
-      }
-    };
+  const autoQualityTier = useMemo<BuilderSceneQualityTier>(() => {
+    if (typeof navigator === "undefined") return "medium";
+    const nav = navigator as Navigator & { deviceMemory?: number };
+    const cores = navigator.hardwareConcurrency ?? 6;
+    const memory = nav.deviceMemory ?? 8;
+    if (cores <= 4 || memory <= 4) return "low";
+    if (cores <= 8 || memory <= 8) return "medium";
+    return "high";
   }, []);
+
+  const qualityTier: BuilderSceneQualityTier =
+    canvasState.sceneSettings.qualityTier === "auto"
+      ? autoQualityTier
+      : canvasState.sceneSettings.qualityTier;
+
+  const equipmentSceneAssets = useMemo(() => {
+    const next: VisualAsset[] = [];
+    for (const [categorySlug, productId] of Object.entries(selectedProductByCategory)) {
+      if (!productId) continue;
+      if (CANVAS_CATEGORIES.has(categorySlug)) continue;
+      if (categorySlug === "substrate" || categorySlug === "tank") continue;
+      const asset = assetsById.get(productId);
+      if (!asset) continue;
+      next.push(asset);
+    }
+    return next;
+  }, [assetsById, selectedProductByCategory]);
+
+  const applyStepChange = (nextStep: BuilderStepId) => {
+    setCurrentStep(nextStep);
+    if (nextStep === "substrate") {
+      setToolMode("sculpt");
+      return;
+    }
+    if (nextStep === "hardscape" || nextStep === "plants") {
+      setToolMode("place");
+      return;
+    }
+    setToolMode("move");
+    setPlacementAssetId(null);
+  };
 
   const handleChooseAsset = (asset: VisualAsset) => {
     if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) {
       setSaveState({
         type: "error",
-        message: `Complete the current step first: ${STEP_META[currentStep].title}.`,
+        message: `You are currently on ${STEP_META[currentStep].title}.`,
       });
       return;
     }
 
     if (CANVAS_CATEGORIES.has(asset.categorySlug)) {
-      addCanvasItemFromAsset(asset);
-      if (currentStep === "hardscape" && hardscapeCount === 0) setCurrentStep("plants");
+      setPlacementAssetId(asset.id);
+      setToolMode("place");
+      setSelectedItem(null);
+      setSaveState({ type: "ok", message: `Placement mode armed for ${asset.name}.` });
       return;
     }
 
     if (asset.type === "product") {
       setSelectedProduct(asset.categorySlug, asset.id);
-      if (currentStep === "substrate") setCurrentStep("hardscape");
+      setSaveState({ type: "ok", message: `${asset.name} selected.` });
     }
-  };
-
-  const onDropAsset = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const assetId = event.dataTransfer.getData("text/asset-id");
-    if (!assetId) return;
-    const asset = assetsById.get(assetId);
-    if (!asset) return;
-
-    if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) {
-      setSaveState({
-        type: "error",
-        message: `You are on \"${STEP_META[currentStep].title}\". Move to the matching step to place this item.`,
-      });
-      return;
-    }
-
-    if (!CANVAS_CATEGORIES.has(asset.categorySlug)) {
-      if (asset.type === "product") {
-        setSelectedProduct(asset.categorySlug, asset.id);
-      }
-      return;
-    }
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return;
-
-    const z = defaultDepthForCategory(asset.categorySlug);
-    const projectedX = (event.clientX - rect.left) / rect.width;
-    const projectedY = (event.clientY - rect.top) / rect.height;
-    const world = unprojectCanvasPoint({
-      x: Math.min(1, Math.max(0, projectedX)),
-      y: Math.min(1, Math.max(0, projectedY)),
-      z,
-    });
-    addCanvasItemFromAsset(asset, { x: world.x, y: world.y, z });
   };
 
   const saveBuild = async (publish: boolean) => {
@@ -803,12 +757,17 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
       setSaveState({ type: "error", message: "Pick a tank before exporting." });
       return;
     }
+
     try {
-      await exportVisualLayoutPng({
-        tank: selectedTank,
-        assetsById,
-        items: canvasState.items,
-      });
+      if (sceneCanvasRef.current) {
+        await exportCanvasPng(sceneCanvasRef.current);
+      } else {
+        await exportVisualLayoutPng({
+          tank: selectedTank,
+          assetsById,
+          items: canvasState.items,
+        });
+      }
       setSaveState({ type: "ok", message: "PNG export created." });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to export PNG.";
@@ -816,99 +775,770 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     }
   };
 
-  const tankDepthPanePercent = selectedTank
-    ? Math.min(20, Math.max(8, (selectedTank.depthIn / selectedTank.widthIn) * 34))
-    : 12;
-  const substrateContour = substrateContourPercentages({
-    profile: substrateVolume.normalizedProfile,
-    tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
-  });
+  const handleScenePlace = (request: {
+    asset: VisualAsset;
+    x: number;
+    y: number;
+    z: number;
+    scale: number;
+    rotation: number;
+    anchorType: VisualCanvasItem["anchorType"];
+    depthZone: VisualCanvasItem["depthZone"];
+    transform: VisualCanvasItem["transform"];
+  }) => {
+    addCanvasItemFromAsset(request.asset, {
+      x: request.x,
+      y: request.y,
+      z: request.z,
+      scale: request.scale,
+      rotation: request.rotation,
+      anchorType: request.anchorType,
+      depthZone: request.depthZone,
+      transform: request.transform,
+    });
+
+    if (currentStep === "hardscape" && hardscapeCount === 0) {
+      setSaveState({ type: "ok", message: "Hardscape placed. Continue layering composition." });
+    }
+  };
+
+  const handleSceneRotate = (itemId: string, deltaDeg: number) => {
+    const item = canvasState.items.find((nextItem) => nextItem.id === itemId);
+    if (!item) return;
+    updateCanvasItem(itemId, {
+      rotation: clampRotationDeg(item.rotation + deltaDeg),
+    });
+  };
+
+  const handleApplySubstratePreset = (preset: "flat" | "island" | "slope" | "valley") => {
+    const profile = buildSubstratePreset({
+      preset,
+      tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
+    });
+    setSubstrateProfile(profile);
+  };
 
   const handleContinue = () => {
     if (!nextStep) return;
-    setCurrentStep(nextStep);
+    applyStepChange(nextStep);
   };
 
   const buildLink =
     shareSlug && typeof window !== "undefined" ? `${window.location.origin}/builder/${shareSlug}` : null;
 
+  const substrateContour = substrateContourPercentages({
+    profile: substrateVolume.normalizedProfile,
+    tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
+  });
+
+  const leftPanel = (
+    <div className="space-y-3">
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100/70">
+          {STEP_META[currentStep].title}
+        </div>
+        <p className="mt-1 text-xs leading-relaxed text-slate-200/85">{STEP_META[currentStep].summary}</p>
+      </div>
+
+      {currentStep === "tank" ? (
+        <div className="space-y-2">
+          <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+            Rimless tank model
+          </label>
+          <select
+            value={selectedTank?.id ?? ""}
+            onChange={(event) => {
+              const tank = tanksById.get(event.target.value);
+              if (!tank) return;
+              setTank(tank.id, {
+                widthIn: tank.widthIn,
+                heightIn: tank.heightIn,
+                depthIn: tank.depthIn,
+              });
+            }}
+            className="w-full rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none"
+          >
+            {(tanks ?? []).map((tank) => (
+              <option key={tank.id} value={tank.id}>
+                {tank.name} ({tank.widthIn} x {tank.depthIn} x {tank.heightIn} in)
+              </option>
+            ))}
+          </select>
+
+          {selectedTank ? (
+            <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-2.5">
+              {selectedTank.imageUrl ? (
+                <div className="mb-2 overflow-hidden rounded-xl border border-white/10">
+                  <SmartImage
+                    src={selectedTank.imageUrl}
+                    alt={selectedTank.name}
+                    width={680}
+                    height={360}
+                    className="aspect-[16/9] w-full object-cover"
+                  />
+                </div>
+              ) : null}
+              <div className="text-sm font-semibold text-slate-100">{selectedTank.name}</div>
+              <div className="mt-1 text-xs text-slate-300">
+                {selectedTank.widthIn} x {selectedTank.depthIn} x {selectedTank.heightIn} in
+              </div>
+              <div className="text-xs text-slate-300">Best price: {formatMoney(selectedTank.priceCents)}</div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {["substrate", "hardscape", "plants", "equipment"].includes(currentStep) ? (
+        <div className="space-y-2.5">
+          {currentStep === "equipment" ? (
+            <div className="flex flex-wrap gap-1.5">
+              {equipmentCategories.map((slug) => (
+                <button
+                  key={slug}
+                  onClick={() => setEquipmentCategoryFilter(slug)}
+                  className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                    activeEquipmentCategory === slug
+                      ? "border-cyan-300 bg-cyan-300/20 text-cyan-100"
+                      : "border-white/20 bg-slate-900/50 text-slate-300"
+                  }`}
+                >
+                  {categoryLabel(slug)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search assets..."
+            className="w-full rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none"
+          />
+
+          {currentStep === "substrate" ? (
+            <div className="space-y-2 rounded-2xl border border-white/20 bg-slate-900/55 p-2.5">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+                Terrain presets
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {([
+                  ["flat", "Flat"],
+                  ["island", "Island"],
+                  ["slope", "Slope"],
+                  ["valley", "Valley"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() => handleApplySubstratePreset(value)}
+                    className="rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-[11px] text-slate-300">
+                  Tool
+                  <select
+                    value={sculptMode}
+                    onChange={(event) => setSculptMode(event.target.value as SubstrateBrushMode)}
+                    className="mt-1 w-full rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] text-slate-100"
+                  >
+                    <option value="raise">Raise</option>
+                    <option value="lower">Lower</option>
+                    <option value="smooth">Smooth</option>
+                    <option value="erode">Erode</option>
+                  </select>
+                </label>
+
+                <label className="text-[11px] text-slate-300">
+                  Brush size ({(sculptBrushSize * 100).toFixed(0)}%)
+                  <input
+                    type="range"
+                    min={0.06}
+                    max={0.56}
+                    step={0.01}
+                    value={sculptBrushSize}
+                    onChange={(event) => setSculptBrushSize(Number(event.target.value))}
+                    className="mt-1 w-full"
+                  />
+                </label>
+              </div>
+
+              <label className="block text-[11px] text-slate-300">
+                Brush strength ({(sculptStrength * 100).toFixed(0)}%)
+                <input
+                  type="range"
+                  min={0.05}
+                  max={1}
+                  step={0.01}
+                  value={sculptStrength}
+                  onChange={(event) => setSculptStrength(Number(event.target.value))}
+                  className="mt-1 w-full"
+                />
+              </label>
+
+              <label className="block text-[11px] text-slate-300">
+                Mound position ({Math.round(substrateVolume.normalizedProfile.moundPosition * 100)}%)
+                <input
+                  type="range"
+                  min={0.2}
+                  max={0.8}
+                  step={0.01}
+                  value={substrateVolume.normalizedProfile.moundPosition}
+                  onChange={(event) => setSubstrateProfile({ moundPosition: Number(event.target.value) })}
+                  className="mt-1 w-full"
+                />
+              </label>
+
+              <div className="rounded-lg border border-white/15 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-300">
+                Fill target: {substrateVolume.volumeLiters.toFixed(1)} L
+                {selectedSubstrateAsset ? (
+                  <span>
+                    {" "}
+                    · {substrateBags.bagsRequired} bag(s) @ {substrateBags.bagVolumeLiters.toFixed(1)} L
+                  </span>
+                ) : (
+                  <span> · Pick a substrate product to estimate bag count.</span>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="max-h-[42vh] space-y-1.5 overflow-auto pr-1">
+            {filteredAssets.map((asset) => {
+              const selectedProductId = selectedProductByCategory[asset.categorySlug] ?? null;
+              const isSelectedEquipment =
+                asset.type === "product" &&
+                !CANVAS_CATEGORIES.has(asset.categorySlug) &&
+                selectedProductId === asset.id;
+              const isCanvasAsset = CANVAS_CATEGORIES.has(asset.categorySlug);
+              const armed = isCanvasAsset && placementAssetId === asset.id;
+
+              return (
+                <div
+                  key={`${asset.type}:${asset.id}:${asset.categorySlug}`}
+                  className="rounded-xl border border-white/15 bg-slate-900/55 p-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/15 bg-slate-950/70">
+                      {asset.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={asset.imageUrl}
+                          alt={asset.name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          draggable={false}
+                        />
+                      ) : (
+                        <div className="text-[10px] text-slate-400">No image</div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-xs font-semibold text-slate-100">{asset.name}</div>
+                      <div className="mt-0.5 text-[10px] text-slate-300">
+                        {asset.sourceMode === "design_archetype" ? "Design archetype" : "Catalog item"} ·{" "}
+                        {formatMoney(lineUnitPrice(asset))}
+                        {asset.sourceMode === "design_archetype" ? " est." : ""}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleChooseAsset(asset)}
+                      className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold ${
+                        armed || isSelectedEquipment
+                          ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
+                          : "border-emerald-400 bg-emerald-400/20 text-emerald-100"
+                      }`}
+                    >
+                      {isCanvasAsset ? (armed ? "Armed" : "Place") : isSelectedEquipment ? "Selected" : "Select"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredAssets.length === 0 ? (
+              <div className="rounded-xl border border-white/15 bg-slate-900/45 p-3 text-xs text-slate-300">
+                No assets match this step/filter right now.
+              </div>
+            ) : null}
+          </div>
+
+          {currentStep === "hardscape" ? (
+            <div className="rounded-xl border border-white/15 bg-slate-900/45 p-2 text-xs text-slate-300">
+              Hardscape placed: <span className="font-semibold text-slate-100">{hardscapeCount}</span>
+            </div>
+          ) : null}
+
+          {currentStep === "plants" ? (
+            <div className="rounded-xl border border-white/15 bg-slate-900/45 p-2 text-xs text-slate-300">
+              Plants placed: <span className="font-semibold text-slate-100">{plantCount}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {currentStep === "review" ? (
+        <div className="space-y-1.5 rounded-2xl border border-white/20 bg-slate-900/55 p-3 text-xs text-slate-200">
+          <div>
+            Tank: <span className="font-semibold">{selectedTank?.name ?? "None"}</span>
+          </div>
+          <div>
+            Substrate: {selectedProductByCategory.substrate ? `${substrateBags.bagsRequired} bag(s)` : "Not selected"}
+          </div>
+          <div>Hardscape items: {hardscapeCount}</div>
+          <div>Plant items: {plantCount}</div>
+          <div>
+            Estimated total: <span className="font-semibold">{formatMoney(totalCents)}</span>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const rightPanel = (
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Scene quality</div>
+          <div className="text-[10px] text-slate-400">Auto picks {autoQualityTier}</div>
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {(["auto", "high", "medium", "low"] as const).map((tier) => (
+            <button
+              key={tier}
+              onClick={() => setSceneSettings({ qualityTier: tier })}
+              className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+                canvasState.sceneSettings.qualityTier === tier
+                  ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
+                  : "border-white/20 bg-slate-950/60 text-slate-300"
+              }`}
+            >
+              {tier}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={canvasState.sceneSettings.postprocessingEnabled}
+              onChange={(event) =>
+                setSceneSettings({ postprocessingEnabled: event.target.checked })
+              }
+            />
+            Post FX
+          </label>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={canvasState.sceneSettings.guidesVisible}
+              onChange={(event) => setSceneSettings({ guidesVisible: event.target.checked })}
+            />
+            Guides
+          </label>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
+        {selectedItem && selectedAsset ? (
+          <div className="space-y-2">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.14em] text-slate-300">Selected object</div>
+              <div className="text-sm font-semibold text-slate-100">{selectedAsset.name}</div>
+              <div className="text-[11px] text-slate-400">
+                {selectedAsset.categoryName} · {selectedItem.anchorType} · zone {selectedItem.depthZone ?? "—"}
+              </div>
+            </div>
+
+            <label className="block text-[11px] text-slate-300">
+              Scale ({selectedItem.scale.toFixed(2)})
+              <input
+                type="range"
+                min={0.1}
+                max={2.5}
+                step={0.01}
+                value={selectedItem.scale}
+                onChange={(event) => updateCanvasItem(selectedItem.id, { scale: Number(event.target.value) })}
+                className="mt-1 w-full"
+              />
+            </label>
+
+            <label className="block text-[11px] text-slate-300">
+              Depth ({Math.round(selectedItem.z * 100)}%)
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={selectedItem.z}
+                onChange={(event) => updateCanvasItem(selectedItem.id, { z: Number(event.target.value) })}
+                className="mt-1 w-full"
+              />
+            </label>
+
+            <label className="block text-[11px] text-slate-300">
+              Rotation ({Math.round(selectedItem.rotation)}°)
+              <input
+                type="range"
+                min={-180}
+                max={180}
+                step={1}
+                value={selectedItem.rotation}
+                onChange={(event) =>
+                  updateCanvasItem(selectedItem.id, {
+                    rotation: Number(event.target.value),
+                  })
+                }
+                className="mt-1 w-full"
+              />
+            </label>
+
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => moveCanvasItemLayer(selectedItem.id, "up")}
+                className="rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
+              >
+                Layer +
+              </button>
+              <button
+                onClick={() => moveCanvasItemLayer(selectedItem.id, "down")}
+                className="rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
+              >
+                Layer -
+              </button>
+              <button
+                onClick={() => duplicateCanvasItem(selectedItem.id)}
+                className="rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
+              >
+                Duplicate
+              </button>
+              <button
+                onClick={() => removeCanvasItem(selectedItem.id)}
+                className="rounded-lg border border-red-300/60 bg-red-500/15 px-2 py-1 text-[11px] font-semibold text-red-100"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-xs text-slate-300">
+            Select an object in the scene to edit transform and placement metadata.
+            {hoveredItemId ? <div className="mt-1 text-[11px] text-slate-400">Hover: {hoveredItemId}</div> : null}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
+        <h2 className="text-sm font-semibold text-slate-100">Bill of Materials</h2>
+        <div className="mt-1 text-[11px] text-slate-300">Live pricing is best-effort from current offers.</div>
+
+        <div className="mt-2 max-h-[28vh] space-y-2 overflow-auto pr-1">
+          {bomLines.map((line) => {
+            const canBuy = line.asset.goUrl || line.asset.purchaseUrl || line.retailerLinks?.length;
+            const buyUrl = line.asset.goUrl ?? line.asset.purchaseUrl ?? null;
+            const unitPrice = lineUnitPrice(line.asset);
+            const totalLinePrice = unitPrice * line.quantity;
+            return (
+              <div key={line.key} className="rounded-xl border border-white/15 bg-slate-950/55 p-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400">{line.categoryName}</div>
+                    <div className="text-xs font-semibold text-slate-100">{line.asset.name}</div>
+                    <div className="text-[11px] text-slate-300">
+                      Qty {line.quantity} · Unit {formatMoney(unitPrice)}
+                      {"sourceMode" in line.asset && line.asset.sourceMode === "design_archetype"
+                        ? " est."
+                        : ""}
+                    </div>
+                    {line.notes ? <div className="text-[10px] text-slate-400">{line.notes}</div> : null}
+                  </div>
+                  <div className="text-xs font-semibold text-slate-100">{formatMoney(totalLinePrice)}</div>
+                </div>
+
+                <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5">
+                  <div className="text-[10px] text-slate-400">
+                    {"sourceMode" in line.asset && line.asset.sourceMode === "design_archetype"
+                      ? `Material ${line.asset.materialType ?? "generic"}`
+                      : `SKU ${line.asset.sku ?? "n/a"}`}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {buyUrl ? (
+                      <a
+                        href={buyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-md border border-emerald-300/70 bg-emerald-400/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-100"
+                      >
+                        Buy
+                      </a>
+                    ) : null}
+                    {(line.retailerLinks ?? []).slice(0, 2).map((link) => (
+                      <a
+                        key={`${line.key}:${link.url}`}
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-md border border-white/20 bg-slate-900/60 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200"
+                      >
+                        {link.label}
+                      </a>
+                    ))}
+                    {!canBuy ? (
+                      <span className="rounded-md border border-white/20 bg-slate-900/60 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">
+                        No offer
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {bomLines.length === 0 ? (
+            <div className="rounded-xl border border-white/15 bg-slate-950/50 p-3 text-xs text-slate-300">
+              Add assets to begin building your BOM.
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-2 rounded-xl border border-white/15 bg-slate-950/55 p-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-300">Estimated total</span>
+            <span className="font-semibold text-slate-100">{formatMoney(totalCents)}</span>
+          </div>
+          <div className="mt-0.5 text-[11px] text-slate-400">
+            {bomLines.length} line item(s), {canvasState.items.length} scene object(s)
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-100">Compatibility</h3>
+          <label className="flex items-center gap-2 text-[11px] text-slate-300">
+            <input
+              type="checkbox"
+              checked={compatibilityEnabled}
+              onChange={(event) => setCompatibilityEnabled(event.target.checked)}
+            />
+            Enabled
+          </label>
+        </div>
+
+        <div className="mb-2 grid grid-cols-2 gap-2 text-[11px]">
+          <label className="flex items-center gap-2 rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1.5 text-slate-300">
+            <input
+              type="checkbox"
+              checked={flags.lowTechNoCo2}
+              onChange={(event) => setLowTechNoCo2(event.target.checked)}
+            />
+            Low-tech
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1.5 text-slate-300">
+            <input
+              type="checkbox"
+              checked={flags.hasShrimp}
+              onChange={(event) => setHasShrimp(event.target.checked)}
+            />
+            Shrimp tank
+          </label>
+        </div>
+
+        <div className="max-h-[24vh] space-y-2 overflow-auto pr-1">
+          {compatibility.evaluations.map((evaluation, index) => (
+            <div
+              key={`${evaluation.ruleCode}:${index}`}
+              className={`rounded-lg border px-2.5 py-2 text-xs ${severityClasses(evaluation.severity)}`}
+            >
+              <div className="font-semibold uppercase tracking-[0.12em]">{evaluation.severity}</div>
+              <div className="mt-1 leading-relaxed">{evaluation.message}</div>
+              {evaluation.fixSuggestion ? (
+                <div className="mt-1 text-[11px] opacity-90">Fix: {evaluation.fixSuggestion}</div>
+              ) : null}
+            </div>
+          ))}
+
+          {compatibility.evaluations.length === 0 ? (
+            <div className="rounded-lg border border-emerald-200/80 bg-emerald-50/95 px-2.5 py-2 text-xs text-emerald-800">
+              No compatibility issues detected.
+            </div>
+          ) : null}
+
+          {compatibility.hardscapeVolumeRatio != null ? (
+            <div className="text-[11px] text-slate-300">
+              Hardscape volume estimate: {(compatibility.hardscapeVolumeRatio * 100).toFixed(1)}%
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+
+  const canSceneTools = currentStep === "substrate" || currentStep === "hardscape" || currentStep === "plants";
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {([
+        ["place", "Place"],
+        ["move", "Move"],
+        ["rotate", "Rotate"],
+        ["delete", "Delete"],
+      ] as const).map(([mode, label]) => (
+        <button
+          key={mode}
+          onClick={() => setToolMode(mode)}
+          disabled={!canSceneTools}
+          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+            toolMode === mode
+              ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
+              : "border-white/20 bg-slate-950/70 text-slate-200"
+          } disabled:cursor-not-allowed disabled:opacity-50`}
+        >
+          {label}
+        </button>
+      ))}
+
+      {currentStep === "substrate" ? (
+        <button
+          onClick={() => setToolMode("sculpt")}
+          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+            toolMode === "sculpt"
+              ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
+              : "border-white/20 bg-slate-950/70 text-slate-200"
+          }`}
+        >
+          Sculpt
+        </button>
+      ) : null}
+
+      {placementAsset ? (
+        <>
+          <label className="ml-1 text-[11px] text-slate-300">
+            Rotation ({Math.round(placementRotationDeg)}°)
+            <input
+              type="range"
+              min={-180}
+              max={180}
+              step={1}
+              value={placementRotationDeg}
+              onChange={(event) => setPlacementRotationDeg(Number(event.target.value))}
+              className="ml-2 w-24 align-middle"
+            />
+          </label>
+          {currentStep === "plants" ? (
+            <label className="text-[11px] text-slate-300">
+              Cluster
+              <input
+                type="range"
+                min={1}
+                max={8}
+                step={1}
+                value={clusterBrushCount}
+                onChange={(event) => setClusterBrushCount(Number(event.target.value))}
+                className="ml-2 w-20 align-middle"
+              />
+            </label>
+          ) : null}
+        </>
+      ) : null}
+
+      <button
+        onClick={() => setSceneSettings({ guidesVisible: !canvasState.sceneSettings.guidesVisible })}
+        className="rounded-full border border-white/20 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200"
+      >
+        {canvasState.sceneSettings.guidesVisible ? "Hide guides" : "Show guides"}
+      </button>
+    </div>
+  );
+
   return (
-    <div className="ptl-builder-bg min-h-screen pb-10">
-      <div className="mx-auto w-full max-w-[1600px] px-4 pt-5 sm:px-6 lg:px-8">
-        <header className="ptl-surface-strong p-4 sm:p-5">
+    <div className="min-h-screen bg-[#040810] pb-8 text-slate-100">
+      <div className="mx-auto w-full max-w-[1780px] px-4 pt-5 sm:px-6 lg:px-8">
+        <header className="rounded-3xl border border-white/15 bg-slate-900/65 p-4 shadow-[0_16px_48px_rgba(0,0,0,0.35)] backdrop-blur-md">
           <div className="flex flex-wrap items-start gap-4">
-            <div className="min-w-[240px] flex-1">
-              <div className="ptl-kicker">Guided visual builder</div>
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl">
-                Build your tank step by step
+            <div className="min-w-[220px] flex-1">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100/70">
+                Guided Visual Builder
+              </div>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-100 sm:text-3xl">
+                Game-like 3D aquascaping planner
               </h1>
-              <p className="mt-2 max-w-3xl text-sm text-neutral-700 sm:text-base">
-                Follow the sequence: tank, substrate, hardscape, plants, then equipment. The canvas and
-                compatibility update live as you make each choice.
+              <p className="mt-1 max-w-3xl text-sm text-slate-300">
+                Cinematic viewport first. Planner outputs preserved: BOM, compatibility checks, save/share, and
+                deterministic scene reconstruction.
               </p>
             </div>
 
-            <div className="min-w-[260px] flex-1">
-              <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-600">
+            <div className="min-w-[240px] flex-1">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
                 Build name
               </label>
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="mt-1 w-full rounded-xl border bg-white/80 px-3 py-2 text-sm outline-none focus:border-emerald-600"
-                style={{ borderColor: "var(--ptl-border)" }}
+                className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none"
                 placeholder="Visual Build"
               />
             </div>
 
-            <div className="min-w-[260px] flex-1">
-              <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-600">
+            <div className="min-w-[240px] flex-1">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
                 Description
               </label>
               <input
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                className="mt-1 w-full rounded-xl border bg-white/80 px-3 py-2 text-sm outline-none focus:border-emerald-600"
-                style={{ borderColor: "var(--ptl-border)" }}
-                placeholder="Low-tech jungle with easy maintenance"
+                className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none"
+                placeholder="Low-tech jungle with cinematic hardscape composition"
               />
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               onClick={() => saveBuild(false)}
               disabled={saveMutation.isPending}
-              className="ptl-btn-secondary disabled:cursor-wait disabled:opacity-60"
+              className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100 disabled:cursor-wait disabled:opacity-60"
             >
               Save draft
             </button>
-            <button onClick={handleDuplicate} className="ptl-btn-secondary">
+            <button
+              onClick={handleDuplicate}
+              className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100"
+            >
               Duplicate
             </button>
             <button
               onClick={() => saveBuild(true)}
               disabled={saveMutation.isPending}
-              className="ptl-btn-primary disabled:cursor-wait disabled:opacity-60"
+              className="rounded-full border border-emerald-300/70 bg-emerald-400/25 px-4 py-2 text-sm font-semibold text-emerald-100 disabled:cursor-wait disabled:opacity-60"
             >
               Share
             </button>
-            <button onClick={handleExport} className="ptl-btn-secondary">
+            <button
+              onClick={handleExport}
+              className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100"
+            >
               Export PNG
             </button>
             <button
               onClick={() => {
                 resetAll();
-                setCurrentStep("tank");
+                applyStepChange("tank");
+                setPlacementAssetId(null);
+                setToolMode("move");
               }}
-              className="ptl-btn-secondary"
+              className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100"
             >
               Reset
             </button>
 
             {buildLink ? (
               <a
-                className="ptl-pill"
+                className="rounded-full border border-white/20 bg-slate-950/70 px-3 py-1.5 text-xs font-semibold text-slate-200"
                 href={buildLink}
                 target="_blank"
                 rel="noreferrer"
@@ -921,10 +1551,10 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               <span
                 className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
                   saveState.type === "ok"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    ? "border-emerald-200/80 bg-emerald-100/90 text-emerald-900"
                     : saveState.type === "error"
-                      ? "border-red-200 bg-red-50 text-red-700"
-                      : "border-neutral-200 bg-neutral-100 text-neutral-700"
+                      ? "border-red-200/80 bg-red-100/95 text-red-900"
+                      : "border-white/20 bg-slate-900/70 text-slate-200"
                 }`}
               >
                 {saveState.message}
@@ -932,17 +1562,17 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
             ) : null}
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-600">
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-300">
             <span>
-              Build ID: <span className="font-mono text-neutral-800">{buildId ?? "draft"}</span>
+              Build ID: <span className="font-mono text-slate-100">{buildId ?? "draft"}</span>
             </span>
             <span>
-              Share: <span className="font-mono text-neutral-800">{shareSlug ?? "not published"}</span>
+              Share: <span className="font-mono text-slate-100">{shareSlug ?? "not published"}</span>
             </span>
           </div>
         </header>
 
-        <section className="ptl-surface mt-4 p-4">
+        <section className="mt-4 rounded-3xl border border-white/15 bg-slate-900/60 p-3">
           <div className="flex flex-wrap items-center gap-2">
             {STEP_ORDER.map((stepId, index) => {
               const meta = STEP_META[stepId];
@@ -954,15 +1584,15 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                   key={stepId}
                   onClick={() => {
                     if (blocked) return;
-                    setCurrentStep(stepId);
+                    applyStepChange(stepId);
                   }}
                   disabled={blocked}
                   className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                     active
-                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
                       : done
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                        : "border-neutral-300 bg-white text-neutral-700"
+                        ? "border-emerald-200/70 bg-emerald-300/15 text-emerald-100"
+                        : "border-white/20 bg-slate-950/70 text-slate-300"
                   } ${blocked ? "cursor-not-allowed opacity-45" : ""}`}
                 >
                   {index + 1}. {meta.title}
@@ -971,34 +1601,37 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
             })}
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-white/70 p-3" style={{ borderColor: "var(--ptl-border)" }}>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/15 bg-slate-950/55 p-3">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-600">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                 Step {currentStepIndex + 1} of {STEP_ORDER.length}
               </div>
-              <div className="mt-0.5 text-base font-semibold text-neutral-900">{STEP_META[currentStep].title}</div>
-              <div className="mt-0.5 text-sm text-neutral-700">{STEP_META[currentStep].summary}</div>
+              <div className="text-sm font-semibold text-slate-100">{STEP_META[currentStep].title}</div>
+              <div className="text-xs text-slate-300">{STEP_META[currentStep].summary}</div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
                   if (!previousStep) return;
-                  setCurrentStep(previousStep);
+                  applyStepChange(previousStep);
                 }}
                 disabled={!previousStep}
-                className="ptl-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-1.5 text-xs font-semibold text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Back
               </button>
               {currentStep === "equipment" && !stepCompletion.equipment ? (
-                <button onClick={() => setCurrentStep("review")} className="ptl-btn-secondary">
+                <button
+                  onClick={() => applyStepChange("review")}
+                  className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-1.5 text-xs font-semibold text-slate-200"
+                >
                   Skip for now
                 </button>
               ) : null}
               <button
                 onClick={handleContinue}
                 disabled={!nextStep || !canContinueCurrentStep}
-                className="ptl-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-cyan-200/70 bg-cyan-200/20 px-4 py-1.5 text-xs font-semibold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {currentStep === "review" ? "Ready to publish" : "Continue"}
               </button>
@@ -1006,754 +1639,93 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
           </div>
         </section>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[250px_minmax(0,1.85fr)_320px]">
-          <aside className="order-2 ptl-surface p-3 xl:order-1">
-            <h2 className="ptl-card-title text-neutral-900">{STEP_META[currentStep].title}</h2>
-            <p className="mt-1 text-sm text-neutral-700">{STEP_META[currentStep].summary}</p>
-
-            {currentStep === "tank" ? (
-              <div className="mt-3 space-y-3">
-                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-600">
-                  Rimless tank
-                </label>
-                <select
-                  value={selectedTank?.id ?? ""}
-                  onChange={(event) => {
-                    const tank = tanksById.get(event.target.value);
-                    if (!tank) return;
-                    setTank(tank.id, {
-                      widthIn: tank.widthIn,
-                      heightIn: tank.heightIn,
-                      depthIn: tank.depthIn,
-                    });
-                  }}
-                  className="w-full rounded-xl border bg-white/80 px-3 py-2 text-sm outline-none focus:border-emerald-600"
-                  style={{ borderColor: "var(--ptl-border)" }}
-                >
-                  {(tanks ?? []).map((tank) => (
-                    <option key={tank.id} value={tank.id}>
-                      {tank.name} ({tank.widthIn} in x {tank.depthIn} in x {tank.heightIn} in)
-                    </option>
-                  ))}
-                </select>
-
-                {selectedTank ? (
-                  <div className="rounded-xl border bg-white/70 p-3 text-sm" style={{ borderColor: "var(--ptl-border)" }}>
-                    {selectedTank.imageUrl ? (
-                      <div
-                        className="mb-2 overflow-hidden rounded-xl border bg-white"
-                        style={{ borderColor: "var(--ptl-border)" }}
-                      >
-                        <SmartImage
-                          src={selectedTank.imageUrl}
-                          alt={selectedTank.name}
-                          width={720}
-                          height={420}
-                          className="aspect-[5/3] w-full object-cover"
-                        />
-                      </div>
-                    ) : null}
-                    <div className="font-semibold text-neutral-900">{selectedTank.name}</div>
-                    <div className="mt-1 text-neutral-700">
-                      Dimensions: {selectedTank.widthIn} x {selectedTank.depthIn} x {selectedTank.heightIn} in
-                    </div>
-                    <div className="mt-0.5 text-neutral-700">Best price: {formatMoney(selectedTank.priceCents)}</div>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {["substrate", "hardscape", "plants", "equipment"].includes(currentStep) ? (
-              <div className="mt-3 space-y-3">
-                {currentStep === "equipment" ? (
-                  <div className="flex flex-wrap gap-2">
-                    {equipmentCategories.map((slug) => (
-                      <button
-                        key={slug}
-                        onClick={() => setEquipmentCategoryFilter(slug)}
-                        className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                          activeEquipmentCategory === slug
-                            ? "border-emerald-500 bg-emerald-500 text-white"
-                            : "border-neutral-300 bg-white text-neutral-700"
-                        }`}
-                      >
-                        {categoryLabel(slug)}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search assets..."
-                  className="w-full rounded-xl border bg-white/80 px-3 py-2 text-sm outline-none focus:border-emerald-600"
-                  style={{ borderColor: "var(--ptl-border)" }}
-                />
-
-                {currentStep === "substrate" ? (
-                  <div
-                    className="space-y-2 rounded-xl border bg-white/70 p-3"
-                    style={{ borderColor: "var(--ptl-border)" }}
-                  >
-                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-600">
-                      Substrate profile
-                    </div>
-                    <label className="block text-[11px] text-neutral-700">
-                      Left depth ({substrateVolume.normalizedProfile.leftDepthIn.toFixed(1)} in)
-                      <input
-                        type="range"
-                        min={0.2}
-                        max={Math.max(2, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.62)}
-                        step={0.1}
-                        value={substrateVolume.normalizedProfile.leftDepthIn}
-                        onChange={(event) =>
-                          setSubstrateProfile({ leftDepthIn: Number(event.target.value) })
-                        }
-                        className="mt-1 w-full"
-                      />
-                    </label>
-                    <label className="block text-[11px] text-neutral-700">
-                      Center depth ({substrateVolume.normalizedProfile.centerDepthIn.toFixed(1)} in)
-                      <input
-                        type="range"
-                        min={0.2}
-                        max={Math.max(2, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.62)}
-                        step={0.1}
-                        value={substrateVolume.normalizedProfile.centerDepthIn}
-                        onChange={(event) =>
-                          setSubstrateProfile({ centerDepthIn: Number(event.target.value) })
-                        }
-                        className="mt-1 w-full"
-                      />
-                    </label>
-                    <label className="block text-[11px] text-neutral-700">
-                      Right depth ({substrateVolume.normalizedProfile.rightDepthIn.toFixed(1)} in)
-                      <input
-                        type="range"
-                        min={0.2}
-                        max={Math.max(2, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.62)}
-                        step={0.1}
-                        value={substrateVolume.normalizedProfile.rightDepthIn}
-                        onChange={(event) =>
-                          setSubstrateProfile({ rightDepthIn: Number(event.target.value) })
-                        }
-                        className="mt-1 w-full"
-                      />
-                    </label>
-                    <label className="block text-[11px] text-neutral-700">
-                      Front depth ({substrateVolume.normalizedProfile.frontDepthIn.toFixed(1)} in)
-                      <input
-                        type="range"
-                        min={0.2}
-                        max={Math.max(2, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.62)}
-                        step={0.1}
-                        value={substrateVolume.normalizedProfile.frontDepthIn}
-                        onChange={(event) =>
-                          setSubstrateProfile({ frontDepthIn: Number(event.target.value) })
-                        }
-                        className="mt-1 w-full"
-                      />
-                    </label>
-                    <label className="block text-[11px] text-neutral-700">
-                      Back depth ({substrateVolume.normalizedProfile.backDepthIn.toFixed(1)} in)
-                      <input
-                        type="range"
-                        min={0.2}
-                        max={Math.max(2, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.62)}
-                        step={0.1}
-                        value={substrateVolume.normalizedProfile.backDepthIn}
-                        onChange={(event) =>
-                          setSubstrateProfile({ backDepthIn: Number(event.target.value) })
-                        }
-                        className="mt-1 w-full"
-                      />
-                    </label>
-                    <label className="block text-[11px] text-neutral-700">
-                      Mound height ({substrateVolume.normalizedProfile.moundHeightIn.toFixed(1)} in)
-                      <input
-                        type="range"
-                        min={0}
-                        max={Math.max(1, (selectedTank?.heightIn ?? canvasState.heightIn) * 0.38)}
-                        step={0.1}
-                        value={substrateVolume.normalizedProfile.moundHeightIn}
-                        onChange={(event) =>
-                          setSubstrateProfile({ moundHeightIn: Number(event.target.value) })
-                        }
-                        className="mt-1 w-full"
-                      />
-                    </label>
-                    <label className="block text-[11px] text-neutral-700">
-                      Mound position ({Math.round(substrateVolume.normalizedProfile.moundPosition * 100)}%)
-                      <input
-                        type="range"
-                        min={0.2}
-                        max={0.8}
-                        step={0.01}
-                        value={substrateVolume.normalizedProfile.moundPosition}
-                        onChange={(event) =>
-                          setSubstrateProfile({ moundPosition: Number(event.target.value) })
-                        }
-                        className="mt-1 w-full"
-                      />
-                    </label>
-                    <div className="rounded-lg border bg-white px-2 py-1.5 text-[11px] text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
-                      Target fill: {substrateVolume.volumeLiters.toFixed(1)} L
-                      {selectedSubstrateAsset ? (
-                        <span>
-                          {" "}
-                          · {substrateBags.bagsRequired} bag(s) of {substrateBags.bagVolumeLiters.toFixed(1)} L
-                        </span>
-                      ) : (
-                        <span> · Pick a substrate product to compute bag count.</span>
-                      )}
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="max-h-[44vh] space-y-1.5 overflow-auto pr-1">
-                  {filteredAssets.map((asset) => {
-                    const selectedProductId = selectedProductByCategory[asset.categorySlug] ?? null;
-                    const isSelectedEquipment =
-                      asset.type === "product" && !CANVAS_CATEGORIES.has(asset.categorySlug) && selectedProductId === asset.id;
-
-                    return (
-                      <div
-                        key={`${asset.type}:${asset.id}:${asset.categorySlug}`}
-                        draggable
-                        onDragStart={(event) => {
-                          event.dataTransfer.setData("text/asset-id", asset.id);
-                          event.dataTransfer.effectAllowed = "copy";
-                        }}
-                        className="rounded-lg border bg-white/80 p-2"
-                        style={{ borderColor: "var(--ptl-border)" }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white"
-                            style={{ borderColor: "var(--ptl-border)" }}
-                          >
-                            {asset.imageUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={asset.imageUrl}
-                                alt={asset.name}
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                                draggable={false}
-                              />
-                            ) : (
-                              <div className="text-[10px] text-neutral-500">No image</div>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate text-xs font-semibold text-neutral-900">{asset.name}</div>
-                            <div className="mt-0.5 text-[10px] text-neutral-600">
-                              {asset.sourceMode === "design_archetype" ? "Design archetype" : "Catalog item"} ·{" "}
-                              {formatMoney(lineUnitPrice(asset))}
-                              {asset.sourceMode === "design_archetype" ? " est." : ""}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleChooseAsset(asset)}
-                            className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold ${
-                              isSelectedEquipment
-                                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                                : "border-emerald-600 bg-emerald-600 text-white"
-                            }`}
-                            style={isSelectedEquipment ? undefined : { borderColor: "#157f5a" }}
-                          >
-                            {CANVAS_CATEGORIES.has(asset.categorySlug)
-                              ? "Add"
-                              : isSelectedEquipment
-                                ? "Selected"
-                                : "Select"}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {filteredAssets.length === 0 ? (
-                    <div className="rounded-xl border bg-white/70 p-3 text-xs text-neutral-600" style={{ borderColor: "var(--ptl-border)" }}>
-                      No assets match this step/filter yet.
-                    </div>
-                  ) : null}
-                </div>
-
-                {currentStep === "hardscape" ? (
-                  <div className="rounded-xl border bg-white/70 p-2 text-xs text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
-                    Hardscape placed: <span className="font-semibold">{hardscapeCount}</span>
-                  </div>
-                ) : null}
-
-                {currentStep === "plants" ? (
-                  <div className="rounded-xl border bg-white/70 p-2 text-xs text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
-                    Plants placed: <span className="font-semibold">{plantCount}</span>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {currentStep === "review" ? (
-              <div className="mt-3 space-y-2 rounded-xl border bg-white/70 p-3 text-sm text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
-                <div>
-                  <span className="font-semibold text-neutral-900">Tank:</span> {selectedTank?.name ?? "None"}
-                </div>
-                <div>
-                  <span className="font-semibold text-neutral-900">Substrate:</span>{" "}
-                  {selectedProductByCategory.substrate
-                    ? `${substrateBags.bagsRequired} bag(s) · ${substrateVolume.volumeLiters.toFixed(1)} L`
-                    : "Not selected"}
-                </div>
-                <div>
-                  <span className="font-semibold text-neutral-900">Hardscape items:</span> {hardscapeCount}
-                </div>
-                <div>
-                  <span className="font-semibold text-neutral-900">Plant items:</span> {plantCount}
-                </div>
-                <div>
-                  <span className="font-semibold text-neutral-900">Estimated total:</span> {formatMoney(totalCents)}
-                </div>
-              </div>
-            ) : null}
-          </aside>
-
-          <section className="order-1 ptl-surface p-3 sm:p-4 xl:order-2">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-2">
-              <div>
-                <h2 className="text-base font-semibold text-neutral-900">3D tank canvas</h2>
-                <p className="text-xs text-neutral-600">
-                  Drag in 3D space. Use depth to place objects front-to-back and shape realistic slopes.
-                </p>
-              </div>
-              {selectedTank ? (
-                <div className="rounded-full border bg-white px-3 py-1 text-xs text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
-                  {selectedTank.widthIn} x {selectedTank.depthIn} x {selectedTank.heightIn} in
-                </div>
-              ) : null}
-            </div>
-
-            <div
-              className="mx-auto w-full max-w-[1180px] rounded-[28px] border p-2 sm:p-3"
-              style={{
-                borderColor: "rgba(84, 108, 113, 0.45)",
-                background:
-                  "linear-gradient(180deg, rgba(240,248,252,0.98), rgba(228,239,243,0.95))",
-                boxShadow:
-                  "inset 0 1px 0 rgba(255,255,255,0.95), 0 16px 30px rgba(13,33,34,0.14)",
+        <section className="relative mt-4 min-h-[74dvh] overflow-hidden rounded-3xl border border-white/15 bg-[#060d16] shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
+          <div className="absolute inset-0">
+            <VisualBuilderScene
+              tank={selectedTank}
+              canvasState={canvasState}
+              assetsById={assetsById}
+              selectedItemId={selectedItemId}
+              currentStep={currentStep}
+              toolMode={toolMode}
+              placementAsset={placementAsset}
+              placementRotationDeg={placementRotationDeg}
+              placementClusterCount={clusterBrushCount}
+              showDepthGuides={canvasState.sceneSettings.guidesVisible}
+              qualityTier={qualityTier}
+              postprocessingEnabled={canvasState.sceneSettings.postprocessingEnabled}
+              sculptMode={sculptMode}
+              sculptBrushSize={sculptBrushSize}
+              sculptStrength={sculptStrength}
+              idleOrbit={currentStep === "review"}
+              equipmentAssets={equipmentSceneAssets}
+              onSelectItem={setSelectedItem}
+              onHoverItem={setHoveredItemId}
+              onPlaceItem={handleScenePlace}
+              onMoveItem={updateCanvasItem}
+              onDeleteItem={removeCanvasItem}
+              onRotateItem={handleSceneRotate}
+              onSubstrateProfile={setSubstrateProfile}
+              onCaptureCanvas={(canvas) => {
+                sceneCanvasRef.current = canvas;
               }}
-            >
-              <div
-                ref={canvasRef}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = "copy";
-                }}
-                onDrop={onDropAsset}
-                className="relative w-full overflow-hidden rounded-[18px] border"
-                style={{
-                  borderColor: "rgba(109, 140, 149, 0.85)",
-                  background:
-                    "linear-gradient(180deg, rgba(213,235,247,0.96) 0%, rgba(192,223,236,0.92) 62%, rgba(176,214,229,0.95) 100%)",
-                  aspectRatio: selectedTank
-                    ? `${selectedTank.widthIn} / ${selectedTank.heightIn}`
-                    : `${canvasState.widthIn} / ${canvasState.heightIn}`,
-                }}
-              >
-                <div
-                  className="pointer-events-none absolute left-[4%] right-[4%] top-[6%] h-[12%] rounded-md border"
-                  style={{
-                    borderColor: "rgba(255,255,255,0.48)",
-                    background:
-                      "linear-gradient(180deg, rgba(224,244,252,0.42), rgba(178,212,227,0.2))",
-                  }}
-                />
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-[17%] bg-gradient-to-b from-white/72 to-transparent" />
-                <div className="pointer-events-none absolute inset-x-0 top-[15%] h-px bg-white/90" />
-                <div
-                  className="pointer-events-none absolute inset-y-[12%] right-0 border-l"
-                  style={{
-                    width: `${tankDepthPanePercent}%`,
-                    borderColor: "rgba(255,255,255,0.6)",
-                    background:
-                      "linear-gradient(270deg, rgba(132,176,191,0.4), rgba(132,176,191,0.08))",
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute left-[2%] right-[2%]"
-                  style={{
-                    top: `${substrateContour.backTopPct}%`,
-                    height: `${Math.max(
-                      4,
-                      substrateContour.frontTopPct - substrateContour.backTopPct,
-                    )}%`,
-                    background:
-                      "linear-gradient(180deg, rgba(214,191,144,0.82), rgba(192,164,116,0.56))",
-                    borderTop: "1px solid rgba(252,242,218,0.52)",
-                    clipPath:
-                      "polygon(0% 0%, 100% 0%, 92% 100%, 8% 100%)",
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    clipPath: `polygon(0% 100%, 0% ${substrateContour.leftTopPct}%, ${Math.max(
-                      6,
-                      substrateContour.moundPositionPct - 6,
-                    )}% ${Math.min(99, substrateContour.moundTopPct + 2)}%, ${
-                      substrateContour.moundPositionPct
-                    }% ${substrateContour.moundTopPct}%, ${Math.min(
-                      94,
-                      substrateContour.moundPositionPct + 6,
-                    )}% ${Math.min(99, substrateContour.centerTopPct + 1)}%, 50% ${
-                      substrateContour.centerTopPct
-                    }%, 100% ${substrateContour.rightTopPct}%, 100% 100%)`,
-                    background:
-                      "linear-gradient(180deg, rgba(217,197,157,0.92) 0%, rgba(202,175,125,0.95) 56%, rgba(174,145,96,0.96) 100%)",
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-20"
-                  style={{
-                    clipPath: `polygon(0% 100%, 0% ${substrateContour.leftTopPct}%, ${Math.max(
-                      6,
-                      substrateContour.moundPositionPct - 6,
-                    )}% ${Math.min(99, substrateContour.moundTopPct + 2)}%, ${
-                      substrateContour.moundPositionPct
-                    }% ${substrateContour.moundTopPct}%, ${Math.min(
-                      94,
-                      substrateContour.moundPositionPct + 6,
-                    )}% ${Math.min(99, substrateContour.centerTopPct + 1)}%, 50% ${
-                      substrateContour.centerTopPct
-                    }%, 100% ${substrateContour.rightTopPct}%, 100% 100%)`,
-                    background:
-                      "repeating-linear-gradient(135deg, rgba(88,68,44,0.16) 0, rgba(88,68,44,0.16) 2px, rgba(255,255,255,0.08) 2px, rgba(255,255,255,0.08) 6px)",
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute left-0 right-0 h-px"
-                  style={{
-                    top: `${substrateContour.frontTopPct}%`,
-                    background:
-                      "linear-gradient(90deg, rgba(133,108,72,0.45), rgba(245,236,216,0.7), rgba(133,108,72,0.45))",
-                  }}
-                />
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_24%,rgba(255,255,255,0.38),rgba(255,255,255,0)_56%)]" />
+            />
+          </div>
 
-                {canvasState.items
-                  .slice()
-                  .sort((a, b) => (a.z - b.z) || (a.layer - b.layer))
-                  .map((item) => {
-                    const asset = assetsById.get(item.assetId);
-                    if (!asset) return null;
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_62%_8%,rgba(255,255,255,0.22),rgba(255,255,255,0)_40%),radial-gradient(circle_at_20%_100%,rgba(74,115,145,0.26),rgba(74,115,145,0)_48%)]" />
 
-                    const tankWidth = selectedTank?.widthIn ?? canvasState.widthIn;
-                    const tankHeight = selectedTank?.heightIn ?? canvasState.heightIn;
-                    const projection = projectCanvasPoint({ x: item.x, y: item.y, z: item.z });
-                    const widthPct =
-                      ((asset.widthIn / tankWidth) * 100) * item.scale * projection.scale;
-                    const heightPct =
-                      ((asset.heightIn / tankHeight) * 100) * item.scale * projection.scale;
-                    const itemZIndex = Math.round(item.z * 100) + item.layer;
+          <div className="pointer-events-none absolute left-0 top-0 h-[22%] w-full bg-gradient-to-b from-slate-950/28 to-transparent" />
 
-                    return (
-                      <div
-                        key={item.id}
-                        className="absolute select-none"
-                        style={{
-                          zIndex: selectedItemId === item.id ? 240 : 10 + itemZIndex,
-                          left: `${projection.x * 100}%`,
-                          top: `${projection.y * 100}%`,
-                          width: `${Math.max(widthPct, 1.8)}%`,
-                          height: `${Math.max(heightPct, 1.8)}%`,
-                          transform: `translate(-50%, -50%) rotate(${item.rotation}deg)`,
-                          transformOrigin: "center center",
-                        }}
-                        onPointerDown={(event) => onPointerDownCanvasItem(item.id, event)}
-                        onPointerMove={onPointerMoveCanvasItem}
-                        onPointerUp={endDrag}
-                        onPointerCancel={endDrag}
-                      >
-                        <div
-                          className={`relative h-full w-full rounded-md border transition ${
-                            selectedItemId === item.id
-                              ? "border-emerald-500 shadow-[0_0_0_1px_rgba(16,185,129,0.45)]"
-                              : "border-black/10"
-                          }`}
-                        >
-                          {asset.imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={asset.imageUrl}
-                              alt={asset.name}
-                              draggable={false}
-                              className="h-full w-full object-contain"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[10px] text-neutral-600">
-                              {asset.name}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-
-              <div className="mx-auto mt-2 h-3 w-[96%] rounded-b-2xl bg-[#6c7d85]/45" />
-            </div>
-
-            <div className="mt-3 rounded-xl border bg-white/70 p-3" style={{ borderColor: "var(--ptl-border)" }}>
-              {selectedItem && selectedAsset ? (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px_180px_180px_auto] md:items-center">
-                  <div>
-                    <div className="text-xs uppercase tracking-[0.14em] text-neutral-600">Selected item</div>
-                    <div className="text-sm font-semibold text-neutral-900">{selectedAsset.name}</div>
-                    <div className="text-xs text-neutral-600">
-                      {selectedAsset.categoryName} · layer {selectedItem.layer + 1} · depth{" "}
-                      {Math.round(selectedItem.z * 100)}%
-                    </div>
-                  </div>
-
-                  <label className="text-xs text-neutral-700">
-                    Scale
-                    <input
-                      type="range"
-                      min={0.1}
-                      max={2.5}
-                      step={0.01}
-                      value={selectedItem.scale}
-                      onChange={(event) =>
-                        updateCanvasItem(selectedItem.id, { scale: Number(event.target.value) })
-                      }
-                      className="mt-1 w-full"
-                    />
-                  </label>
-
-                  <label className="text-xs text-neutral-700">
-                    Depth (front ↔ back)
-                    <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={selectedItem.z}
-                      onChange={(event) =>
-                        updateCanvasItem(selectedItem.id, { z: Number(event.target.value) })
-                      }
-                      className="mt-1 w-full"
-                    />
-                  </label>
-
-                  <label className="text-xs text-neutral-700">
-                    Rotation
-                    <input
-                      type="range"
-                      min={-180}
-                      max={180}
-                      step={1}
-                      value={selectedItem.rotation}
-                      onChange={(event) =>
-                        updateCanvasItem(selectedItem.id, {
-                          rotation: Number(event.target.value),
-                        })
-                      }
-                      className="mt-1 w-full"
-                    />
-                  </label>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => moveCanvasItemLayer(selectedItem.id, "up")}
-                      className="ptl-btn-secondary !px-2 !py-1 !text-[11px]"
-                    >
-                      Layer +
-                    </button>
-                    <button
-                      onClick={() => moveCanvasItemLayer(selectedItem.id, "down")}
-                      className="ptl-btn-secondary !px-2 !py-1 !text-[11px]"
-                    >
-                      Layer -
-                    </button>
-                    <button
-                      onClick={() => duplicateCanvasItem(selectedItem.id)}
-                      className="ptl-btn-secondary !px-2 !py-1 !text-[11px]"
-                    >
-                      Duplicate
-                    </button>
-                    <button
-                      onClick={() => removeCanvasItem(selectedItem.id)}
-                      className="rounded-lg border border-red-300 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-xs text-neutral-600">
-                  Select an object to tune scale, depth, rotation, layering, duplicate, or delete.
-                </div>
-              )}
-            </div>
-          </section>
-
-          <aside className="order-3 ptl-surface p-4">
-            <h2 className="text-sm font-semibold text-neutral-900">Bill of Materials</h2>
-            <div className="mt-1 text-xs text-neutral-600">
-              Live pricing is best-effort from current in-stock offers.
-            </div>
-
-            <div className="mt-3 space-y-2">
-              {bomLines.map((line) => {
-                const canBuy = line.asset.goUrl || line.asset.purchaseUrl || line.retailerLinks?.length;
-                const buyUrl = line.asset.goUrl ?? line.asset.purchaseUrl ?? null;
-                const unitPrice = lineUnitPrice(line.asset);
-                const totalLinePrice = unitPrice * line.quantity;
-                return (
-                  <div key={line.key} className="rounded-xl border bg-white/80 p-2.5" style={{ borderColor: "var(--ptl-border)" }}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-[11px] uppercase tracking-[0.14em] text-neutral-600">
-                          {line.categoryName}
-                        </div>
-                        <div className="text-sm font-semibold text-neutral-900">{line.asset.name}</div>
-                        <div className="text-xs text-neutral-600">
-                          Qty {line.quantity} · Unit {formatMoney(unitPrice)}
-                          {"sourceMode" in line.asset && line.asset.sourceMode === "design_archetype"
-                            ? " est."
-                            : ""}
-                        </div>
-                        {line.notes ? <div className="text-[11px] text-neutral-600">{line.notes}</div> : null}
-                      </div>
-                      <div className="text-sm font-semibold text-neutral-900">
-                        {formatMoney(totalLinePrice)}
-                      </div>
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-[11px] text-neutral-500">
-                        {"sourceMode" in line.asset && line.asset.sourceMode === "design_archetype"
-                          ? `Material ${line.asset.materialType ?? "generic"}`
-                          : `SKU ${line.asset.sku ?? "n/a"}`}
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {buyUrl ? (
-                          <a
-                            href={buyUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-lg border border-emerald-600 bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white"
-                          >
-                            Buy
-                          </a>
-                        ) : null}
-                        {(line.retailerLinks ?? []).slice(0, 2).map((link) => (
-                          <a
-                            key={`${line.key}:${link.url}`}
-                            href={link.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-lg border bg-white px-2 py-1 text-[11px] font-semibold text-neutral-700"
-                            style={{ borderColor: "var(--ptl-border)" }}
-                          >
-                            {link.label}
-                          </a>
-                        ))}
-                        {!canBuy ? (
-                          <span className="rounded-lg border border-neutral-200 bg-neutral-100 px-2 py-1 text-[11px] font-semibold text-neutral-600">
-                            No offer
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {bomLines.length === 0 ? (
-                <div className="rounded-xl border bg-white/70 p-3 text-xs text-neutral-600" style={{ borderColor: "var(--ptl-border)" }}>
-                  Add assets to begin building your bill of materials.
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-4 rounded-xl border bg-white/80 p-3" style={{ borderColor: "var(--ptl-border)" }}>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-700">Estimated total</span>
-                <span className="font-semibold text-neutral-900">{formatMoney(totalCents)}</span>
-              </div>
-              <div className="mt-1 text-xs text-neutral-600">
-                {bomLines.length} line item(s), {canvasState.items.length} canvas object(s)
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-xl border bg-white/80 p-3" style={{ borderColor: "var(--ptl-border)" }}>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-neutral-900">Compatibility</h3>
-                <label className="flex items-center gap-2 text-xs text-neutral-700">
-                  <input
-                    type="checkbox"
-                    checked={compatibilityEnabled}
-                    onChange={(event) => setCompatibilityEnabled(event.target.checked)}
-                  />
-                  Enabled
-                </label>
-              </div>
-
-              <div className="mb-2 grid grid-cols-2 gap-2 text-xs">
-                <label className="flex items-center gap-2 rounded-lg border bg-white px-2 py-1.5 text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
-                  <input
-                    type="checkbox"
-                    checked={flags.lowTechNoCo2}
-                    onChange={(event) => setLowTechNoCo2(event.target.checked)}
-                  />
-                  Low-tech
-                </label>
-                <label className="flex items-center gap-2 rounded-lg border bg-white px-2 py-1.5 text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
-                  <input
-                    type="checkbox"
-                    checked={flags.hasShrimp}
-                    onChange={(event) => setHasShrimp(event.target.checked)}
-                  />
-                  Shrimp tank
-                </label>
-              </div>
-
-              <div className="space-y-2">
-                {compatibility.evaluations.map((evaluation, index) => (
-                  <div
-                    key={`${evaluation.ruleCode}:${index}`}
-                    className={`rounded-lg border px-2.5 py-2 text-xs ${severityClasses(
-                      evaluation.severity,
-                    )}`}
-                  >
-                    <div className="font-semibold uppercase tracking-[0.12em]">
-                      {evaluation.severity}
-                    </div>
-                    <div className="mt-1 leading-relaxed">{evaluation.message}</div>
-                    {evaluation.fixSuggestion ? (
-                      <div className="mt-1 text-[11px] opacity-90">Fix: {evaluation.fixSuggestion}</div>
-                    ) : null}
-                  </div>
-                ))}
-
-                {compatibility.evaluations.length === 0 ? (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-800">
-                    No compatibility issues detected.
-                  </div>
-                ) : null}
-
-                {compatibility.hardscapeVolumeRatio != null ? (
-                  <div className="text-[11px] text-neutral-600">
-                    Hardscape volume estimate: {(compatibility.hardscapeVolumeRatio * 100).toFixed(1)}%
-                  </div>
-                ) : null}
-              </div>
-            </div>
+          <aside className="pointer-events-auto absolute left-4 top-4 hidden h-[calc(100%-7rem)] w-[292px] overflow-auto rounded-2xl border border-white/15 bg-slate-900/58 p-3 shadow-2xl backdrop-blur-md lg:block">
+            {leftPanel}
           </aside>
+
+          <aside className="pointer-events-auto absolute right-4 top-4 hidden h-[calc(100%-7rem)] w-[368px] overflow-auto rounded-2xl border border-white/15 bg-slate-900/58 p-3 shadow-2xl backdrop-blur-md lg:block">
+            {rightPanel}
+          </aside>
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center px-3">
+            <div className="pointer-events-auto rounded-2xl border border-white/15 bg-slate-900/75 p-2 shadow-2xl backdrop-blur-md">
+              {toolbar}
+            </div>
+          </div>
+        </section>
+
+        <div className="mt-3 grid grid-cols-1 gap-3 lg:hidden">
+          <section className="rounded-2xl border border-white/15 bg-slate-900/65 p-2.5">{toolbar}</section>
+          <section className="rounded-2xl border border-white/15 bg-slate-900/65 p-3">{leftPanel}</section>
+          <section className="rounded-2xl border border-white/15 bg-slate-900/65 p-3">{rightPanel}</section>
         </div>
+
+        <section className="mt-4 rounded-2xl border border-white/15 bg-slate-900/50 p-3 text-xs text-slate-300">
+          <div className="font-semibold text-slate-100">Scene diagnostics</div>
+          <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div>
+              Objects: <span className="font-semibold text-slate-100">{canvasState.items.length}</span>
+            </div>
+            <div>
+              Hardscape: <span className="font-semibold text-slate-100">{hardscapeCount}</span>
+            </div>
+            <div>
+              Plants: <span className="font-semibold text-slate-100">{plantCount}</span>
+            </div>
+            <div>
+              Quality: <span className="font-semibold text-slate-100">{qualityTier}</span>
+            </div>
+            <div>
+              Substrate front top: <span className="font-semibold text-slate-100">{substrateContour.frontTopPct.toFixed(1)}%</span>
+            </div>
+            <div>
+              Substrate mound top: <span className="font-semibold text-slate-100">{substrateContour.moundTopPct.toFixed(1)}%</span>
+            </div>
+            <div>
+              Tool mode: <span className="font-semibold text-slate-100">{toolMode}</span>
+            </div>
+            <div>
+              Hovered: <span className="font-semibold text-slate-100">{hoveredItemId ?? "—"}</span>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

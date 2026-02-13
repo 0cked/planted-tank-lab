@@ -79,11 +79,31 @@ export type VisualSubstrateProfile = {
   moundPosition: number;
 };
 
+export type VisualAnchorType = "substrate" | "hardscape" | "glass";
+
+export type VisualDepthZone = "foreground" | "midground" | "background";
+
+export type VisualItemTransform = {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+};
+
+export type VisualItemConstraintMetadata = {
+  snapToSurface: boolean;
+  canAttachToHardscape: boolean;
+  requiresSubstrate: boolean;
+  rotationSnapDeg: number;
+  collisionRadiusIn: number;
+};
+
 export type VisualCanvasItem = {
   id: string;
   assetId: string;
   assetType: VisualAssetType;
   categorySlug: string;
+  sku: string | null;
+  variant: string | null;
   x: number;
   y: number;
   // Depth axis: 0 = front glass, 1 = back glass.
@@ -91,14 +111,27 @@ export type VisualCanvasItem = {
   scale: number;
   rotation: number;
   layer: number;
+  anchorType: VisualAnchorType;
+  depthZone: VisualDepthZone | null;
+  constraints: VisualItemConstraintMetadata;
+  transform: VisualItemTransform;
+};
+
+export type VisualSceneSettings = {
+  qualityTier: "auto" | "high" | "medium" | "low";
+  postprocessingEnabled: boolean;
+  guidesVisible: boolean;
+  audioEnabled: boolean;
+  cameraPreset: "step" | "free";
 };
 
 export type VisualCanvasState = {
-  version: 2;
+  version: 3;
   widthIn: number;
   heightIn: number;
   depthIn: number;
   substrateProfile: VisualSubstrateProfile;
+  sceneSettings: VisualSceneSettings;
   items: VisualCanvasItem[];
 };
 

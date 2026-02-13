@@ -21,7 +21,14 @@ import {
   normalizeSubstrateProfile,
 } from "@/lib/visual/substrate";
 import { buildTankIllustrationUrl, tankModelFromSlug } from "@/lib/tank-visual";
-import type { VisualSubstrateProfile } from "@/components/builder/visual/types";
+import type {
+  VisualAnchorType,
+  VisualDepthZone,
+  VisualItemConstraintMetadata,
+  VisualItemTransform,
+  VisualSceneSettings,
+  VisualSubstrateProfile,
+} from "@/components/builder/visual/types";
 
 type ProductRow = {
   id: string;
@@ -52,27 +59,66 @@ type VisualCanvasItem = {
   assetId: string;
   assetType: "product" | "plant" | "design";
   categorySlug: string;
+  sku: string | null;
+  variant: string | null;
   x: number;
   y: number;
   z: number;
   scale: number;
   rotation: number;
   layer: number;
+  anchorType: VisualAnchorType;
+  depthZone: VisualDepthZone | null;
+  constraints: VisualItemConstraintMetadata;
+  transform: VisualItemTransform;
+};
+
+type CanvasItemInput = Omit<Partial<VisualCanvasItem>, "constraints" | "transform"> & {
+  constraints?: Partial<VisualItemConstraintMetadata>;
+  transform?: Partial<VisualItemTransform>;
 };
 
 const ACTIVE_STATUS = "active" as const;
+
+const sceneSettingsSchema = z.object({
+  qualityTier: z.enum(["auto", "high", "medium", "low"]).optional(),
+  postprocessingEnabled: z.boolean().optional(),
+  guidesVisible: z.boolean().optional(),
+  audioEnabled: z.boolean().optional(),
+  cameraPreset: z.enum(["step", "free"]).optional(),
+});
+
+const canvasItemTransformSchema = z.object({
+  position: z.tuple([z.number(), z.number(), z.number()]).optional(),
+  rotation: z.tuple([z.number(), z.number(), z.number()]).optional(),
+  scale: z.tuple([z.number(), z.number(), z.number()]).optional(),
+});
+
+const canvasItemConstraintsSchema = z.object({
+  snapToSurface: z.boolean().optional(),
+  canAttachToHardscape: z.boolean().optional(),
+  requiresSubstrate: z.boolean().optional(),
+  rotationSnapDeg: z.number().min(1).max(90).optional(),
+  collisionRadiusIn: z.number().min(0.1).max(100).optional(),
+});
 
 const canvasItemSchema = z.object({
   id: z.string().min(1).max(200),
   assetId: z.string().uuid(),
   assetType: z.enum(["product", "plant", "design"]),
   categorySlug: z.string().min(1).max(80),
+  sku: z.string().trim().max(200).nullable().optional(),
+  variant: z.string().trim().max(160).nullable().optional(),
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
   z: z.number().min(0).max(1).optional().default(0.5),
   scale: z.number().min(0.1).max(6),
   rotation: z.number().min(-180).max(180),
   layer: z.number().int().min(0).max(5000),
+  anchorType: z.enum(["substrate", "hardscape", "glass"]).optional(),
+  depthZone: z.enum(["foreground", "midground", "background"]).nullable().optional(),
+  constraints: canvasItemConstraintsSchema.optional(),
+  transform: canvasItemTransformSchema.optional(),
 });
 
 const substrateProfileSchema = z.object({
@@ -94,6 +140,16 @@ const canvasStateV2Schema = z.object({
   items: z.array(canvasItemSchema).max(500),
 });
 
+const canvasStateV3Schema = z.object({
+  version: z.literal(3),
+  widthIn: z.number().positive(),
+  heightIn: z.number().positive(),
+  depthIn: z.number().positive(),
+  substrateProfile: substrateProfileSchema,
+  sceneSettings: sceneSettingsSchema.optional(),
+  items: z.array(canvasItemSchema).max(1000),
+});
+
 const canvasStateV1Schema = z.object({
   version: z.literal(1),
   widthIn: z.number().positive(),
@@ -103,22 +159,34 @@ const canvasStateV1Schema = z.object({
 });
 
 const canvasStateSchema = z
-  .union([canvasStateV2Schema, canvasStateV1Schema])
+  .union([canvasStateV3Schema, canvasStateV2Schema, canvasStateV1Schema])
   .transform((input) => {
-    if (input.version === 2) {
-      return {
-        ...input,
-        substrateProfile: normalizeSubstrateProfile(input.substrateProfile, input.heightIn),
-      };
+    if (input.version === 3) {
+      return normalizeCanvasStateV3({
+        widthIn: input.widthIn,
+        heightIn: input.heightIn,
+        depthIn: input.depthIn,
+        substrateProfile: input.substrateProfile,
+        sceneSettings: input.sceneSettings,
+        items: input.items,
+      });
     }
-    return {
-      version: 2 as const,
+    if (input.version === 2) {
+      return normalizeCanvasStateV3({
+        widthIn: input.widthIn,
+        heightIn: input.heightIn,
+        depthIn: input.depthIn,
+        substrateProfile: input.substrateProfile,
+        items: input.items,
+      });
+    }
+    return normalizeCanvasStateV3({
       widthIn: input.widthIn,
       heightIn: input.heightIn,
       depthIn: input.depthIn,
-      items: input.items,
       substrateProfile: normalizeSubstrateProfile(DEFAULT_SUBSTRATE_PROFILE, input.heightIn),
-    };
+      items: input.items,
+    });
   });
 
 const lineItemSchema = z
@@ -310,24 +378,251 @@ function defaultBagVolumeLiters(categorySlug: string, specs: unknown): number | 
   return 8;
 }
 
-function parseCanvasState(value: unknown): {
-  version: 2;
+function round(value: number): number {
+  return Math.round(value * 10_000) / 10_000;
+}
+
+function defaultAnchorForCategory(categorySlug: string): VisualAnchorType {
+  if (categorySlug === "hardscape") return "substrate";
+  if (categorySlug === "plants") return "substrate";
+  if ([ "filter", "heater", "co2", "light" ].includes(categorySlug)) return "glass";
+  return "substrate";
+}
+
+function depthZoneFromZ(z: number): VisualDepthZone {
+  if (z <= 0.33) return "foreground";
+  if (z <= 0.66) return "midground";
+  return "background";
+}
+
+function defaultConstraintsForCategory(categorySlug: string): VisualItemConstraintMetadata {
+  if (categorySlug === "plants") {
+    return {
+      snapToSurface: true,
+      canAttachToHardscape: true,
+      requiresSubstrate: true,
+      rotationSnapDeg: 5,
+      collisionRadiusIn: 1.1,
+    };
+  }
+  if (categorySlug === "hardscape") {
+    return {
+      snapToSurface: true,
+      canAttachToHardscape: false,
+      requiresSubstrate: true,
+      rotationSnapDeg: 15,
+      collisionRadiusIn: 2,
+    };
+  }
+  return {
+    snapToSurface: true,
+    canAttachToHardscape: false,
+    requiresSubstrate: false,
+    rotationSnapDeg: 15,
+    collisionRadiusIn: 1.6,
+  };
+}
+
+function normalizeSceneSettings(
+  input: Partial<VisualSceneSettings> | undefined,
+): VisualSceneSettings {
+  const source = input ?? {};
+  return {
+    qualityTier:
+      source.qualityTier === "high" ||
+      source.qualityTier === "medium" ||
+      source.qualityTier === "low"
+        ? source.qualityTier
+        : "auto",
+    postprocessingEnabled: source.postprocessingEnabled ?? true,
+    guidesVisible: source.guidesVisible ?? true,
+    audioEnabled: source.audioEnabled ?? false,
+    cameraPreset: source.cameraPreset === "free" ? "free" : "step",
+  };
+}
+
+function buildTransformFromNormalized(params: {
+  x: number;
+  y: number;
+  z: number;
+  scale: number;
+  rotation: number;
+  widthIn: number;
+  heightIn: number;
+  depthIn: number;
+}): VisualItemTransform {
+  return {
+    position: [
+      round((params.x - 0.5) * params.widthIn),
+      round(params.y * params.heightIn),
+      round((params.z - 0.5) * params.depthIn),
+    ],
+    rotation: [0, round((params.rotation * Math.PI) / 180), 0],
+    scale: [round(params.scale), round(params.scale), round(params.scale)],
+  };
+}
+
+function normalizeCanvasItem(params: {
+  item: CanvasItemInput;
+  index: number;
+  widthIn: number;
+  heightIn: number;
+  depthIn: number;
+}): VisualCanvasItem {
+  const categorySlug =
+    typeof params.item.categorySlug === "string" && params.item.categorySlug.trim().length > 0
+      ? params.item.categorySlug
+      : "hardscape";
+  const x = Math.min(1, Math.max(0, params.item.x ?? 0.5));
+  const y = Math.min(1, Math.max(0, params.item.y ?? 0.56));
+  const z = Math.min(1, Math.max(0, params.item.z ?? 0.5));
+  const scale = Math.min(6, Math.max(0.1, params.item.scale ?? 1));
+  const rotation = Math.min(180, Math.max(-180, params.item.rotation ?? 0));
+  const layer =
+    typeof params.item.layer === "number" && Number.isFinite(params.item.layer)
+      ? Math.max(0, Math.floor(params.item.layer))
+      : params.index;
+
+  const anchorType =
+    params.item.anchorType === "hardscape" ||
+    params.item.anchorType === "glass" ||
+    params.item.anchorType === "substrate"
+      ? params.item.anchorType
+      : defaultAnchorForCategory(categorySlug);
+
+  const depthZone =
+    params.item.depthZone === "foreground" ||
+    params.item.depthZone === "midground" ||
+    params.item.depthZone === "background"
+      ? params.item.depthZone
+      : depthZoneFromZ(z);
+
+  const constraints = {
+    ...defaultConstraintsForCategory(categorySlug),
+    ...(params.item.constraints ?? {}),
+  };
+
+  const transform =
+    params.item.transform &&
+    Array.isArray(params.item.transform.position) &&
+    Array.isArray(params.item.transform.rotation) &&
+    Array.isArray(params.item.transform.scale)
+      ? {
+          position: [
+            round(Number(params.item.transform.position[0]) || 0),
+            round(Number(params.item.transform.position[1]) || 0),
+            round(Number(params.item.transform.position[2]) || 0),
+          ] as [number, number, number],
+          rotation: [
+            round(Number(params.item.transform.rotation[0]) || 0),
+            round(Number(params.item.transform.rotation[1]) || 0),
+            round(Number(params.item.transform.rotation[2]) || 0),
+          ] as [number, number, number],
+          scale: [
+            round(Number(params.item.transform.scale[0]) || scale),
+            round(Number(params.item.transform.scale[1]) || scale),
+            round(Number(params.item.transform.scale[2]) || scale),
+          ] as [number, number, number],
+        }
+      : buildTransformFromNormalized({
+          x,
+          y,
+          z,
+          scale,
+          rotation,
+          widthIn: params.widthIn,
+          heightIn: params.heightIn,
+          depthIn: params.depthIn,
+        });
+
+  return {
+    id: params.item.id && params.item.id.length > 0 ? params.item.id : nanoid(10),
+    assetId: params.item.assetId && params.item.assetId.length > 0 ? params.item.assetId : nanoid(10),
+    assetType:
+      params.item.assetType === "design" ||
+      params.item.assetType === "plant" ||
+      params.item.assetType === "product"
+        ? params.item.assetType
+        : categorySlug === "plants"
+          ? "plant"
+          : "product",
+    categorySlug,
+    sku: typeof params.item.sku === "string" ? params.item.sku : null,
+    variant: typeof params.item.variant === "string" ? params.item.variant : null,
+    x,
+    y,
+    z,
+    scale,
+    rotation,
+    layer,
+    anchorType,
+    depthZone,
+    constraints,
+    transform,
+  };
+}
+
+function normalizeCanvasStateV3(input: {
+  widthIn: number;
+  heightIn: number;
+  depthIn: number;
+  substrateProfile: Partial<VisualSubstrateProfile> | undefined;
+  sceneSettings?: Partial<VisualSceneSettings>;
+  items: CanvasItemInput[];
+}): {
+  version: 3;
   widthIn: number;
   heightIn: number;
   depthIn: number;
   substrateProfile: VisualSubstrateProfile;
+  sceneSettings: VisualSceneSettings;
+  items: VisualCanvasItem[];
+} {
+  const widthIn = Math.max(1, input.widthIn);
+  const heightIn = Math.max(1, input.heightIn);
+  const depthIn = Math.max(1, input.depthIn);
+  const items = input.items
+    .map((item, index) =>
+      normalizeCanvasItem({
+        item,
+        index,
+        widthIn,
+        heightIn,
+        depthIn,
+      }),
+    )
+    .sort((a, b) => a.layer - b.layer)
+    .map((item, index) => ({ ...item, layer: index }));
+
+  return {
+    version: 3,
+    widthIn,
+    heightIn,
+    depthIn,
+    substrateProfile: normalizeSubstrateProfile(input.substrateProfile, heightIn),
+    sceneSettings: normalizeSceneSettings(input.sceneSettings),
+    items,
+  };
+}
+
+function parseCanvasState(value: unknown): {
+  version: 3;
+  widthIn: number;
+  heightIn: number;
+  depthIn: number;
+  substrateProfile: VisualSubstrateProfile;
+  sceneSettings: VisualSceneSettings;
   items: VisualCanvasItem[];
 } {
   const parsed = canvasStateSchema.safeParse(value);
   if (parsed.success) return parsed.data;
-  return {
-    version: 2,
+  return normalizeCanvasStateV3({
     widthIn: 24,
     heightIn: 14,
     depthIn: 12,
     substrateProfile: DEFAULT_SUBSTRATE_PROFILE,
     items: [],
-  };
+  });
 }
 
 async function findBestOffers(params: {
@@ -778,7 +1073,7 @@ export const visualBuilderRouter = createTRPCRouter({
             name: input.name,
             description: input.description ?? null,
             shareSlug,
-            style: "visual-v1",
+            style: "visual-v2",
             tankId: input.tankId,
             canvasState: input.canvasState,
             flags: input.flags ?? {},
