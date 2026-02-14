@@ -82,7 +82,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T003, T007
   - **Artifacts:** `docs/refactor/layout-ia-spec.md` (new)
 
-- [ ] **T009 — Produce Visual Direction Spec**
+- [x] **T009 — Produce Visual Direction Spec**
   - **Goal:** Define visual system updates to align with site brand while adding immersive depth.
   - **Why it matters:** Solves theme disconnect and enables richer, game-like atmosphere without clutter.
   - **Definition of Done:** Token-level direction for color/contrast/material/light/motion plus “do/don’t” examples tied to inspiration analysis.
