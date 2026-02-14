@@ -54,7 +54,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T001
   - **Artifacts:** `docs/refactor/camera-reset-diagnosis.md` (new)
 
-- [ ] **T005 — Diagnose Current Substrate Sculpting Model**
+- [x] **T005 — Diagnose Current Substrate Sculpting Model**
   - **Goal:** Document current substrate editing model, constraints, and UX friction points.
   - **Why it matters:** Existing sculpting is reported as frustrating/unintuitive and needs replacement-level planning.
   - **Definition of Done:** Current sculpt pipeline is mapped end-to-end (input -> data -> mesh update -> feedback), with pain points categorized by usability and technical limitations.
