@@ -103,7 +103,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T005, T006, T007
   - **Artifacts:** `docs/refactor/substrate-ux-spec.md` (new)
 
-- [ ] **T012 — Camera Architecture Decision Record**
+- [x] **T012 — Camera Architecture Decision Record**
   - **Goal:** Select and document camera control architecture/state ownership model.
   - **Why it matters:** Prevents repeat camera lock/reset regressions through explicit lifecycle and ownership boundaries.
   - **Definition of Done:** ADR lists chosen design, rejected alternatives, trigger rules for framing, and persistence model.
