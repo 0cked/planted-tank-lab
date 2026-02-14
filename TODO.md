@@ -96,7 +96,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T004, T007
   - **Artifacts:** `docs/refactor/camera-ux-spec.md` (new)
 
-- [ ] **T011 — Produce Substrate Editing UX Spec (Node-Grid Concept)**
+- [x] **T011 — Produce Substrate Editing UX Spec (Node-Grid Concept)**
   - **Goal:** Define tactile node-grid editing behavior and user workflow.
   - **Why it matters:** Replaces frustrating sculpting interaction with precise, game-engine-like terrain control.
   - **Definition of Done:** Spec includes node manipulation interactions, feedback states, constraints, and undo/redo behavior.
