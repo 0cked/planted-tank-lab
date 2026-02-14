@@ -89,7 +89,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T002, T006, T007
   - **Artifacts:** `docs/refactor/visual-direction-spec.md` (new)
 
-- [ ] **T010 — Produce Camera UX Spec**
+- [x] **T010 — Produce Camera UX Spec**
   - **Goal:** Define required camera capabilities and user-facing interactions.
   - **Why it matters:** Restores immersion via predictable orbit/zoom/pan and no forced resets.
   - **Definition of Done:** Spec includes interaction contract, explicit auto-frame rules, persistence expectations, and acceptance criteria.
