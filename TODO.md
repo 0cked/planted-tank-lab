@@ -61,7 +61,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T001
   - **Artifacts:** `docs/refactor/substrate-current-model-diagnosis.md` (new)
 
-- [ ] **T006 — Analyze Inspiration Images (`/inspiration-photos`)**
+- [x] **T006 — Analyze Inspiration Images (`/inspiration-photos`)**
   - **Goal:** Extract concrete visual principles from inspiration references.
   - **Why it matters:** Ensures refactor aligns with desired game-like, stylized, dimensional benchmark rather than abstract taste.
   - **Definition of Done:** A visual analysis doc with lighting, composition, depth/layering, and UI-overlay principles plus explicit “current vs target” deltas.
