@@ -40,7 +40,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T001
   - **Artifacts:** `docs/refactor/theme-misalignment-audit.md` (new)
 
-- [ ] **T003 — Diagnose “SaaS Dashboard” Feel**
+- [x] **T003 — Diagnose “SaaS Dashboard” Feel**
   - **Goal:** Identify structural/UI causes that make builder read like admin software instead of a creative tool.
   - **Why it matters:** Targets feedback that builder currently feels like Stripe/Notion/Figma rather than immersive aquascaping.
   - **Definition of Done:** A root-cause matrix listing layout, panel density, control hierarchy, and language issues with evidence from current UI.
