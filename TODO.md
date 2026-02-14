@@ -33,7 +33,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** None
   - **Artifacts:** `docs/refactor/builder-baseline.md` (new), screenshot references/paths (existing captures)
 
-- [ ] **T002 — Diagnose Visual Theme Misalignment**
+- [x] **T002 — Diagnose Visual Theme Misalignment**
   - **Goal:** Identify where builder styling diverges from site-wide brand language.
   - **Why it matters:** Directly addresses feedback that dark builder feels visually disconnected from the rest of the site.
   - **Definition of Done:** A documented list of mismatches across color, typography, spacing, component style, and tone; each mismatch mapped to impact severity.
