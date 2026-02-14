@@ -47,7 +47,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T001
   - **Artifacts:** `docs/refactor/dashboard-feel-root-causes.md` (new)
 
-- [ ] **T004 — Diagnose Camera Lock / Reset Behavior**
+- [x] **T004 — Diagnose Camera Lock / Reset Behavior**
   - **Goal:** Trace where camera pose is being reset or overridden in current architecture.
   - **Why it matters:** Camera snap-back is a core immersion breaker and directly blocks user control expectations.
   - **Definition of Done:** A documented event/lifecycle trace showing camera initialization, update triggers, and reset points, with suspected ownership flaws.
