@@ -68,7 +68,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T001
   - **Artifacts:** `docs/refactor/inspiration-analysis.md` (new)
 
-- [ ] **T007 — Define Builder Experience Principles (v1)**
+- [x] **T007 — Define Builder Experience Principles (v1)**
   - **Goal:** Create explicit product principles for immersive, creative-first builder behavior.
   - **Why it matters:** Prevents drifting back to dashboard patterns and anchors all decisions to product owner intent.
   - **Definition of Done:** 6–10 principles approved internally in doc (e.g., viewport dominance, user camera agency, progressive disclosure, tactile editing).
