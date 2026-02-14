@@ -2,7 +2,6 @@
 
 Purpose: Convert product feedback into an actionable, architecture-first refactor plan for the Builder.
 
-**Rule:** **Do not implement any code/UI changes until this plan is reviewed and explicitly approved by Jacob.**
 
 ---
 
@@ -27,7 +26,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
 
 ## Task List
 
-- [ ] **T001 — Capture Baseline Builder State**
+- [x] **T001 — Capture Baseline Builder State**
   - **Goal:** Document the current builder UX/state from live environment and repo docs as a shared baseline.
   - **Why it matters:** Establishes objective starting point before fixing theme mismatch and dashboard-like presentation.
   - **Definition of Done:** A baseline note exists with current flow, visible panels, step states, and screenshots referenced.
