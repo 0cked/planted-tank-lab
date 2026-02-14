@@ -75,7 +75,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T002, T003, T006
   - **Artifacts:** `docs/refactor/experience-principles.md` (new)
 
-- [ ] **T008 — Produce Layout & Information Architecture Spec**
+- [x] **T008 — Produce Layout & Information Architecture Spec**
   - **Goal:** Specify stage-first layout with contextual HUD/panels and reduced always-on chrome.
   - **Why it matters:** Directly addresses SaaS dashboard feel and lack of immersion.
   - **Definition of Done:** Annotated IA spec includes always-visible vs contextual UI, panel behavior rules, and step-to-surface mapping.
