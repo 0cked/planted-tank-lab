@@ -117,7 +117,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T005, T011
   - **Artifacts:** `decisions/ADR-substrate-node-grid-architecture.md` (new)
 
-- [ ] **T014 — Performance Budget & Risk Model**
+- [x] **T014 — Performance Budget & Risk Model**
   - **Goal:** Quantify performance constraints and high-risk scenarios across camera, rendering, and substrate updates.
   - **Why it matters:** Immersion fails if controls lag or frame rate collapses under richer visuals and live mesh edits.
   - **Definition of Done:** Document defines target budgets (interaction latency/frame stability), risk matrix, and mitigation strategies.
