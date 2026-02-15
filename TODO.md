@@ -197,7 +197,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T022, T023
   - **Artifacts:** `docs/refactor/ui-composition-blueprint.md` (new)
 
-- [ ] **T025 — Overhaul Visual Spec Package (Tokens + Components + Motion)**
+- [x] **T025 — Overhaul Visual Spec Package (Tokens + Components + Motion)**
   - **Goal:** Produce implementation-ready visual spec package aligned to Wednesday design tokens and approved component usage.
   - **Why it matters:** Ensures the visual overhaul is immersive, brand-coherent, and standardized across components.
   - **Definition of Done:** Spec maps all primary Builder surfaces/components to approved patterns/tokens and includes motion behavior guidance.
