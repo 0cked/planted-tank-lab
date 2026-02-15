@@ -341,6 +341,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const [cameraIntent, setCameraIntent] = useState<{ type: "reframe" | "reset"; seq: number } | null>(null);
   const [cameraEvidenceCopyStatus, setCameraEvidenceCopyStatus] = useState<"idle" | "copied" | "error">("idle");
   const [showExpandedCameraEvidence, setShowExpandedCameraEvidence] = useState(false);
+  const cameraEvidenceCopyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const buildId = useVisualBuilderStore((s) => s.buildId);
   const shareSlug = useVisualBuilderStore((s) => s.shareSlug);
@@ -983,6 +984,28 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
       setCameraEvidenceCopyStatus("error");
     }
   };
+
+  useEffect(() => {
+    if (cameraEvidenceCopyStatus === "idle") {
+      return;
+    }
+
+    if (cameraEvidenceCopyResetTimerRef.current) {
+      clearTimeout(cameraEvidenceCopyResetTimerRef.current);
+    }
+
+    cameraEvidenceCopyResetTimerRef.current = setTimeout(() => {
+      setCameraEvidenceCopyStatus("idle");
+      cameraEvidenceCopyResetTimerRef.current = null;
+    }, 2200);
+
+    return () => {
+      if (cameraEvidenceCopyResetTimerRef.current) {
+        clearTimeout(cameraEvidenceCopyResetTimerRef.current);
+        cameraEvidenceCopyResetTimerRef.current = null;
+      }
+    };
+  }, [cameraEvidenceCopyStatus]);
 
   const leftPanel = (
     <div className="space-y-3">

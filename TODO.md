@@ -364,9 +364,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T046
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T048 — Camera Evidence Copy UX Cooldown Reset**
+- [x] **T048 — Camera Evidence Copy UX Cooldown Reset**
   - **Goal:** Auto-reset copy success/error badge state after a short delay to keep diagnostics readable during repeated evidence captures.
   - **Why it matters:** Prevents stale copy-state badges from misleading operators during rapid gate packet assembly.
   - **Definition of Done:** Copy status feedback clears automatically after a brief timeout and remains accurate across repeated copy attempts.
   - **Dependencies:** T047
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T049 — Camera Evidence Snapshot JSON Height Clamp + Scroll Polish**
+  - **Goal:** Improve expanded JSON readability with a tighter viewport height clamp and smoother overflow behavior.
+  - **Why it matters:** Keeps diagnostics panel scannable when evidence payload grows, without obscuring nearby controls.
+  - **Definition of Done:** Expanded JSON panel remains readable and scrollable with consistent max height across typical builder viewport sizes.
+  - **Dependencies:** T048
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)
