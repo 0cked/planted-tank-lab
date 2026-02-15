@@ -28,6 +28,9 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
 ### M7 — Approval & Readiness Bridge (Planning-Only)
 - T031–T036
 
+### M8 — Implementation Kickoff (Approved)
+- T037+
+
 ---
 
 ## Task List
@@ -283,3 +286,17 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Definition of Done:** Runbook includes cadence, attendees, decision rubric, rollback triggers, and communication templates.
   - **Dependencies:** T032, T033, T035
   - **Artifacts:** `docs/refactor/gate-review-operations-runbook.md` (new)
+
+- [x] **T037 — Stage-First UI Kickoff: Reduce Always-On Control Density (Pass 1)**
+  - **Goal:** Start implementation by reducing persistent control density in Builder and moving secondary toggles behind an explicit reveal.
+  - **Why it matters:** Delivers an immediate, tangible shift away from dashboard feel while preserving functionality.
+  - **Definition of Done:** Summary metrics remain visible, options are collapsed by default behind a “Show options” affordance, and all toggles remain functional when expanded.
+  - **Dependencies:** T036
+  - **Artifacts:** `src/components/builder/BuilderPage.tsx` (updated)
+
+- [ ] **T038 — Camera Foundations Kickoff: Baseline Ownership + No-Implicit-Reset Audit Hooks**
+  - **Goal:** Begin camera implementation stream with explicit ownership boundaries and baseline instrumentation hooks for pose/reset diagnostics.
+  - **Why it matters:** Camera agency is the highest-impact immersion blocker in the approved implementation sequence.
+  - **Definition of Done:** Camera ownership/intent path is explicit in code and baseline diagnostics can detect unexpected pose changes during step transitions.
+  - **Dependencies:** T037
+  - **Artifacts:** `src/components/builder/*`, `src/engine/*` (planned updates)

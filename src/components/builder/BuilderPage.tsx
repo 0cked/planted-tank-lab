@@ -18,6 +18,7 @@ import {
 } from "@/lib/offer-summary";
 
 import { SmartImage } from "@/components/SmartImage";
+import { OfferFreshnessBadge } from "@/components/offers/OfferFreshnessBadge";
 import { RetailerMark } from "@/components/RetailerMark";
 import { trpc } from "@/components/TRPCProvider";
 import {
@@ -72,16 +73,6 @@ function formatMoney(cents: number | null | undefined): string {
   return dollars.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
-function formatDateShort(value: unknown): string | null {
-  if (value == null) return null;
-  const parsed = value instanceof Date ? value : new Date(String(value));
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 function numSpec(specs: unknown, key: string): number | null {
   if (!isRecord(specs)) return null;
@@ -1304,8 +1295,6 @@ function OffersDialog(props: {
             {(offersQ.data ?? []).map((o) => {
               const selected = props.selectedOfferId === o.id;
               const price = formatMoney(o.priceCents);
-              const checked = formatDateShort((o as { lastCheckedAt?: unknown }).lastCheckedAt);
-              const updated = formatDateShort((o as { updatedAt?: unknown }).updatedAt);
               return (
                 <li
                   key={o.id}
@@ -1328,9 +1317,12 @@ function OffersDialog(props: {
 	                        }
 	                        logoUrl={o.retailer.logoUrl ?? null}
 	                      />
-                      <div className="text-xs text-neutral-600">
-                        {o.inStock ? "In stock" : "Out of stock"}
-                        {checked ? ` · Checked ${checked}` : updated ? ` · Updated ${updated}` : ""}
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-neutral-600">
+                        <span>{o.inStock ? "In stock" : "Out of stock"}</span>
+                        <OfferFreshnessBadge
+                          lastCheckedAt={(o as { lastCheckedAt?: unknown }).lastCheckedAt}
+                          sourceLabel={o.retailer.name}
+                        />
                       </div>
                     </div>
                   </label>
@@ -1679,6 +1671,7 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [activeOffers, setActiveOffers] = useState<{ productId: string; productName: string } | null>(null);
   const [issuesExpanded, setIssuesExpanded] = useState(false);
+  const [optionsExpanded, setOptionsExpanded] = useState(false);
 
   const workflow = useMemo(() => {
     return buildWorkflow({
@@ -2135,62 +2128,75 @@ export function BuilderPage(props: { initialState?: BuilderInitialState }) {
       </div>
 
       <div className="mt-6 grid gap-4">
-        <div className="ptl-surface grid grid-cols-1 gap-3 p-5 sm:grid-cols-4">
-          <div>
-            <div className="text-xs font-medium text-neutral-600">{totalLabel}</div>
-            <div className="mt-1 text-xl font-semibold tracking-tight">
-              {totalDisplay}
+        <div className="ptl-surface p-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <div className="text-xs font-medium text-neutral-600">{totalLabel}</div>
+              <div className="mt-1 text-xl font-semibold tracking-tight">
+                {totalDisplay}
+              </div>
+              <div className="mt-1 text-xs text-neutral-500">{totalSubLabel}</div>
             </div>
-            <div className="mt-1 text-xs text-neutral-500">{totalSubLabel}</div>
-          </div>
-          <div>
-            <div className="text-xs font-medium text-neutral-600">Errors</div>
-            <div className="mt-1 text-xl font-semibold tracking-tight">{counts.error}</div>
-          </div>
-          <div>
-            <div className="text-xs font-medium text-neutral-600">Warnings</div>
-            <div className="mt-1 text-xl font-semibold tracking-tight">{counts.warning}</div>
-          </div>
-          <div>
-            <div className="text-xs font-medium text-neutral-600">Options</div>
-            <div className="mt-2 space-y-2">
-              <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
-                <span className="font-medium">Compatibility</span>
-                <input
-                  type="checkbox"
-                  checked={compatibilityEnabled}
-                  onChange={(e) => setCompatibilityEnabled(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-300"
-                />
-              </label>
-              <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
-                <span className="font-medium">Curated picks</span>
-                <input
-                  type="checkbox"
-                  checked={curatedOnly}
-                  onChange={(e) => setCuratedOnly(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-300"
-                />
-              </label>
-              <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
-                <span className="font-medium">Low-tech (no CO2)</span>
-                <input
-                  type="checkbox"
-                  checked={lowTechNoCo2}
-                  onChange={(e) => setLowTechNoCo2(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-300"
-                />
-              </label>
-              <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
-                <span className="font-medium">Shrimp tank</span>
-                <input
-                  type="checkbox"
-                  checked={flags.hasShrimp}
-                  onChange={(e) => setHasShrimp(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-300"
-                />
-              </label>
+            <div>
+              <div className="text-xs font-medium text-neutral-600">Errors</div>
+              <div className="mt-1 text-xl font-semibold tracking-tight">{counts.error}</div>
             </div>
+            <div>
+              <div className="text-xs font-medium text-neutral-600">Warnings</div>
+              <div className="mt-1 text-xl font-semibold tracking-tight">{counts.warning}</div>
+            </div>
+          </div>
+
+          <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--ptl-border)" }}>
+            <button
+              type="button"
+              onClick={() => setOptionsExpanded((v) => !v)}
+              className="rounded-full border bg-white/75 px-3 py-1.5 text-sm font-semibold text-neutral-900 transition hover:bg-white cursor-pointer"
+              style={{ borderColor: "var(--ptl-border)" }}
+            >
+              {optionsExpanded ? "Hide options" : "Show options"}
+            </button>
+
+            {optionsExpanded ? (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
+                  <span className="font-medium">Compatibility</span>
+                  <input
+                    type="checkbox"
+                    checked={compatibilityEnabled}
+                    onChange={(e) => setCompatibilityEnabled(e.target.checked)}
+                    className="h-4 w-4 rounded border-neutral-300"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
+                  <span className="font-medium">Curated picks</span>
+                  <input
+                    type="checkbox"
+                    checked={curatedOnly}
+                    onChange={(e) => setCuratedOnly(e.target.checked)}
+                    className="h-4 w-4 rounded border-neutral-300"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
+                  <span className="font-medium">Low-tech (no CO2)</span>
+                  <input
+                    type="checkbox"
+                    checked={lowTechNoCo2}
+                    onChange={(e) => setLowTechNoCo2(e.target.checked)}
+                    className="h-4 w-4 rounded border-neutral-300"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3 text-sm text-neutral-800">
+                  <span className="font-medium">Shrimp tank</span>
+                  <input
+                    type="checkbox"
+                    checked={flags.hasShrimp}
+                    onChange={(e) => setHasShrimp(e.target.checked)}
+                    className="h-4 w-4 rounded border-neutral-300"
+                  />
+                </label>
+              </div>
+            ) : null}
           </div>
         </div>
 
