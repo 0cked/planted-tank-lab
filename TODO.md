@@ -256,7 +256,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T031
   - **Artifacts:** `docs/refactor/approval-decision-record.md` (new)
 
-- [ ] **T033 — Workstream Ownership & Gate RACI Plan**
+- [x] **T033 — Workstream Ownership & Gate RACI Plan**
   - **Goal:** Define named ownership and gate-level decision authority for WS-A through WS-E.
   - **Why it matters:** Removes ambiguity in cross-stream decisions and speeds risk triage when gate blockers emerge.
   - **Definition of Done:** RACI matrix maps each workstream and gate to responsible/approver/support roles with backup coverage.
