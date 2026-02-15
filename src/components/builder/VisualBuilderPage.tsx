@@ -340,6 +340,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   });
   const [cameraIntent, setCameraIntent] = useState<{ type: "reframe" | "reset"; seq: number } | null>(null);
   const [cameraEvidenceCopyStatus, setCameraEvidenceCopyStatus] = useState<"idle" | "copied" | "error">("idle");
+  const [showExpandedCameraEvidence, setShowExpandedCameraEvidence] = useState(false);
 
   const buildId = useVisualBuilderStore((s) => s.buildId);
   const shareSlug = useVisualBuilderStore((s) => s.shareSlug);
@@ -934,6 +935,25 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
         null,
         2,
       ),
+    [cameraDiagnostics, cameraScenarioStatus, canvasState.sceneSettings.cameraPreset, currentStep],
+  );
+
+  const cameraEvidenceSummary = useMemo(
+    () => ({
+      step: currentStep,
+      mode: canvasState.sceneSettings.cameraPreset,
+      s01: cameraScenarioStatus.s01,
+      s02: cameraScenarioStatus.s02,
+      s03: cameraScenarioStatus.s03,
+      unexpectedPoseDeltas: cameraDiagnostics.unexpectedPoseDeltas,
+      intentCount: cameraDiagnostics.intentCount,
+      lastIntent: cameraDiagnostics.lastIntent
+        ? `${cameraDiagnostics.lastIntent} (${cameraDiagnostics.lastIntentStep ?? "unknown"})`
+        : "none",
+      lastPoseDelta: cameraDiagnostics.lastPoseDelta
+        ? `${cameraDiagnostics.lastPoseDelta.step} · pos ${cameraDiagnostics.lastPoseDelta.positionDelta.toFixed(2)} · target ${cameraDiagnostics.lastPoseDelta.targetDelta.toFixed(2)}`
+        : "none",
+    }),
     [cameraDiagnostics, cameraScenarioStatus, canvasState.sceneSettings.cameraPreset, currentStep],
   );
 
@@ -2015,7 +2035,37 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
             </div>
             <div className="mt-2 rounded-lg border border-white/15 bg-slate-900/50 p-2">
               <div className="mb-1 text-[11px] font-semibold text-slate-100">Gate evidence snapshot</div>
-              <pre className="max-h-36 overflow-auto rounded bg-slate-950/70 p-2 text-[10px] text-slate-300">{cameraEvidenceSnapshot}</pre>
+
+              <div className="rounded bg-slate-950/70 p-2 text-[10px] text-slate-300">
+                <div>Step: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.step}</span></div>
+                <div>Mode: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.mode}</span></div>
+                <div>
+                  Status: <span className="font-semibold text-slate-100">S01 {cameraEvidenceSummary.s01}</span> ·{" "}
+                  <span className="font-semibold text-slate-100">S02 {cameraEvidenceSummary.s02}</span> ·{" "}
+                  <span className="font-semibold text-slate-100">S03 {cameraEvidenceSummary.s03}</span>
+                </div>
+                <div>
+                  Signals: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.intentCount}</span> intents ·{" "}
+                  <span className="font-semibold text-slate-100">{cameraEvidenceSummary.unexpectedPoseDeltas}</span> unexpected deltas
+                </div>
+                <div className="truncate">Last intent: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.lastIntent}</span></div>
+                <div className="truncate">Last pose delta: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.lastPoseDelta}</span></div>
+              </div>
+
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowExpandedCameraEvidence((prev) => !prev)}
+                  className="rounded border border-white/20 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-slate-200"
+                >
+                  {showExpandedCameraEvidence ? "Hide raw JSON" : "Show raw JSON"}
+                </button>
+              </div>
+
+              {showExpandedCameraEvidence ? (
+                <pre className="mt-2 max-h-36 overflow-auto rounded bg-slate-950/70 p-2 text-[10px] text-slate-300">{cameraEvidenceSnapshot}</pre>
+              ) : null}
+
               <div className="mt-2 flex items-center gap-2">
                 <button
                   type="button"
