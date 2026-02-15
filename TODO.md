@@ -124,7 +124,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T009, T010, T011, T012, T013
   - **Artifacts:** `docs/refactor/performance-risk-model.md` (new)
 
-- [ ] **T015 — Dependency & Sequence Map**
+- [x] **T015 — Dependency & Sequence Map**
   - **Goal:** Create a system dependency graph and recommended implementation order.
   - **Why it matters:** Ensures high-impact immersion fixes (layout/camera) happen before polish and reduces rework.
   - **Definition of Done:** A sequenced map exists with critical path, blockers, and parallelizable workstreams.
