@@ -232,7 +232,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T022, T024, T025, T026, T027, T028
   - **Artifacts:** `docs/refactor/overhaul-sprint-plan.md` (new)
 
-- [ ] **T030 — UI/UX Overhaul Kickoff Packet (Approval-to-Implement Gate)**
+- [x] **T030 — UI/UX Overhaul Kickoff Packet (Approval-to-Implement Gate)**
   - **Goal:** Produce a final packet that requests explicit kickoff approval for full UI/UX overhaul execution.
   - **Why it matters:** Ensures final stakeholder alignment before large-scale implementation begins.
   - **Definition of Done:** Packet includes scope, sequence, risks, success criteria, and explicit “approve overhaul implementation” decision checkbox.
