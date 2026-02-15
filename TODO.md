@@ -176,7 +176,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T020
   - **Artifacts:** `docs/refactor/implementation-backlog-skeleton.md` (new)
 
-- [ ] **T022 — Plan Review Packet (Approval Gate)**
+- [x] **T022 — Plan Review Packet (Approval Gate)**
   - **Goal:** Produce concise review packet summarizing diagnosis, strategy, architecture choices, risks, and roadmap.
   - **Why it matters:** Final approval gate to ensure no implementation begins before product owner sign-off.
   - **Definition of Done:** Single review packet delivered with executive summary, decision highlights, open questions, and explicit “approve to implement” checkbox.
