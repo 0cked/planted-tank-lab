@@ -22,6 +22,9 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
 ### M5 — Implementation Prep (Still Planning Only)
 - T020–T022
 
+### M6 — Full UI/UX Overhaul (Wednesday-Skills-Governed)
+- T023–T030
+
 ---
 
 ## Task List
@@ -179,3 +182,59 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Definition of Done:** Single review packet delivered with executive summary, decision highlights, open questions, and explicit “approve to implement” checkbox.
   - **Dependencies:** T001, T002, T003, T004, T005, T006, T007, T008, T009, T010, T011, T012, T013, T014, T015, T016, T017, T018, T019, T020, T021
   - **Artifacts:** `docs/refactor/PLAN_REVIEW_PACKET.md` (new)
+
+- [ ] **T023 — Wednesday Skill Enforcement Baseline (Dev + Design)**
+  - **Goal:** Define repo-level enforcement rules that require `wednesday-dev` and `wednesday-design` for all Builder overhaul implementation work.
+  - **Why it matters:** Ensures the overhaul consistently follows the new global design/dev system and prevents regression into ad-hoc patterns.
+  - **Definition of Done:** A written enforcement checklist exists that maps major implementation areas to Wednesday skill requirements and reference docs.
+  - **Dependencies:** T022
+  - **Artifacts:** `docs/refactor/wednesday-enforcement-checklist.md` (new)
+
+- [ ] **T024 — Overhaul UI Composition Blueprint (Screen-by-Screen)**
+  - **Goal:** Translate stage-first IA into concrete screen/state blueprints for each Builder step and key interaction mode.
+  - **Why it matters:** Converts strategic layout direction into implementable UI structure and reduces execution ambiguity.
+  - **Definition of Done:** Blueprint includes step states, responsive behavior, panel visibility rules, and viewport-safe zones for overlays.
+  - **Dependencies:** T022, T023
+  - **Artifacts:** `docs/refactor/ui-composition-blueprint.md` (new)
+
+- [ ] **T025 — Overhaul Visual Spec Package (Tokens + Components + Motion)**
+  - **Goal:** Produce implementation-ready visual spec package aligned to Wednesday design tokens and approved component usage.
+  - **Why it matters:** Ensures the visual overhaul is immersive, brand-coherent, and standardized across components.
+  - **Definition of Done:** Spec maps all primary Builder surfaces/components to approved patterns/tokens and includes motion behavior guidance.
+  - **Dependencies:** T022, T023
+  - **Artifacts:** `docs/refactor/visual-spec-package.md` (new)
+
+- [ ] **T026 — Camera UX Implementation Plan (Task Breakdown)**
+  - **Goal:** Break camera redesign into sequenced implementation tasks under the accepted camera ADR.
+  - **Why it matters:** Camera agency is a critical immersion blocker and must be executed with high confidence.
+  - **Definition of Done:** Task breakdown includes milestones, test points, failure rollback strategy, and explicit completion checks.
+  - **Dependencies:** T022, T023
+  - **Artifacts:** `docs/refactor/camera-implementation-plan.md` (new)
+
+- [ ] **T027 — Substrate Node-Grid Implementation Plan (Task Breakdown)**
+  - **Goal:** Break node-grid substrate redesign into sequenced implementation tasks under the substrate ADR.
+  - **Why it matters:** Tactile terrain editing is a core product differentiator and highest-risk engineering stream.
+  - **Definition of Done:** Plan includes data migration approach, mesh update strategy, interaction milestones, and perf checkpoints.
+  - **Dependencies:** T022, T023
+  - **Artifacts:** `docs/refactor/substrate-implementation-plan.md` (new)
+
+- [ ] **T028 — Performance Guardrail Integration Plan**
+  - **Goal:** Map performance budgets/risk mitigations into concrete engineering guardrails for overhaul implementation.
+  - **Why it matters:** Prevents immersion gains from being undermined by latency, stutter, or unstable frame pacing.
+  - **Definition of Done:** Guardrail plan defines budget gates per phase, profiling checkpoints, and remediation paths for budget failures.
+  - **Dependencies:** T022, T023, T026, T027
+  - **Artifacts:** `docs/refactor/perf-guardrail-integration-plan.md` (new)
+
+- [ ] **T029 — Full UI/UX Overhaul Sprint Plan (Execution-Ready)**
+  - **Goal:** Produce a sequenced sprint plan combining UI, visual, camera, substrate, and performance streams into one cohesive delivery program.
+  - **Why it matters:** Coordinates cross-system changes and reduces integration risk during overhaul execution.
+  - **Definition of Done:** Sprint plan includes workstream owners/ordering, dependency gates, and milestone demos with acceptance criteria links.
+  - **Dependencies:** T022, T024, T025, T026, T027, T028
+  - **Artifacts:** `docs/refactor/overhaul-sprint-plan.md` (new)
+
+- [ ] **T030 — UI/UX Overhaul Kickoff Packet (Approval-to-Implement Gate)**
+  - **Goal:** Produce a final packet that requests explicit kickoff approval for full UI/UX overhaul execution.
+  - **Why it matters:** Ensures final stakeholder alignment before large-scale implementation begins.
+  - **Definition of Done:** Packet includes scope, sequence, risks, success criteria, and explicit “approve overhaul implementation” decision checkbox.
+  - **Dependencies:** T029
+  - **Artifacts:** `docs/refactor/OVERHAUL_KICKOFF_PACKET.md` (new)
