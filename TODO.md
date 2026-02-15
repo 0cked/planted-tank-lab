@@ -294,9 +294,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T036
   - **Artifacts:** `src/components/builder/BuilderPage.tsx` (updated)
 
-- [ ] **T038 — Camera Foundations Kickoff: Baseline Ownership + No-Implicit-Reset Audit Hooks**
+- [x] **T038 — Camera Foundations Kickoff: Baseline Ownership + No-Implicit-Reset Audit Hooks**
   - **Goal:** Begin camera implementation stream with explicit ownership boundaries and baseline instrumentation hooks for pose/reset diagnostics.
   - **Why it matters:** Camera agency is the highest-impact immersion blocker in the approved implementation sequence.
   - **Definition of Done:** Camera ownership/intent path is explicit in code and baseline diagnostics can detect unexpected pose changes during step transitions.
   - **Dependencies:** T037
-  - **Artifacts:** `src/components/builder/*`, `src/engine/*` (planned updates)
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/components/builder/visual/VisualBuilderScene.tsx` (updated)
+
+- [ ] **T039 — Camera Persistence Hardening Across Step Changes**
+  - **Goal:** Ensure free-camera pose persists through step transitions unless the user explicitly opts back into step-owned camera framing.
+  - **Why it matters:** Prevents snap-back regressions and preserves user agency during multi-step composition flow.
+  - **Definition of Done:** Step transitions do not auto-frame in free mode; step-owned mode reliably frames only on step changes; persistence behavior is documented in diagnostics UI.
+  - **Dependencies:** T038
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/components/builder/visual/VisualBuilderScene.tsx` (planned updates)

@@ -326,6 +326,10 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const [sculptBrushSize, setSculptBrushSize] = useState(0.25);
   const [sculptStrength, setSculptStrength] = useState(0.42);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+  const [cameraDiagnostics, setCameraDiagnostics] = useState({
+    unexpectedPoseDeltas: 0,
+    lastStep: null as BuilderStepId | null,
+  });
 
   const buildId = useVisualBuilderStore((s) => s.buildId);
   const shareSlug = useVisualBuilderStore((s) => s.shareSlug);
@@ -1140,6 +1144,25 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
             Guides
           </label>
         </div>
+
+        <div className="mt-3">
+          <div className="mb-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">Camera mode</div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {(["step", "free"] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setSceneSettings({ cameraPreset: mode })}
+                className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+                  canvasState.sceneSettings.cameraPreset === mode
+                    ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
+                    : "border-white/20 bg-slate-950/60 text-slate-300"
+                }`}
+              >
+                {mode === "step" ? "Step-owned" : "Free"}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
@@ -1658,6 +1681,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               sculptBrushSize={sculptBrushSize}
               sculptStrength={sculptStrength}
               idleOrbit={currentStep === "review"}
+              cameraPresetMode={canvasState.sceneSettings.cameraPreset}
               equipmentAssets={equipmentSceneAssets}
               onSelectItem={setSelectedItem}
               onHoverItem={setHoveredItemId}
@@ -1668,6 +1692,16 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               onSubstrateProfile={setSubstrateProfile}
               onCaptureCanvas={(canvas) => {
                 sceneCanvasRef.current = canvas;
+              }}
+              onCameraPresetModeChange={(mode) => {
+                setSceneSettings({ cameraPreset: mode });
+              }}
+              onCameraDiagnostic={(event) => {
+                if (event.type !== "unexpected_pose_delta_detected") return;
+                setCameraDiagnostics((prev) => ({
+                  unexpectedPoseDeltas: prev.unexpectedPoseDeltas + 1,
+                  lastStep: event.step,
+                }));
               }}
             />
           </div>
@@ -1723,6 +1757,15 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
             </div>
             <div>
               Hovered: <span className="font-semibold text-slate-100">{hoveredItemId ?? "—"}</span>
+            </div>
+            <div>
+              Camera mode: <span className="font-semibold text-slate-100">{canvasState.sceneSettings.cameraPreset}</span>
+            </div>
+            <div>
+              Unexpected pose deltas: <span className="font-semibold text-slate-100">{cameraDiagnostics.unexpectedPoseDeltas}</span>
+              {cameraDiagnostics.lastStep ? (
+                <span className="text-slate-400"> ({cameraDiagnostics.lastStep})</span>
+              ) : null}
             </div>
           </div>
         </section>

@@ -67,6 +67,15 @@ type SceneRenderItem = {
   collisionRadius: number;
 };
 
+type CameraPresetMode = "step" | "free";
+
+type CameraDiagnosticEvent = {
+  type: "unexpected_pose_delta_detected";
+  step: BuilderSceneStep;
+  positionDelta: number;
+  targetDelta: number;
+};
+
 type VisualBuilderSceneProps = {
   tank: VisualTank | null;
   canvasState: VisualCanvasState;
@@ -84,6 +93,7 @@ type VisualBuilderSceneProps = {
   sculptBrushSize: number;
   sculptStrength: number;
   idleOrbit: boolean;
+  cameraPresetMode: CameraPresetMode;
   equipmentAssets: VisualAsset[];
   onSelectItem: (itemId: string | null) => void;
   onHoverItem?: (itemId: string | null) => void;
@@ -93,6 +103,8 @@ type VisualBuilderSceneProps = {
   onRotateItem: (itemId: string, deltaDeg: number) => void;
   onSubstrateProfile: (next: VisualSubstrateProfile) => void;
   onCaptureCanvas?: (canvas: HTMLCanvasElement | null) => void;
+  onCameraPresetModeChange?: (mode: CameraPresetMode) => void;
+  onCameraDiagnostic?: (event: CameraDiagnosticEvent) => void;
 };
 
 type PlacementCandidate = {
@@ -288,24 +300,96 @@ function CinematicCameraRig(props: {
   step: BuilderSceneStep;
   dims: SceneDims;
   idleOrbit: boolean;
+  cameraPresetMode: CameraPresetMode;
+  onCameraPresetModeChange?: (mode: CameraPresetMode) => void;
+  onCameraDiagnostic?: (event: CameraDiagnosticEvent) => void;
 }) {
   const camera = useThree((state) => state.camera as THREE.PerspectiveCamera);
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const preset = useMemo(() => cameraPreset(props.step, props.dims), [props.dims, props.step]);
+  const prevStepRef = useRef<BuilderSceneStep>(props.step);
+  const shouldAutoFrameRef = useRef(true);
+  const transitionProbeRef = useRef<{
+    step: BuilderSceneStep;
+    startTime: number;
+    startPosition: THREE.Vector3;
+    startTarget: THREE.Vector3;
+    fired: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+
+    const handleStart = () => {
+      if (props.cameraPresetMode === "step") {
+        props.onCameraPresetModeChange?.("free");
+      }
+    };
+
+    controls.addEventListener("start", handleStart);
+    return () => {
+      controls.removeEventListener("start", handleStart);
+    };
+  }, [props.cameraPresetMode, props.onCameraPresetModeChange]);
+
+  useEffect(() => {
+    if (prevStepRef.current === props.step) return;
+    prevStepRef.current = props.step;
+
+    const controls = controlsRef.current;
+    if (!controls) return;
+
+    transitionProbeRef.current = {
+      step: props.step,
+      startTime: performance.now(),
+      startPosition: camera.position.clone(),
+      startTarget: controls.target.clone(),
+      fired: false,
+    };
+
+    if (props.cameraPresetMode === "step") {
+      shouldAutoFrameRef.current = true;
+    }
+  }, [camera.position, props.cameraPresetMode, props.step]);
 
   useFrame((_, delta) => {
     const controls = controlsRef.current;
     if (!controls) return;
 
-    const blend = 1 - Math.exp(-delta * 3.8);
-    TEMP_VEC3.set(preset.position[0], preset.position[1], preset.position[2]);
-    TEMP_VEC3_B.set(preset.target[0], preset.target[1], preset.target[2]);
-    camera.position.lerp(TEMP_VEC3, blend);
-    controls.target.lerp(TEMP_VEC3_B, blend);
+    const isStepOwned = props.cameraPresetMode === "step";
 
-    if (props.idleOrbit && props.step === "review") {
+    if (isStepOwned && shouldAutoFrameRef.current) {
+      const blend = 1 - Math.exp(-delta * 3.8);
+      TEMP_VEC3.set(preset.position[0], preset.position[1], preset.position[2]);
+      TEMP_VEC3_B.set(preset.target[0], preset.target[1], preset.target[2]);
+      camera.position.lerp(TEMP_VEC3, blend);
+      controls.target.lerp(TEMP_VEC3_B, blend);
+
+      if (camera.position.distanceTo(TEMP_VEC3) < 0.05 && controls.target.distanceTo(TEMP_VEC3_B) < 0.05) {
+        shouldAutoFrameRef.current = false;
+      }
+    }
+
+    if (props.idleOrbit && props.step === "review" && isStepOwned) {
       controls.setAzimuthalAngle(controls.getAzimuthalAngle() + delta * 0.12);
     }
+
+    const probe = transitionProbeRef.current;
+    if (probe && !probe.fired && !isStepOwned && performance.now() - probe.startTime > 250) {
+      const positionDelta = camera.position.distanceTo(probe.startPosition);
+      const targetDelta = controls.target.distanceTo(probe.startTarget);
+      if (positionDelta > 0.45 || targetDelta > 0.45) {
+        props.onCameraDiagnostic?.({
+          type: "unexpected_pose_delta_detected",
+          step: probe.step,
+          positionDelta,
+          targetDelta,
+        });
+      }
+      probe.fired = true;
+    }
+
     controls.update();
   });
 
@@ -986,7 +1070,14 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         </EffectComposer>
       ) : null}
 
-      <CinematicCameraRig step={props.currentStep} dims={dims} idleOrbit={props.idleOrbit} />
+      <CinematicCameraRig
+        step={props.currentStep}
+        dims={dims}
+        idleOrbit={props.idleOrbit}
+        cameraPresetMode={props.cameraPresetMode}
+        onCameraPresetModeChange={props.onCameraPresetModeChange}
+        onCameraDiagnostic={props.onCameraDiagnostic}
+      />
       <SceneCaptureBridge onCaptureCanvas={props.onCaptureCanvas} />
     </>
   );
