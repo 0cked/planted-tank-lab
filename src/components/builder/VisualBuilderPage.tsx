@@ -339,6 +339,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     lastPoseDelta: null as { step: BuilderStepId; positionDelta: number; targetDelta: number } | null,
   });
   const [cameraIntent, setCameraIntent] = useState<{ type: "reframe" | "reset"; seq: number } | null>(null);
+  const [cameraEvidenceCopyStatus, setCameraEvidenceCopyStatus] = useState<"idle" | "copied" | "error">("idle");
 
   const buildId = useVisualBuilderStore((s) => s.buildId);
   const shareSlug = useVisualBuilderStore((s) => s.shareSlug);
@@ -878,6 +879,64 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     profile: substrateVolume.normalizedProfile,
     tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
   });
+
+  const cameraScenarioStatus = {
+    s01:
+      cameraDiagnostics.interactionStarts >= 1 && cameraDiagnostics.unexpectedPoseDeltas === 0
+        ? "pass-ready"
+        : cameraDiagnostics.unexpectedPoseDeltas > 0
+          ? "fail-risk"
+          : "pending",
+    s02:
+      cameraDiagnostics.freeStepTransitions >= 2 && cameraDiagnostics.unexpectedPoseDeltas === 0
+        ? "pass-ready"
+        : cameraDiagnostics.unexpectedPoseDeltas > 0
+          ? "fail-risk"
+          : "pending",
+    s03: cameraDiagnostics.restoreChecks > 0 ? "pass-ready" : "pending",
+  } as const;
+
+  const cameraEvidenceSnapshot = useMemo(
+    () =>
+      JSON.stringify(
+        {
+          capturedAt: new Date().toISOString(),
+          step: currentStep,
+          cameraMode: canvasState.sceneSettings.cameraPreset,
+          scenarioStatus: cameraScenarioStatus,
+          counters: {
+            interactionStarts: cameraDiagnostics.interactionStarts,
+            freeStepTransitions: cameraDiagnostics.freeStepTransitions,
+            restoreChecks: cameraDiagnostics.restoreChecks,
+            intentCount: cameraDiagnostics.intentCount,
+            unexpectedPoseDeltas: cameraDiagnostics.unexpectedPoseDeltas,
+          },
+          lastIntent: cameraDiagnostics.lastIntent
+            ? {
+                type: cameraDiagnostics.lastIntent,
+                step: cameraDiagnostics.lastIntentStep,
+              }
+            : null,
+          lastPoseDelta: cameraDiagnostics.lastPoseDelta,
+        },
+        null,
+        2,
+      ),
+    [cameraDiagnostics, cameraScenarioStatus, canvasState.sceneSettings.cameraPreset, currentStep],
+  );
+
+  const copyCameraEvidenceSnapshot = async () => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      setCameraEvidenceCopyStatus("error");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(cameraEvidenceSnapshot);
+      setCameraEvidenceCopyStatus("copied");
+    } catch {
+      setCameraEvidenceCopyStatus("error");
+    }
+  };
 
   const leftPanel = (
     <div className="space-y-3">
@@ -1942,6 +2001,28 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 </button>
               </div>
             </div>
+            <div className="mt-2 rounded-lg border border-white/15 bg-slate-900/50 p-2">
+              <div className="mb-1 text-[11px] font-semibold text-slate-100">Gate evidence snapshot</div>
+              <pre className="max-h-36 overflow-auto rounded bg-slate-950/70 p-2 text-[10px] text-slate-300">{cameraEvidenceSnapshot}</pre>
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void copyCameraEvidenceSnapshot();
+                  }}
+                  className="rounded border border-white/20 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-slate-200"
+                >
+                  Copy evidence payload
+                </button>
+                {cameraEvidenceCopyStatus === "copied" ? (
+                  <span className="text-[10px] font-semibold text-emerald-200">Copied</span>
+                ) : null}
+                {cameraEvidenceCopyStatus === "error" ? (
+                  <span className="text-[10px] font-semibold text-rose-200">Copy failed</span>
+                ) : null}
+              </div>
+            </div>
+
             <div className="mt-2">
               <button
                 type="button"

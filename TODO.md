@@ -336,9 +336,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T042
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T044 — Camera Gate-A Evidence Snapshot Helper**
+- [x] **T044 — Camera Gate-A Evidence Snapshot Helper**
   - **Goal:** Add a one-click evidence snapshot helper for camera Gate-A/B review packets.
   - **Why it matters:** Reduces friction capturing consistent camera validation evidence during sprint gates.
   - **Definition of Done:** Diagnostics includes a helper that outputs a compact camera evidence summary payload (intent count, unexpected deltas, scenario badge states) suitable for gate packet copy/paste.
   - **Dependencies:** T043
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T045 — Camera Evidence Payload Normalization (Gate-Ready Schema Tag)**
+  - **Goal:** Standardize the copied camera evidence payload with a schema/version tag and deterministic field ordering for gate packet consistency.
+  - **Why it matters:** Makes cross-sprint gate evidence easier to diff, trust, and automate.
+  - **Definition of Done:** Snapshot payload includes explicit schema/version metadata and stable top-level field order aligned to gate-review runbook expectations.
+  - **Dependencies:** T044
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)
