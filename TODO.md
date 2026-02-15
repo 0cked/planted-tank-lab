@@ -134,7 +134,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T008, T009, T012, T013, T014
   - **Artifacts:** `docs/refactor/dependency-sequence-map.md` (new)
 
-- [ ] **T016 — Acceptance Criteria Matrix by Subsystem**
+- [x] **T016 — Acceptance Criteria Matrix by Subsystem**
   - **Goal:** Define objective pass/fail criteria for theme, immersion, camera, substrate, and inspiration fidelity.
   - **Why it matters:** Turns qualitative product feedback into testable outcomes before implementation starts.
   - **Definition of Done:** Matrix contains measurable criteria per subsystem and validation method per criterion.
