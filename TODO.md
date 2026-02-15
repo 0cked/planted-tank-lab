@@ -343,9 +343,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T043
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T045 — Camera Evidence Payload Normalization (Gate-Ready Schema Tag)**
+- [x] **T045 — Camera Evidence Payload Normalization (Gate-Ready Schema Tag)**
   - **Goal:** Standardize the copied camera evidence payload with a schema/version tag and deterministic field ordering for gate packet consistency.
   - **Why it matters:** Makes cross-sprint gate evidence easier to diff, trust, and automate.
   - **Definition of Done:** Snapshot payload includes explicit schema/version metadata and stable top-level field order aligned to gate-review runbook expectations.
   - **Dependencies:** T044
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T046 — Camera Evidence Export UX Polish (Compact + Expanded Views)**
+  - **Goal:** Improve evidence snapshot readability with compact summary and expanded JSON views in diagnostics.
+  - **Why it matters:** Speeds in-session review while preserving full payload for gate packet copy/paste.
+  - **Definition of Done:** Diagnostics shows a compact evidence summary by default with optional expanded raw JSON, keeping copy action intact.
+  - **Dependencies:** T045
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)

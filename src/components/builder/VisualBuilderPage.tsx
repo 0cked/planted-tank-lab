@@ -900,10 +900,16 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     () =>
       JSON.stringify(
         {
+          schema: "ptl.camera-gate-evidence",
+          schemaVersion: 1,
           capturedAt: new Date().toISOString(),
           step: currentStep,
           cameraMode: canvasState.sceneSettings.cameraPreset,
-          scenarioStatus: cameraScenarioStatus,
+          scenarioStatus: {
+            s01: cameraScenarioStatus.s01,
+            s02: cameraScenarioStatus.s02,
+            s03: cameraScenarioStatus.s03,
+          },
           counters: {
             interactionStarts: cameraDiagnostics.interactionStarts,
             freeStepTransitions: cameraDiagnostics.freeStepTransitions,
@@ -917,7 +923,13 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 step: cameraDiagnostics.lastIntentStep,
               }
             : null,
-          lastPoseDelta: cameraDiagnostics.lastPoseDelta,
+          lastPoseDelta: cameraDiagnostics.lastPoseDelta
+            ? {
+                step: cameraDiagnostics.lastPoseDelta.step,
+                positionDelta: cameraDiagnostics.lastPoseDelta.positionDelta,
+                targetDelta: cameraDiagnostics.lastPoseDelta.targetDelta,
+              }
+            : null,
         },
         null,
         2,
