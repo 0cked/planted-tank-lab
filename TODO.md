@@ -322,9 +322,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T040
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/lib/analytics.ts` (updated)
 
-- [ ] **T042 — Camera Validation UX Pass (Scenario-Aware Debug Panel)**
+- [x] **T042 — Camera Validation UX Pass (Scenario-Aware Debug Panel)**
   - **Goal:** Add scenario-aware camera validation helpers in the diagnostics panel to speed S01-S03 verification.
   - **Why it matters:** Makes camera acceptance checks faster and less error-prone during implementation and gate reviews.
   - **Definition of Done:** Diagnostics panel includes camera validation hints mapped to S01-S03 and clear pass/fail-ready counters.
   - **Dependencies:** T041
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T043 — Camera Event Evidence Readout (Last Event + Status Badges)**
+  - **Goal:** Improve camera diagnostics readability with explicit status badges and last-event summaries for intents and pose-delta detections.
+  - **Why it matters:** Speeds operator confidence during gate reviews by making camera state and most recent camera events immediately scannable.
+  - **Definition of Done:** Diagnostics show status badges (pass-ready / fail-risk / pending) plus last camera intent and last pose-delta event summary with step context.
+  - **Dependencies:** T042
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)

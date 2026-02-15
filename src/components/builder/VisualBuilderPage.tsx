@@ -332,6 +332,9 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     lastStep: null as BuilderStepId | null,
     intentCount: 0,
     lastIntent: null as "reframe" | "reset" | null,
+    interactionStarts: 0,
+    freeStepTransitions: 0,
+    restoreChecks: 0,
   });
   const [cameraIntent, setCameraIntent] = useState<{ type: "reframe" | "reset"; seq: number } | null>(null);
 
@@ -369,6 +372,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const toBuildPayload = useVisualBuilderStore((s) => s.toBuildPayload);
 
   const sceneCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previousStepRef = useRef<BuilderStepId>(currentStep);
 
   const catalogQuery = trpc.visualBuilder.catalog.useQuery(undefined, {
     staleTime: 60_000,
@@ -688,6 +692,19 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
       },
     });
   };
+
+  useEffect(() => {
+    if (previousStepRef.current === currentStep) return;
+
+    if (canvasState.sceneSettings.cameraPreset === "free") {
+      setCameraDiagnostics((prev) => ({
+        ...prev,
+        freeStepTransitions: prev.freeStepTransitions + 1,
+      }));
+    }
+
+    previousStepRef.current = currentStep;
+  }, [canvasState.sceneSettings.cameraPreset, currentStep]);
 
   const handleChooseAsset = (asset: VisualAsset) => {
     if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) {
@@ -1734,6 +1751,12 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               }}
               onCameraPresetModeChange={(mode) => {
                 setSceneSettings({ cameraPreset: mode });
+                if (mode === "free") {
+                  setCameraDiagnostics((prev) => ({
+                    ...prev,
+                    interactionStarts: prev.interactionStarts + 1,
+                  }));
+                }
               }}
               onCameraDiagnostic={(event) => {
                 if (event.type !== "unexpected_pose_delta_detected") return;
@@ -1827,6 +1850,79 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               {cameraDiagnostics.lastIntent ? (
                 <span className="text-slate-400"> (last: {cameraDiagnostics.lastIntent})</span>
               ) : null}
+            </div>
+            <div>
+              Free-step transitions: <span className="font-semibold text-slate-100">{cameraDiagnostics.freeStepTransitions}</span>
+            </div>
+            <div>
+              Interaction starts: <span className="font-semibold text-slate-100">{cameraDiagnostics.interactionStarts}</span>
+            </div>
+            <div>
+              Restore checks: <span className="font-semibold text-slate-100">{cameraDiagnostics.restoreChecks}</span>
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-xl border border-white/15 bg-slate-950/45 p-2.5">
+            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+              Camera validation helpers (S01-S03)
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="rounded-lg border border-white/15 bg-slate-900/50 p-2">
+                <div className="text-[11px] font-semibold text-slate-100">S01 Orbit/Pan/Zoom stability</div>
+                <div className="mt-1 text-[11px] text-slate-300">
+                  {cameraDiagnostics.interactionStarts >= 1 && cameraDiagnostics.unexpectedPoseDeltas === 0
+                    ? "Pass-ready"
+                    : cameraDiagnostics.unexpectedPoseDeltas > 0
+                      ? "Fail-risk"
+                      : "Needs interaction"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-white/15 bg-slate-900/50 p-2">
+                <div className="text-[11px] font-semibold text-slate-100">S02 Step transition stability</div>
+                <div className="mt-1 text-[11px] text-slate-300">
+                  {cameraDiagnostics.freeStepTransitions >= 2 && cameraDiagnostics.unexpectedPoseDeltas === 0
+                    ? "Pass-ready"
+                    : cameraDiagnostics.unexpectedPoseDeltas > 0
+                      ? "Fail-risk"
+                      : "Run more transitions"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-white/15 bg-slate-900/50 p-2">
+                <div className="text-[11px] font-semibold text-slate-100">S03 Save/reload persistence</div>
+                <div className="mt-1 text-[11px] text-slate-300">
+                  {cameraDiagnostics.restoreChecks > 0 ? "Pass-ready" : "Awaiting manual check"}
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCameraDiagnostics((prev) => ({
+                      ...prev,
+                      restoreChecks: prev.restoreChecks + 1,
+                    }))
+                  }
+                  className="mt-2 rounded border border-white/20 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-slate-200"
+                >
+                  Mark restore verified
+                </button>
+              </div>
+            </div>
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setCameraDiagnostics((prev) => ({
+                    ...prev,
+                    unexpectedPoseDeltas: 0,
+                    lastStep: null,
+                    interactionStarts: 0,
+                    freeStepTransitions: 0,
+                    restoreChecks: 0,
+                  }))
+                }
+                className="rounded border border-white/20 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-slate-200"
+              >
+                Reset camera validation counters
+              </button>
             </div>
           </div>
         </section>
