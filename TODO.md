@@ -225,7 +225,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T022, T023, T026, T027
   - **Artifacts:** `docs/refactor/perf-guardrail-integration-plan.md` (new)
 
-- [ ] **T029 — Full UI/UX Overhaul Sprint Plan (Execution-Ready)**
+- [x] **T029 — Full UI/UX Overhaul Sprint Plan (Execution-Ready)**
   - **Goal:** Produce a sequenced sprint plan combining UI, visual, camera, substrate, and performance streams into one cohesive delivery program.
   - **Why it matters:** Coordinates cross-system changes and reduces integration risk during overhaul execution.
   - **Definition of Done:** Sprint plan includes workstream owners/ordering, dependency gates, and milestone demos with acceptance criteria links.
