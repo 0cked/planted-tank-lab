@@ -17,7 +17,12 @@ function readCookie(name: string): string | null {
   return null;
 }
 
-export type AnalyticsEventName = "builder_started" | "share_created" | "signup_completed";
+export type AnalyticsEventName =
+  | "builder_started"
+  | "share_created"
+  | "signup_completed"
+  | "camera_command_invoked"
+  | "camera_unexpected_pose_delta_detected";
 
 export function hasAnalyticsConsent(): boolean {
   return readCookie(CONSENT_COOKIE) === "accepted";

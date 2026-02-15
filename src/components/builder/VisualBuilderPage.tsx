@@ -27,6 +27,7 @@ import type {
   VisualTank,
 } from "@/components/builder/visual/types";
 import type { CompatibilityRule, Severity } from "@/engine/types";
+import { trackEvent } from "@/lib/analytics";
 import {
   estimateSubstrateBags,
   estimateSubstrateVolume,
@@ -677,6 +678,15 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
       intentCount: prev.intentCount + 1,
       lastIntent: type,
     }));
+
+    void trackEvent("camera_command_invoked", {
+      buildId: buildId ?? undefined,
+      meta: {
+        command: type === "reframe" ? "frame_tank" : "reset",
+        step_id: currentStep,
+        trigger_source: "user",
+      },
+    });
   };
 
   const handleChooseAsset = (asset: VisualAsset) => {
@@ -1732,6 +1742,17 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                   unexpectedPoseDeltas: prev.unexpectedPoseDeltas + 1,
                   lastStep: event.step,
                 }));
+
+                void trackEvent("camera_unexpected_pose_delta_detected", {
+                  buildId: buildId ?? undefined,
+                  meta: {
+                    step_id: event.step,
+                    position_delta: event.positionDelta,
+                    target_delta: event.targetDelta,
+                    pose_delta: Math.max(event.positionDelta, event.targetDelta),
+                    trigger_source: "system",
+                  },
+                });
               }}
               cameraIntent={cameraIntent}
             />

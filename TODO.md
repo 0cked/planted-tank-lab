@@ -315,9 +315,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T039
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/components/builder/visual/VisualBuilderScene.tsx` (updated)
 
-- [ ] **T041 — Camera Telemetry Hook-Up (Intent + Pose-Delta Events)**
+- [x] **T041 — Camera Telemetry Hook-Up (Intent + Pose-Delta Events)**
   - **Goal:** Wire camera intent and unexpected pose-delta diagnostics into the instrumentation event pipeline for objective validation.
   - **Why it matters:** Converts camera behavior checks from local diagnostics-only to evidence usable in gate reviews and AC validation.
   - **Definition of Done:** Camera intent actions and unexpected pose-delta diagnostics emit structured instrumentation events aligned to the event dictionary.
   - **Dependencies:** T040
-  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/lib/analytics.ts` (planned updates)
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/lib/analytics.ts` (updated)
+
+- [ ] **T042 — Camera Validation UX Pass (Scenario-Aware Debug Panel)**
+  - **Goal:** Add scenario-aware camera validation helpers in the diagnostics panel to speed S01-S03 verification.
+  - **Why it matters:** Makes camera acceptance checks faster and less error-prone during implementation and gate reviews.
+  - **Definition of Done:** Diagnostics panel includes camera validation hints mapped to S01-S03 and clear pass/fail-ready counters.
+  - **Dependencies:** T041
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)
