@@ -76,6 +76,11 @@ type CameraDiagnosticEvent = {
   targetDelta: number;
 };
 
+type CameraIntent = {
+  type: "reframe" | "reset";
+  seq: number;
+};
+
 type VisualBuilderSceneProps = {
   tank: VisualTank | null;
   canvasState: VisualCanvasState;
@@ -105,6 +110,7 @@ type VisualBuilderSceneProps = {
   onCaptureCanvas?: (canvas: HTMLCanvasElement | null) => void;
   onCameraPresetModeChange?: (mode: CameraPresetMode) => void;
   onCameraDiagnostic?: (event: CameraDiagnosticEvent) => void;
+  cameraIntent?: CameraIntent | null;
 };
 
 type PlacementCandidate = {
@@ -303,6 +309,7 @@ function CinematicCameraRig(props: {
   cameraPresetMode: CameraPresetMode;
   onCameraPresetModeChange?: (mode: CameraPresetMode) => void;
   onCameraDiagnostic?: (event: CameraDiagnosticEvent) => void;
+  cameraIntent?: CameraIntent | null;
 }) {
   const camera = useThree((state) => state.camera as THREE.PerspectiveCamera);
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -316,6 +323,8 @@ function CinematicCameraRig(props: {
     startTarget: THREE.Vector3;
     fired: boolean;
   } | null>(null);
+  const forcedPresetRef = useRef<ReturnType<typeof cameraPreset> | null>(null);
+  const lastIntentSeqRef = useRef<number>(0);
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -353,6 +362,24 @@ function CinematicCameraRig(props: {
     }
   }, [camera.position, props.cameraPresetMode, props.step]);
 
+  useEffect(() => {
+    if (!props.cameraIntent) return;
+    if (props.cameraIntent.seq <= lastIntentSeqRef.current) return;
+
+    lastIntentSeqRef.current = props.cameraIntent.seq;
+    shouldAutoFrameRef.current = true;
+
+    if (props.cameraIntent.type === "reset") {
+      forcedPresetRef.current = cameraPreset("review", props.dims);
+    } else {
+      forcedPresetRef.current = cameraPreset(props.step, props.dims);
+    }
+
+    if (props.cameraPresetMode !== "step") {
+      props.onCameraPresetModeChange?.("step");
+    }
+  }, [props.cameraIntent, props.cameraPresetMode, props.dims, props.onCameraPresetModeChange, props.step]);
+
   useFrame((_, delta) => {
     const controls = controlsRef.current;
     if (!controls) return;
@@ -361,13 +388,15 @@ function CinematicCameraRig(props: {
 
     if (isStepOwned && shouldAutoFrameRef.current) {
       const blend = 1 - Math.exp(-delta * 3.8);
-      TEMP_VEC3.set(preset.position[0], preset.position[1], preset.position[2]);
-      TEMP_VEC3_B.set(preset.target[0], preset.target[1], preset.target[2]);
+      const activePreset = forcedPresetRef.current ?? preset;
+      TEMP_VEC3.set(activePreset.position[0], activePreset.position[1], activePreset.position[2]);
+      TEMP_VEC3_B.set(activePreset.target[0], activePreset.target[1], activePreset.target[2]);
       camera.position.lerp(TEMP_VEC3, blend);
       controls.target.lerp(TEMP_VEC3_B, blend);
 
       if (camera.position.distanceTo(TEMP_VEC3) < 0.05 && controls.target.distanceTo(TEMP_VEC3_B) < 0.05) {
         shouldAutoFrameRef.current = false;
+        forcedPresetRef.current = null;
       }
     }
 
@@ -1077,6 +1106,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         cameraPresetMode={props.cameraPresetMode}
         onCameraPresetModeChange={props.onCameraPresetModeChange}
         onCameraDiagnostic={props.onCameraDiagnostic}
+        cameraIntent={props.cameraIntent}
       />
       <SceneCaptureBridge onCaptureCanvas={props.onCaptureCanvas} />
     </>

@@ -329,7 +329,10 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const [cameraDiagnostics, setCameraDiagnostics] = useState({
     unexpectedPoseDeltas: 0,
     lastStep: null as BuilderStepId | null,
+    intentCount: 0,
+    lastIntent: null as "reframe" | "reset" | null,
   });
+  const [cameraIntent, setCameraIntent] = useState<{ type: "reframe" | "reset"; seq: number } | null>(null);
 
   const buildId = useVisualBuilderStore((s) => s.buildId);
   const shareSlug = useVisualBuilderStore((s) => s.shareSlug);
@@ -663,6 +666,17 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     }
     setToolMode("move");
     setPlacementAssetId(null);
+  };
+
+  const triggerCameraIntent = (type: "reframe" | "reset") => {
+    const nextSeq = (cameraIntent?.seq ?? 0) + 1;
+    setSceneSettings({ cameraPreset: "step" });
+    setCameraIntent({ type, seq: nextSeq });
+    setCameraDiagnostics((prev) => ({
+      ...prev,
+      intentCount: prev.intentCount + 1,
+      lastIntent: type,
+    }));
   };
 
   const handleChooseAsset = (asset: VisualAsset) => {
@@ -1161,6 +1175,21 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 {mode === "step" ? "Step-owned" : "Free"}
               </button>
             ))}
+          </div>
+
+          <div className="mt-2 grid grid-cols-2 gap-1.5">
+            <button
+              onClick={() => triggerCameraIntent("reframe")}
+              className="rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            >
+              Reframe
+            </button>
+            <button
+              onClick={() => triggerCameraIntent("reset")}
+              className="rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            >
+              Reset view
+            </button>
           </div>
         </div>
       </div>
@@ -1699,10 +1728,12 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               onCameraDiagnostic={(event) => {
                 if (event.type !== "unexpected_pose_delta_detected") return;
                 setCameraDiagnostics((prev) => ({
+                  ...prev,
                   unexpectedPoseDeltas: prev.unexpectedPoseDeltas + 1,
                   lastStep: event.step,
                 }));
               }}
+              cameraIntent={cameraIntent}
             />
           </div>
 
@@ -1768,6 +1799,12 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               Unexpected pose deltas: <span className="font-semibold text-slate-100">{cameraDiagnostics.unexpectedPoseDeltas}</span>
               {cameraDiagnostics.lastStep ? (
                 <span className="text-slate-400"> ({cameraDiagnostics.lastStep})</span>
+              ) : null}
+            </div>
+            <div>
+              Camera intents: <span className="font-semibold text-slate-100">{cameraDiagnostics.intentCount}</span>
+              {cameraDiagnostics.lastIntent ? (
+                <span className="text-slate-400"> (last: {cameraDiagnostics.lastIntent})</span>
               ) : null}
             </div>
           </div>

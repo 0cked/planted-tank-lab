@@ -308,9 +308,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T038
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/components/builder/visual/VisualBuilderScene.tsx` (updated)
 
-- [ ] **T040 — Camera Intent Controls (Explicit Reframe + Reset)**
+- [x] **T040 — Camera Intent Controls (Explicit Reframe + Reset)**
   - **Goal:** Add explicit user-facing camera intent actions so reframing/reset happens only when requested.
   - **Why it matters:** Completes the no-snap-back model by replacing implicit camera movement with intentional user commands.
   - **Definition of Done:** UI exposes explicit `Reframe` and `Reset view` controls; invoking either transitions camera mode to step-owned for that command path and logs an intent event in diagnostics.
   - **Dependencies:** T039
-  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/components/builder/visual/VisualBuilderScene.tsx` (planned updates)
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/components/builder/visual/VisualBuilderScene.tsx` (updated)
+
+- [ ] **T041 — Camera Telemetry Hook-Up (Intent + Pose-Delta Events)**
+  - **Goal:** Wire camera intent and unexpected pose-delta diagnostics into the instrumentation event pipeline for objective validation.
+  - **Why it matters:** Converts camera behavior checks from local diagnostics-only to evidence usable in gate reviews and AC validation.
+  - **Definition of Done:** Camera intent actions and unexpected pose-delta diagnostics emit structured instrumentation events aligned to the event dictionary.
+  - **Dependencies:** T040
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/lib/analytics.ts` (planned updates)
