@@ -218,7 +218,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T022, T023
   - **Artifacts:** `docs/refactor/substrate-implementation-plan.md` (new)
 
-- [ ] **T028 — Performance Guardrail Integration Plan**
+- [x] **T028 — Performance Guardrail Integration Plan**
   - **Goal:** Map performance budgets/risk mitigations into concrete engineering guardrails for overhaul implementation.
   - **Why it matters:** Prevents immersion gains from being undermined by latency, stutter, or unstable frame pacing.
   - **Definition of Done:** Guardrail plan defines budget gates per phase, profiling checkpoints, and remediation paths for budget failures.
