@@ -141,7 +141,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T008, T009, T010, T011, T014
   - **Artifacts:** `docs/refactor/acceptance-criteria-matrix.md` (new)
 
-- [ ] **T017 — Validation & Research Plan**
+- [x] **T017 — Validation & Research Plan**
   - **Goal:** Define how pre/post-refactor UX validation will be run.
   - **Why it matters:** Confirms the product no longer feels like a dashboard and verifies improved immersion/control.
   - **Definition of Done:** Plan includes test scenarios, participant profile, scripted tasks, and decision thresholds.
