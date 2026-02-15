@@ -169,7 +169,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T015, T016, T019
   - **Artifacts:** `docs/refactor/phased-delivery-plan.md` (new)
 
-- [ ] **T021 — Build Implementation Backlog Skeleton (No Coding)**
+- [x] **T021 — Build Implementation Backlog Skeleton (No Coding)**
   - **Goal:** Create a prioritized backlog template ready for engineering execution once approved.
   - **Why it matters:** Smooth handoff from planning to implementation while preserving strategic intent.
   - **Definition of Done:** Backlog file exists with epics/stories placeholders mapped to phases and acceptance criteria links.
