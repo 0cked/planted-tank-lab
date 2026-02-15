@@ -211,7 +211,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T022, T023
   - **Artifacts:** `docs/refactor/camera-implementation-plan.md` (new)
 
-- [ ] **T027 — Substrate Node-Grid Implementation Plan (Task Breakdown)**
+- [x] **T027 — Substrate Node-Grid Implementation Plan (Task Breakdown)**
   - **Goal:** Break node-grid substrate redesign into sequenced implementation tasks under the substrate ADR.
   - **Why it matters:** Tactile terrain editing is a core product differentiator and highest-risk engineering stream.
   - **Definition of Done:** Plan includes data migration approach, mesh update strategy, interaction milestones, and perf checkpoints.
