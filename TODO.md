@@ -25,6 +25,9 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
 ### M6 — Full UI/UX Overhaul (Wednesday-Skills-Governed)
 - T023–T030
 
+### M7 — Approval & Readiness Bridge (Planning-Only)
+- T031–T036
+
 ---
 
 ## Task List
@@ -238,3 +241,45 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Definition of Done:** Packet includes scope, sequence, risks, success criteria, and explicit “approve overhaul implementation” decision checkbox.
   - **Dependencies:** T029
   - **Artifacts:** `docs/refactor/OVERHAUL_KICKOFF_PACKET.md` (new)
+
+- [x] **T031 — Post-Kickoff Readiness Gap Analysis**
+  - **Goal:** Audit post-T030 planning readiness across TODO, refactor packet artifacts, global TASKS pointers, and recent commits.
+  - **Why it matters:** Converts "planning complete" into a concrete pre-implementation readiness bridge and prevents approval/ownership/traceability blind spots.
+  - **Definition of Done:** A documented gap register exists with sequencing corrections, new risks/mitigations, and proposed closure tasks.
+  - **Dependencies:** T030
+  - **Artifacts:** `docs/refactor/post-kickoff-readiness-gap-analysis.md` (new)
+
+- [ ] **T032 — Approval Decision Record Template**
+  - **Goal:** Create an explicit approval logging template for GO/NO-GO decisions, approver metadata, conditions, and effective date.
+  - **Why it matters:** Prevents implementation drift before formal authorization and captures decision context for auditability.
+  - **Definition of Done:** A planning artifact exists with structured fields for decision state, conditions, risks accepted, and escalation notes.
+  - **Dependencies:** T031
+  - **Artifacts:** `docs/refactor/approval-decision-record.md` (new)
+
+- [ ] **T033 — Workstream Ownership & Gate RACI Plan**
+  - **Goal:** Define named ownership and gate-level decision authority for WS-A through WS-E.
+  - **Why it matters:** Removes ambiguity in cross-stream decisions and speeds risk triage when gate blockers emerge.
+  - **Definition of Done:** RACI matrix maps each workstream and gate to responsible/approver/support roles with backup coverage.
+  - **Dependencies:** T031, T032
+  - **Artifacts:** `docs/refactor/workstream-ownership-raci.md` (new)
+
+- [ ] **T034 — Story Sizing & Sprint Capacity Calibration**
+  - **Goal:** Add sizing estimates and sprint-capacity assumptions for backlog stories in the overhaul sequence.
+  - **Why it matters:** Reduces schedule risk and reveals overloaded sprints before implementation begins.
+  - **Definition of Done:** Story sizing table and capacity model exist with risk buffers and critical-path flags.
+  - **Dependencies:** T033
+  - **Artifacts:** `docs/refactor/story-sizing-capacity-plan.md` (new)
+
+- [ ] **T035 — AC/Test/Telemetry Traceability Ledger**
+  - **Goal:** Build a single ledger linking each planned story to acceptance criteria, test scenarios, telemetry events, and required evidence artifacts.
+  - **Why it matters:** Enables faster gate reviews and clear pass/fail decisions with complete traceability.
+  - **Definition of Done:** Ledger covers all sprint stories with no AC orphaning and includes evidence expectations per gate.
+  - **Dependencies:** T034
+  - **Artifacts:** `docs/refactor/traceability-ledger.md` (new)
+
+- [ ] **T036 — Gate Review Operations Runbook**
+  - **Goal:** Define the operating protocol for sprint gate reviews, including evidence package format, hold/advance rules, and rollback/severity escalation.
+  - **Why it matters:** Converts gate policy into repeatable operating behavior under delivery pressure.
+  - **Definition of Done:** Runbook includes cadence, attendees, decision rubric, rollback triggers, and communication templates.
+  - **Dependencies:** T032, T033, T035
+  - **Artifacts:** `docs/refactor/gate-review-operations-runbook.md` (new)
