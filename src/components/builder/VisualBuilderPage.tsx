@@ -1733,6 +1733,9 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
 
         <section className="mt-4 rounded-2xl border border-white/15 bg-slate-900/50 p-3 text-xs text-slate-300">
           <div className="font-semibold text-slate-100">Scene diagnostics</div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            Free camera preserves your pose across step changes; Step-owned camera auto-frames on step change.
+          </div>
           <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div>
               Objects: <span className="font-semibold text-slate-100">{canvasState.items.length}</span>

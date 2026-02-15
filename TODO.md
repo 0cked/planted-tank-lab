@@ -301,9 +301,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T037
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/components/builder/visual/VisualBuilderScene.tsx` (updated)
 
-- [ ] **T039 — Camera Persistence Hardening Across Step Changes**
+- [x] **T039 — Camera Persistence Hardening Across Step Changes**
   - **Goal:** Ensure free-camera pose persists through step transitions unless the user explicitly opts back into step-owned camera framing.
   - **Why it matters:** Prevents snap-back regressions and preserves user agency during multi-step composition flow.
   - **Definition of Done:** Step transitions do not auto-frame in free mode; step-owned mode reliably frames only on step changes; persistence behavior is documented in diagnostics UI.
   - **Dependencies:** T038
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/components/builder/visual/VisualBuilderScene.tsx` (updated)
+
+- [ ] **T040 — Camera Intent Controls (Explicit Reframe + Reset)**
+  - **Goal:** Add explicit user-facing camera intent actions so reframing/reset happens only when requested.
+  - **Why it matters:** Completes the no-snap-back model by replacing implicit camera movement with intentional user commands.
+  - **Definition of Done:** UI exposes explicit `Reframe` and `Reset view` controls; invoking either transitions camera mode to step-owned for that command path and logs an intent event in diagnostics.
+  - **Dependencies:** T039
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx`, `src/components/builder/visual/VisualBuilderScene.tsx` (planned updates)
