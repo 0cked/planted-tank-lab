@@ -183,7 +183,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T001, T002, T003, T004, T005, T006, T007, T008, T009, T010, T011, T012, T013, T014, T015, T016, T017, T018, T019, T020, T021
   - **Artifacts:** `docs/refactor/PLAN_REVIEW_PACKET.md` (new)
 
-- [ ] **T023 — Wednesday Skill Enforcement Baseline (Dev + Design)**
+- [x] **T023 — Wednesday Skill Enforcement Baseline (Dev + Design)**
   - **Goal:** Define repo-level enforcement rules that require `wednesday-dev` and `wednesday-design` for all Builder overhaul implementation work.
   - **Why it matters:** Ensures the overhaul consistently follows the new global design/dev system and prevents regression into ad-hoc patterns.
   - **Definition of Done:** A written enforcement checklist exists that maps major implementation areas to Wednesday skill requirements and reference docs.
