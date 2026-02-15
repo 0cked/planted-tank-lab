@@ -110,7 +110,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T004, T010
   - **Artifacts:** `decisions/ADR-camera-control-architecture.md` (new)
 
-- [ ] **T013 — Substrate Data & Mesh Architecture Decision Record**
+- [x] **T013 — Substrate Data & Mesh Architecture Decision Record**
   - **Goal:** Select data model and interpolation strategy for node-grid substrate system.
   - **Why it matters:** Core technical foundation for tactile sculpting and reliable performance.
   - **Definition of Done:** ADR defines control lattice model, interpolation method, mesh update strategy, and constraints.
