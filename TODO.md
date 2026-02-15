@@ -329,9 +329,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T041
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T043 — Camera Event Evidence Readout (Last Event + Status Badges)**
+- [x] **T043 — Camera Event Evidence Readout (Last Event + Status Badges)**
   - **Goal:** Improve camera diagnostics readability with explicit status badges and last-event summaries for intents and pose-delta detections.
   - **Why it matters:** Speeds operator confidence during gate reviews by making camera state and most recent camera events immediately scannable.
   - **Definition of Done:** Diagnostics show status badges (pass-ready / fail-risk / pending) plus last camera intent and last pose-delta event summary with step context.
   - **Dependencies:** T042
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T044 — Camera Gate-A Evidence Snapshot Helper**
+  - **Goal:** Add a one-click evidence snapshot helper for camera Gate-A/B review packets.
+  - **Why it matters:** Reduces friction capturing consistent camera validation evidence during sprint gates.
+  - **Definition of Done:** Diagnostics includes a helper that outputs a compact camera evidence summary payload (intent count, unexpected deltas, scenario badge states) suitable for gate packet copy/paste.
+  - **Dependencies:** T043
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)

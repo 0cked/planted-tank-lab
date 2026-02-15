@@ -332,9 +332,11 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     lastStep: null as BuilderStepId | null,
     intentCount: 0,
     lastIntent: null as "reframe" | "reset" | null,
+    lastIntentStep: null as BuilderStepId | null,
     interactionStarts: 0,
     freeStepTransitions: 0,
     restoreChecks: 0,
+    lastPoseDelta: null as { step: BuilderStepId; positionDelta: number; targetDelta: number } | null,
   });
   const [cameraIntent, setCameraIntent] = useState<{ type: "reframe" | "reset"; seq: number } | null>(null);
 
@@ -681,6 +683,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
       ...prev,
       intentCount: prev.intentCount + 1,
       lastIntent: type,
+      lastIntentStep: currentStep,
     }));
 
     void trackEvent("camera_command_invoked", {
@@ -1764,6 +1767,11 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                   ...prev,
                   unexpectedPoseDeltas: prev.unexpectedPoseDeltas + 1,
                   lastStep: event.step,
+                  lastPoseDelta: {
+                    step: event.step,
+                    positionDelta: event.positionDelta,
+                    targetDelta: event.targetDelta,
+                  },
                 }));
 
                 void trackEvent("camera_unexpected_pose_delta_detected", {
@@ -1866,31 +1874,59 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
               Camera validation helpers (S01-S03)
             </div>
+
+            <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-white/15 bg-slate-900/50 p-2 text-[11px] text-slate-300">
+                <div className="font-semibold text-slate-100">Last camera intent</div>
+                <div className="mt-1">
+                  {cameraDiagnostics.lastIntent
+                    ? `${cameraDiagnostics.lastIntent} (${cameraDiagnostics.lastIntentStep ?? "unknown step"})`
+                    : "No intent command yet"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-white/15 bg-slate-900/50 p-2 text-[11px] text-slate-300">
+                <div className="font-semibold text-slate-100">Last pose-delta event</div>
+                <div className="mt-1">
+                  {cameraDiagnostics.lastPoseDelta
+                    ? `${cameraDiagnostics.lastPoseDelta.step} · pos ${cameraDiagnostics.lastPoseDelta.positionDelta.toFixed(2)} · target ${cameraDiagnostics.lastPoseDelta.targetDelta.toFixed(2)}`
+                    : "None detected"}
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div className="rounded-lg border border-white/15 bg-slate-900/50 p-2">
                 <div className="text-[11px] font-semibold text-slate-100">S01 Orbit/Pan/Zoom stability</div>
-                <div className="mt-1 text-[11px] text-slate-300">
-                  {cameraDiagnostics.interactionStarts >= 1 && cameraDiagnostics.unexpectedPoseDeltas === 0
-                    ? "Pass-ready"
-                    : cameraDiagnostics.unexpectedPoseDeltas > 0
-                      ? "Fail-risk"
-                      : "Needs interaction"}
+                <div className="mt-1">
+                  {cameraDiagnostics.interactionStarts >= 1 && cameraDiagnostics.unexpectedPoseDeltas === 0 ? (
+                    <span className="rounded-full border border-emerald-300/40 bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-100">Pass-ready</span>
+                  ) : cameraDiagnostics.unexpectedPoseDeltas > 0 ? (
+                    <span className="rounded-full border border-rose-300/40 bg-rose-400/20 px-2 py-0.5 text-[10px] font-semibold text-rose-100">Fail-risk</span>
+                  ) : (
+                    <span className="rounded-full border border-white/25 bg-slate-800/65 px-2 py-0.5 text-[10px] font-semibold text-slate-200">Pending</span>
+                  )}
                 </div>
               </div>
               <div className="rounded-lg border border-white/15 bg-slate-900/50 p-2">
                 <div className="text-[11px] font-semibold text-slate-100">S02 Step transition stability</div>
-                <div className="mt-1 text-[11px] text-slate-300">
-                  {cameraDiagnostics.freeStepTransitions >= 2 && cameraDiagnostics.unexpectedPoseDeltas === 0
-                    ? "Pass-ready"
-                    : cameraDiagnostics.unexpectedPoseDeltas > 0
-                      ? "Fail-risk"
-                      : "Run more transitions"}
+                <div className="mt-1">
+                  {cameraDiagnostics.freeStepTransitions >= 2 && cameraDiagnostics.unexpectedPoseDeltas === 0 ? (
+                    <span className="rounded-full border border-emerald-300/40 bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-100">Pass-ready</span>
+                  ) : cameraDiagnostics.unexpectedPoseDeltas > 0 ? (
+                    <span className="rounded-full border border-rose-300/40 bg-rose-400/20 px-2 py-0.5 text-[10px] font-semibold text-rose-100">Fail-risk</span>
+                  ) : (
+                    <span className="rounded-full border border-white/25 bg-slate-800/65 px-2 py-0.5 text-[10px] font-semibold text-slate-200">Pending</span>
+                  )}
                 </div>
               </div>
               <div className="rounded-lg border border-white/15 bg-slate-900/50 p-2">
                 <div className="text-[11px] font-semibold text-slate-100">S03 Save/reload persistence</div>
-                <div className="mt-1 text-[11px] text-slate-300">
-                  {cameraDiagnostics.restoreChecks > 0 ? "Pass-ready" : "Awaiting manual check"}
+                <div className="mt-1">
+                  {cameraDiagnostics.restoreChecks > 0 ? (
+                    <span className="rounded-full border border-emerald-300/40 bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-100">Pass-ready</span>
+                  ) : (
+                    <span className="rounded-full border border-white/25 bg-slate-800/65 px-2 py-0.5 text-[10px] font-semibold text-slate-200">Pending</span>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -1917,6 +1953,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                     interactionStarts: 0,
                     freeStepTransitions: 0,
                     restoreChecks: 0,
+                    lastPoseDelta: null,
                   }))
                 }
                 className="rounded border border-white/20 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-slate-200"
