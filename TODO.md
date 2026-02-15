@@ -249,7 +249,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T030
   - **Artifacts:** `docs/refactor/post-kickoff-readiness-gap-analysis.md` (new)
 
-- [ ] **T032 — Approval Decision Record Template**
+- [x] **T032 — Approval Decision Record Template**
   - **Goal:** Create an explicit approval logging template for GO/NO-GO decisions, approver metadata, conditions, and effective date.
   - **Why it matters:** Prevents implementation drift before formal authorization and captures decision context for auditability.
   - **Definition of Done:** A planning artifact exists with structured fields for decision state, conditions, risks accepted, and escalation notes.
