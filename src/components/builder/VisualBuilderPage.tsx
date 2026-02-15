@@ -897,13 +897,27 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     s03: cameraDiagnostics.restoreChecks > 0 ? "pass-ready" : "pending",
   } as const;
 
+  const cameraEvidenceCapturedAtIso = useMemo(
+    () => new Date().toISOString(),
+    [cameraDiagnostics, cameraScenarioStatus, canvasState.sceneSettings.cameraPreset, currentStep],
+  );
+
+  const cameraEvidenceCapturedAtLabel = useMemo(
+    () =>
+      new Date(cameraEvidenceCapturedAtIso).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "medium",
+      }),
+    [cameraEvidenceCapturedAtIso],
+  );
+
   const cameraEvidenceSnapshot = useMemo(
     () =>
       JSON.stringify(
         {
           schema: "ptl.camera-gate-evidence",
           schemaVersion: 1,
-          capturedAt: new Date().toISOString(),
+          capturedAt: cameraEvidenceCapturedAtIso,
           step: currentStep,
           cameraMode: canvasState.sceneSettings.cameraPreset,
           scenarioStatus: {
@@ -935,7 +949,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
         null,
         2,
       ),
-    [cameraDiagnostics, cameraScenarioStatus, canvasState.sceneSettings.cameraPreset, currentStep],
+    [cameraDiagnostics, cameraScenarioStatus, canvasState.sceneSettings.cameraPreset, currentStep, cameraEvidenceCapturedAtIso],
   );
 
   const cameraEvidenceSummary = useMemo(
@@ -2035,6 +2049,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
             </div>
             <div className="mt-2 rounded-lg border border-white/15 bg-slate-900/50 p-2">
               <div className="mb-1 text-[11px] font-semibold text-slate-100">Gate evidence snapshot</div>
+              <div className="mb-2 text-[10px] text-slate-400">Captured at: {cameraEvidenceCapturedAtLabel}</div>
 
               <div className="rounded bg-slate-950/70 p-2 text-[10px] text-slate-300">
                 <div>Step: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.step}</span></div>

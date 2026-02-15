@@ -357,9 +357,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T045
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T047 — Camera Evidence Snapshot Timestamp UX Clarifier**
+- [x] **T047 — Camera Evidence Snapshot Timestamp UX Clarifier**
   - **Goal:** Add a human-readable “captured at” label near evidence controls while preserving ISO timestamp in payload.
   - **Why it matters:** Reduces ambiguity during rapid gate reviews when multiple snapshots are copied in one session.
   - **Definition of Done:** Evidence UI shows a readable capture time indicator synchronized to the latest payload generation and does not alter payload schema fields.
   - **Dependencies:** T046
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T048 — Camera Evidence Copy UX Cooldown Reset**
+  - **Goal:** Auto-reset copy success/error badge state after a short delay to keep diagnostics readable during repeated evidence captures.
+  - **Why it matters:** Prevents stale copy-state badges from misleading operators during rapid gate packet assembly.
+  - **Definition of Done:** Copy status feedback clears automatically after a brief timeout and remains accurate across repeated copy attempts.
+  - **Dependencies:** T047
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)
