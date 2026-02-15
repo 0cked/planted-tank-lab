@@ -270,7 +270,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T033
   - **Artifacts:** `docs/refactor/story-sizing-capacity-plan.md` (new)
 
-- [ ] **T035 — AC/Test/Telemetry Traceability Ledger**
+- [x] **T035 — AC/Test/Telemetry Traceability Ledger**
   - **Goal:** Build a single ledger linking each planned story to acceptance criteria, test scenarios, telemetry events, and required evidence artifacts.
   - **Why it matters:** Enables faster gate reviews and clear pass/fail decisions with complete traceability.
   - **Definition of Done:** Ledger covers all sprint stories with no AC orphaning and includes evidence expectations per gate.
