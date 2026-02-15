@@ -204,7 +204,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T022, T023
   - **Artifacts:** `docs/refactor/visual-spec-package.md` (new)
 
-- [ ] **T026 — Camera UX Implementation Plan (Task Breakdown)**
+- [x] **T026 — Camera UX Implementation Plan (Task Breakdown)**
   - **Goal:** Break camera redesign into sequenced implementation tasks under the accepted camera ADR.
   - **Why it matters:** Camera agency is a critical immersion blocker and must be executed with high confidence.
   - **Definition of Done:** Task breakdown includes milestones, test points, failure rollback strategy, and explicit completion checks.
