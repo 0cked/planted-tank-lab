@@ -277,7 +277,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T034
   - **Artifacts:** `docs/refactor/traceability-ledger.md` (new)
 
-- [ ] **T036 — Gate Review Operations Runbook**
+- [x] **T036 — Gate Review Operations Runbook**
   - **Goal:** Define the operating protocol for sprint gate reviews, including evidence package format, hold/advance rules, and rollback/severity escalation.
   - **Why it matters:** Converts gate policy into repeatable operating behavior under delivery pressure.
   - **Definition of Done:** Runbook includes cadence, attendees, decision rubric, rollback triggers, and communication templates.
