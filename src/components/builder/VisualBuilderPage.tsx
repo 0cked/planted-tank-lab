@@ -2101,7 +2101,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               </div>
 
               {showExpandedCameraEvidence ? (
-                <pre className="mt-2 max-h-36 overflow-auto rounded bg-slate-950/70 p-2 text-[10px] text-slate-300">{cameraEvidenceSnapshot}</pre>
+                <pre className="mt-2 max-h-[40vh] overflow-x-auto overflow-y-auto overscroll-contain rounded bg-slate-950/70 p-2 pr-3 text-[10px] leading-relaxed text-slate-300 sm:max-h-72">{cameraEvidenceSnapshot}</pre>
               ) : null}
 
               <div className="mt-2 flex items-center gap-2">

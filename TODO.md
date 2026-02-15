@@ -371,9 +371,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T047
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T049 — Camera Evidence Snapshot JSON Height Clamp + Scroll Polish**
+- [x] **T049 — Camera Evidence Snapshot JSON Height Clamp + Scroll Polish**
   - **Goal:** Improve expanded JSON readability with a tighter viewport height clamp and smoother overflow behavior.
   - **Why it matters:** Keeps diagnostics panel scannable when evidence payload grows, without obscuring nearby controls.
   - **Definition of Done:** Expanded JSON panel remains readable and scrollable with consistent max height across typical builder viewport sizes.
   - **Dependencies:** T048
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T050 — Camera Evidence Panel Microcopy Tightening (Gate Operator Pass)**
+  - **Goal:** Tighten evidence panel labels and copy for faster gate-operator scanning.
+  - **Why it matters:** Reduces cognitive load during repeated camera evidence capture and review loops.
+  - **Definition of Done:** Evidence panel label text and control copy are concise, unambiguous, and aligned with gate-review wording while preserving existing behavior.
+  - **Dependencies:** T049
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)
