@@ -190,7 +190,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T022
   - **Artifacts:** `docs/refactor/wednesday-enforcement-checklist.md` (new)
 
-- [ ] **T024 — Overhaul UI Composition Blueprint (Screen-by-Screen)**
+- [x] **T024 — Overhaul UI Composition Blueprint (Screen-by-Screen)**
   - **Goal:** Translate stage-first IA into concrete screen/state blueprints for each Builder step and key interaction mode.
   - **Why it matters:** Converts strategic layout direction into implementable UI structure and reduces execution ambiguity.
   - **Definition of Done:** Blueprint includes step states, responsive behavior, panel visibility rules, and viewport-safe zones for overlays.
