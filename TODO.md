@@ -148,7 +148,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T016
   - **Artifacts:** `docs/refactor/validation-plan.md` (new)
 
-- [ ] **T018 — Test Scenario Scripts (Planning Artifacts)**
+- [x] **T018 — Test Scenario Scripts (Planning Artifacts)**
   - **Goal:** Draft concrete scenario scripts for camera control, substrate editing, and creative-flow completion.
   - **Why it matters:** Ensures camera lock and sculpting usability are validated explicitly, not implicitly.
   - **Definition of Done:** Scenario set includes setup, steps, expected outcomes, and failure capture fields.
