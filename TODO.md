@@ -263,7 +263,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T031, T032
   - **Artifacts:** `docs/refactor/workstream-ownership-raci.md` (new)
 
-- [ ] **T034 — Story Sizing & Sprint Capacity Calibration**
+- [x] **T034 — Story Sizing & Sprint Capacity Calibration**
   - **Goal:** Add sizing estimates and sprint-capacity assumptions for backlog stories in the overhaul sequence.
   - **Why it matters:** Reduces schedule risk and reveals overloaded sprints before implementation begins.
   - **Definition of Done:** Story sizing table and capacity model exist with risk buffers and critical-path flags.
