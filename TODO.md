@@ -162,7 +162,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T016, T017
   - **Artifacts:** `docs/refactor/instrumentation-plan.md` (new)
 
-- [ ] **T020 — Phase-by-Phase Delivery Plan**
+- [x] **T020 — Phase-by-Phase Delivery Plan**
   - **Goal:** Convert architecture/design outputs into an implementation phase roadmap with scoped deliverables.
   - **Why it matters:** Keeps execution focused on highest product-feel impact first.
   - **Definition of Done:** Roadmap defines phase goals, deliverables, exit criteria, and explicit non-goals per phase.
