@@ -155,7 +155,7 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T017
   - **Artifacts:** `docs/refactor/test-scenarios.md` (new)
 
-- [ ] **T019 — Instrumentation & Observability Plan**
+- [x] **T019 — Instrumentation & Observability Plan**
   - **Goal:** Plan telemetry/events needed to measure immersion and control quality after implementation.
   - **Why it matters:** Needed to objectively confirm camera persistence, editing fluency, and flow completion improvements.
   - **Definition of Done:** Event dictionary and KPI mapping documented; no code added.
