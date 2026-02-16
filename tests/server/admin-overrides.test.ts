@@ -1,5 +1,5 @@
-import { afterAll, describe, expect, test } from "vitest";
-import { and, desc, eq } from "drizzle-orm";
+import { describe, expect, test } from "vitest";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { db } from "../../src/server/db";
 import {
@@ -15,223 +15,238 @@ import {
   updateNormalizationOverride,
 } from "../../src/server/services/admin/overrides";
 
-const suffix = Date.now();
-const adminEmail = `vitest-admin-overrides-${suffix}@example.com`;
-const categorySlug = `vitest-overrides-category-${suffix}`;
-const productSlug = `vitest-overrides-product-${suffix}`;
+type OverrideTestFixture = {
+  actorUserId: string;
+  categoryId: string;
+  canonicalProductId: string;
+  overrideIds: string[];
+  adminEmail: string;
+  categorySlug: string;
+  productSlug: string;
+};
 
-let actorUserId: string | null = null;
-let categoryId: string | null = null;
-let canonicalProductId: string | null = null;
-let overrideId: string | null = null;
+async function createFixture(seed: string): Promise<OverrideTestFixture> {
+  const shortSuffix = `${Date.now().toString(36)}${Math.floor(Math.random() * 10_000)
+    .toString(36)
+    .padStart(3, "0")}`;
+  const fixtureKey = `${seed.slice(0, 8)}-${shortSuffix}`;
+  const adminEmail = `vitest-admin-overrides-${fixtureKey}@example.com`;
+  const categorySlug = `vitest-ovr-cat-${fixtureKey}`;
+  const productSlug = `vitest-ovr-prod-${fixtureKey}`;
 
-afterAll(async () => {
-  if (overrideId) {
-    await db.delete(normalizationOverrides).where(eq(normalizationOverrides.id, overrideId));
-  }
+  const userRows = await db
+    .insert(users)
+    .values({
+      email: adminEmail,
+      role: "admin",
+      authProvider: "email",
+      updatedAt: new Date(),
+    })
+    .returning({ id: users.id });
 
-  if (overrideId) {
+  const actorUserId = userRows[0]?.id;
+  if (!actorUserId) throw new Error("Failed to create override test user fixture.");
+
+  const categoryRows = await db
+    .insert(categories)
+    .values({
+      slug: categorySlug,
+      name: `Vitest Overrides Category ${fixtureKey}`,
+      displayOrder: 9999,
+      builderRequired: false,
+      updatedAt: new Date(),
+    })
+    .returning({ id: categories.id });
+
+  const categoryId = categoryRows[0]?.id;
+  if (!categoryId) throw new Error("Failed to create override test category fixture.");
+
+  const productRows = await db
+    .insert(products)
+    .values({
+      categoryId,
+      name: `Vitest override product ${fixtureKey}`,
+      slug: productSlug,
+      specs: {},
+      meta: {},
+      imageUrls: [],
+      updatedAt: new Date(),
+    })
+    .returning({ id: products.id });
+
+  const canonicalProductId = productRows[0]?.id;
+  if (!canonicalProductId) throw new Error("Failed to create override test product fixture.");
+
+  return {
+    actorUserId,
+    categoryId,
+    canonicalProductId,
+    overrideIds: [],
+    adminEmail,
+    categorySlug,
+    productSlug,
+  };
+}
+
+async function cleanupFixture(fixture: OverrideTestFixture): Promise<void> {
+  const overrideRows = await db
+    .select({ id: normalizationOverrides.id })
+    .from(normalizationOverrides)
+    .where(eq(normalizationOverrides.canonicalId, fixture.canonicalProductId));
+
+  const overrideIds = Array.from(
+    new Set([...fixture.overrideIds, ...overrideRows.map((row) => row.id)]),
+  );
+
+  if (overrideIds.length > 0) {
+    await db
+      .delete(normalizationOverrides)
+      .where(inArray(normalizationOverrides.id, overrideIds));
+
     await db
       .delete(adminLogs)
       .where(
         and(
           eq(adminLogs.targetType, "normalization_override"),
-          eq(adminLogs.targetId, overrideId),
+          inArray(adminLogs.targetId, overrideIds),
         ),
       );
   }
 
-  if (canonicalProductId) {
-    await db.delete(products).where(eq(products.id, canonicalProductId));
-  }
-
-  if (categoryId) {
-    await db.delete(categories).where(eq(categories.id, categoryId));
-  }
-
-  if (actorUserId) {
-    await db.delete(users).where(eq(users.id, actorUserId));
-  }
-});
+  await db.delete(products).where(eq(products.id, fixture.canonicalProductId));
+  await db.delete(categories).where(eq(categories.id, fixture.categoryId));
+  await db.delete(users).where(eq(users.id, fixture.actorUserId));
+}
 
 describe("admin normalization overrides", () => {
   test("create/update/delete stores reason + actor + timestamps and logs actions", async () => {
-    const userRows = await db
-      .insert(users)
-      .values({
-        email: adminEmail,
-        role: "admin",
-        authProvider: "email",
-        updatedAt: new Date(),
-      })
-      .returning({ id: users.id });
+    const fixture = await createFixture("create-update-delete");
 
-    actorUserId = userRows[0]?.id ?? null;
-    expect(actorUserId).toBeTruthy();
+    try {
+      const created = await createNormalizationOverride({
+        canonicalType: "product",
+        canonicalId: fixture.canonicalProductId,
+        fieldPath: "name",
+        value: "Manual Override Name",
+        reason: "Correct product naming mismatch",
+        actorUserId: fixture.actorUserId,
+      });
+      fixture.overrideIds.push(created.id);
 
-    const categoryRows = await db
-      .insert(categories)
-      .values({
-        slug: categorySlug,
-        name: `Vitest Overrides Category ${suffix}`,
-        displayOrder: 9999,
-        builderRequired: false,
-        updatedAt: new Date(),
-      })
-      .returning({ id: categories.id });
+      const createdRows = await db
+        .select({
+          id: normalizationOverrides.id,
+          reason: normalizationOverrides.reason,
+          actorUserId: normalizationOverrides.actorUserId,
+          fieldPath: normalizationOverrides.fieldPath,
+          value: normalizationOverrides.value,
+          createdAt: normalizationOverrides.createdAt,
+          updatedAt: normalizationOverrides.updatedAt,
+        })
+        .from(normalizationOverrides)
+        .where(eq(normalizationOverrides.id, created.id))
+        .limit(1);
 
-    categoryId = categoryRows[0]?.id ?? null;
-    expect(categoryId).toBeTruthy();
+      expect(createdRows).toHaveLength(1);
+      const createdRow = createdRows[0]!;
+      expect(createdRow.reason).toBe("Correct product naming mismatch");
+      expect(createdRow.actorUserId).toBe(fixture.actorUserId);
+      expect(createdRow.fieldPath).toBe("name");
+      expect(createdRow.value).toBe("Manual Override Name");
+      expect(createdRow.createdAt).toBeInstanceOf(Date);
+      expect(createdRow.updatedAt).toBeInstanceOf(Date);
 
-    const productRows = await db
-      .insert(products)
-      .values({
-        categoryId: categoryId!,
-        name: `Vitest override product ${suffix}`,
-        slug: productSlug,
-        specs: {},
-        meta: {},
-        imageUrls: [],
-        updatedAt: new Date(),
-      })
-      .returning({ id: products.id });
+      await updateNormalizationOverride({
+        overrideId: created.id,
+        canonicalType: "product",
+        canonicalId: fixture.canonicalProductId,
+        fieldPath: "specs.tankVolumeGallons",
+        value: 20,
+        reason: "Correct measured tank volume",
+        actorUserId: fixture.actorUserId,
+      });
 
-    canonicalProductId = productRows[0]?.id ?? null;
-    expect(canonicalProductId).toBeTruthy();
+      const updatedRows = await db
+        .select({
+          reason: normalizationOverrides.reason,
+          actorUserId: normalizationOverrides.actorUserId,
+          fieldPath: normalizationOverrides.fieldPath,
+          value: normalizationOverrides.value,
+          updatedAt: normalizationOverrides.updatedAt,
+        })
+        .from(normalizationOverrides)
+        .where(eq(normalizationOverrides.id, created.id))
+        .limit(1);
 
-    const created = await createNormalizationOverride({
-      canonicalType: "product",
-      canonicalId: canonicalProductId!,
-      fieldPath: "name",
-      value: "Manual Override Name",
-      reason: "Correct product naming mismatch",
-      actorUserId: actorUserId!,
-    });
+      expect(updatedRows).toHaveLength(1);
+      const updatedRow = updatedRows[0]!;
+      expect(updatedRow.reason).toBe("Correct measured tank volume");
+      expect(updatedRow.actorUserId).toBe(fixture.actorUserId);
+      expect(updatedRow.fieldPath).toBe("specs.tankVolumeGallons");
+      expect(updatedRow.value).toBe(20);
+      expect(updatedRow.updatedAt.getTime()).toBeGreaterThanOrEqual(
+        createdRow.updatedAt.getTime(),
+      );
 
-    overrideId = created.id;
+      await deleteNormalizationOverride({
+        overrideId: created.id,
+        actorUserId: fixture.actorUserId,
+      });
 
-    const createdRows = await db
-      .select({
-        id: normalizationOverrides.id,
-        reason: normalizationOverrides.reason,
-        actorUserId: normalizationOverrides.actorUserId,
-        fieldPath: normalizationOverrides.fieldPath,
-        value: normalizationOverrides.value,
-        createdAt: normalizationOverrides.createdAt,
-        updatedAt: normalizationOverrides.updatedAt,
-      })
-      .from(normalizationOverrides)
-      .where(eq(normalizationOverrides.id, created.id))
-      .limit(1);
+      const deletedRows = await db
+        .select({ id: normalizationOverrides.id })
+        .from(normalizationOverrides)
+        .where(eq(normalizationOverrides.id, created.id))
+        .limit(1);
 
-    expect(createdRows).toHaveLength(1);
-    const createdRow = createdRows[0]!;
-    expect(createdRow.reason).toBe("Correct product naming mismatch");
-    expect(createdRow.actorUserId).toBe(actorUserId);
-    expect(createdRow.fieldPath).toBe("name");
-    expect(createdRow.value).toBe("Manual Override Name");
-    expect(createdRow.createdAt).toBeInstanceOf(Date);
-    expect(createdRow.updatedAt).toBeInstanceOf(Date);
+      expect(deletedRows).toHaveLength(0);
 
-    await updateNormalizationOverride({
-      overrideId: created.id,
-      canonicalType: "product",
-      canonicalId: canonicalProductId!,
-      fieldPath: "specs.tankVolumeGallons",
-      value: 20,
-      reason: "Correct measured tank volume",
-      actorUserId: actorUserId!,
-    });
+      const logRows = await db
+        .select({ action: adminLogs.action })
+        .from(adminLogs)
+        .where(
+          and(
+            eq(adminLogs.targetType, "normalization_override"),
+            eq(adminLogs.targetId, created.id),
+          ),
+        )
+        .orderBy(desc(adminLogs.createdAt));
 
-    const updatedRows = await db
-      .select({
-        reason: normalizationOverrides.reason,
-        actorUserId: normalizationOverrides.actorUserId,
-        fieldPath: normalizationOverrides.fieldPath,
-        value: normalizationOverrides.value,
-        updatedAt: normalizationOverrides.updatedAt,
-      })
-      .from(normalizationOverrides)
-      .where(eq(normalizationOverrides.id, created.id))
-      .limit(1);
-
-    expect(updatedRows).toHaveLength(1);
-    const updatedRow = updatedRows[0]!;
-    expect(updatedRow.reason).toBe("Correct measured tank volume");
-    expect(updatedRow.actorUserId).toBe(actorUserId);
-    expect(updatedRow.fieldPath).toBe("specs.tankVolumeGallons");
-    expect(updatedRow.value).toBe(20);
-    expect(updatedRow.updatedAt.getTime()).toBeGreaterThanOrEqual(
-      createdRow.updatedAt.getTime(),
-    );
-
-    await deleteNormalizationOverride({
-      overrideId: created.id,
-      actorUserId: actorUserId!,
-    });
-
-    const deletedRows = await db
-      .select({ id: normalizationOverrides.id })
-      .from(normalizationOverrides)
-      .where(eq(normalizationOverrides.id, created.id))
-      .limit(1);
-
-    expect(deletedRows).toHaveLength(0);
-
-    const logRows = await db
-      .select({ action: adminLogs.action })
-      .from(adminLogs)
-      .where(
-        and(
-          eq(adminLogs.targetType, "normalization_override"),
-          eq(adminLogs.targetId, created.id),
-        ),
-      )
-      .orderBy(desc(adminLogs.createdAt));
-
-    const actions = logRows.map((row) => row.action);
-    expect(actions).toContain("normalization.override.create");
-    expect(actions).toContain("normalization.override.update");
-    expect(actions).toContain("normalization.override.delete");
+      const actions = logRows.map((row) => row.action);
+      expect(actions).toContain("normalization.override.create");
+      expect(actions).toContain("normalization.override.update");
+      expect(actions).toContain("normalization.override.delete");
+    } finally {
+      await cleanupFixture(fixture);
+    }
   }, 15_000);
 
   test("duplicate field override for the same canonical entity is rejected", async () => {
-    if (!actorUserId || !canonicalProductId) {
-      throw new Error("Override fixtures were not initialized.");
-    }
+    const fixture = await createFixture("duplicate");
 
-    const created = await createNormalizationOverride({
-      canonicalType: "product",
-      canonicalId: canonicalProductId,
-      fieldPath: "meta.notes",
-      value: "first",
-      reason: "initial note override",
-      actorUserId,
-    });
-
-    await expect(
-      createNormalizationOverride({
+    try {
+      const created = await createNormalizationOverride({
         canonicalType: "product",
-        canonicalId: canonicalProductId,
+        canonicalId: fixture.canonicalProductId,
         fieldPath: "meta.notes",
-        value: "second",
-        reason: "duplicate note override",
-        actorUserId,
-      }),
-    ).rejects.toThrow("already exists");
+        value: "first",
+        reason: "initial note override",
+        actorUserId: fixture.actorUserId,
+      });
+      fixture.overrideIds.push(created.id);
 
-    await deleteNormalizationOverride({
-      overrideId: created.id,
-      actorUserId,
-    });
-
-    await db
-      .delete(adminLogs)
-      .where(
-        and(
-          eq(adminLogs.targetType, "normalization_override"),
-          eq(adminLogs.targetId, created.id),
-        ),
-      );
+      await expect(
+        createNormalizationOverride({
+          canonicalType: "product",
+          canonicalId: fixture.canonicalProductId,
+          fieldPath: "meta.notes",
+          value: "second",
+          reason: "duplicate note override",
+          actorUserId: fixture.actorUserId,
+        }),
+      ).rejects.toThrow("already exists");
+    } finally {
+      await cleanupFixture(fixture);
+    }
   });
 });

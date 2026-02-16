@@ -11,6 +11,8 @@ import {
 } from "@/lib/tank-visual";
 
 const ACTIVE_PRODUCT_STATUS = "active" as const;
+const NON_PRODUCTION_CATEGORY_PATTERN = "(^|[^a-z])(vitest|test)([^a-z]|$)";
+const productionCategoryGuard = sql`${categories.slug} !~* ${NON_PRODUCTION_CATEGORY_PATTERN} and ${categories.name} !~* ${NON_PRODUCTION_CATEGORY_PATTERN}`;
 
 type ProductLike = {
   slug: string;
@@ -60,6 +62,7 @@ export const productsRouter = createTRPCRouter({
     return ctx.db
       .select()
       .from(categories)
+      .where(productionCategoryGuard)
       .orderBy(categories.displayOrder, categories.name);
   }),
 
@@ -69,7 +72,7 @@ export const productsRouter = createTRPCRouter({
       const rows = await ctx.db
         .select()
         .from(categories)
-        .where(eq(categories.slug, input.slug))
+        .where(and(eq(categories.slug, input.slug), productionCategoryGuard))
         .limit(1);
       return rows[0] ?? null;
     }),
@@ -80,7 +83,7 @@ export const productsRouter = createTRPCRouter({
       const cat = await ctx.db
         .select({ id: categories.id })
         .from(categories)
-        .where(eq(categories.slug, input.categorySlug))
+        .where(and(eq(categories.slug, input.categorySlug), productionCategoryGuard))
         .limit(1);
       const categoryId = cat[0]?.id;
       if (!categoryId) return [];
@@ -118,7 +121,7 @@ export const productsRouter = createTRPCRouter({
       const categoryRow = await ctx.db
         .select({ id: categories.id })
         .from(categories)
-        .where(eq(categories.slug, input.categorySlug))
+        .where(and(eq(categories.slug, input.categorySlug), productionCategoryGuard))
         .limit(1);
 
       const categoryId = categoryRow[0]?.id;
@@ -160,7 +163,7 @@ export const productsRouter = createTRPCRouter({
       const categoryRow = await ctx.db
         .select({ id: categories.id })
         .from(categories)
-        .where(eq(categories.slug, input.categorySlug))
+        .where(and(eq(categories.slug, input.categorySlug), productionCategoryGuard))
         .limit(1);
 
       const categoryId = categoryRow[0]?.id;
