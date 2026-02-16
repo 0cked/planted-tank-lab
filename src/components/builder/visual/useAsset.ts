@@ -1,5 +1,9 @@
 "use client";
 
+import type {
+  ProceduralRockFallbackType,
+  ProceduralWoodFallbackType,
+} from "@/components/builder/visual/ProceduralHardscape";
 import type { VisualAsset } from "@/components/builder/visual/types";
 
 import manifestJson from "../../../../public/visual-assets/manifest.json";
@@ -28,6 +32,8 @@ type ManifestEntry = {
   placementZone?: ManifestPlacementZone;
   triangleCount?: number;
   fallbackPlantType?: ProceduralPlantFallbackType;
+  fallbackRockType?: ProceduralRockFallbackType;
+  fallbackWoodType?: ProceduralWoodFallbackType;
 };
 
 type AssetManifest = {
@@ -46,6 +52,8 @@ export type ResolvedVisualAsset = {
   triangleCount: number | null;
   fallbackKind: AssetFallbackKind;
   proceduralPlantType: ProceduralPlantFallbackType | null;
+  proceduralRockType: ProceduralRockFallbackType | null;
+  proceduralWoodType: ProceduralWoodFallbackType | null;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -61,6 +69,19 @@ function normalizePlantFallbackType(value: unknown): ProceduralPlantFallbackType
   if (value === "moss") return "moss";
   if (value === "carpet") return "carpet";
   if (value === "floating") return "floating";
+  return undefined;
+}
+
+function normalizeRockFallbackType(value: unknown): ProceduralRockFallbackType | undefined {
+  if (value === "rounded") return "rounded";
+  if (value === "jagged") return "jagged";
+  if (value === "slate") return "slate";
+  return undefined;
+}
+
+function normalizeWoodFallbackType(value: unknown): ProceduralWoodFallbackType | undefined {
+  if (value === "spider") return "spider";
+  if (value === "flowing") return "flowing";
   return undefined;
 }
 
@@ -98,6 +119,8 @@ function normalizeManifest(input: unknown): AssetManifest {
           ? Math.max(0, Math.round(row.triangleCount))
           : undefined,
       fallbackPlantType: normalizePlantFallbackType(row.fallbackPlantType),
+      fallbackRockType: normalizeRockFallbackType(row.fallbackRockType),
+      fallbackWoodType: normalizeWoodFallbackType(row.fallbackWoodType),
     };
   }
 
@@ -204,7 +227,14 @@ function inferPlantFallbackType(asset: VisualAsset): ProceduralPlantFallbackType
 
   if (
     placement.includes("foreground") ||
-    includesAny(haystack, ["carpet", "monte carlo", "hairgrass", "hemianthus", "glosso", "lilaeopsis"])
+    includesAny(haystack, [
+      "carpet",
+      "monte carlo",
+      "hairgrass",
+      "hemianthus",
+      "glosso",
+      "lilaeopsis",
+    ])
   ) {
     return "carpet";
   }
@@ -219,6 +249,42 @@ function inferPlantFallbackType(asset: VisualAsset): ProceduralPlantFallbackType
   return "rosette";
 }
 
+function inferRockFallbackType(asset: VisualAsset): ProceduralRockFallbackType {
+  const tags = asset.tags?.join(" ").toLowerCase() ?? "";
+  const material = asset.materialType?.toLowerCase() ?? "";
+  const haystack = `${asset.name} ${asset.slug} ${material} ${tags}`.toLowerCase();
+
+  if (includesAny(haystack, ["slate", "shale", "flat", "plate", "strata"])) {
+    return "slate";
+  }
+
+  if (includesAny(haystack, ["seiryu", "dragon", "ohko", "lava", "jagged", "crag", "ridge"])) {
+    return "jagged";
+  }
+
+  if (includesAny(haystack, ["river", "pebble", "boulder", "rounded", "smooth"])) {
+    return "rounded";
+  }
+
+  return "jagged";
+}
+
+function inferWoodFallbackType(asset: VisualAsset): ProceduralWoodFallbackType {
+  const tags = asset.tags?.join(" ").toLowerCase() ?? "";
+  const material = asset.materialType?.toLowerCase() ?? "";
+  const haystack = `${asset.name} ${asset.slug} ${material} ${tags}`.toLowerCase();
+
+  if (includesAny(haystack, ["manzanita", "flow", "curved", "sweep", "branchscape"])) {
+    return "flowing";
+  }
+
+  if (includesAny(haystack, ["spider", "twig", "branch", "root", "gnarled"])) {
+    return "spider";
+  }
+
+  return "spider";
+}
+
 function resolveProceduralPlantType(
   asset: VisualAsset,
   fallbackKind: AssetFallbackKind,
@@ -229,6 +295,26 @@ function resolveProceduralPlantType(
   return inferPlantFallbackType(asset);
 }
 
+function resolveProceduralRockType(
+  asset: VisualAsset,
+  fallbackKind: AssetFallbackKind,
+  entry: ManifestEntry | null,
+): ProceduralRockFallbackType | null {
+  if (fallbackKind !== "rock") return null;
+  if (entry?.fallbackRockType) return entry.fallbackRockType;
+  return inferRockFallbackType(asset);
+}
+
+function resolveProceduralWoodType(
+  asset: VisualAsset,
+  fallbackKind: AssetFallbackKind,
+  entry: ManifestEntry | null,
+): ProceduralWoodFallbackType | null {
+  if (fallbackKind !== "wood") return null;
+  if (entry?.fallbackWoodType) return entry.fallbackWoodType;
+  return inferWoodFallbackType(asset);
+}
+
 export function useAsset(
   asset: VisualAsset,
   options?: {
@@ -236,19 +322,22 @@ export function useAsset(
   },
 ): ResolvedVisualAsset {
   const failedPath = options?.failedPath ?? null;
-  const fallbackKind = inferFallbackKind(asset);
+  const inferredFallbackKind = inferFallbackKind(asset);
   const { manifestKey, entry } = resolveManifestEntry(asset);
+  const fallbackKind = entry?.category ?? inferredFallbackKind;
   const glbPath = sanitizeModelPath(entry?.path);
   const shouldFallback = failedPath != null && failedPath === glbPath;
 
   return {
     manifestKey,
     glbPath: shouldFallback ? null : glbPath,
-    category: entry?.category ?? fallbackKind,
+    category: fallbackKind,
     defaultScale: entry?.defaultScale ?? asset.defaultScale,
     placementZone: entry?.placementZone ?? inferPlacementZone(asset),
     triangleCount: entry?.triangleCount ?? null,
     fallbackKind,
     proceduralPlantType: resolveProceduralPlantType(asset, fallbackKind, entry),
+    proceduralRockType: resolveProceduralRockType(asset, fallbackKind, entry),
+    proceduralWoodType: resolveProceduralWoodType(asset, fallbackKind, entry),
   };
 }

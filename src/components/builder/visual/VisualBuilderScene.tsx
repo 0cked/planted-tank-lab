@@ -28,6 +28,11 @@ import {
   proceduralPlantSeedFromString,
 } from "@/components/builder/visual/ProceduralPlants";
 import {
+  getProceduralRockModel,
+  getProceduralWoodModel,
+  proceduralHardscapeSeedFromString,
+} from "@/components/builder/visual/ProceduralHardscape";
+import {
   applySubstrateBrush,
   buildTransformFromNormalized,
   clamp01,
@@ -813,16 +818,68 @@ function ProceduralPlantMesh(props: {
   );
 }
 
+function ProceduralHardscapeMesh(props: {
+  renderItem: SceneRenderItem;
+  resolvedAsset: ResolvedVisualAsset;
+  highlightColor: string | null;
+}) {
+  const seed = useMemo(
+    () => proceduralHardscapeSeedFromString(props.renderItem.asset.id),
+    [props.renderItem.asset.id],
+  );
+  const isWood = props.resolvedAsset.fallbackKind === "wood";
+  const rockType = props.resolvedAsset.proceduralRockType ?? "jagged";
+  const woodType = props.resolvedAsset.proceduralWoodType ?? "spider";
+  const model = useMemo(
+    () =>
+      isWood
+        ? getProceduralWoodModel({
+            type: woodType,
+            seed,
+          })
+        : getProceduralRockModel({
+            type: rockType,
+            seed,
+          }),
+    [isWood, rockType, seed, woodType],
+  );
+  const material = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#ffffff",
+        roughness: isWood ? 0.88 : 0.82,
+        metalness: isWood ? 0.05 : 0.1,
+        vertexColors: true,
+      }),
+    [isWood],
+  );
+
+  useEffect(() => {
+    return () => {
+      material.dispose();
+    };
+  }, [material]);
+
+  const scale: [number, number, number] = [
+    props.renderItem.size.width / Math.max(0.001, model.bounds.x),
+    props.renderItem.size.height / Math.max(0.001, model.bounds.y),
+    props.renderItem.size.depth / Math.max(0.001, model.bounds.z),
+  ];
+
+  return (
+    <mesh castShadow receiveShadow geometry={model.geometry} material={material} scale={scale}>
+      {props.highlightColor ? (
+        <Edges color={props.highlightColor} threshold={isWood ? 26 : 20} />
+      ) : null}
+    </mesh>
+  );
+}
+
 function ProceduralItemMesh(props: {
   renderItem: SceneRenderItem;
   resolvedAsset: ResolvedVisualAsset;
-  palette: string[];
   highlightColor: string | null;
 }) {
-  const width = props.renderItem.size.width;
-  const depth = props.renderItem.size.depth;
-  const height = props.renderItem.size.height;
-
   if (props.renderItem.asset.categorySlug === "plants") {
     return (
       <ProceduralPlantMesh
@@ -833,22 +890,12 @@ function ProceduralItemMesh(props: {
     );
   }
 
-  if (props.renderItem.asset.materialType?.includes("wood")) {
-    return (
-      <mesh castShadow receiveShadow>
-        <capsuleGeometry args={[Math.max(0.28, width * 0.16), Math.max(0.5, height * 0.78), 8, 12]} />
-        <meshStandardMaterial color={props.palette[1] ?? WOOD_COLORS[1]} roughness={0.88} metalness={0.05} />
-        {props.highlightColor ? <Edges color={props.highlightColor} threshold={28} /> : null}
-      </mesh>
-    );
-  }
-
   return (
-    <mesh castShadow receiveShadow>
-      <dodecahedronGeometry args={[Math.max(0.35, Math.max(width, depth) * 0.26), 1]} />
-      <meshStandardMaterial color={props.palette[1] ?? ROCK_COLORS[1]} roughness={0.82} metalness={0.1} />
-      {props.highlightColor ? <Edges color={props.highlightColor} threshold={18} /> : null}
-    </mesh>
+    <ProceduralHardscapeMesh
+      renderItem={props.renderItem}
+      resolvedAsset={props.resolvedAsset}
+      highlightColor={props.highlightColor}
+    />
   );
 }
 
@@ -867,7 +914,6 @@ function ItemMesh(props: {
     () => (props.renderItem.item.rotation * Math.PI) / 180,
     [props.renderItem.item.rotation],
   );
-  const palette = useMemo(() => materialPalette(props.renderItem.asset), [props.renderItem.asset]);
   const highlightColor = props.selected ? "#cbf2dd" : props.hovered ? "#d6e9ff" : null;
   const [failedAssetModel, setFailedAssetModel] = useState<{ assetId: string; path: string } | null>(
     null,
@@ -907,7 +953,6 @@ function ItemMesh(props: {
     <ProceduralItemMesh
       renderItem={props.renderItem}
       resolvedAsset={resolvedAsset}
-      palette={palette}
       highlightColor={highlightColor}
     />
   );

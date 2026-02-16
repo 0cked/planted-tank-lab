@@ -195,7 +195,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Register these as the fallback geometries in the asset manifest system (P2-1) so they display when no GLB is available.
   - **Verify:** Place each plant type in the builder. They should be visually distinguishable and recognizably plant-like — not cones.
 
-- [ ] **P2-3: Procedural hardscape geometry**
+- [x] **P2-3: Procedural hardscape geometry**
   - Replace dodecahedrons/capsules with parametric rock and wood meshes generated in code.
   - Create `src/components/builder/visual/ProceduralHardscape.tsx` with generators:
     - **Rock**: start with icosahedron geometry, displace vertices using 3D simplex noise scaled by a roughness parameter. 3 variants via different noise seeds/scales (rounded boulder, jagged seiryu-style, flat slate).

@@ -14,7 +14,20 @@
       "category": "rock",
       "defaultScale": 0.95,
       "placementZone": "midground",
-      "triangleCount": 12
+      "triangleCount": 12,
+      "fallbackRockType": "jagged"
+    },
+    "product:spiderwood-branch": {
+      "category": "wood",
+      "defaultScale": 1,
+      "placementZone": "hardscape",
+      "fallbackWoodType": "spider"
+    },
+    "product:manzanita-branch": {
+      "category": "wood",
+      "defaultScale": 1,
+      "placementZone": "hardscape",
+      "fallbackWoodType": "flowing"
     }
   }
 }

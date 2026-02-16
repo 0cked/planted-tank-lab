@@ -56,7 +56,10 @@ describe("useAsset manifest resolution", () => {
     expect(resolved.manifestKey).toBe("plant:java-fern");
     expect(resolved.glbPath).toBe("/visual-assets/plants/test-fern.glb");
     expect(resolved.category).toBe("plant");
+    expect(resolved.fallbackKind).toBe("plant");
     expect(resolved.proceduralPlantType).toBe("rosette");
+    expect(resolved.proceduralRockType).toBeNull();
+    expect(resolved.proceduralWoodType).toBeNull();
   });
 
   it("falls back to procedural geometry when the GLB path has failed", () => {
@@ -66,6 +69,37 @@ describe("useAsset manifest resolution", () => {
     expect(resolved.glbPath).toBeNull();
     expect(resolved.fallbackKind).toBe("plant");
     expect(resolved.proceduralPlantType).toBe("rosette");
+  });
+
+  it("resolves a manifest rock variant for hardscape assets", () => {
+    const asset = buildAsset({
+      id: "2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a",
+      type: "product",
+      sourceMode: "catalog_product",
+      name: "Seiryu Stone",
+      slug: "seiryu-stone",
+      categorySlug: "hardscape",
+      categoryName: "Hardscape",
+      materialType: "rock",
+      plantProfile: null,
+      widthIn: 8,
+      heightIn: 6,
+      depthIn: 5,
+      defaultScale: 1,
+      priceCents: 2400,
+      sku: "HS-SEIRYU",
+      offerId: "offer-1",
+      goUrl: "/go/offer-1",
+      purchaseUrl: "/go/offer-1",
+    });
+
+    const resolved = useAsset(asset);
+
+    expect(resolved.manifestKey).toBe("2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a");
+    expect(resolved.glbPath).toBe("/visual-assets/hardscape/test-seiryu.glb");
+    expect(resolved.fallbackKind).toBe("rock");
+    expect(resolved.proceduralRockType).toBe("jagged");
+    expect(resolved.proceduralWoodType).toBeNull();
   });
 
   it("infers wood fallback for hardscape assets without manifest entries", () => {
@@ -96,6 +130,38 @@ describe("useAsset manifest resolution", () => {
     expect(resolved.glbPath).toBeNull();
     expect(resolved.fallbackKind).toBe("wood");
     expect(resolved.proceduralPlantType).toBeNull();
+    expect(resolved.proceduralRockType).toBeNull();
+    expect(resolved.proceduralWoodType).toBe("spider");
+  });
+
+  it("uses manifest-configured wood fallback types when no GLB path is present", () => {
+    const asset = buildAsset({
+      id: "manzanita-id",
+      type: "product",
+      sourceMode: "catalog_product",
+      name: "Manzanita Branch",
+      slug: "manzanita-branch",
+      categorySlug: "hardscape",
+      categoryName: "Hardscape",
+      materialType: "manzanita_wood",
+      plantProfile: null,
+      widthIn: 8,
+      heightIn: 7,
+      depthIn: 5,
+      defaultScale: 1,
+      priceCents: 1800,
+      sku: "HW-2",
+      offerId: "offer-2",
+      goUrl: "/go/offer-2",
+      purchaseUrl: "/go/offer-2",
+    });
+
+    const resolved = useAsset(asset);
+
+    expect(resolved.manifestKey).toBe("product:manzanita-branch");
+    expect(resolved.glbPath).toBeNull();
+    expect(resolved.fallbackKind).toBe("wood");
+    expect(resolved.proceduralWoodType).toBe("flowing");
   });
 
   it("infers floating fallback type from placement when manifest is absent", () => {
