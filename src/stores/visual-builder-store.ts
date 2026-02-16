@@ -20,6 +20,12 @@ import {
   createFlatSubstrateHeightfield,
   normalizeSubstrateHeightfield,
 } from "@/lib/visual/substrate";
+import {
+  appendSubstrateUndoEntry,
+  applySubstrateHeightfieldDiff,
+  createSubstrateHeightfieldDiff,
+  type SubstrateHeightfieldDiff,
+} from "@/stores/substrate-undo";
 import { migratePersistedSubstrateHeightfield } from "@/stores/visual-builder-store-migrate";
 
 type VisualBuilderFlags = {
@@ -43,6 +49,9 @@ type VisualBuilderState = {
 
   canvasState: VisualCanvasState;
   selectedItemId: string | null;
+  substrateUndoStack: SubstrateHeightfieldDiff[];
+  substrateRedoStack: SubstrateHeightfieldDiff[];
+  activeSubstrateStrokeStart: SubstrateHeightfield | null;
 
   // Single-select categories (light/filter/co2/...)
   selectedProductByCategory: Record<string, string | undefined>;
@@ -57,6 +66,10 @@ type VisualBuilderState = {
   setPublic: (value: boolean) => void;
   setTank: (tankId: string, dims: { widthIn: number; heightIn: number; depthIn: number }) => void;
   setSubstrateHeightfield: (next: SubstrateHeightfield) => void;
+  beginSubstrateStroke: () => void;
+  endSubstrateStroke: () => void;
+  undoSubstrateStroke: () => void;
+  redoSubstrateStroke: () => void;
   setSceneSettings: (patch: Partial<VisualSceneSettings>) => void;
 
   setCompatibilityEnabled: (value: boolean) => void;
@@ -472,6 +485,9 @@ const initialState = {
   tankId: null as string | null,
   canvasState: initialCanvasState,
   selectedItemId: null as string | null,
+  substrateUndoStack: [] as SubstrateHeightfieldDiff[],
+  substrateRedoStack: [] as SubstrateHeightfieldDiff[],
+  activeSubstrateStrokeStart: null as SubstrateHeightfield | null,
   selectedProductByCategory: {} as Record<string, string | undefined>,
   compatibilityEnabled: true,
   flags: {
@@ -485,6 +501,57 @@ function currentDims(state: { canvasState: VisualCanvasState }): CanvasDimension
     widthIn: state.canvasState.widthIn,
     heightIn: state.canvasState.heightIn,
     depthIn: state.canvasState.depthIn,
+  };
+}
+
+function clearSubstrateHistoryState(): {
+  substrateUndoStack: SubstrateHeightfieldDiff[];
+  substrateRedoStack: SubstrateHeightfieldDiff[];
+  activeSubstrateStrokeStart: SubstrateHeightfield | null;
+} {
+  return {
+    substrateUndoStack: [],
+    substrateRedoStack: [],
+    activeSubstrateStrokeStart: null,
+  };
+}
+
+function commitActiveSubstrateStroke(state: {
+  canvasState: VisualCanvasState;
+  substrateUndoStack: SubstrateHeightfieldDiff[];
+  substrateRedoStack: SubstrateHeightfieldDiff[];
+  activeSubstrateStrokeStart: SubstrateHeightfield | null;
+}): {
+  substrateUndoStack: SubstrateHeightfieldDiff[];
+  substrateRedoStack: SubstrateHeightfieldDiff[];
+  activeSubstrateStrokeStart: SubstrateHeightfield | null;
+} {
+  if (!state.activeSubstrateStrokeStart) {
+    return {
+      substrateUndoStack: state.substrateUndoStack,
+      substrateRedoStack: state.substrateRedoStack,
+      activeSubstrateStrokeStart: null,
+    };
+  }
+
+  const diff = createSubstrateHeightfieldDiff({
+    previous: state.activeSubstrateStrokeStart,
+    next: state.canvasState.substrateHeightfield,
+    tankHeightIn: state.canvasState.heightIn,
+  });
+
+  if (!diff) {
+    return {
+      substrateUndoStack: state.substrateUndoStack,
+      substrateRedoStack: state.substrateRedoStack,
+      activeSubstrateStrokeStart: null,
+    };
+  }
+
+  return {
+    substrateUndoStack: appendSubstrateUndoEntry(state.substrateUndoStack, diff),
+    substrateRedoStack: [],
+    activeSubstrateStrokeStart: null,
   };
 }
 
@@ -509,19 +576,97 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             sceneSettings: state.canvasState.sceneSettings,
             items: state.canvasState.items,
           }),
+          ...clearSubstrateHistoryState(),
         })),
 
       setSubstrateHeightfield: (next) =>
-        set((state) => ({
-          canvasState: normalizeCanvasState({
+        set((state) => {
+          const nextCanvasState = normalizeCanvasState({
             widthIn: state.canvasState.widthIn,
             heightIn: state.canvasState.heightIn,
             depthIn: state.canvasState.depthIn,
             substrateHeightfield: next,
             sceneSettings: state.canvasState.sceneSettings,
             items: state.canvasState.items,
-          }),
-        })),
+          });
+
+          return {
+            canvasState: nextCanvasState,
+            ...(state.activeSubstrateStrokeStart ? {} : clearSubstrateHistoryState()),
+          };
+        }),
+
+      beginSubstrateStroke: () =>
+        set((state) => {
+          if (state.activeSubstrateStrokeStart) return state;
+          return {
+            activeSubstrateStrokeStart: normalizeSubstrateHeightfield(
+              state.canvasState.substrateHeightfield,
+              state.canvasState.heightIn,
+            ).slice(),
+          };
+        }),
+
+      endSubstrateStroke: () =>
+        set((state) => {
+          if (!state.activeSubstrateStrokeStart) return state;
+          return commitActiveSubstrateStroke(state);
+        }),
+
+      undoSubstrateStroke: () =>
+        set((state) => {
+          const committedHistory = commitActiveSubstrateStroke(state);
+          const diff = committedHistory.substrateUndoStack[committedHistory.substrateUndoStack.length - 1];
+
+          if (!diff) {
+            if (!state.activeSubstrateStrokeStart) return state;
+            return committedHistory;
+          }
+
+          const previousHeightfield = applySubstrateHeightfieldDiff({
+            base: state.canvasState.substrateHeightfield,
+            diff,
+            tankHeightIn: state.canvasState.heightIn,
+            invert: true,
+          });
+
+          return {
+            canvasState: {
+              ...state.canvasState,
+              substrateHeightfield: previousHeightfield,
+            },
+            substrateUndoStack: committedHistory.substrateUndoStack.slice(0, -1),
+            substrateRedoStack: appendSubstrateUndoEntry(committedHistory.substrateRedoStack, diff),
+            activeSubstrateStrokeStart: null,
+          };
+        }),
+
+      redoSubstrateStroke: () =>
+        set((state) => {
+          const committedHistory = commitActiveSubstrateStroke(state);
+          const diff = committedHistory.substrateRedoStack[committedHistory.substrateRedoStack.length - 1];
+
+          if (!diff) {
+            if (!state.activeSubstrateStrokeStart) return state;
+            return committedHistory;
+          }
+
+          const nextHeightfield = applySubstrateHeightfieldDiff({
+            base: state.canvasState.substrateHeightfield,
+            diff,
+            tankHeightIn: state.canvasState.heightIn,
+          });
+
+          return {
+            canvasState: {
+              ...state.canvasState,
+              substrateHeightfield: nextHeightfield,
+            },
+            substrateUndoStack: appendSubstrateUndoEntry(committedHistory.substrateUndoStack, diff),
+            substrateRedoStack: committedHistory.substrateRedoStack.slice(0, -1),
+            activeSubstrateStrokeStart: null,
+          };
+        }),
 
       setSceneSettings: (patch) =>
         set((state) => ({
@@ -828,6 +973,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
               hasShrimp: Boolean(payload.flags.hasShrimp),
             },
             selectedItemId: null,
+            ...clearSubstrateHistoryState(),
           };
         });
       },

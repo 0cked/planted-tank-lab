@@ -361,6 +361,10 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const setPublic = useVisualBuilderStore((s) => s.setPublic);
   const setTank = useVisualBuilderStore((s) => s.setTank);
   const setSubstrateHeightfield = useVisualBuilderStore((s) => s.setSubstrateHeightfield);
+  const beginSubstrateStroke = useVisualBuilderStore((s) => s.beginSubstrateStroke);
+  const endSubstrateStroke = useVisualBuilderStore((s) => s.endSubstrateStroke);
+  const undoSubstrateStroke = useVisualBuilderStore((s) => s.undoSubstrateStroke);
+  const redoSubstrateStroke = useVisualBuilderStore((s) => s.redoSubstrateStroke);
   const setSceneSettings = useVisualBuilderStore((s) => s.setSceneSettings);
   const setSelectedProduct = useVisualBuilderStore((s) => s.setSelectedProduct);
   const setCompatibilityEnabled = useVisualBuilderStore((s) => s.setCompatibilityEnabled);
@@ -861,6 +865,35 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     });
     setSubstrateHeightfield(heightfield);
   };
+
+  useEffect(() => {
+    const handleUndoRedoShortcut = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+      if (event.key.toLowerCase() !== "z") return;
+
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      if (event.shiftKey) {
+        redoSubstrateStroke();
+        return;
+      }
+      undoSubstrateStroke();
+    };
+
+    window.addEventListener("keydown", handleUndoRedoShortcut);
+    return () => {
+      window.removeEventListener("keydown", handleUndoRedoShortcut);
+    };
+  }, [redoSubstrateStroke, undoSubstrateStroke]);
 
   const handleContinue = () => {
     if (!nextStep) return;
@@ -1858,6 +1891,8 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               onDeleteItem={removeCanvasItem}
               onRotateItem={handleSceneRotate}
               onSubstrateHeightfield={setSubstrateHeightfield}
+              onSubstrateStrokeStart={beginSubstrateStroke}
+              onSubstrateStrokeEnd={endSubstrateStroke}
               onCaptureCanvas={(canvas) => {
                 sceneCanvasRef.current = canvas;
               }}

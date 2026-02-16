@@ -111,6 +111,8 @@ type VisualBuilderSceneProps = {
   onDeleteItem: (itemId: string) => void;
   onRotateItem: (itemId: string, deltaDeg: number) => void;
   onSubstrateHeightfield: (next: SubstrateHeightfield) => void;
+  onSubstrateStrokeStart?: () => void;
+  onSubstrateStrokeEnd?: () => void;
   onCaptureCanvas?: (canvas: HTMLCanvasElement | null) => void;
   onCameraPresetModeChange?: (mode: CameraPresetMode) => void;
   onCameraDiagnostic?: (event: CameraDiagnosticEvent) => void;
@@ -990,6 +992,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<PlacementCandidate | null>(null);
   const sculptingRef = useRef(false);
+  const onSubstrateStrokeStart = props.onSubstrateStrokeStart;
+  const onSubstrateStrokeEnd = props.onSubstrateStrokeEnd;
 
   const renderItems = useMemo(() => {
     const resolved: SceneRenderItem[] = [];
@@ -1025,6 +1029,37 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   useEffect(() => {
     props.onHoverItem?.(hoveredItemId);
   }, [hoveredItemId, props]);
+
+  const finishSculptStroke = () => {
+    if (!sculptingRef.current) return;
+    sculptingRef.current = false;
+    onSubstrateStrokeEnd?.();
+  };
+
+  useEffect(() => {
+    const handleGlobalPointerUp = () => {
+      if (!sculptingRef.current) return;
+      sculptingRef.current = false;
+      onSubstrateStrokeEnd?.();
+    };
+
+    window.addEventListener("pointerup", handleGlobalPointerUp);
+    window.addEventListener("pointercancel", handleGlobalPointerUp);
+
+    return () => {
+      window.removeEventListener("pointerup", handleGlobalPointerUp);
+      window.removeEventListener("pointercancel", handleGlobalPointerUp);
+      handleGlobalPointerUp();
+    };
+  }, [onSubstrateStrokeEnd]);
+
+  useEffect(() => {
+    if (props.toolMode === "sculpt" && props.currentStep === "substrate") {
+      return;
+    }
+
+    finishSculptStroke();
+  }, [props.currentStep, props.toolMode, onSubstrateStrokeEnd, finishSculptStroke]);
 
   const evaluatePlacement = (
     nextCandidate: PlacementCandidate | null,
@@ -1230,7 +1265,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     event.stopPropagation();
 
     if (props.toolMode === "sculpt" && props.currentStep === "substrate") {
-      sculptingRef.current = true;
+      if (!sculptingRef.current) {
+        sculptingRef.current = true;
+        onSubstrateStrokeStart?.();
+      }
       sculptAtPoint(event.point);
       return;
     }
@@ -1260,7 +1298,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
   const handleSurfaceUp = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
-    sculptingRef.current = false;
+    finishSculptStroke();
   };
 
   const shadowMapSize = props.qualityTier === "high" ? 2048 : props.qualityTier === "medium" ? 1536 : 1024;

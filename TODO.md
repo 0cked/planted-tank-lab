@@ -161,7 +161,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Brush size and strength sliders in the UI remain as-is.
   - **Verify:** Paint a localized mound on the left side of the tank. The right side should be unaffected. This is the key test -- the old system couldn't do this.
 
-- [ ] **P1-4: Implement substrate undo/redo**
+- [x] **P1-4: Implement substrate undo/redo**
   - Add a stroke-level undo stack to the visual builder store.
   - Each `pointerDown` -> `pointerUp` sculpting sequence is one transaction.
   - Store the heightfield delta (diff) for each stroke, not the full grid snapshot.
