@@ -238,7 +238,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 ### Phase 4 -- Community & Growth
 
-- [ ] **P4-1: Build remix/fork feature**
+- [x] **P4-1: Build remix/fork feature**
   - On any shared build page (`/builder/[shareSlug]`), add an "Open in builder" or "Remix" button.
   - Clicking it loads the build's canvas state into a new unsaved build in the visual builder.
   - The remixed build should be independent (changes don't affect the original).

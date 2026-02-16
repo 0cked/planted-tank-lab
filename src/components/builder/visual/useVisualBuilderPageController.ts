@@ -177,6 +177,11 @@ export function useVisualBuilderPageController(
     hydratedShareRef.current = initialBuild.build.shareSlug;
   }, [hydrateFromBuild, initialBuild]);
 
+  const isSharedSnapshot =
+    initialBuild != null &&
+    buildId === initialBuild.build.id &&
+    shareSlug === initialBuild.build.shareSlug;
+
   const categoriesBySlug = useMemo(() => {
     return new Map((catalogQuery.data?.categories ?? []).map((category) => [category.slug, category.name] as const));
   }, [catalogQuery.data?.categories]);
@@ -517,8 +522,31 @@ export function useVisualBuilderPageController(
         router.replace(`/builder/${result.shareSlug}`);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save build.";
+      const defaultMessage = error instanceof Error ? error.message : "Failed to save build.";
+      const message =
+        isSharedSnapshot && defaultMessage.toLowerCase().includes("forbidden")
+          ? "This shared build is read-only. Click Remix to save your own copy."
+          : defaultMessage;
       setSaveState({ type: "error", message });
+    }
+  };
+
+  const handleRemix = () => {
+    const sourceName = name.trim() || "Visual Build";
+    const remixName = /\b(remix|copy)\b/i.test(sourceName)
+      ? sourceName
+      : `${sourceName} Remix`;
+
+    setBuildIdentity({ buildId: null, shareSlug: null });
+    setPublic(false);
+    setName(remixName);
+    setSaveState({
+      type: "ok",
+      message: "Remix ready. You're editing an unsaved copy.",
+    });
+
+    if (typeof window !== "undefined" && window.location.pathname !== "/builder") {
+      router.replace("/builder");
     }
   };
 
@@ -630,6 +658,7 @@ export function useVisualBuilderPageController(
     buildLink,
     saveState,
     saving: saveMutation.isPending,
+    isSharedSnapshot,
     onNameChange: setName,
     onDescriptionChange: setDescription,
     onSaveDraft: () => {
@@ -638,6 +667,7 @@ export function useVisualBuilderPageController(
     onDuplicate: () => {
       void handleDuplicate();
     },
+    onRemix: isSharedSnapshot ? handleRemix : undefined,
     onShare: () => {
       void saveBuild(true);
     },

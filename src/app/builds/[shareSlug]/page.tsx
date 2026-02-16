@@ -181,8 +181,8 @@ export default async function BuildSharePage(props: {
             <ReportBuildDialog shareSlug={shareSlug} />
           </div>
           <div className="text-xs text-neutral-700">
-            This opens the snapshot in the builder so you can tweak it. Sharing again updates this
-            link.
+            This opens the snapshot in the builder. Click Remix there to start an independent
+            draft.
           </div>
         </div>
       </div>

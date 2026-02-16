@@ -11,10 +11,12 @@ type BuildMetadataPanelProps = {
   buildLink: string | null;
   saveState: BuildSaveState;
   saving: boolean;
+  isSharedSnapshot?: boolean;
   onNameChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onSaveDraft: () => void;
   onDuplicate: () => void;
+  onRemix?: () => void;
   onShare: () => void;
   onExport: () => void;
   onReset: () => void;
@@ -82,6 +84,14 @@ export function BuildMetadataPanel(props: BuildMetadataPanelProps) {
         >
           Save draft
         </button>
+        {props.onRemix ? (
+          <button
+            onClick={props.onRemix}
+            className="rounded-full border border-cyan-300/70 bg-cyan-400/20 px-4 py-2 text-sm font-semibold text-cyan-100"
+          >
+            Remix
+          </button>
+        ) : null}
         <button
           onClick={props.onDuplicate}
           className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100"
@@ -125,6 +135,12 @@ export function BuildMetadataPanel(props: BuildMetadataPanelProps) {
           </span>
         ) : null}
       </div>
+
+      {props.isSharedSnapshot ? (
+        <p className="mt-2 text-xs text-cyan-100/90">
+          You&apos;re viewing a shared build. Click Remix to start an independent draft before saving.
+        </p>
+      ) : null}
 
       <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-300">
         <span>
