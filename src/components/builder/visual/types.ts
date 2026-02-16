@@ -79,6 +79,8 @@ export type VisualSubstrateProfile = {
   moundPosition: number;
 };
 
+export type SubstrateHeightfield = Float32Array;
+
 export type VisualAnchorType = "substrate" | "hardscape" | "glass";
 
 export type VisualDepthZone = "foreground" | "midground" | "background";
@@ -126,11 +128,11 @@ export type VisualSceneSettings = {
 };
 
 export type VisualCanvasState = {
-  version: 3;
+  version: 4;
   widthIn: number;
   heightIn: number;
   depthIn: number;
-  substrateProfile: VisualSubstrateProfile;
+  substrateHeightfield: SubstrateHeightfield;
   sceneSettings: VisualSceneSettings;
   items: VisualCanvasItem[];
 };

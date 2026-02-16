@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import type {
+  SubstrateHeightfield,
   VisualAnchorType,
   VisualAsset,
   VisualBuildPayload,
@@ -15,7 +16,11 @@ import type {
   VisualSceneSettings,
   VisualSubstrateProfile,
 } from "@/components/builder/visual/types";
-import { DEFAULT_SUBSTRATE_PROFILE, normalizeSubstrateProfile } from "@/lib/visual/substrate";
+import {
+  createFlatSubstrateHeightfield,
+  normalizeSubstrateHeightfield,
+} from "@/lib/visual/substrate";
+import { migratePersistedSubstrateHeightfield } from "@/stores/visual-builder-store-migrate";
 
 type VisualBuilderFlags = {
   lowTechNoCo2: boolean;
@@ -51,7 +56,7 @@ type VisualBuilderState = {
   setDescription: (value: string) => void;
   setPublic: (value: boolean) => void;
   setTank: (tankId: string, dims: { widthIn: number; heightIn: number; depthIn: number }) => void;
-  setSubstrateProfile: (patch: Partial<VisualSubstrateProfile>) => void;
+  setSubstrateHeightfield: (next: SubstrateHeightfield) => void;
   setSceneSettings: (patch: Partial<VisualSceneSettings>) => void;
 
   setCompatibilityEnabled: (value: boolean) => void;
@@ -87,7 +92,15 @@ type VisualBuilderState = {
     description: string | null;
     isPublic: boolean;
     tankId: string | null;
-    canvasState: VisualCanvasState;
+    canvasState: {
+      widthIn: number;
+      heightIn: number;
+      depthIn: number;
+      substrateHeightfield?: unknown;
+      substrateProfile?: Partial<VisualSubstrateProfile>;
+      sceneSettings?: Partial<VisualSceneSettings>;
+      items: Array<Partial<VisualCanvasItem>>;
+    };
     lineItems: Array<{
       categorySlug: string;
       product: { id: string } | null;
@@ -414,7 +427,7 @@ function normalizeCanvasState(input: {
   widthIn: number;
   heightIn: number;
   depthIn: number;
-  substrateProfile: Partial<VisualSubstrateProfile> | undefined;
+  substrateHeightfield: unknown;
   sceneSettings?: Partial<VisualSceneSettings>;
   items: Array<Partial<VisualCanvasItem>>;
 }): VisualCanvasState {
@@ -424,22 +437,22 @@ function normalizeCanvasState(input: {
   const dims = { widthIn, heightIn, depthIn } satisfies CanvasDimensions;
 
   return {
-    version: 3,
+    version: 4,
     widthIn,
     heightIn,
     depthIn,
-    substrateProfile: normalizeSubstrateProfile(input.substrateProfile, heightIn),
+    substrateHeightfield: normalizeSubstrateHeightfield(input.substrateHeightfield, heightIn),
     sceneSettings: normalizeSceneSettings(input.sceneSettings),
     items: normalizeItems(input.items, dims),
   };
 }
 
 const initialCanvasState: VisualCanvasState = {
-  version: 3,
+  version: 4,
   widthIn: 24,
   heightIn: 14,
   depthIn: 12,
-  substrateProfile: DEFAULT_SUBSTRATE_PROFILE,
+  substrateHeightfield: createFlatSubstrateHeightfield({ tankHeightIn: 14 }),
   sceneSettings: {
     qualityTier: "auto",
     postprocessingEnabled: true,
@@ -492,22 +505,19 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             widthIn: Math.max(1, dims.widthIn),
             heightIn: Math.max(1, dims.heightIn),
             depthIn: Math.max(1, dims.depthIn),
-            substrateProfile: state.canvasState.substrateProfile,
+            substrateHeightfield: state.canvasState.substrateHeightfield,
             sceneSettings: state.canvasState.sceneSettings,
             items: state.canvasState.items,
           }),
         })),
 
-      setSubstrateProfile: (patch) =>
+      setSubstrateHeightfield: (next) =>
         set((state) => ({
           canvasState: normalizeCanvasState({
             widthIn: state.canvasState.widthIn,
             heightIn: state.canvasState.heightIn,
             depthIn: state.canvasState.depthIn,
-            substrateProfile: {
-              ...state.canvasState.substrateProfile,
-              ...patch,
-            },
+            substrateHeightfield: next,
             sceneSettings: state.canvasState.sceneSettings,
             items: state.canvasState.items,
           }),
@@ -519,7 +529,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             widthIn: state.canvasState.widthIn,
             heightIn: state.canvasState.heightIn,
             depthIn: state.canvasState.depthIn,
-            substrateProfile: state.canvasState.substrateProfile,
+            substrateHeightfield: state.canvasState.substrateHeightfield,
             sceneSettings: {
               ...state.canvasState.sceneSettings,
               ...patch,
@@ -807,7 +817,8 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
               widthIn: payload.canvasState.widthIn,
               heightIn: payload.canvasState.heightIn,
               depthIn: payload.canvasState.depthIn,
-              substrateProfile: payload.canvasState.substrateProfile,
+              substrateHeightfield:
+                payload.canvasState.substrateHeightfield ?? payload.canvasState.substrateProfile,
               sceneSettings: payload.canvasState.sceneSettings,
               items: payload.canvasState.items,
             }),
@@ -836,7 +847,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             widthIn: s.canvasState.widthIn,
             heightIn: s.canvasState.heightIn,
             depthIn: s.canvasState.depthIn,
-            substrateProfile: s.canvasState.substrateProfile,
+            substrateHeightfield: s.canvasState.substrateHeightfield,
             sceneSettings: s.canvasState.sceneSettings,
             items: s.canvasState.items,
           }),
@@ -850,7 +861,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
     }),
     {
       name: "ptl-visual-builder-v1",
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => localStorage),
       migrate: (persistedState: unknown) => {
         const source = persistedState as Partial<VisualBuilderState> | undefined;
@@ -861,7 +872,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
               widthIn: initialState.canvasState.widthIn,
               heightIn: initialState.canvasState.heightIn,
               depthIn: initialState.canvasState.depthIn,
-              substrateProfile: initialState.canvasState.substrateProfile,
+              substrateHeightfield: initialState.canvasState.substrateHeightfield,
               sceneSettings: initialState.canvasState.sceneSettings,
               items: initialState.canvasState.items,
             }),
@@ -875,6 +886,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
                 widthIn?: number;
                 heightIn?: number;
                 depthIn?: number;
+                substrateHeightfield?: unknown;
                 substrateProfile?: Partial<VisualSubstrateProfile>;
                 sceneSettings?: Partial<VisualSceneSettings>;
                 items?: Array<Partial<VisualCanvasItem>>;
@@ -898,7 +910,10 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           ? candidateCanvas.items
           : initialCanvasState.items;
 
-        const substrateProfile = normalizeSubstrateProfile(candidateCanvas.substrateProfile, heightIn);
+        const substrateHeightfield = migratePersistedSubstrateHeightfield(
+          candidateCanvas,
+          heightIn,
+        );
 
         return {
           ...initialState,
@@ -908,7 +923,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             heightIn,
             depthIn,
             items,
-            substrateProfile,
+            substrateHeightfield,
             sceneSettings: candidateCanvas.sceneSettings,
           }),
         } as VisualBuilderState;

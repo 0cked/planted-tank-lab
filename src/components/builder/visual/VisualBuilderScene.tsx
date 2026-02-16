@@ -9,13 +9,13 @@ import { BlendFunction, ToneMappingMode } from "postprocessing";
 import * as THREE from "three";
 
 import type {
+  SubstrateHeightfield,
   VisualAnchorType,
   VisualAsset,
   VisualCanvasItem,
   VisualCanvasState,
   VisualDepthZone,
   VisualItemTransform,
-  VisualSubstrateProfile,
   VisualTank,
 } from "@/components/builder/visual/types";
 import {
@@ -106,7 +106,7 @@ type VisualBuilderSceneProps = {
   onMoveItem: (itemId: string, patch: Partial<VisualCanvasItem>) => void;
   onDeleteItem: (itemId: string) => void;
   onRotateItem: (itemId: string, deltaDeg: number) => void;
-  onSubstrateProfile: (next: VisualSubstrateProfile) => void;
+  onSubstrateHeightfield: (next: SubstrateHeightfield) => void;
   onCaptureCanvas?: (canvas: HTMLCanvasElement | null) => void;
   onCameraPresetModeChange?: (mode: CameraPresetMode) => void;
   onCameraDiagnostic?: (event: CameraDiagnosticEvent) => void;
@@ -234,7 +234,7 @@ function hasHardscapeAttach(asset: VisualAsset): boolean {
 function itemWorldPosition(params: {
   item: VisualCanvasItem;
   dims: SceneDims;
-  substrateProfile: VisualSubstrateProfile;
+  substrateHeightfield: SubstrateHeightfield;
 }): THREE.Vector3 {
   const world = normalizedToWorld({
     x: params.item.x,
@@ -255,7 +255,7 @@ function itemWorldPosition(params: {
   const substrateY = sampleSubstrateDepth({
     xNorm: params.item.x,
     zNorm: params.item.z,
-    profile: params.substrateProfile,
+    heightfield: params.substrateHeightfield,
     tankHeightIn: params.dims.heightIn,
   });
 
@@ -264,7 +264,7 @@ function itemWorldPosition(params: {
 
 function substrateGeometry(params: {
   dims: SceneDims;
-  profile: VisualSubstrateProfile;
+  heightfield: SubstrateHeightfield;
   qualityTier: BuilderSceneQualityTier;
 }): THREE.PlaneGeometry {
   const segments = params.qualityTier === "low" ? 24 : params.qualityTier === "medium" ? 38 : 56;
@@ -280,7 +280,7 @@ function substrateGeometry(params: {
     const y = sampleSubstrateDepth({
       xNorm,
       zNorm,
-      profile: params.profile,
+      heightfield: params.heightfield,
       tankHeightIn: params.dims.heightIn,
     });
     pos.setY(i, y);
@@ -545,7 +545,7 @@ function ItemMesh(props: {
 function TankShell(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
-  substrateProfile: VisualSubstrateProfile;
+  substrateHeightfield: SubstrateHeightfield;
   showDepthGuides: boolean;
   currentStep: BuilderSceneStep;
   onSurfacePointer: (event: ThreeEvent<PointerEvent>, anchorType: VisualAnchorType, itemId: string | null) => void;
@@ -556,10 +556,10 @@ function TankShell(props: {
     () =>
       substrateGeometry({
         dims: props.dims,
-        profile: props.substrateProfile,
+        heightfield: props.substrateHeightfield,
         qualityTier: props.qualityTier,
       }),
-    [props.dims, props.qualityTier, props.substrateProfile],
+    [props.dims, props.qualityTier, props.substrateHeightfield],
   );
 
   useEffect(() => {
@@ -702,7 +702,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       const position = itemWorldPosition({
         item,
         dims,
-        substrateProfile: props.canvasState.substrateProfile,
+        substrateHeightfield: props.canvasState.substrateHeightfield,
       });
       const size = {
         width: Math.max(0.35, asset.widthIn * item.scale * 0.18),
@@ -723,7 +723,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       });
     }
     return resolved;
-  }, [dims, props.assetsById, props.canvasState.items, props.canvasState.substrateProfile]);
+  }, [dims, props.assetsById, props.canvasState.items, props.canvasState.substrateHeightfield]);
 
   useEffect(() => {
     props.onHoverItem?.(hoveredItemId);
@@ -823,7 +823,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       const substrateY = sampleSubstrateDepth({
         xNorm,
         zNorm,
-        profile: props.canvasState.substrateProfile,
+        heightfield: props.canvasState.substrateHeightfield,
         tankHeightIn: dims.heightIn,
       });
       const yNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
@@ -858,8 +858,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       dims,
     });
 
-    const nextProfile = applySubstrateBrush({
-      profile: props.canvasState.substrateProfile,
+    const nextHeightfield = applySubstrateBrush({
+      heightfield: props.canvasState.substrateHeightfield,
       mode: props.sculptMode,
       xNorm: normalized.x,
       zNorm: normalized.z,
@@ -867,7 +867,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       strength: props.sculptStrength,
       tankHeightIn: dims.heightIn,
     });
-    props.onSubstrateProfile(nextProfile);
+    props.onSubstrateHeightfield(nextHeightfield);
   };
 
   const handleSurfacePointer = (
@@ -887,7 +887,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       const substrateY = sampleSubstrateDepth({
         xNorm: norm.x,
         zNorm: norm.z,
-        profile: props.canvasState.substrateProfile,
+        heightfield: props.canvasState.substrateHeightfield,
         tankHeightIn: dims.heightIn,
       });
       const yNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
@@ -1000,7 +1000,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       <TankShell
         dims={dims}
         qualityTier={props.qualityTier}
-        substrateProfile={props.canvasState.substrateProfile}
+        substrateHeightfield={props.canvasState.substrateHeightfield}
         showDepthGuides={props.showDepthGuides}
         currentStep={props.currentStep}
         onSurfacePointer={handleSurfacePointer}

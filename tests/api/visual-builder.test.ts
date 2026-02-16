@@ -72,13 +72,15 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.build.id).toBe(saved.buildId);
     expect(loaded.build.isPublic).toBe(true);
     expect(loaded.initialState.tankId).toBe(tank!.id);
-    expect(loaded.initialState.canvasState.version).toBe(3);
+    expect(loaded.initialState.canvasState.version).toBe(4);
+    expect(loaded.initialState.canvasState.substrateHeightfield).toBeInstanceOf(Float32Array);
+    expect(loaded.initialState.canvasState.substrateHeightfield.length).toBe(32 * 32);
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));
   }, 20_000);
 
-  it("normalizes legacy v1 canvas payloads to v3 on read", async () => {
+  it("normalizes legacy v1 canvas payloads to v4 on read", async () => {
     const anon = await getAnonCaller();
     const catalog = await anon.visualBuilder.catalog();
     const tank = catalog.tanks[0];
@@ -100,8 +102,10 @@ describe("tRPC visualBuilder router", () => {
     });
 
     const loaded = await anon.visualBuilder.getByShareSlug({ shareSlug: saved.shareSlug });
-    expect(loaded.initialState.canvasState.version).toBe(3);
-    expect(loaded.initialState.canvasState.substrateProfile.centerDepthIn).toBeGreaterThan(0.2);
+    expect(loaded.initialState.canvasState.version).toBe(4);
+    expect(loaded.initialState.canvasState.substrateHeightfield).toBeInstanceOf(Float32Array);
+    expect(loaded.initialState.canvasState.substrateHeightfield.length).toBe(32 * 32);
+    expect(loaded.initialState.canvasState.substrateHeightfield[16 * 32 + 16]).toBeGreaterThan(0.2);
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));

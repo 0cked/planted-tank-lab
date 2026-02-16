@@ -1,11 +1,17 @@
 import type {
+  SubstrateHeightfield,
   VisualAnchorType,
   VisualCanvasItem,
   VisualDepthZone,
   VisualItemTransform,
   VisualSubstrateProfile,
 } from "@/components/builder/visual/types";
-import { normalizeSubstrateProfile } from "@/lib/visual/substrate";
+import {
+  legacySubstrateProfileToHeightfield,
+  normalizeSubstrateHeightfield,
+  sampleSubstrateHeightfieldDepth,
+  SUBSTRATE_HEIGHTFIELD_RESOLUTION,
+} from "@/lib/visual/substrate";
 
 export type SceneDims = {
   widthIn: number;
@@ -30,6 +36,74 @@ function round(value: number): number {
 
 export function clamp01(value: number): number {
   return clamp(value, 0, 1);
+}
+
+function clampSubstrateDepth(value: number, tankHeightIn: number): number {
+  const minDepth = 0.2;
+  const maxDepth = Math.max(minDepth, tankHeightIn * 0.62);
+  return clamp(value, minDepth, maxDepth);
+}
+
+function heightfieldIndex(xIndex: number, zIndex: number): number {
+  return zIndex * SUBSTRATE_HEIGHTFIELD_RESOLUTION + xIndex;
+}
+
+function neighborAverage(
+  heightfield: SubstrateHeightfield,
+  xIndex: number,
+  zIndex: number,
+): number {
+  const maxIndex = SUBSTRATE_HEIGHTFIELD_RESOLUTION - 1;
+  const left = heightfield[heightfieldIndex(Math.max(0, xIndex - 1), zIndex)] ?? 0;
+  const right = heightfield[heightfieldIndex(Math.min(maxIndex, xIndex + 1), zIndex)] ?? 0;
+  const front = heightfield[heightfieldIndex(xIndex, Math.max(0, zIndex - 1))] ?? 0;
+  const back = heightfield[heightfieldIndex(xIndex, Math.min(maxIndex, zIndex + 1))] ?? 0;
+  return (left + right + front + back) / 4;
+}
+
+function legacyPresetProfile(preset: SubstratePreset): VisualSubstrateProfile {
+  switch (preset) {
+    case "flat":
+      return {
+        leftDepthIn: 1.4,
+        centerDepthIn: 1.6,
+        rightDepthIn: 1.4,
+        frontDepthIn: 1.3,
+        backDepthIn: 1.8,
+        moundHeightIn: 0,
+        moundPosition: 0.5,
+      };
+    case "island":
+      return {
+        leftDepthIn: 1.3,
+        centerDepthIn: 3.2,
+        rightDepthIn: 1.5,
+        frontDepthIn: 1.2,
+        backDepthIn: 2.9,
+        moundHeightIn: 1.4,
+        moundPosition: 0.5,
+      };
+    case "slope":
+      return {
+        leftDepthIn: 1.1,
+        centerDepthIn: 2.1,
+        rightDepthIn: 3,
+        frontDepthIn: 1.1,
+        backDepthIn: 3.6,
+        moundHeightIn: 0.9,
+        moundPosition: 0.62,
+      };
+    case "valley":
+      return {
+        leftDepthIn: 2.7,
+        centerDepthIn: 1.2,
+        rightDepthIn: 2.8,
+        frontDepthIn: 1.6,
+        backDepthIn: 3,
+        moundHeightIn: 0.5,
+        moundPosition: 0.5,
+      };
+  }
 }
 
 export function depthZoneFromZ(z: number): VisualDepthZone {
@@ -84,24 +158,34 @@ export function normalizedFromTransform(
   const pz = Number(transform.position[2]);
   if (!Number.isFinite(px) || !Number.isFinite(py) || !Number.isFinite(pz)) return null;
 
-  const ry = Array.isArray(transform.rotation) && transform.rotation.length === 3
-    ? Number(transform.rotation[1])
-    : 0;
-  const sx = Array.isArray(transform.scale) && transform.scale.length === 3
-    ? Number(transform.scale[0])
-    : 1;
-  const sy = Array.isArray(transform.scale) && transform.scale.length === 3
-    ? Number(transform.scale[1])
-    : 1;
-  const sz = Array.isArray(transform.scale) && transform.scale.length === 3
-    ? Number(transform.scale[2])
-    : 1;
+  const ry =
+    Array.isArray(transform.rotation) && transform.rotation.length === 3
+      ? Number(transform.rotation[1])
+      : 0;
+  const sx =
+    Array.isArray(transform.scale) && transform.scale.length === 3
+      ? Number(transform.scale[0])
+      : 1;
+  const sy =
+    Array.isArray(transform.scale) && transform.scale.length === 3
+      ? Number(transform.scale[1])
+      : 1;
+  const sz =
+    Array.isArray(transform.scale) && transform.scale.length === 3
+      ? Number(transform.scale[2])
+      : 1;
 
   return {
     x: clamp01(px / Math.max(1, dims.widthIn) + 0.5),
     y: clamp01(py / Math.max(1, dims.heightIn)),
     z: clamp01(pz / Math.max(1, dims.depthIn) + 0.5),
-    scale: clamp((Number.isFinite(sx) && Number.isFinite(sy) && Number.isFinite(sz) ? (sx + sy + sz) / 3 : 1), 0.1, 6),
+    scale: clamp(
+      Number.isFinite(sx) && Number.isFinite(sy) && Number.isFinite(sz)
+        ? (sx + sy + sz) / 3
+        : 1,
+      0.1,
+      6,
+    ),
     rotation: clamp(Number.isFinite(ry) ? (ry * 180) / Math.PI : 0, -180, 180),
   };
 }
@@ -132,160 +216,89 @@ export function normalizedToWorld(point: {
   };
 }
 
-function sideDepthAtX(xNorm: number, profile: VisualSubstrateProfile): number {
-  const x = clamp01(xNorm);
-  if (x <= 0.5) {
-    const t = x / 0.5;
-    return profile.leftDepthIn * (1 - t) + profile.centerDepthIn * t;
-  }
-  const t = (x - 0.5) / 0.5;
-  return profile.centerDepthIn * (1 - t) + profile.rightDepthIn * t;
-}
-
-function frontBackDepthAtZ(zNorm: number, profile: VisualSubstrateProfile): number {
-  const z = clamp01(zNorm);
-  return profile.frontDepthIn * (1 - z) + profile.backDepthIn * z;
-}
-
 export function sampleSubstrateDepth(params: {
   xNorm: number;
   zNorm: number;
-  profile: VisualSubstrateProfile;
+  heightfield: SubstrateHeightfield;
   tankHeightIn: number;
 }): number {
-  const normalizedProfile = normalizeSubstrateProfile(params.profile, params.tankHeightIn);
-  const sideDepth = sideDepthAtX(params.xNorm, normalizedProfile);
-  const frontBackDepth = frontBackDepthAtZ(params.zNorm, normalizedProfile);
-  const moundDistance = Math.abs(clamp01(params.xNorm) - normalizedProfile.moundPosition);
-  const moundWeight = Math.max(0, 1 - moundDistance / 0.32);
-  const depth = (sideDepth * 0.64 + frontBackDepth * 0.36) + normalizedProfile.moundHeightIn * moundWeight;
-  return clamp(depth, 0.1, Math.max(1, params.tankHeightIn * 0.72));
+  return sampleSubstrateHeightfieldDepth({
+    xNorm: params.xNorm,
+    zNorm: params.zNorm,
+    heightfield: params.heightfield,
+    tankHeightIn: params.tankHeightIn,
+  });
 }
 
 export function applySubstrateBrush(params: {
-  profile: VisualSubstrateProfile;
+  heightfield: SubstrateHeightfield;
   mode: SubstrateBrushMode;
   xNorm: number;
   zNorm: number;
   brushSize: number;
   strength: number;
   tankHeightIn: number;
-}): VisualSubstrateProfile {
-  const profile = normalizeSubstrateProfile(params.profile, params.tankHeightIn);
+}): SubstrateHeightfield {
+  const source = normalizeSubstrateHeightfield(params.heightfield, params.tankHeightIn);
+  const next = source.slice();
+
   const x = clamp01(params.xNorm);
   const z = clamp01(params.zNorm);
   const brushSize = clamp(params.brushSize, 0.05, 0.6);
   const strength = clamp(params.strength, 0.01, 1);
+  const maxIndex = SUBSTRATE_HEIGHTFIELD_RESOLUTION - 1;
+  const deltaBase = Math.max(0.02, params.tankHeightIn * 0.018) * strength;
 
-  const radial = Math.hypot(x - 0.5, z - 0.5);
-  const radialFalloff = Math.max(0, 1 - radial / Math.max(brushSize, 0.08));
-  const sign = params.mode === "lower" || params.mode === "erode" ? -1 : 1;
-  const delta = sign * strength * radialFalloff * Math.max(0.02, params.tankHeightIn * 0.018);
+  for (let zIndex = 0; zIndex < SUBSTRATE_HEIGHTFIELD_RESOLUTION; zIndex += 1) {
+    const zNorm = maxIndex === 0 ? 0 : zIndex / maxIndex;
+    for (let xIndex = 0; xIndex < SUBSTRATE_HEIGHTFIELD_RESOLUTION; xIndex += 1) {
+      const xNorm = maxIndex === 0 ? 0 : xIndex / maxIndex;
+      const distance = Math.hypot(xNorm - x, zNorm - z);
+      if (distance > brushSize) continue;
 
-  const leftWeight = clamp(1 - x * 1.9, 0, 1);
-  const centerWeight = clamp(1 - Math.abs(x - 0.5) * 2, 0, 1);
-  const rightWeight = clamp((x - 0.05) * 1.9, 0, 1);
-  const frontWeight = clamp(1 - z * 1.2, 0, 1);
-  const backWeight = clamp(z * 1.2, 0, 1);
+      const falloff = 1 - distance / Math.max(brushSize, 0.0001);
+      const index = heightfieldIndex(xIndex, zIndex);
+      const current = next[index] ?? 0;
 
-  if (params.mode === "smooth") {
-    const avg =
-      (profile.leftDepthIn +
-        profile.centerDepthIn +
-        profile.rightDepthIn +
-        profile.frontDepthIn +
-        profile.backDepthIn) /
-      5;
-    const smoothMix = clamp(0.08 + strength * 0.22, 0.08, 0.4);
-    return normalizeSubstrateProfile(
-      {
-        leftDepthIn: profile.leftDepthIn + (avg - profile.leftDepthIn) * smoothMix,
-        centerDepthIn: profile.centerDepthIn + (avg - profile.centerDepthIn) * smoothMix,
-        rightDepthIn: profile.rightDepthIn + (avg - profile.rightDepthIn) * smoothMix,
-        frontDepthIn: profile.frontDepthIn + (avg - profile.frontDepthIn) * smoothMix,
-        backDepthIn: profile.backDepthIn + (avg - profile.backDepthIn) * smoothMix,
-        moundHeightIn: profile.moundHeightIn * (1 - smoothMix * 0.4),
-        moundPosition: profile.moundPosition + (x - profile.moundPosition) * smoothMix * 0.3,
-      },
-      params.tankHeightIn,
-    );
+      if (params.mode === "smooth") {
+        const avg = neighborAverage(source, xIndex, zIndex);
+        const smoothMix = clamp(0.08 + strength * 0.22, 0.08, 0.45) * falloff;
+        next[index] = clampSubstrateDepth(
+          current + (avg - current) * smoothMix,
+          params.tankHeightIn,
+        );
+        continue;
+      }
+
+      const sign = params.mode === "lower" || params.mode === "erode" ? -1 : 1;
+      const erosionFactor = params.mode === "erode" ? 1.5 : 1;
+      const delta = sign * deltaBase * falloff * erosionFactor;
+      const raisedOrLowered = clampSubstrateDepth(current + delta, params.tankHeightIn);
+
+      if (params.mode === "erode") {
+        const avg = neighborAverage(source, xIndex, zIndex);
+        const blend = clamp(0.05 + strength * 0.14, 0.05, 0.28) * falloff;
+        next[index] = clampSubstrateDepth(
+          raisedOrLowered + (avg - raisedOrLowered) * blend,
+          params.tankHeightIn,
+        );
+      } else {
+        next[index] = raisedOrLowered;
+      }
+    }
   }
 
-  const erosionFactor = params.mode === "erode" ? 1.5 : 1;
-
-  return normalizeSubstrateProfile(
-    {
-      leftDepthIn: profile.leftDepthIn + delta * leftWeight * erosionFactor,
-      centerDepthIn: profile.centerDepthIn + delta * centerWeight * erosionFactor,
-      rightDepthIn: profile.rightDepthIn + delta * rightWeight * erosionFactor,
-      frontDepthIn: profile.frontDepthIn + delta * frontWeight,
-      backDepthIn: profile.backDepthIn + delta * backWeight,
-      moundHeightIn: profile.moundHeightIn + delta * centerWeight * 0.62,
-      moundPosition: profile.moundPosition + (x - profile.moundPosition) * strength * 0.06,
-    },
-    params.tankHeightIn,
-  );
+  return next;
 }
 
 export function buildSubstratePreset(params: {
   preset: SubstratePreset;
   tankHeightIn: number;
-}): VisualSubstrateProfile {
-  const h = Math.max(1, params.tankHeightIn);
-  switch (params.preset) {
-    case "flat":
-      return normalizeSubstrateProfile(
-        {
-          leftDepthIn: 1.4,
-          centerDepthIn: 1.6,
-          rightDepthIn: 1.4,
-          frontDepthIn: 1.3,
-          backDepthIn: 1.8,
-          moundHeightIn: 0,
-          moundPosition: 0.5,
-        },
-        h,
-      );
-    case "island":
-      return normalizeSubstrateProfile(
-        {
-          leftDepthIn: 1.3,
-          centerDepthIn: 3.2,
-          rightDepthIn: 1.5,
-          frontDepthIn: 1.2,
-          backDepthIn: 2.9,
-          moundHeightIn: 1.4,
-          moundPosition: 0.5,
-        },
-        h,
-      );
-    case "slope":
-      return normalizeSubstrateProfile(
-        {
-          leftDepthIn: 1.1,
-          centerDepthIn: 2.1,
-          rightDepthIn: 3,
-          frontDepthIn: 1.1,
-          backDepthIn: 3.6,
-          moundHeightIn: 0.9,
-          moundPosition: 0.62,
-        },
-        h,
-      );
-    case "valley":
-      return normalizeSubstrateProfile(
-        {
-          leftDepthIn: 2.7,
-          centerDepthIn: 1.2,
-          rightDepthIn: 2.8,
-          frontDepthIn: 1.6,
-          backDepthIn: 3,
-          moundHeightIn: 0.5,
-          moundPosition: 0.5,
-        },
-        h,
-      );
-  }
+}): SubstrateHeightfield {
+  return legacySubstrateProfileToHeightfield({
+    profile: legacyPresetProfile(params.preset),
+    tankHeightIn: Math.max(1, params.tankHeightIn),
+  });
 }
 
 export function estimateCollisionRadius(params: {

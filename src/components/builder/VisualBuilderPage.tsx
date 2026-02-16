@@ -360,7 +360,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const setDescription = useVisualBuilderStore((s) => s.setDescription);
   const setPublic = useVisualBuilderStore((s) => s.setPublic);
   const setTank = useVisualBuilderStore((s) => s.setTank);
-  const setSubstrateProfile = useVisualBuilderStore((s) => s.setSubstrateProfile);
+  const setSubstrateHeightfield = useVisualBuilderStore((s) => s.setSubstrateHeightfield);
   const setSceneSettings = useVisualBuilderStore((s) => s.setSceneSettings);
   const setSelectedProduct = useVisualBuilderStore((s) => s.setSelectedProduct);
   const setCompatibilityEnabled = useVisualBuilderStore((s) => s.setCompatibilityEnabled);
@@ -548,12 +548,12 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
       tankWidthIn: selectedTank?.widthIn ?? canvasState.widthIn,
       tankDepthIn: selectedTank?.depthIn ?? canvasState.depthIn,
       tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
-      profile: canvasState.substrateProfile,
+      heightfield: canvasState.substrateHeightfield,
     });
   }, [
     canvasState.depthIn,
     canvasState.heightIn,
-    canvasState.substrateProfile,
+    canvasState.substrateHeightfield,
     canvasState.widthIn,
     selectedTank?.depthIn,
     selectedTank?.heightIn,
@@ -855,11 +855,11 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   };
 
   const handleApplySubstratePreset = (preset: "flat" | "island" | "slope" | "valley") => {
-    const profile = buildSubstratePreset({
+    const heightfield = buildSubstratePreset({
       preset,
       tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
     });
-    setSubstrateProfile(profile);
+    setSubstrateHeightfield(heightfield);
   };
 
   const handleContinue = () => {
@@ -871,7 +871,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     shareSlug && typeof window !== "undefined" ? `${window.location.origin}/builder/${shareSlug}` : null;
 
   const substrateContour = substrateContourPercentages({
-    profile: substrateVolume.normalizedProfile,
+    heightfield: canvasState.substrateHeightfield,
     tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
   });
 
@@ -1148,18 +1148,6 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 />
               </label>
 
-              <label className="block text-[11px] text-slate-300">
-                Mound position ({Math.round(substrateVolume.normalizedProfile.moundPosition * 100)}%)
-                <input
-                  type="range"
-                  min={0.2}
-                  max={0.8}
-                  step={0.01}
-                  value={substrateVolume.normalizedProfile.moundPosition}
-                  onChange={(event) => setSubstrateProfile({ moundPosition: Number(event.target.value) })}
-                  className="mt-1 w-full"
-                />
-              </label>
 
               <div className="rounded-lg border border-white/15 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-300">
                 Fill target: {substrateVolume.volumeLiters.toFixed(1)} L
@@ -1869,7 +1857,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               onMoveItem={updateCanvasItem}
               onDeleteItem={removeCanvasItem}
               onRotateItem={handleSceneRotate}
-              onSubstrateProfile={setSubstrateProfile}
+              onSubstrateHeightfield={setSubstrateHeightfield}
               onCaptureCanvas={(canvas) => {
                 sceneCanvasRef.current = canvas;
               }}

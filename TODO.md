@@ -137,7 +137,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 ### Phase 1 -- Substrate Node-Grid (highest-impact feature)
 
-- [ ] **P1-1: Implement heightfield data model**
+- [x] **P1-1: Implement heightfield data model**
   - Replace the 7-parameter `VisualSubstrateProfile` with a `Float32Array` heightfield grid (32x32 = 1024 values).
   - Add a `SubstrateHeightfield` type to `src/components/builder/visual/types.ts`.
   - Update `visual-builder-store.ts` to store the heightfield in canvas state.

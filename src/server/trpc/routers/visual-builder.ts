@@ -17,17 +17,19 @@ import type * as fullSchema from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/server/trpc/trpc";
 import { getDesignLibraryAssets } from "@/server/visual/design-asset-library";
 import {
+  createFlatSubstrateHeightfield,
   DEFAULT_SUBSTRATE_PROFILE,
-  normalizeSubstrateProfile,
+  legacySubstrateProfileToHeightfield,
+  normalizeSubstrateHeightfield,
 } from "@/lib/visual/substrate";
 import { buildTankIllustrationUrl, tankModelFromSlug } from "@/lib/tank-visual";
 import type {
+  SubstrateHeightfield,
   VisualAnchorType,
   VisualDepthZone,
   VisualItemConstraintMetadata,
   VisualItemTransform,
   VisualSceneSettings,
-  VisualSubstrateProfile,
 } from "@/components/builder/visual/types";
 
 type ProductRow = {
@@ -150,6 +152,16 @@ const canvasStateV3Schema = z.object({
   items: z.array(canvasItemSchema).max(1000),
 });
 
+const canvasStateV4Schema = z.object({
+  version: z.literal(4),
+  widthIn: z.number().positive(),
+  heightIn: z.number().positive(),
+  depthIn: z.number().positive(),
+  substrateHeightfield: z.unknown(),
+  sceneSettings: sceneSettingsSchema.optional(),
+  items: z.array(canvasItemSchema).max(1000),
+});
+
 const canvasStateV1Schema = z.object({
   version: z.literal(1),
   widthIn: z.number().positive(),
@@ -159,32 +171,51 @@ const canvasStateV1Schema = z.object({
 });
 
 const canvasStateSchema = z
-  .union([canvasStateV3Schema, canvasStateV2Schema, canvasStateV1Schema])
+  .union([canvasStateV4Schema, canvasStateV3Schema, canvasStateV2Schema, canvasStateV1Schema])
   .transform((input) => {
-    if (input.version === 3) {
-      return normalizeCanvasStateV3({
+    if (input.version === 4) {
+      return normalizeCanvasStateV4({
         widthIn: input.widthIn,
         heightIn: input.heightIn,
         depthIn: input.depthIn,
-        substrateProfile: input.substrateProfile,
+        substrateHeightfield: input.substrateHeightfield,
+        sceneSettings: input.sceneSettings,
+        items: input.items,
+      });
+    }
+    if (input.version === 3) {
+      return normalizeCanvasStateV4({
+        widthIn: input.widthIn,
+        heightIn: input.heightIn,
+        depthIn: input.depthIn,
+        substrateHeightfield: legacySubstrateProfileToHeightfield({
+          profile: input.substrateProfile,
+          tankHeightIn: input.heightIn,
+        }),
         sceneSettings: input.sceneSettings,
         items: input.items,
       });
     }
     if (input.version === 2) {
-      return normalizeCanvasStateV3({
+      return normalizeCanvasStateV4({
         widthIn: input.widthIn,
         heightIn: input.heightIn,
         depthIn: input.depthIn,
-        substrateProfile: input.substrateProfile,
+        substrateHeightfield: legacySubstrateProfileToHeightfield({
+          profile: input.substrateProfile,
+          tankHeightIn: input.heightIn,
+        }),
         items: input.items,
       });
     }
-    return normalizeCanvasStateV3({
+    return normalizeCanvasStateV4({
       widthIn: input.widthIn,
       heightIn: input.heightIn,
       depthIn: input.depthIn,
-      substrateProfile: normalizeSubstrateProfile(DEFAULT_SUBSTRATE_PROFILE, input.heightIn),
+      substrateHeightfield: legacySubstrateProfileToHeightfield({
+        profile: DEFAULT_SUBSTRATE_PROFILE,
+        tankHeightIn: input.heightIn,
+      }),
       items: input.items,
     });
   });
@@ -562,19 +593,19 @@ function normalizeCanvasItem(params: {
   };
 }
 
-function normalizeCanvasStateV3(input: {
+function normalizeCanvasStateV4(input: {
   widthIn: number;
   heightIn: number;
   depthIn: number;
-  substrateProfile: Partial<VisualSubstrateProfile> | undefined;
+  substrateHeightfield: unknown;
   sceneSettings?: Partial<VisualSceneSettings>;
   items: CanvasItemInput[];
 }): {
-  version: 3;
+  version: 4;
   widthIn: number;
   heightIn: number;
   depthIn: number;
-  substrateProfile: VisualSubstrateProfile;
+  substrateHeightfield: SubstrateHeightfield;
   sceneSettings: VisualSceneSettings;
   items: VisualCanvasItem[];
 } {
@@ -595,32 +626,32 @@ function normalizeCanvasStateV3(input: {
     .map((item, index) => ({ ...item, layer: index }));
 
   return {
-    version: 3,
+    version: 4,
     widthIn,
     heightIn,
     depthIn,
-    substrateProfile: normalizeSubstrateProfile(input.substrateProfile, heightIn),
+    substrateHeightfield: normalizeSubstrateHeightfield(input.substrateHeightfield, heightIn),
     sceneSettings: normalizeSceneSettings(input.sceneSettings),
     items,
   };
 }
 
 function parseCanvasState(value: unknown): {
-  version: 3;
+  version: 4;
   widthIn: number;
   heightIn: number;
   depthIn: number;
-  substrateProfile: VisualSubstrateProfile;
+  substrateHeightfield: SubstrateHeightfield;
   sceneSettings: VisualSceneSettings;
   items: VisualCanvasItem[];
 } {
   const parsed = canvasStateSchema.safeParse(value);
   if (parsed.success) return parsed.data;
-  return normalizeCanvasStateV3({
+  return normalizeCanvasStateV4({
     widthIn: 24,
     heightIn: 14,
     depthIn: 12,
-    substrateProfile: DEFAULT_SUBSTRATE_PROFILE,
+    substrateHeightfield: createFlatSubstrateHeightfield({ tankHeightIn: 14 }),
     items: [],
   });
 }
