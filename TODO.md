@@ -212,7 +212,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 ### Phase 3 -- Builder UX Consolidation
 
-- [ ] **P3-1: Decompose VisualBuilderPage.tsx**
+- [x] **P3-1: Decompose VisualBuilderPage.tsx**
   - Extract these into separate files:
     - `src/components/builder/visual/SubstrateToolbar.tsx` -- sculpt mode selector, brush size/strength, presets
     - `src/components/builder/visual/BuildMetadataPanel.tsx` -- build name, description, save/share/export actions
