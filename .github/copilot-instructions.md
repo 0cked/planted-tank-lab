@@ -1,5 +1,13 @@
 # GitHub Copilot Instructions
 
+## BEFORE YOU DO ANYTHING
+
+Read `TODO.md` in the project root. It contains the prioritized task list. Work top to bottom. Each task tells you exactly which files to modify and how to verify.
+
+**Do not create planning documents, summaries, diagnostics, or sub-task breakdowns.** The previous agent produced 34 planning documents before making a single user-visible change. The planning is done. Write code.
+
+Read `CLAUDE.md` for architecture context and execution rules.
+
 <!-- WEDNESDAY_SKILLS_START -->
 ## Wednesday Agent Skills
 

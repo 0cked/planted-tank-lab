@@ -1,16 +1,16 @@
 ---
 name: wednesday-dev
-description: Technical development guidelines for Wednesday Solutions projects. Enforces import ordering, complexity limits, naming conventions, TypeScript best practices, and code quality standards for React/Next.js applications.
+description: Technical development guidelines. Enforces import ordering, complexity limits, naming conventions, TypeScript best practices, and code quality standards for React/Next.js applications.
 license: MIT
 metadata:
   author: wednesday-solutions
-  version: "1.0"
+  version: "1.1"
 compatibility: Next.js 14+, React 18+, TypeScript 5+
 ---
 
-# Wednesday Technical Development Guidelines
+# Technical Development Guidelines
 
-This skill enforces code quality standards for Wednesday Solutions projects. Follow these guidelines to maintain consistency, readability, and maintainability across the codebase.
+Code quality standards for maintaining consistency, readability, and maintainability. Reference these when writing code — do NOT use this skill to produce documentation or planning artifacts.
 
 ## 1. Import Order
 
@@ -123,7 +123,7 @@ function getDiscount(user: User, items: Item[]) {
 
 ### File Size Limits
 
-- **Max file lines**: 250
+- **Max file lines**: 500 (target; existing large files should be decomposed over time)
 - **Max function lines**: 350
 - **Max line length**: 120 characters
 
@@ -367,12 +367,13 @@ if (status === STATUS_ACTIVE) { }
 
 ### Unit Tests
 
-- Use Jest with React Testing Library
+- Use **Vitest** with React Testing Library (this project uses Vitest, not Jest)
 - Test file naming: `ComponentName.test.tsx`
 - Focus on user behavior, not implementation details
 
 ```typescript
 import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import { UserCard } from './UserCard'
 
 describe('UserCard', () => {
@@ -382,7 +383,7 @@ describe('UserCard', () => {
   })
 
   it('calls onSelect when clicked', () => {
-    const onSelect = jest.fn()
+    const onSelect = vi.fn()
     render(<UserCard userId="123" onSelect={onSelect} />)
     fireEvent.click(screen.getByRole('button'))
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: '123' }))

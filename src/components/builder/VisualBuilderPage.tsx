@@ -377,7 +377,6 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   const toBuildPayload = useVisualBuilderStore((s) => s.toBuildPayload);
 
   const sceneCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const previousStepRef = useRef<BuilderStepId>(currentStep);
 
   const catalogQuery = trpc.visualBuilder.catalog.useQuery(undefined, {
     staleTime: 60_000,
@@ -665,6 +664,13 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
   }, [assetsById, selectedProductByCategory]);
 
   const applyStepChange = (nextStep: BuilderStepId) => {
+    if (nextStep !== currentStep && canvasState.sceneSettings.cameraPreset === "free") {
+      setCameraDiagnostics((prev) => ({
+        ...prev,
+        freeStepTransitions: prev.freeStepTransitions + 1,
+      }));
+    }
+
     setCurrentStep(nextStep);
     if (nextStep === "substrate") {
       setToolMode("sculpt");
@@ -698,19 +704,6 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
       },
     });
   };
-
-  useEffect(() => {
-    if (previousStepRef.current === currentStep) return;
-
-    if (canvasState.sceneSettings.cameraPreset === "free") {
-      setCameraDiagnostics((prev) => ({
-        ...prev,
-        freeStepTransitions: prev.freeStepTransitions + 1,
-      }));
-    }
-
-    previousStepRef.current = currentStep;
-  }, [canvasState.sceneSettings.cameraPreset, currentStep]);
 
   const handleChooseAsset = (asset: VisualAsset) => {
     if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) {
@@ -1942,6 +1935,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
           <section className="rounded-2xl border border-white/15 bg-slate-900/65 p-3">{rightPanel}</section>
         </div>
 
+        {process.env.NODE_ENV === "development" && (
         <section className="mt-4 rounded-2xl border border-white/15 bg-slate-900/50 p-3 text-xs text-slate-300">
           <div className="font-semibold text-slate-100">Scene diagnostics</div>
           <div className="mt-1 text-[11px] text-slate-400">
@@ -2166,6 +2160,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
             </div>
           </div>
         </section>
+        )}
       </div>
     </div>
   );

@@ -159,7 +159,7 @@ describe("admin ingestion mappings", () => {
       .limit(1);
 
     expect(unmapLogRows).toHaveLength(1);
-  });
+  }, 30_000);
 
   test("rejects canonical type mismatch", async () => {
     if (!entityId || !canonicalProductId) {

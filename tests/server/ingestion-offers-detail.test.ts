@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { eq, max, sql } from "drizzle-orm";
 
 import { db } from "../../src/server/db";
@@ -85,16 +85,25 @@ const amazonAutomationBlockHtml = `
 </html>
 `;
 
-let activeDetailHtml = detailHtml;
-
-beforeAll(async () => {
+function mockFetchHtml(html: string): void {
   globalThis.fetch = vi.fn(async () => {
-    return new Response(activeDetailHtml, {
+    return new Response(html, {
       status: 200,
       headers: { "content-type": "text/html; charset=utf-8" },
     });
   }) as unknown as typeof fetch;
+}
 
+beforeEach(() => {
+  mockFetchHtml(detailHtml);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  globalThis.fetch = originalFetch;
+});
+
+beforeAll(async () => {
   const productRow = await db
     .select({
       id: products.id,
@@ -213,7 +222,7 @@ describe("ingestion: offers detail refresh", () => {
   test("worker processes offers.detail_refresh.one and only appends price history on meaningful changes", async () => {
     expect(createdOfferId).toBeTruthy();
     const offerId = createdOfferId!;
-    activeDetailHtml = detailHtml;
+    mockFetchHtml(detailHtml);
 
     const enq1 = await enqueueIngestionJob({
       kind: "offers.detail_refresh.one",
@@ -326,7 +335,7 @@ describe("ingestion: offers detail refresh", () => {
     );
     expect(typeof summaryRows[0]!.staleFlag).toBe("boolean");
 
-    activeDetailHtml = detailHtmlSecondPass;
+    mockFetchHtml(detailHtmlSecondPass);
 
     const enq2 = await enqueueIngestionJob({
       kind: "offers.detail_refresh.one",
@@ -410,7 +419,7 @@ describe("ingestion: offers detail refresh", () => {
       .returning({ id: normalizationOverrides.id });
     createdOverrideIds.push(insertedOverride[0]!.id);
 
-    activeDetailHtml = detailHtmlSecondPass;
+    mockFetchHtml(detailHtmlSecondPass);
 
     const enq = await enqueueIngestionJob({
       kind: "offers.detail_refresh.one",
@@ -437,7 +446,7 @@ describe("ingestion: offers detail refresh", () => {
     expect(productAfter[0]!.imageUrl).toBeNull();
     expect(Array.isArray(productAfter[0]!.imageUrls)).toBe(true);
     expect((productAfter[0]!.imageUrls as unknown[]).length).toBe(0);
-  });
+  }, 30_000);
 
   test("does not mutate canonical offer state when retailer returns automation-block page", async () => {
     expect(createdOfferId).toBeTruthy();

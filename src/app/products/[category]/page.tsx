@@ -4,11 +4,8 @@ import { notFound } from "next/navigation";
 
 import { SmartImage } from "@/components/SmartImage";
 import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-data";
-import {
-  deriveOfferSummaryState,
-  formatOfferSummaryCheckedAt,
-  type OfferSummaryLike,
-} from "@/lib/offer-summary";
+import { deriveOfferSummaryState, type OfferSummaryLike } from "@/lib/offer-summary";
+import { OfferFreshnessBadge } from "@/components/offers/OfferFreshnessBadge";
 import { ProductCategoryFilters } from "@/components/products/ProductCategoryFilters";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
@@ -63,23 +60,23 @@ function formatMoney(cents: number | null | undefined): string {
   return dollars.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
-function offerSummaryDisplay(summary: OfferSummaryLike): { priceCents: number | null; note: string } {
+function offerSummaryDisplay(summary: OfferSummaryLike): {
+  priceCents: number | null;
+  note: string | null;
+  freshnessCheckedAt: unknown;
+} {
   const state = deriveOfferSummaryState(summary);
   if (state.kind === "pending") {
-    return { priceCents: null, note: "Offer summary pending" };
+    return { priceCents: null, note: "Offer summary pending", freshnessCheckedAt: null };
   }
   if (state.kind === "no_in_stock") {
-    return { priceCents: null, note: "No in-stock offers yet" };
-  }
-
-  const checked = formatOfferSummaryCheckedAt(state.checkedAt);
-  if (!checked) {
-    return { priceCents: state.minPriceCents, note: "Freshness unknown" };
+    return { priceCents: null, note: "No in-stock offers yet", freshnessCheckedAt: null };
   }
 
   return {
     priceCents: state.minPriceCents,
-    note: state.staleFlag ? `Checked ${checked} (stale)` : `Checked ${checked}`,
+    note: null,
+    freshnessCheckedAt: state.checkedAt,
   };
 }
 
@@ -118,13 +115,16 @@ export async function generateMetadata(props: {
   const category = await caller.products.categoryBySlug({ slug: params.category });
   if (!category || category.slug === "plants") {
     return {
-      title: "Products | PlantedTankLab",
+      title: "Products",
     };
   }
 
   return {
-    title: `${category.name} | Products | PlantedTankLab`,
+    title: `${category.name} — Products`,
     description: `Browse ${category.name.toLowerCase()} with filters and key specs.`,
+    openGraph: {
+      url: `/products/${category.slug}`,
+    },
   };
 }
 
@@ -335,9 +335,18 @@ export default async function ProductCategoryPage(props: {
                             </div>
                             <div className="shrink-0 text-right text-sm font-semibold text-neutral-900">
                               {formatMoney(pricing.priceCents)}
-                              <div className="mt-1 text-[11px] font-medium text-neutral-600">
-                                {pricing.note}
-                              </div>
+                              {pricing.note ? (
+                                <div className="mt-1 text-[11px] font-medium text-neutral-600">
+                                  {pricing.note}
+                                </div>
+                              ) : (
+                                <div className="mt-1">
+                                  <OfferFreshnessBadge
+                                    lastCheckedAt={pricing.freshnessCheckedAt}
+                                    sourceLabel="Offer summary"
+                                  />
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

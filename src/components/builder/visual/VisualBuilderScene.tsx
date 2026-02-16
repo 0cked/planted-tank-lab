@@ -425,12 +425,12 @@ function CinematicCameraRig(props: {
   return (
     <OrbitControls
       ref={controlsRef}
-      enablePan={false}
+      enablePan={true}
       minPolarAngle={0.2}
-      maxPolarAngle={Math.PI * 0.48}
+      maxPolarAngle={Math.PI * 0.55}
       minDistance={Math.max(10, props.dims.widthIn * 0.6)}
       maxDistance={Math.max(36, props.dims.widthIn * 3)}
-      dampingFactor={0.08}
+      dampingFactor={0.18}
       enableDamping
     />
   );

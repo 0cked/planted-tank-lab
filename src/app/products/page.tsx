@@ -4,8 +4,11 @@ import Link from "next/link";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 export const metadata: Metadata = {
-  title: "Products | PlantedTankLab",
+  title: "Products",
   description: "Browse aquarium equipment categories and compare compatible options.",
+  openGraph: {
+    url: "/products",
+  },
 };
 
 export default async function ProductsPage() {

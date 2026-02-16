@@ -1,132 +1,52 @@
 ---
 name: wednesday-design
-description: Design and UX guidelines for Wednesday Solutions projects. Covers visual design tokens, animation patterns, component standards, accessibility, and user experience best practices for React/Next.js applications. ENFORCES use of approved component libraries only.
+description: Design and UX guidelines. Covers visual design tokens, animation patterns, component standards, accessibility, and user experience best practices. Use as REFERENCE when building 2D UI.
 license: MIT
 metadata:
   author: wednesday-solutions
-  version: "1.0"
+  version: "1.1"
 compatibility: React 18+, Next.js 14+, Tailwind CSS, Framer Motion
 ---
 
-# Wednesday Design & UX Guidelines
+# Design & UX Guidelines
 
-This skill establishes design and user experience standards for Wednesday Solutions projects. Follow these guidelines to create consistent, accessible, and delightful user interfaces.
+Reference this skill when building 2D UI (pages, sidebars, toolbars, cards, buttons). Do NOT apply to React Three Fiber / 3D scene code.
 
 ---
 
-## ⚠️ CRITICAL: APPROVED COMPONENT LIBRARY ONLY
+## Project-Specific Design System (Planted Tank Lab)
 
-**THIS IS A MANDATORY REQUIREMENT. NO EXCEPTIONS.**
+**IMPORTANT:** The planted-tank-lab project has its own established design system that takes precedence over the generic guidelines below. When working on this project, use:
 
-### The Rule
+- **Colors**: `--ptl-*` CSS variables (see `globals.css`):
+  - `--ptl-accent: #1b7f5a` (water-plant green), `--ptl-accent-2: #7aa342` (leaf green)
+  - `--ptl-bg: #f6faf4`, `--ptl-ink: #0b1f16`, `--ptl-sand: #efe7d0`, `--ptl-stone: #d8ded6`
+- **Typography**: Spline Sans (body), Fraunces (display), Geist Mono (code)
+- **Components**: `ptl-btn-primary`, `ptl-btn-secondary`, `ptl-surface`, `ptl-surface-glass`, etc.
+- **Existing UI libraries**: Only `@radix-ui/*` (dialog, dropdown, select, tooltip) is installed
 
-**DO NOT create custom UI components.** All UI elements MUST be sourced from the approved component library containing **492+ pre-vetted components** from 8 libraries.
+The generic component library references below (shadcn/ui, Aceternity, etc.) are **aspirational** — those libraries are NOT currently installed. When building new UI for this project, match the existing PTL design system first. If adding a new library component (e.g., installing shadcn/ui for a specific use case), that's fine — but don't reference libraries that aren't installed.
 
-### Why This Matters
+---
 
-1. **Consistency** - Pre-built components ensure visual coherence across all projects
-2. **Quality** - These components are battle-tested, accessible, and performant
-3. **Speed** - No time wasted reinventing existing solutions
-4. **Maintenance** - Upstream updates benefit all projects
+## Component Library Reference (for new projects or when adding libraries)
 
-### Approved Libraries (Priority Order)
+These libraries produce polished, accessible components. Consider installing them when building new pages or features that need components beyond what the project already has.
 
-| Priority | Library | URL | Use For |
+| Priority | Library | URL | Good For |
 |----------|---------|-----|---------|
 | 1 | **shadcn/ui** | https://ui.shadcn.com | Foundation (forms, dialogs, data) |
-| 2 | **Aceternity UI** | https://ui.aceternity.com | Effects, backgrounds, 3D, scroll |
-| 3 | **Magic UI** | https://magicui.design | Text animations, buttons, mockups |
+| 2 | **Aceternity UI** | https://ui.aceternity.com | Effects, backgrounds, scroll |
+| 3 | **Magic UI** | https://magicui.design | Text animations, buttons |
 | 4 | **Motion Primitives** | https://motion-primitives.com | Morphing, text effects |
-| 5 | **Animate UI** | https://animate-ui.com | Animated Radix ports |
-| 6 | **Eldora UI** | https://www.eldoraui.site | Device mockups, text |
-| 7 | **Cult UI** | https://www.cult-ui.com | Neumorphic, textures |
-| 8 | **ABUI** | https://www.abui.io | Timeline, availability |
 
-### Before Writing ANY Component
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  STOP! Ask yourself:                                        │
-│                                                             │
-│  1. Does this component exist in the approved library?      │
-│     └─> YES: Use it. STOP here.                             │
-│     └─> NO: Continue to step 2                              │
-│                                                             │
-│  2. Can I combine 2-3 approved components to achieve this?  │
-│     └─> YES: Compose them. STOP here.                       │
-│     └─> NO: Continue to step 3                              │
-│                                                             │
-│  3. Can I extend an approved component's styles only?       │
-│     └─> YES: Extend styles using design tokens. STOP here.  │
-│     └─> NO: Escalate to tech lead for approval              │
-│                                                             │
-│  ❌ NEVER create a component from scratch                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Violation Examples
-
-```typescript
-// ❌ WRONG - Creating custom button
-function CustomButton({ children }) {
-  return <button className="bg-green-500 ...">{children}</button>
-}
-
-// ✅ CORRECT - Using approved library
-import { ShimmerButton } from '@/components/magicui/shimmer-button'
-// or
-import { Button } from '@/components/ui/button'
-```
-
-```typescript
-// ❌ WRONG - Creating custom card animation
-function AnimatedCard({ children }) {
-  return <motion.div whileHover={{ scale: 1.05 }}>{children}</motion.div>
-}
-
-// ✅ CORRECT - Using approved library
-import { WobbleCard } from '@/components/aceternity/wobble-card'
-// or
-import { MagicCard } from '@/components/magicui/magic-card'
-```
-
-```typescript
-// ❌ WRONG - Creating custom text animation
-function TypewriterText({ text }) {
-  // custom implementation...
-}
-
-// ✅ CORRECT - Using approved library
-import { TypewriterEffect } from '@/components/aceternity/typewriter-effect'
-// or
-import { TypingAnimation } from '@/components/magicui/typing-animation'
-```
-
-### Quick Lookup by Need
-
-| I need... | Use this component | From |
-|-----------|-------------------|------|
-| Basic button | Button | shadcn/ui |
-| Shimmer button | Shimmer Button | Magic UI |
-| 3D tilt card | 3D Card Effect | Aceternity |
-| Spotlight card | Magic Card | Magic UI |
-| Word-by-word text | Text Generate Effect | Aceternity |
-| Typing animation | Typewriter Effect | Aceternity |
-| Modal/dialog | Dialog | shadcn/ui |
-| Morphing modal | Morphing Dialog | Motion Primitives |
-| Form inputs | Input, Select, etc. | shadcn/ui |
-| Background effects | Background Beams, Aurora, etc. | Aceternity |
-| Device mockup | iPhone, Safari, etc. | Magic UI / Eldora UI |
-| Carousel | Carousel | shadcn/ui / Aceternity |
-| Data table | Data Table | shadcn/ui |
-
-**See [references/COMPONENT-LIBRARY.md](references/COMPONENT-LIBRARY.md) for the complete index of 492+ approved components.**
+Before building a complex UI component from scratch, check if one of these libraries has a ready-made version. See [references/COMPONENT-LIBRARY.md](references/COMPONENT-LIBRARY.md) for the full index.
 
 ---
 
 ## 1. Visual Design Principles
 
-### Brand Identity
+### Brand Identity (generic defaults — see project overrides above)
 
 - **Primary palette**: Green (#4ADE80) to Teal (#0D9488) gradient
 - **Typography**: Instrument Serif for display, DM Sans for body

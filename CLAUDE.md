@@ -1,36 +1,89 @@
-# Project Guidelines
+# Planted Tank Lab -- Agent Operating Guide
 
-<!-- WEDNESDAY_SKILLS_START -->
-## Wednesday Agent Skills
+## CRITICAL CONTEXT: Why this file exists
 
-This project uses Wednesday Solutions agent skills for consistent code quality and design standards.
+The previous AI agent spent 48 hours on this project and produced **34 planning documents and an internal diagnostics panel** before making a single user-visible change. Camera pan is still disabled. Substrate editing is still the old slider system. Plants are still colored cones. Test data is visible on the production site.
 
-### Available Skills
+**Your job is to write code that changes what users see.** Not to plan. Not to document. Not to build dev tools. To ship.
 
-<available_skills>
-  <skill>
-    <name>wednesday-design</name>
-    <description>Design and UX guidelines for Wednesday Solutions projects. Covers visual design tokens, animation patterns, component standards, accessibility, and user experience best practices for React/Next.js applications. ENFORCES use of approved component libraries only.</description>
-    <location>.wednesday/skills/wednesday-design/SKILL.md</location>
-  </skill>
-  <skill>
-    <name>wednesday-dev</name>
-    <description>Technical development guidelines for Wednesday Solutions projects. Enforces import ordering, complexity limits, naming conventions, TypeScript best practices, and code quality standards for React/Next.js applications.</description>
-    <location>.wednesday/skills/wednesday-dev/SKILL.md</location>
-  </skill>
-</available_skills>
+## What is this project?
 
-### How to Use Skills
+"PCPartPicker for planted aquariums" -- a web app where hobbyists build planted tank setups by selecting compatible gear and plants, with a 3D visual builder, instant compatibility feedback, and price comparisons via affiliate offers.
 
-When working on tasks, check if a relevant skill is available above. To activate a skill, read its SKILL.md file to load the full instructions.
+**Production:** https://plantedtanklab.com
+**Repo:** Next.js 16 + tRPC + Drizzle + React Three Fiber + Zustand + Fly.io
 
-For example:
-- For code quality and development guidelines, read: .wednesday/skills/wednesday-dev/SKILL.md
-- For design and UI component guidelines, read: .wednesday/skills/wednesday-design/SKILL.md
+## What to work on
 
-### Important
+**Read `TODO.md` first.** It has the full roadmap with phased tasks. Work top-to-bottom within each phase. Phase 0 tasks are the highest priority.
 
-- The wednesday-design skill contains 492+ approved UI components. Always check the component library before creating custom components.
-- The wednesday-dev skill enforces import ordering, complexity limits (max 8), and naming conventions.
+**Do not skip ahead.** Do not reorder tasks. Do not "prepare" for future tasks. Complete the current task, verify it, commit it, move to the next one.
 
-<!-- WEDNESDAY_SKILLS_END -->
+## How to verify your work
+
+```bash
+pnpm verify        # lint + typecheck + unit tests + e2e tests + build
+pnpm dev           # local dev server at localhost:3000
+pnpm test          # unit tests only (Vitest)
+pnpm test:e2e      # e2e tests only (Playwright, requires built app)
+```
+
+Always run `pnpm typecheck` before considering a task done. If you change the visual builder, visually verify in `pnpm dev` by navigating to `/builder`.
+
+## Execution rules
+
+1. **CODE CHANGES ONLY.** Every task you complete must result in modified `.ts`, `.tsx`, `.css`, `.yml`, or config files. If you find yourself creating `.md` files, writing summaries, or producing analysis -- stop immediately. That is not your job. The planning is done.
+
+2. **Do not create new documentation files.** Not "just a small one." Not "to clarify the approach." Not "for future agents." Zero new markdown files. The 34 planning docs in `docs/refactor/` are more than sufficient.
+
+3. **Do not build, extend, or polish internal tooling.** No diagnostics panels, debug overlays, evidence capture systems, scenario badges, or developer dashboards. The previous agent burned 19 tasks on a camera diagnostics panel that users never see. That work is done. Move on.
+
+4. **Do not fragment tasks.** Each task in TODO.md is scoped to ~1-3 hours of focused work. Do not break it into sub-tasks. Do not create a checklist. Do not "phase" it. Open the files, make the changes, run the tests, commit.
+
+5. **Do not modify the compatibility engine** (`src/engine/`) or **ingestion pipeline** (`src/server/ingestion/`) without being explicitly asked. These are well-tested and stable.
+
+6. **The visual builder is the only builder.** `VisualBuilderPage.tsx` is the primary builder. `BuilderPage.tsx` (form-based) is legacy. Never invest time in the legacy builder.
+
+7. **Test your changes.** If you add new logic, add tests. Vitest for unit tests (`tests/`), Playwright for e2e (`tests/e2e/`).
+
+8. **Keep files small.** Target <500 lines per file. When adding to a large file, extract a component or hook.
+
+9. **When confused, default to action.** If you're unsure how to approach something, make your best attempt in code. A wrong implementation you can iterate on beats a perfect plan you never execute.
+
+## Architecture quick reference
+
+```
+src/
+  app/              # Next.js App Router pages + API routes
+  components/
+    builder/        # Both builders live here
+      visual/       # 3D scene, utilities, types
+      BuilderPage.tsx         # Legacy form builder (don't invest here)
+      VisualBuilderPage.tsx   # Primary 3D builder (main work target)
+  server/
+    db/             # Drizzle schema + migrations
+    trpc/           # tRPC routers
+    ingestion/      # Data pipeline (stable, don't touch)
+  stores/
+    visual-builder-store.ts   # Zustand store for visual builder state
+  engine/           # Compatibility checking (stable, don't touch)
+  lib/              # Utilities
+```
+
+## Current state of the 3D builder
+
+- **Camera:** Two modes (step-owned auto-framing, free user-controlled orbit). Works well. Pan is disabled and needs to be enabled (see TODO P0-4).
+- **Substrate:** 7-point interpolated profile with brush editing. Needs replacement with heightfield node-grid (see TODO Phase 1).
+- **Assets:** Placeholder procedural geometry (cones for plants, dodecahedrons for rocks). Needs real GLB models (see TODO Phase 2).
+- **Diagnostics:** Extensive camera diagnostics panel exists but should be dev-only. Gate it behind `NODE_ENV === 'development'` (see TODO P0-3).
+
+## Deployment
+
+Push to `main` triggers Fly.io deploy via GitHub Actions. There is no staging environment. Be careful with main.
+
+## Code quality
+
+- TypeScript strict mode enabled
+- ESLint with Next.js recommended config
+- Wednesday dev/design skills available in `.wednesday/skills/` for reference
+- Max cyclomatic complexity: 8

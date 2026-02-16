@@ -4,8 +4,11 @@ import Link from "next/link";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 export const metadata: Metadata = {
-  title: "Builds | PlantedTankLab",
+  title: "Builds",
   description: "Browse public planted tank builds and learn what works.",
+  openGraph: {
+    url: "/builds",
+  },
 };
 
 function formatMoney(cents: number | null | undefined): string {

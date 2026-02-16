@@ -15,12 +15,15 @@ export async function generateMetadata(props: {
     await createTRPCContext({ req: new Request("http://localhost") }),
   );
   const data = await caller.builds.getByShareSlug({ shareSlug }).catch(() => null);
-  if (!data) return { title: "Build | PlantedTankLab" };
+  if (!data) return { title: "Build" };
   return {
     title: data.build.name,
     description:
       data.build.description ??
       `A planted tank build snapshot with ${data.build.itemCount} items.`,
+    openGraph: {
+      url: `/builds/${shareSlug}`,
+    },
   };
 }
 

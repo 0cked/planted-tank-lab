@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { RetailerMark } from "@/components/RetailerMark";
 import { SmartImage } from "@/components/SmartImage";
+import { OfferFreshnessBadge } from "@/components/offers/OfferFreshnessBadge";
 import {
   deriveOfferSummaryState,
   formatOfferSummaryCheckedAt,
@@ -14,17 +15,12 @@ import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-d
 import { formatSpecs } from "@/lib/specs";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
+const FRESHNESS_NOW_MS = Date.now();
+
 function formatMoney(cents: number | null | undefined): string {
   if (cents == null) return "—";
   const dollars = cents / 100;
   return dollars.toLocaleString(undefined, { style: "currency", currency: "USD" });
-}
-
-function formatDateShort(value: unknown): string | null {
-  if (value == null) return null;
-  const d = value instanceof Date ? value : new Date(String(value));
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
 function isoDay(value: unknown): string | null {
@@ -99,11 +95,14 @@ export async function generateMetadata(props: {
     const brandName = p.brand?.name ?? null;
     const title = brandName ? `${brandName} ${p.name}` : p.name;
     return {
-      title: `${title} | PlantedTankLab`,
+      title: title,
       description: p.description ?? `Specs, prices, and details for ${title}.`,
+      openGraph: {
+        url: `/products/${params.category}/${params.slug}`,
+      },
     };
   } catch {
-    return { title: "Product | PlantedTankLab" };
+    return { title: "Product" };
   }
 }
 
@@ -303,14 +302,13 @@ export default async function ProductDetailPage(props: {
                         }
                         logoUrl={o.retailer.logoUrl ?? null}
                       />
-                      <div className="mt-1 text-xs text-neutral-600">
-                        {o.inStock ? "In stock" : "Out of stock"}
-                        {(() => {
-                          const checked = formatDateShort(
-                            (o as { lastCheckedAt?: unknown }).lastCheckedAt,
-                          );
-                          return checked ? ` · Checked ${checked}` : "";
-                        })()}
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-neutral-600">
+                        <span>{o.inStock ? "In stock" : "Out of stock"}</span>
+                        <OfferFreshnessBadge
+                          lastCheckedAt={(o as { lastCheckedAt?: unknown }).lastCheckedAt}
+                          sourceLabel="retailer check"
+                          nowMs={FRESHNESS_NOW_MS}
+                        />
                       </div>
                     </div>
                     <div className="text-right text-sm font-semibold text-neutral-900">
