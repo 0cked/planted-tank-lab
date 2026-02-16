@@ -399,9 +399,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T051
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T053 — Camera Evidence Last-Event Stack Tightening (Two-Line Clamp)**
+- [x] **T053 — Camera Evidence Last-Event Stack Tightening (Two-Line Clamp)**
   - **Goal:** Tighten last-intent/last-delta readout spacing and clamp behavior for denser evidence scanning.
   - **Why it matters:** Keeps high-signal recent-event context visible without expanding panel height.
   - **Definition of Done:** Last-intent and last-delta rows remain legible with tighter spacing/clamp treatment and do not regress copy/export behavior.
   - **Dependencies:** T052
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T054 — Camera Evidence Summary/Event Contrast Tuning**
+  - **Goal:** Increase visual contrast between one-line metrics and last-event rows for quicker parsing under repeated gate capture.
+  - **Why it matters:** Helps operators separate aggregate status from recent-event detail at a glance.
+  - **Definition of Done:** Metrics row and last-event stack have clearer hierarchy (tone/weight/spacing) while preserving compact density and existing actions.
+  - **Dependencies:** T053
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)

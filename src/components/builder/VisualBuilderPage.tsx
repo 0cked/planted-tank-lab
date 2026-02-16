@@ -2082,8 +2082,24 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 <div className="overflow-x-auto whitespace-nowrap">
                   Step <span className="font-semibold text-slate-100">{cameraEvidenceSummary.step}</span> · Mode <span className="font-semibold text-slate-100">{cameraEvidenceSummary.mode}</span> · S01 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s01}</span> · S02 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s02}</span> · S03 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s03}</span> · Intents <span className="font-semibold text-slate-100">{cameraEvidenceSummary.intentCount}</span> · Deltas <span className="font-semibold text-slate-100">{cameraEvidenceSummary.unexpectedPoseDeltas}</span>
                 </div>
-                <div className="mt-1 truncate">Last intent: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.lastIntent}</span></div>
-                <div className="truncate">Last delta: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.lastPoseDelta}</span></div>
+                <div className="mt-1 text-[10px] leading-tight text-slate-300">
+                  <span className="mr-1">Last intent:</span>
+                  <span
+                    className="font-semibold text-slate-100"
+                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                  >
+                    {cameraEvidenceSummary.lastIntent}
+                  </span>
+                </div>
+                <div className="mt-0.5 text-[10px] leading-tight text-slate-300">
+                  <span className="mr-1">Last delta:</span>
+                  <span
+                    className="font-semibold text-slate-100"
+                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                  >
+                    {cameraEvidenceSummary.lastPoseDelta}
+                  </span>
+                </div>
               </div>
 
               <div className="mt-2">
