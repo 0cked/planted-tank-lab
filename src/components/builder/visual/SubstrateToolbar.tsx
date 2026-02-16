@@ -37,7 +37,7 @@ export function SubstrateToolbar(props: SubstrateToolbarProps) {
           <button
             key={preset.value}
             onClick={() => props.onPresetSelect(preset.value)}
-            className="rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
           >
             {preset.label}
           </button>

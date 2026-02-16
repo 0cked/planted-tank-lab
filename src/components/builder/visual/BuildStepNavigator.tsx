@@ -34,7 +34,7 @@ export function BuildStepNavigator(props: BuildStepNavigatorProps) {
                 props.onStepChange(stepId);
               }}
               disabled={isBlocked}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold transition ${
                 isActive
                   ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
                   : isDone
@@ -64,7 +64,7 @@ export function BuildStepNavigator(props: BuildStepNavigatorProps) {
               props.onStepChange(props.previousStep);
             }}
             disabled={!props.previousStep}
-            className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-1.5 text-xs font-semibold text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-xs font-semibold text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Back
           </button>
@@ -72,7 +72,7 @@ export function BuildStepNavigator(props: BuildStepNavigatorProps) {
           {props.currentStep === "equipment" && !props.stepCompletion.equipment ? (
             <button
               onClick={() => props.onStepChange("review")}
-              className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-1.5 text-xs font-semibold text-slate-200"
+              className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-xs font-semibold text-slate-200"
             >
               Skip for now
             </button>
@@ -81,7 +81,7 @@ export function BuildStepNavigator(props: BuildStepNavigatorProps) {
           <button
             onClick={props.onContinue}
             disabled={!props.nextStep || !props.canContinueCurrentStep}
-            className="rounded-full border border-cyan-200/70 bg-cyan-200/20 px-4 py-1.5 text-xs font-semibold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border border-cyan-200/70 bg-cyan-200/20 px-4 py-2 text-xs font-semibold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {props.currentStep === "review" ? "Ready to publish" : "Continue"}
           </button>

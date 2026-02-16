@@ -119,25 +119,25 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => props.onMoveCanvasItemLayer(selectedItem.id, "up")}
-            className="rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
           >
             Layer +
           </button>
           <button
             onClick={() => props.onMoveCanvasItemLayer(selectedItem.id, "down")}
-            className="rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
           >
             Layer -
           </button>
           <button
             onClick={() => props.onDuplicateCanvasItem(selectedItem.id)}
-            className="rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
           >
             Duplicate
           </button>
           <button
             onClick={() => props.onRemoveCanvasItem(selectedItem.id)}
-            className="rounded-lg border border-red-300/60 bg-red-500/15 px-2 py-1 text-[11px] font-semibold text-red-100"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-red-300/60 bg-red-500/15 px-2 py-1 text-[11px] font-semibold text-red-100"
           >
             Delete
           </button>

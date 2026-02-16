@@ -32,7 +32,7 @@ export function BuilderSceneToolbar(props: BuilderSceneToolbarProps) {
           key={mode}
           onClick={() => props.onToolModeChange(mode)}
           disabled={!props.canSceneTools}
-          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+          className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold ${
             props.toolMode === mode
               ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
               : "border-white/20 bg-slate-950/70 text-slate-200"
@@ -45,7 +45,7 @@ export function BuilderSceneToolbar(props: BuilderSceneToolbarProps) {
       {props.currentStep === "substrate" ? (
         <button
           onClick={() => props.onToolModeChange("sculpt")}
-          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+          className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold ${
             props.toolMode === "sculpt"
               ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
               : "border-white/20 bg-slate-950/70 text-slate-200"
@@ -89,7 +89,7 @@ export function BuilderSceneToolbar(props: BuilderSceneToolbarProps) {
 
       <button
         onClick={props.onToggleGuides}
-        className="rounded-full border border-white/20 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200"
+        className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-xs font-semibold text-slate-200"
       >
         {props.guidesVisible ? "Hide guides" : "Show guides"}
       </button>

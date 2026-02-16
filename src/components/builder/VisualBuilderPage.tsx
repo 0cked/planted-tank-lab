@@ -16,8 +16,13 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
     <div className="min-h-screen bg-[#040810] pb-8 text-slate-100">
       <div className="mx-auto w-full max-w-[1780px] px-4 pt-5 sm:px-6 lg:px-8">
         <BuildMetadataPanel {...controller.metadataPanelProps} />
-        <BuildStepNavigator {...controller.stepNavigatorProps} />
+        <div className="hidden md:block">
+          <BuildStepNavigator {...controller.stepNavigatorProps} />
+        </div>
         <BuilderWorkspace {...controller.workspaceProps} />
+        <div className="md:hidden">
+          <BuildStepNavigator {...controller.stepNavigatorProps} />
+        </div>
         {controller.diagnosticsPanelProps ? <CameraDiagnosticsPanel {...controller.diagnosticsPanelProps} /> : null}
       </div>
     </div>

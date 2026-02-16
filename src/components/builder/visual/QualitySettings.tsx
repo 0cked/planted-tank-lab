@@ -25,7 +25,7 @@ export function QualitySettings(props: QualitySettingsProps) {
           <button
             key={tier}
             onClick={() => props.onSceneSettingsChange({ qualityTier: tier })}
-            className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+            className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold ${
               props.sceneSettings.qualityTier === tier
                 ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
                 : "border-white/20 bg-slate-950/60 text-slate-300"
@@ -65,7 +65,7 @@ export function QualitySettings(props: QualitySettingsProps) {
             <button
               key={mode}
               onClick={() => props.onSceneSettingsChange({ cameraPreset: mode })}
-              className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+              className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold ${
                 props.sceneSettings.cameraPreset === mode
                   ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
                   : "border-white/20 bg-slate-950/60 text-slate-300"
@@ -79,13 +79,13 @@ export function QualitySettings(props: QualitySettingsProps) {
         <div className="mt-2 grid grid-cols-2 gap-1.5">
           <button
             onClick={props.onReframe}
-            className="rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
           >
             Reframe
           </button>
           <button
             onClick={props.onResetView}
-            className="rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
           >
             Reset view
           </button>

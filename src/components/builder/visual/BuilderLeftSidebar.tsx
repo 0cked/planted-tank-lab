@@ -110,7 +110,7 @@ export function BuilderLeftSidebar(props: BuilderLeftSidebarProps) {
                 <button
                   key={slug}
                   onClick={() => props.onEquipmentCategoryChange(slug)}
-                  className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                  className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border px-3 py-2 text-[11px] font-semibold ${
                     props.activeEquipmentCategory === slug
                       ? "border-cyan-300 bg-cyan-300/20 text-cyan-100"
                       : "border-white/20 bg-slate-900/50 text-slate-300"
@@ -175,7 +175,7 @@ export function BuilderLeftSidebar(props: BuilderLeftSidebarProps) {
 
                     <button
                       onClick={() => props.onChooseAsset(asset)}
-                      className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold ${
+                      className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-md border px-3 py-2 text-[10px] font-semibold ${
                         isPlacementArmed || isSelectedEquipment
                           ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
                           : "border-emerald-400 bg-emerald-400/20 text-emerald-100"

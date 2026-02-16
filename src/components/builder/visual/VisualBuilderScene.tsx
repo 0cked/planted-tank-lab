@@ -865,6 +865,10 @@ function CinematicCameraRig(props: {
       maxDistance={Math.max(36, props.dims.widthIn * 3)}
       dampingFactor={0.18}
       enableDamping
+      touches={{
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN,
+      }}
     />
   );
 }
@@ -1827,7 +1831,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   ) => {
     event.stopPropagation();
 
-    if (props.toolMode === "move" && props.selectedItemId && event.buttons === 1) {
+    const isMoveDragGesture =
+      event.buttons === 1 || (event.pointerType === "touch" && event.isPrimary);
+
+    if (props.toolMode === "move" && props.selectedItemId && isMoveDragGesture) {
       const norm = worldToNormalized({
         x: event.point.x,
         y: event.point.y,
@@ -2114,6 +2121,7 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
       onPointerMissed={() => {
         props.onSelectItem(null);
       }}
+      style={{ touchAction: "none" }}
     >
       <SceneRoot {...props} />
     </Canvas>

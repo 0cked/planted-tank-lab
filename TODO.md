@@ -222,7 +222,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - `VisualBuilderPage.tsx` should orchestrate these components and be under 600 lines.
   - **Verify:** All builder functionality works identically. `pnpm typecheck` passes. No visual regressions.
 
-- [ ] **P3-2: Add touch gesture support**
+- [x] **P3-2: Add touch gesture support**
   - OrbitControls from drei already supports touch by default. Verify it works on mobile/tablet.
   - Add touch-friendly hit targets for toolbar buttons (minimum 44x44px tap targets).
   - Test substrate sculpting with touch (pointer events should work but verify).
