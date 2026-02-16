@@ -4,10 +4,15 @@ import { Edges, Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer, Noise, SSAO, ToneMapping, Vignette } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BlendFunction, ToneMappingMode } from "postprocessing";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
+import {
+  AssetLoader,
+  AssetLoaderErrorBoundary,
+  type LoadedAssetModel,
+} from "@/components/builder/visual/AssetLoader";
 import type {
   SubstrateHeightfield,
   VisualAnchorType,
@@ -30,6 +35,7 @@ import {
   type SceneDims,
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
+import { useAsset } from "@/components/builder/visual/useAsset";
 import {
   normalizeSubstrateHeightfield,
   SUBSTRATE_HEIGHTFIELD_RESOLUTION,
@@ -69,6 +75,11 @@ type SceneRenderItem = {
     depth: number;
   };
   collisionRadius: number;
+};
+
+type PlantInstancedGroup = {
+  asset: VisualAsset;
+  items: SceneRenderItem[];
 };
 
 type CameraPresetMode = "step" | "free";
@@ -261,6 +272,29 @@ function hasHardscapeAttach(asset: VisualAsset): boolean {
     placement.includes("hardscape") ||
     placement.includes("epiphyte")
   );
+}
+
+function loadedAssetUniformScale(target: SceneRenderItem["size"], bounds: THREE.Vector3): number {
+  const scaleX = target.width / Math.max(0.001, bounds.x);
+  const scaleY = target.height / Math.max(0.001, bounds.y);
+  const scaleZ = target.depth / Math.max(0.001, bounds.z);
+  return Math.max(0.001, Math.min(scaleX, scaleY, scaleZ));
+}
+
+function cloneInstancedMaterial(source: THREE.Material | null, fallbackColor: string): THREE.Material {
+  if (source instanceof THREE.MeshStandardMaterial) {
+    const cloned = source.clone();
+    cloned.vertexColors = true;
+    return cloned;
+  }
+
+  const fallback = new THREE.MeshStandardMaterial({
+    color: fallbackColor,
+    roughness: 0.76,
+    metalness: 0.05,
+  });
+  fallback.vertexColors = true;
+  return fallback;
 }
 
 function itemWorldPosition(params: {
@@ -727,6 +761,63 @@ function CinematicCameraRig(props: {
   );
 }
 
+function ProceduralItemMesh(props: {
+  renderItem: SceneRenderItem;
+  palette: string[];
+  highlightColor: string | null;
+}) {
+  const width = props.renderItem.size.width;
+  const depth = props.renderItem.size.depth;
+  const height = props.renderItem.size.height;
+
+  if (props.renderItem.asset.categorySlug === "plants") {
+    return (
+      <group>
+        {Array.from({ length: 4 }).map((_, index) => {
+          const hue = props.palette[index % props.palette.length] ?? props.palette[0] ?? "#4f9f5f";
+          const localScale = 0.76 + index * 0.18;
+          const localHeight = height * localScale;
+          const localWidth = Math.max(0.2, width * 0.17 * localScale);
+          return (
+            <mesh
+              key={index}
+              castShadow
+              receiveShadow
+              position={[
+                Math.sin(index * 1.73) * width * 0.14,
+                localHeight * 0.5,
+                Math.cos(index * 1.73) * depth * 0.14,
+              ]}
+            >
+              <coneGeometry args={[localWidth, localHeight, 7]} />
+              <meshStandardMaterial color={hue} roughness={0.74} metalness={0.06} />
+              {props.highlightColor ? <Edges color={props.highlightColor} threshold={22} /> : null}
+            </mesh>
+          );
+        })}
+      </group>
+    );
+  }
+
+  if (props.renderItem.asset.materialType?.includes("wood")) {
+    return (
+      <mesh castShadow receiveShadow>
+        <capsuleGeometry args={[Math.max(0.28, width * 0.16), Math.max(0.5, height * 0.78), 8, 12]} />
+        <meshStandardMaterial color={props.palette[1] ?? WOOD_COLORS[1]} roughness={0.88} metalness={0.05} />
+        {props.highlightColor ? <Edges color={props.highlightColor} threshold={28} /> : null}
+      </mesh>
+    );
+  }
+
+  return (
+    <mesh castShadow receiveShadow>
+      <dodecahedronGeometry args={[Math.max(0.35, Math.max(width, depth) * 0.26), 1]} />
+      <meshStandardMaterial color={props.palette[1] ?? ROCK_COLORS[1]} roughness={0.82} metalness={0.1} />
+      {props.highlightColor ? <Edges color={props.highlightColor} threshold={18} /> : null}
+    </mesh>
+  );
+}
+
 function ItemMesh(props: {
   renderItem: SceneRenderItem;
   selected: boolean;
@@ -738,9 +829,18 @@ function ItemMesh(props: {
   onDelete: (itemId: string) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const baseYRotation = useMemo(() => (props.renderItem.item.rotation * Math.PI) / 180, [props.renderItem.item.rotation]);
+  const baseYRotation = useMemo(
+    () => (props.renderItem.item.rotation * Math.PI) / 180,
+    [props.renderItem.item.rotation],
+  );
   const palette = useMemo(() => materialPalette(props.renderItem.asset), [props.renderItem.asset]);
   const highlightColor = props.selected ? "#cbf2dd" : props.hovered ? "#d6e9ff" : null;
+  const [failedAssetModel, setFailedAssetModel] = useState<{ assetId: string; path: string } | null>(
+    null,
+  );
+  const failedPath =
+    failedAssetModel?.assetId === props.renderItem.asset.id ? failedAssetModel.path : null;
+  const resolvedAsset = useAsset(props.renderItem.asset, { failedPath });
 
   useFrame((state) => {
     const group = groupRef.current;
@@ -749,7 +849,9 @@ function ItemMesh(props: {
     const pulse = props.selected ? 1 + Math.sin(state.clock.elapsedTime * 4.1) * 0.02 : 1;
     group.rotation.y =
       props.renderItem.asset.categorySlug === "plants"
-        ? baseYRotation + Math.sin(state.clock.elapsedTime * 1.25 + props.renderItem.position.x * 0.2) * 0.06
+        ?
+            baseYRotation +
+            Math.sin(state.clock.elapsedTime * 1.25 + props.renderItem.position.x * 0.2) * 0.06
         : baseYRotation;
     group.scale.setScalar(pulse);
   });
@@ -767,69 +869,365 @@ function ItemMesh(props: {
     props.onSelect(props.renderItem.item.id);
   };
 
-  const sharedEvents = {
-    onClick,
-    onPointerOver: (event: ThreeEvent<PointerEvent>) => {
-      event.stopPropagation();
-      props.onHover(props.renderItem.item.id);
-    },
-    onPointerOut: (event: ThreeEvent<PointerEvent>) => {
-      event.stopPropagation();
-      props.onHover(null);
-    },
-  };
-
-  const width = props.renderItem.size.width;
-  const depth = props.renderItem.size.depth;
-  const height = props.renderItem.size.height;
+  const proceduralMesh = (
+    <ProceduralItemMesh
+      renderItem={props.renderItem}
+      palette={palette}
+      highlightColor={highlightColor}
+    />
+  );
 
   return (
     <group
       ref={groupRef}
       position={props.renderItem.position}
-      onClick={sharedEvents.onClick}
-      onPointerOver={sharedEvents.onPointerOver}
-      onPointerOut={sharedEvents.onPointerOut}
+      onClick={onClick}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        props.onHover(props.renderItem.item.id);
+      }}
+      onPointerOut={(event) => {
+        event.stopPropagation();
+        props.onHover(null);
+      }}
     >
-      {props.renderItem.asset.categorySlug === "plants" ? (
-        <group>
-          {Array.from({ length: 4 }).map((_, index) => {
-            const hue = palette[index % palette.length] ?? palette[0] ?? "#4f9f5f";
-            const localScale = 0.76 + index * 0.18;
-            const localHeight = height * localScale;
-            const localWidth = Math.max(0.2, width * 0.17 * localScale);
-            return (
-              <mesh
-                key={index}
-                castShadow
-                receiveShadow
-                position={[
-                  Math.sin(index * 1.73) * width * 0.14,
-                  localHeight * 0.5,
-                  Math.cos(index * 1.73) * depth * 0.14,
-                ]}
-              >
-                <coneGeometry args={[localWidth, localHeight, 7]} />
-                <meshStandardMaterial color={hue} roughness={0.74} metalness={0.06} />
-                {highlightColor ? <Edges color={highlightColor} threshold={22} /> : null}
-              </mesh>
-            );
-          })}
-        </group>
-      ) : props.renderItem.asset.materialType?.includes("wood") ? (
-        <mesh castShadow receiveShadow>
-          <capsuleGeometry args={[Math.max(0.28, width * 0.16), Math.max(0.5, height * 0.78), 8, 12]} />
-          <meshStandardMaterial color={palette[1] ?? WOOD_COLORS[1]} roughness={0.88} metalness={0.05} />
-          {highlightColor ? <Edges color={highlightColor} threshold={28} /> : null}
-        </mesh>
+      {!resolvedAsset.glbPath ? (
+        proceduralMesh
       ) : (
-        <mesh castShadow receiveShadow>
-          <dodecahedronGeometry args={[Math.max(0.35, Math.max(width, depth) * 0.26), 1]} />
-          <meshStandardMaterial color={palette[1] ?? ROCK_COLORS[1]} roughness={0.82} metalness={0.1} />
-          {highlightColor ? <Edges color={highlightColor} threshold={18} /> : null}
-        </mesh>
+        <AssetLoaderErrorBoundary
+          resetKey={`${props.renderItem.asset.id}:${resolvedAsset.glbPath}`}
+          fallback={proceduralMesh}
+          onError={() => {
+            if (!resolvedAsset.glbPath) return;
+            setFailedAssetModel({
+              assetId: props.renderItem.asset.id,
+              path: resolvedAsset.glbPath,
+            });
+          }}
+        >
+          <Suspense fallback={proceduralMesh}>
+            <AssetLoader path={resolvedAsset.glbPath}>
+              {(model) => {
+                const scale = loadedAssetUniformScale(props.renderItem.size, model.bounds);
+                return (
+                  <mesh
+                    castShadow
+                    receiveShadow
+                    geometry={model.geometry}
+                    material={model.material}
+                    scale={scale}
+                  >
+                    {highlightColor ? <Edges color={highlightColor} threshold={22} /> : null}
+                  </mesh>
+                );
+              }}
+            </AssetLoader>
+          </Suspense>
+        </AssetLoaderErrorBoundary>
       )}
     </group>
+  );
+}
+
+function anchorTypeForRenderItem(renderItem: SceneRenderItem): VisualAnchorType {
+  if (renderItem.item.categorySlug === "hardscape") return "hardscape";
+  return renderItem.item.anchorType;
+}
+
+function InstancedPlantRenderer(props: {
+  group: PlantInstancedGroup;
+  geometry: THREE.BufferGeometry;
+  material: THREE.Material;
+  bounds: THREE.Vector3;
+  loadedModel: boolean;
+  selectedItemId: string | null;
+  hoveredItemId: string | null;
+  toolMode: BuilderSceneToolMode;
+  onSelect: (id: string | null) => void;
+  onHover: (id: string | null) => void;
+  onRotate: (itemId: string, deltaDeg: number) => void;
+  onDelete: (itemId: string) => void;
+  onSurfacePointer: (
+    event: ThreeEvent<PointerEvent>,
+    anchorType: VisualAnchorType,
+    itemId: string | null,
+  ) => void;
+  onSurfaceDown: (
+    event: ThreeEvent<PointerEvent>,
+    anchorType: VisualAnchorType,
+    itemId: string | null,
+  ) => void;
+  onSurfaceUp: (event: ThreeEvent<PointerEvent>) => void;
+}) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const matrixObject = useMemo(() => new THREE.Object3D(), []);
+  const color = useMemo(() => new THREE.Color(), []);
+  const palette = useMemo(() => materialPalette(props.group.asset), [props.group.asset]);
+
+  useFrame((state) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+
+    const now = state.clock.elapsedTime;
+
+    for (let index = 0; index < props.group.items.length; index += 1) {
+      const renderItem = props.group.items[index];
+      if (!renderItem) continue;
+
+      const isSelected = renderItem.item.id === props.selectedItemId;
+      const isHovered = renderItem.item.id === props.hoveredItemId;
+      const sway = Math.sin(now * 1.25 + renderItem.position.x * 0.2 + index * 0.31) * 0.06;
+      const pulse = isSelected ? 1 + Math.sin(now * 4.1) * 0.02 : 1;
+
+      matrixObject.position.copy(renderItem.position);
+      matrixObject.rotation.set(0, (renderItem.item.rotation * Math.PI) / 180 + sway, 0);
+
+      if (props.loadedModel) {
+        const uniformScale = loadedAssetUniformScale(renderItem.size, props.bounds) * pulse;
+        matrixObject.scale.setScalar(uniformScale);
+      } else {
+        matrixObject.scale.set(
+          Math.max(0.08, renderItem.size.width * 0.44) * pulse,
+          Math.max(0.2, renderItem.size.height) * pulse,
+          Math.max(0.08, renderItem.size.depth * 0.44) * pulse,
+        );
+      }
+
+      matrixObject.updateMatrix();
+      mesh.setMatrixAt(index, matrixObject.matrix);
+
+      const baseColor = palette[index % palette.length] ?? palette[0] ?? "#4f9f5f";
+      color.set(isSelected ? "#cbf2dd" : isHovered ? "#d6e9ff" : baseColor);
+      mesh.setColorAt(index, color);
+    }
+
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) {
+      mesh.instanceColor.needsUpdate = true;
+    }
+  });
+
+  const renderItemFromInstanceId = (instanceId: number | undefined): SceneRenderItem | null => {
+    if (typeof instanceId !== "number" || !Number.isInteger(instanceId)) return null;
+    return props.group.items[instanceId] ?? null;
+  };
+
+  const onClick = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
+
+    const renderItem = renderItemFromInstanceId(event.instanceId);
+    if (!renderItem) return;
+
+    if (props.toolMode === "delete") {
+      props.onDelete(renderItem.item.id);
+      return;
+    }
+
+    if (props.toolMode === "rotate") {
+      props.onRotate(renderItem.item.id, renderItem.item.constraints.rotationSnapDeg);
+      return;
+    }
+
+    props.onSelect(renderItem.item.id);
+  };
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[props.geometry, props.material, props.group.items.length]}
+      castShadow
+      receiveShadow
+      onClick={onClick}
+      onPointerMove={(event) => {
+        event.stopPropagation();
+        const renderItem = renderItemFromInstanceId(event.instanceId);
+        if (!renderItem) return;
+
+        props.onHover(renderItem.item.id);
+        props.onSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
+      }}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        const renderItem = renderItemFromInstanceId(event.instanceId);
+        if (!renderItem) return;
+
+        props.onSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
+      }}
+      onPointerOut={(event) => {
+        event.stopPropagation();
+        props.onHover(null);
+      }}
+      onPointerUp={(event) => {
+        event.stopPropagation();
+        props.onSurfaceUp(event);
+      }}
+    />
+  );
+}
+
+function LoadedPlantInstancedRenderer(props: {
+  group: PlantInstancedGroup;
+  model: LoadedAssetModel;
+  selectedItemId: string | null;
+  hoveredItemId: string | null;
+  toolMode: BuilderSceneToolMode;
+  onSelect: (id: string | null) => void;
+  onHover: (id: string | null) => void;
+  onRotate: (itemId: string, deltaDeg: number) => void;
+  onDelete: (itemId: string) => void;
+  onSurfacePointer: (
+    event: ThreeEvent<PointerEvent>,
+    anchorType: VisualAnchorType,
+    itemId: string | null,
+  ) => void;
+  onSurfaceDown: (
+    event: ThreeEvent<PointerEvent>,
+    anchorType: VisualAnchorType,
+    itemId: string | null,
+  ) => void;
+  onSurfaceUp: (event: ThreeEvent<PointerEvent>) => void;
+}) {
+  const palette = useMemo(() => materialPalette(props.group.asset), [props.group.asset]);
+  const material = useMemo(
+    () => cloneInstancedMaterial(props.model.material, palette[1] ?? PLANT_COLORS[1]),
+    [palette, props.model.material],
+  );
+
+  useEffect(() => {
+    return () => {
+      material.dispose();
+    };
+  }, [material]);
+
+  return (
+    <InstancedPlantRenderer
+      group={props.group}
+      geometry={props.model.geometry}
+      material={material}
+      bounds={props.model.bounds}
+      loadedModel
+      selectedItemId={props.selectedItemId}
+      hoveredItemId={props.hoveredItemId}
+      toolMode={props.toolMode}
+      onSelect={props.onSelect}
+      onHover={props.onHover}
+      onRotate={props.onRotate}
+      onDelete={props.onDelete}
+      onSurfacePointer={props.onSurfacePointer}
+      onSurfaceDown={props.onSurfaceDown}
+      onSurfaceUp={props.onSurfaceUp}
+    />
+  );
+}
+
+function PlantInstancedGroupMesh(props: {
+  group: PlantInstancedGroup;
+  selectedItemId: string | null;
+  hoveredItemId: string | null;
+  toolMode: BuilderSceneToolMode;
+  onSelect: (id: string | null) => void;
+  onHover: (id: string | null) => void;
+  onRotate: (itemId: string, deltaDeg: number) => void;
+  onDelete: (itemId: string) => void;
+  onSurfacePointer: (
+    event: ThreeEvent<PointerEvent>,
+    anchorType: VisualAnchorType,
+    itemId: string | null,
+  ) => void;
+  onSurfaceDown: (
+    event: ThreeEvent<PointerEvent>,
+    anchorType: VisualAnchorType,
+    itemId: string | null,
+  ) => void;
+  onSurfaceUp: (event: ThreeEvent<PointerEvent>) => void;
+}) {
+  const [failedAssetModel, setFailedAssetModel] = useState<{ assetId: string; path: string } | null>(
+    null,
+  );
+  const failedPath = failedAssetModel?.assetId === props.group.asset.id ? failedAssetModel.path : null;
+  const resolvedAsset = useAsset(props.group.asset, { failedPath });
+  const palette = useMemo(() => materialPalette(props.group.asset), [props.group.asset]);
+
+  const fallbackGeometry = useMemo(() => new THREE.ConeGeometry(0.5, 1, 8), []);
+  const fallbackMaterial = useMemo(() => {
+    const material = new THREE.MeshStandardMaterial({
+      color: palette[1] ?? PLANT_COLORS[1],
+      roughness: 0.74,
+      metalness: 0.06,
+    });
+    material.vertexColors = true;
+    return material;
+  }, [palette]);
+
+  useEffect(() => {
+    return () => {
+      fallbackGeometry.dispose();
+    };
+  }, [fallbackGeometry]);
+
+  useEffect(() => {
+    return () => {
+      fallbackMaterial.dispose();
+    };
+  }, [fallbackMaterial]);
+
+  const fallbackNode = (
+    <InstancedPlantRenderer
+      group={props.group}
+      geometry={fallbackGeometry}
+      material={fallbackMaterial}
+      bounds={new THREE.Vector3(1, 1, 1)}
+      loadedModel={false}
+      selectedItemId={props.selectedItemId}
+      hoveredItemId={props.hoveredItemId}
+      toolMode={props.toolMode}
+      onSelect={props.onSelect}
+      onHover={props.onHover}
+      onRotate={props.onRotate}
+      onDelete={props.onDelete}
+      onSurfacePointer={props.onSurfacePointer}
+      onSurfaceDown={props.onSurfaceDown}
+      onSurfaceUp={props.onSurfaceUp}
+    />
+  );
+
+  if (!resolvedAsset.glbPath) {
+    return fallbackNode;
+  }
+
+  return (
+    <AssetLoaderErrorBoundary
+      resetKey={`${props.group.asset.id}:${resolvedAsset.glbPath}`}
+      fallback={fallbackNode}
+      onError={() => {
+        if (!resolvedAsset.glbPath) return;
+        setFailedAssetModel({
+          assetId: props.group.asset.id,
+          path: resolvedAsset.glbPath,
+        });
+      }}
+    >
+      <Suspense fallback={fallbackNode}>
+        <AssetLoader path={resolvedAsset.glbPath}>
+          {(model) => (
+            <LoadedPlantInstancedRenderer
+              group={props.group}
+              model={model}
+              selectedItemId={props.selectedItemId}
+              hoveredItemId={props.hoveredItemId}
+              toolMode={props.toolMode}
+              onSelect={props.onSelect}
+              onHover={props.onHover}
+              onRotate={props.onRotate}
+              onDelete={props.onDelete}
+              onSurfacePointer={props.onSurfacePointer}
+              onSurfaceDown={props.onSurfaceDown}
+              onSurfaceUp={props.onSurfaceUp}
+            />
+          )}
+        </AssetLoader>
+      </Suspense>
+    </AssetLoaderErrorBoundary>
   );
 }
 
@@ -1025,6 +1423,43 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     }
     return resolved;
   }, [dims, props.assetsById, props.canvasState.items, props.canvasState.substrateHeightfield]);
+
+  const { singleRenderItems, plantInstancedGroups } = useMemo(() => {
+    const singles: SceneRenderItem[] = [];
+    const groupedPlants = new Map<string, PlantInstancedGroup>();
+
+    for (const renderItem of renderItems) {
+      if (renderItem.asset.categorySlug !== "plants") {
+        singles.push(renderItem);
+        continue;
+      }
+
+      const existingGroup = groupedPlants.get(renderItem.asset.id);
+      if (!existingGroup) {
+        groupedPlants.set(renderItem.asset.id, {
+          asset: renderItem.asset,
+          items: [renderItem],
+        });
+        continue;
+      }
+
+      existingGroup.items.push(renderItem);
+    }
+
+    const instanced: PlantInstancedGroup[] = [];
+    for (const group of groupedPlants.values()) {
+      if (group.items.length < 2) {
+        singles.push(...group.items);
+        continue;
+      }
+      instanced.push(group);
+    }
+
+    return {
+      singleRenderItems: singles,
+      plantInstancedGroups: instanced,
+    };
+  }, [renderItems]);
 
   useEffect(() => {
     props.onHoverItem?.(hoveredItemId);
@@ -1354,22 +1789,14 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
       </mesh>
 
-      {renderItems.map((renderItem) => (
+      {singleRenderItems.map((renderItem) => (
         <group
           key={renderItem.item.id}
           onPointerMove={(event) =>
-            handleSurfacePointer(
-              event,
-              renderItem.item.categorySlug === "hardscape" ? "hardscape" : renderItem.item.anchorType,
-              renderItem.item.id,
-            )
+            handleSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
           }
           onPointerDown={(event) =>
-            handleSurfaceDown(
-              event,
-              renderItem.item.categorySlug === "hardscape" ? "hardscape" : renderItem.item.anchorType,
-              renderItem.item.id,
-            )
+            handleSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
           }
           onPointerUp={handleSurfaceUp}
         >
@@ -1384,6 +1811,23 @@ function SceneRoot(props: VisualBuilderSceneProps) {
             onDelete={props.onDeleteItem}
           />
         </group>
+      ))}
+
+      {plantInstancedGroups.map((group) => (
+        <PlantInstancedGroupMesh
+          key={`${group.asset.id}:${group.items.length}`}
+          group={group}
+          selectedItemId={props.selectedItemId}
+          hoveredItemId={hoveredItemId}
+          toolMode={props.toolMode}
+          onSelect={props.onSelectItem}
+          onHover={setHoveredItemId}
+          onRotate={props.onRotateItem}
+          onDelete={props.onDeleteItem}
+          onSurfacePointer={handleSurfacePointer}
+          onSurfaceDown={handleSurfaceDown}
+          onSurfaceUp={handleSurfaceUp}
+        />
       ))}
 
       {props.equipmentAssets.map((asset, index) => {

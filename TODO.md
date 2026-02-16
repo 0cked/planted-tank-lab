@@ -174,7 +174,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 > **Note:** Real GLB models (plants, rocks, wood) will be provided by Jacob later. Do NOT block on external assets. Build the systems and procedural placeholders first — real models drop in via the manifest when ready.
 
-- [ ] **P2-1: Build GLTF asset loader and manifest system**
+- [x] **P2-1: Build GLTF asset loader and manifest system**
   - Create `src/components/builder/visual/AssetLoader.tsx` using `useGLTF` from `@react-three/drei` with Suspense.
   - Create `public/visual-assets/manifest.json` mapping asset IDs to file paths, category (plant/rock/wood), default scale, placement zone, and triangle count.
   - Create `src/components/builder/visual/useAsset.ts` hook: looks up asset ID in manifest, loads GLB if available, falls back to current procedural geometry (cone/dodecahedron/capsule) if the GLB is missing or fails.

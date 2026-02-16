@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "assets": {
+    "plant:java-fern": {
+      "path": "/visual-assets/plants/test-fern.glb",
+      "category": "plant",
+      "defaultScale": 0.72,
+      "placementZone": "midground",
+      "triangleCount": 12
+    },
+    "2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a": {
+      "path": "/visual-assets/hardscape/test-seiryu.glb",
+      "category": "rock",
+      "defaultScale": 0.95,
+      "placementZone": "midground",
+      "triangleCount": 12
+    }
+  }
+}
