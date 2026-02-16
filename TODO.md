@@ -152,7 +152,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Keep quality-tier-dependent resolution: low=24x24, medium=32x32, high=48x48 (interpolate from the 32x32 source grid).
   - **Verify:** Substrate renders correctly. Smooth normals. No visual regression from current implementation.
 
-- [ ] **P1-3: Implement Gaussian brush editing**
+- [x] **P1-3: Implement Gaussian brush editing**
   - Replace `applySubstrateBrush` in `scene-utils.ts` with a function that modifies individual heightfield grid cells.
   - Brush applies a Gaussian falloff: `delta * exp(-distance^2 / (2 * radius^2))` to each grid cell within the brush radius.
   - Keep the four modes: raise, lower, smooth, erode.

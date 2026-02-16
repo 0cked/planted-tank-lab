@@ -230,6 +230,11 @@ export function sampleSubstrateDepth(params: {
   });
 }
 
+function gaussianFalloff(distance: number, radius: number): number {
+  const safeRadius = Math.max(0.0001, radius);
+  return Math.exp(-(distance * distance) / (2 * safeRadius * safeRadius));
+}
+
 export function applySubstrateBrush(params: {
   heightfield: SubstrateHeightfield;
   mode: SubstrateBrushMode;
@@ -242,49 +247,56 @@ export function applySubstrateBrush(params: {
   const source = normalizeSubstrateHeightfield(params.heightfield, params.tankHeightIn);
   const next = source.slice();
 
-  const x = clamp01(params.xNorm);
-  const z = clamp01(params.zNorm);
-  const brushSize = clamp(params.brushSize, 0.05, 0.6);
+  const centerX = clamp01(params.xNorm);
+  const centerZ = clamp01(params.zNorm);
+  const brushRadius = clamp(params.brushSize, 0.05, 0.6);
   const strength = clamp(params.strength, 0.01, 1);
   const maxIndex = SUBSTRATE_HEIGHTFIELD_RESOLUTION - 1;
-  const deltaBase = Math.max(0.02, params.tankHeightIn * 0.018) * strength;
+
+  const deltaBase = Math.max(0.02, params.tankHeightIn * 0.02) * strength;
+  const smoothWeightBase = clamp(strength * 0.55, 0.06, 0.55);
+  const erodeSmoothWeight = clamp(strength * 0.28, 0.05, 0.28);
 
   for (let zIndex = 0; zIndex < SUBSTRATE_HEIGHTFIELD_RESOLUTION; zIndex += 1) {
     const zNorm = maxIndex === 0 ? 0 : zIndex / maxIndex;
+
     for (let xIndex = 0; xIndex < SUBSTRATE_HEIGHTFIELD_RESOLUTION; xIndex += 1) {
       const xNorm = maxIndex === 0 ? 0 : xIndex / maxIndex;
-      const distance = Math.hypot(xNorm - x, zNorm - z);
-      if (distance > brushSize) continue;
+      const distance = Math.hypot(xNorm - centerX, zNorm - centerZ);
+      if (distance > brushRadius) continue;
 
-      const falloff = 1 - distance / Math.max(brushSize, 0.0001);
       const index = heightfieldIndex(xIndex, zIndex);
-      const current = next[index] ?? 0;
+      const currentDepth = source[index] ?? 0;
+      const falloff = gaussianFalloff(distance, brushRadius);
+      const delta = deltaBase * falloff;
+
+      if (params.mode === "raise") {
+        next[index] = clampSubstrateDepth(currentDepth + delta, params.tankHeightIn);
+        continue;
+      }
+
+      if (params.mode === "lower") {
+        next[index] = clampSubstrateDepth(currentDepth - delta, params.tankHeightIn);
+        continue;
+      }
+
+      const neighborDepth = neighborAverage(source, xIndex, zIndex);
 
       if (params.mode === "smooth") {
-        const avg = neighborAverage(source, xIndex, zIndex);
-        const smoothMix = clamp(0.08 + strength * 0.22, 0.08, 0.45) * falloff;
+        const blend = smoothWeightBase * falloff;
         next[index] = clampSubstrateDepth(
-          current + (avg - current) * smoothMix,
+          currentDepth + (neighborDepth - currentDepth) * blend,
           params.tankHeightIn,
         );
         continue;
       }
 
-      const sign = params.mode === "lower" || params.mode === "erode" ? -1 : 1;
-      const erosionFactor = params.mode === "erode" ? 1.5 : 1;
-      const delta = sign * deltaBase * falloff * erosionFactor;
-      const raisedOrLowered = clampSubstrateDepth(current + delta, params.tankHeightIn);
-
-      if (params.mode === "erode") {
-        const avg = neighborAverage(source, xIndex, zIndex);
-        const blend = clamp(0.05 + strength * 0.14, 0.05, 0.28) * falloff;
-        next[index] = clampSubstrateDepth(
-          raisedOrLowered + (avg - raisedOrLowered) * blend,
-          params.tankHeightIn,
-        );
-      } else {
-        next[index] = raisedOrLowered;
-      }
+      const loweredDepth = clampSubstrateDepth(currentDepth - delta * 1.2, params.tankHeightIn);
+      const erosionBlend = erodeSmoothWeight * falloff;
+      next[index] = clampSubstrateDepth(
+        loweredDepth + (neighborDepth - loweredDepth) * erosionBlend,
+        params.tankHeightIn,
+      );
     }
   }
 
