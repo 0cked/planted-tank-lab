@@ -385,9 +385,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T049
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T051 — Camera Evidence Badge Legend (Pass/Fail/Pending Semantics)**
+- [x] **T051 — Camera Evidence Badge Legend (Pass/Fail/Pending Semantics)**
   - **Goal:** Add compact legend text clarifying scenario badge semantics for gate reviewers.
   - **Why it matters:** Prevents interpretation drift when pass-ready/fail-risk/pending labels are reviewed asynchronously.
   - **Definition of Done:** Evidence section includes a concise legend mapping badge text to operator action expectations.
   - **Dependencies:** T050
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T052 — Camera Evidence Summary Density Pass (One-Line Metrics Row)**
+  - **Goal:** Compress top-line evidence metrics into a denser one-line row for faster operator scanning.
+  - **Why it matters:** Reduces eye travel and improves throughput during repeated gate evidence captures.
+  - **Definition of Done:** Evidence summary presents step/mode/scenario + event counts in a compact, readable single-row format without removing detail access.
+  - **Dependencies:** T051
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)

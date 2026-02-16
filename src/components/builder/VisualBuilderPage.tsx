@@ -2022,6 +2022,10 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               </div>
             </div>
 
+            <div className="mb-2 rounded-lg border border-white/10 bg-slate-950/40 p-2 text-[10px] text-slate-300">
+              <span className="font-semibold text-slate-100">Badge legend:</span> Pass-ready = evidence complete, Fail-risk = unexpected camera behavior detected, Pending = gather more checks.
+            </div>
+
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div className="rounded-lg border border-white/15 bg-slate-900/50 p-2">
                 <div className="text-[11px] font-semibold text-slate-100">S01 Orbit/Pan/Zoom stability</div>
