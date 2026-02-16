@@ -392,9 +392,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T050
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T052 — Camera Evidence Summary Density Pass (One-Line Metrics Row)**
+- [x] **T052 — Camera Evidence Summary Density Pass (One-Line Metrics Row)**
   - **Goal:** Compress top-line evidence metrics into a denser one-line row for faster operator scanning.
   - **Why it matters:** Reduces eye travel and improves throughput during repeated gate evidence captures.
   - **Definition of Done:** Evidence summary presents step/mode/scenario + event counts in a compact, readable single-row format without removing detail access.
   - **Dependencies:** T051
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T053 — Camera Evidence Last-Event Stack Tightening (Two-Line Clamp)**
+  - **Goal:** Tighten last-intent/last-delta readout spacing and clamp behavior for denser evidence scanning.
+  - **Why it matters:** Keeps high-signal recent-event context visible without expanding panel height.
+  - **Definition of Done:** Last-intent and last-delta rows remain legible with tighter spacing/clamp treatment and do not regress copy/export behavior.
+  - **Dependencies:** T052
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)

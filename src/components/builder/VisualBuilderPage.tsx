@@ -2079,18 +2079,10 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               <div className="mb-2 text-[10px] text-slate-400">Captured: {cameraEvidenceCapturedAtLabel}</div>
 
               <div className="rounded bg-slate-950/70 p-2 text-[10px] text-slate-300">
-                <div>Step: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.step}</span></div>
-                <div>Mode: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.mode}</span></div>
-                <div>
-                  Scenarios: <span className="font-semibold text-slate-100">S01 {cameraEvidenceSummary.s01}</span> ·{" "}
-                  <span className="font-semibold text-slate-100">S02 {cameraEvidenceSummary.s02}</span> ·{" "}
-                  <span className="font-semibold text-slate-100">S03 {cameraEvidenceSummary.s03}</span>
+                <div className="overflow-x-auto whitespace-nowrap">
+                  Step <span className="font-semibold text-slate-100">{cameraEvidenceSummary.step}</span> · Mode <span className="font-semibold text-slate-100">{cameraEvidenceSummary.mode}</span> · S01 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s01}</span> · S02 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s02}</span> · S03 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s03}</span> · Intents <span className="font-semibold text-slate-100">{cameraEvidenceSummary.intentCount}</span> · Deltas <span className="font-semibold text-slate-100">{cameraEvidenceSummary.unexpectedPoseDeltas}</span>
                 </div>
-                <div>
-                  Events: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.intentCount}</span> intents ·{" "}
-                  <span className="font-semibold text-slate-100">{cameraEvidenceSummary.unexpectedPoseDeltas}</span> deltas
-                </div>
-                <div className="truncate">Last intent: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.lastIntent}</span></div>
+                <div className="mt-1 truncate">Last intent: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.lastIntent}</span></div>
                 <div className="truncate">Last delta: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.lastPoseDelta}</span></div>
               </div>
 
