@@ -1,18 +1,19 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
-import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import {
   buildItems,
   buildReports,
+  buildVotes,
   builds,
   categories,
   offers,
   plants,
   products,
-  } from "@/server/db/schema";
+} from "@/server/db/schema";
 import {
   adminProcedure,
   createTRPCRouter,
@@ -112,6 +113,8 @@ export const buildsRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const limit = input?.limit ?? 50;
+      const voteCount = sql<number>`coalesce(count(${buildVotes.userId}), 0)::int`;
+
       return ctx.db
         .select({
           id: builds.id,
@@ -123,11 +126,102 @@ export const buildsRouter = createTRPCRouter({
           totalPriceCents: builds.totalPriceCents,
           itemCount: builds.itemCount,
           updatedAt: builds.updatedAt,
+          voteCount: voteCount.as("voteCount"),
         })
         .from(builds)
+        .leftJoin(buildVotes, eq(buildVotes.buildId, builds.id))
         .where(eq(builds.isPublic, true))
-        .orderBy(desc(builds.updatedAt))
+        .groupBy(
+          builds.id,
+          builds.name,
+          builds.style,
+          builds.shareSlug,
+          builds.description,
+          builds.coverImageUrl,
+          builds.totalPriceCents,
+          builds.itemCount,
+          builds.updatedAt,
+        )
+        .orderBy(desc(voteCount), desc(builds.updatedAt))
         .limit(limit);
+    }),
+
+  getVotes: publicProcedure
+    .input(
+      z.object({
+        buildIds: z.array(z.string().uuid()).min(1).max(100),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const countRows = await ctx.db
+        .select({
+          buildId: buildVotes.buildId,
+          voteCount: sql<number>`count(*)::int`.as("voteCount"),
+        })
+        .from(buildVotes)
+        .where(inArray(buildVotes.buildId, input.buildIds))
+        .groupBy(buildVotes.buildId);
+
+      const totalsByBuildId = Object.fromEntries(
+        input.buildIds.map((buildId) => [buildId, 0] as const),
+      ) as Record<string, number>;
+
+      for (const row of countRows) {
+        totalsByBuildId[row.buildId] = row.voteCount;
+      }
+
+      if (!ctx.session?.user?.id) {
+        return { totalsByBuildId, viewerVotedBuildIds: [] as string[] };
+      }
+
+      const viewerRows = await ctx.db
+        .select({ buildId: buildVotes.buildId })
+        .from(buildVotes)
+        .where(
+          and(
+            eq(buildVotes.userId, ctx.session.user.id),
+            inArray(buildVotes.buildId, input.buildIds),
+          ),
+        );
+
+      return {
+        totalsByBuildId,
+        viewerVotedBuildIds: viewerRows.map((row) => row.buildId),
+      };
+    }),
+
+  vote: protectedProcedure
+    .input(z.object({ buildId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const targetBuild = await ctx.db
+        .select({ id: builds.id })
+        .from(builds)
+        .where(and(eq(builds.id, input.buildId), eq(builds.isPublic, true)))
+        .limit(1);
+
+      if (!targetBuild[0]) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      const insertedVotes = await ctx.db
+        .insert(buildVotes)
+        .values({
+          buildId: input.buildId,
+          userId: ctx.session.user.id,
+        })
+        .onConflictDoNothing()
+        .returning({ buildId: buildVotes.buildId });
+
+      const voteRows = await ctx.db
+        .select({ voteCount: sql<number>`count(*)::int`.as("voteCount") })
+        .from(buildVotes)
+        .where(eq(buildVotes.buildId, input.buildId));
+
+      return {
+        buildId: input.buildId,
+        voteCount: voteRows[0]?.voteCount ?? 0,
+        didVote: insertedVotes.length > 0,
+      };
     }),
 
   listMine: protectedProcedure

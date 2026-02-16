@@ -92,6 +92,13 @@
       "when": 1770900000000,
       "tag": "0012_visual_builder_state",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1771261800000,
+      "tag": "0013_build_votes",
+      "breakpoints": true
     }
   ]
 }

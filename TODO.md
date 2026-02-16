@@ -244,7 +244,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - The remixed build should be independent (changes don't affect the original).
   - **Verify:** View a shared build. Click Remix. Make changes. Save as a new build. Original build is unchanged.
 
-- [ ] **P4-2: Add build voting**
+- [x] **P4-2: Add build voting**
   - Logged-in users can upvote builds on the `/builds` page.
   - Add a `build_votes` table to the Drizzle schema (user_id + build_id, unique constraint). Run migration.
   - Add a tRPC mutation `builds.vote` and query `builds.getVotes`.

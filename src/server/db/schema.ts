@@ -643,6 +643,26 @@ export const builds = pgTable(
   ],
 );
 
+export const buildVotes = pgTable(
+  "build_votes",
+  {
+    buildId: uuid("build_id")
+      .notNull()
+      .references(() => builds.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.buildId, t.userId] }),
+    index("idx_build_votes_build").on(t.buildId),
+    index("idx_build_votes_user").on(t.userId),
+  ],
+);
+
 export const analyticsEvents = pgTable(
   "analytics_events",
   {

@@ -3,6 +3,8 @@ import Link from "next/link";
 
 import { getServerCaller } from "@/server/trpc/server-caller";
 
+import { BuildVoteButton } from "./BuildVoteButton";
+
 export const metadata: Metadata = {
   title: "Builds",
   description: "Browse public planted tank builds and learn what works.",
@@ -134,50 +136,58 @@ export default async function BuildsIndexPage() {
             const tier = tierMeta(b.style);
             const thumbnailSrc = buildThumbnailSrc(b.coverImageUrl, b.updatedAt);
 
-            return (
-              <Link
-                key={b.id}
-                href={b.shareSlug ? `/builds/${b.shareSlug}` : "/builder"}
-                className="ptl-surface block overflow-hidden ptl-hover-lift transition hover:bg-white/70"
-              >
-                <div className="aspect-[16/10] w-full border-b" style={{ borderColor: "var(--ptl-border)" }}>
-                  {thumbnailSrc ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={thumbnailSrc}
-                      alt={`${b.name} thumbnail`}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-emerald-50 px-6 text-center text-xs font-medium uppercase tracking-wide text-neutral-500">
-                      Screenshot preview available after save
-                    </div>
-                  )}
-                </div>
+            const buildHref = b.shareSlug ? `/builds/${b.shareSlug}` : "/builder";
 
-                <div className="p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-sm font-semibold text-neutral-900">{b.name}</div>
-                    {tier ? (
-                      <div
-                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${tier.className}`}
-                      >
-                        {tier.label}
+            return (
+              <article key={b.id} className="ptl-surface overflow-hidden">
+                <Link href={buildHref} className="block ptl-hover-lift transition hover:bg-white/70">
+                  <div className="aspect-[16/10] w-full border-b" style={{ borderColor: "var(--ptl-border)" }}>
+                    {thumbnailSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={thumbnailSrc}
+                        alt={`${b.name} thumbnail`}
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-emerald-50 px-6 text-center text-xs font-medium uppercase tracking-wide text-neutral-500">
+                        Screenshot preview available after save
                       </div>
-                    ) : null}
+                    )}
                   </div>
-                  <div className="mt-2 text-xs text-neutral-600">
-                    {b.itemCount} item(s) · {formatMoney(b.totalPriceCents)}
+
+                  <div className="p-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="text-sm font-semibold text-neutral-900">{b.name}</div>
+                      {tier ? (
+                        <div
+                          className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${tier.className}`}
+                        >
+                          {tier.label}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-xs text-neutral-600">
+                      {b.itemCount} item(s) · {formatMoney(b.totalPriceCents)}
+                    </div>
+                    <div className="mt-3 line-clamp-3 text-sm text-neutral-700">
+                      {b.description ?? "Build snapshot"}
+                    </div>
+                    <div className="mt-4 text-xs font-semibold text-emerald-800">
+                      View build
+                    </div>
                   </div>
-                  <div className="mt-3 line-clamp-3 text-sm text-neutral-700">
-                    {b.description ?? "Build snapshot"}
-                  </div>
-                  <div className="mt-4 text-xs font-semibold text-emerald-800">
-                    View build
-                  </div>
+                </Link>
+
+                <div
+                  className="flex items-center justify-between border-t px-6 py-4"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                >
+                  <span className="text-xs text-neutral-600">Community votes</span>
+                  <BuildVoteButton buildId={b.id} initialVoteCount={b.voteCount ?? 0} />
                 </div>
-              </Link>
+              </article>
             );
           })}
         </div>
