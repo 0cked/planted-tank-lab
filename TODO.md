@@ -273,7 +273,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Show vote count and build count as stats.
   - **Verify:** Visit `/profile` while logged in — see your builds. Visit another user's profile — see their public builds.
 
-- [ ] **P4-6: Build tags and filtering**
+- [x] **P4-6: Build tags and filtering**
   - Add a `build_tags` table (build_id, tag slug). Predefined tag set: iwagumi, dutch, nature, jungle, nano, low-tech, high-tech, shrimp, paludarium.
   - When saving a build, show a tag picker (multi-select from the predefined list).
   - On `/builds`, add tag filter chips at the top. Clicking a tag filters the gallery.

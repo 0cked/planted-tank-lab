@@ -62,6 +62,6 @@ describe("ingestion scheduler", () => {
       .where(eq(ingestionSources.slug, "offers-detail"))
       .limit(10);
     expect(srcRows.length).toBe(1);
-  });
+  }, 20_000);
 });
 

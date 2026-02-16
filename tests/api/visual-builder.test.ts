@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/server/db";
-import { buildItems, builds, users } from "@/server/db/schema";
+import { buildItems, buildTags, builds, users } from "@/server/db/schema";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
@@ -81,7 +81,53 @@ describe("tRPC visualBuilder router", () => {
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));
-  }, 20_000);
+  }, 40_000);
+
+  it("persists build tags and returns them in visual builder snapshots", async () => {
+    const anon = await getAnonCaller();
+    const catalog = await anon.visualBuilder.catalog();
+    const tank = catalog.tanks[0];
+    expect(tank?.id).toBeTruthy();
+
+    const saved = await anon.visualBuilder.save({
+      name: "Visual Builder Tag Test",
+      description: "Tags round-trip through save and load",
+      tankId: tank!.id,
+      canvasState: {
+        version: 4,
+        widthIn: tank!.widthIn,
+        heightIn: tank!.heightIn,
+        depthIn: tank!.depthIn,
+        substrateHeightfield: Array.from({ length: 32 * 32 }, () => 1.1),
+        sceneSettings: {
+          qualityTier: "auto",
+          postprocessingEnabled: true,
+          guidesVisible: true,
+          audioEnabled: false,
+          cameraPreset: "step",
+        },
+        items: [],
+      },
+      lineItems: [],
+      tags: ["nature", "iwagumi", "nature"],
+      isPublic: true,
+      flags: {},
+    });
+
+    const loaded = await anon.visualBuilder.getByShareSlug({ shareSlug: saved.shareSlug });
+    expect(loaded.initialState.tags).toEqual(["iwagumi", "nature"]);
+    expect(loaded.build.tags).toEqual(["iwagumi", "nature"]);
+
+    const tagRows = await db
+      .select({ tagSlug: buildTags.tagSlug })
+      .from(buildTags)
+      .where(eq(buildTags.buildId, saved.buildId));
+
+    expect(tagRows.map((row) => row.tagSlug).sort()).toEqual(["iwagumi", "nature"]);
+
+    await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
+    await db.delete(builds).where(eq(builds.id, saved.buildId));
+  }, 40_000);
 
   it("stores visual build thumbnails for gallery cards and social previews", async () => {
     const anon = await getAnonCaller();
@@ -132,7 +178,7 @@ describe("tRPC visualBuilder router", () => {
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));
-  }, 20_000);
+  }, 40_000);
 
   it("normalizes legacy v1 canvas payloads to v4 on read", async () => {
     const anon = await getAnonCaller();
@@ -163,7 +209,7 @@ describe("tRPC visualBuilder router", () => {
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));
-  }, 20_000);
+  }, 40_000);
 
   it("hides private builds from anonymous callers while allowing owner access", async () => {
     const email = `visual-owner-${crypto.randomUUID()}@example.com`;
@@ -218,5 +264,5 @@ describe("tRPC visualBuilder router", () => {
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));
     await db.delete(users).where(eq(users.id, userId!));
-  }, 20_000);
+  }, 40_000);
 });

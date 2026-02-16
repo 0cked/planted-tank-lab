@@ -61,6 +61,9 @@ function createSql(): postgres.Sql {
     // Supabase poolers enforce low connection limits (especially in Transaction/Session mode).
     // Keep this tiny in prod and on the pooler.
     max: isTest ? 1 : isProd || isPooler ? 1 : 10,
+    // Some integration tests run against a remote pooler and can take longer to establish
+    // a connection when the pool is cold.
+    connect_timeout: isTest ? 60 : undefined,
     // Close idle connections promptly (seconds). Helps avoid “max clients reached”.
     idle_timeout: isProd || isPooler ? 10 : undefined,
     // Pooler + prepared statements can be a bad mix (depending on mode).

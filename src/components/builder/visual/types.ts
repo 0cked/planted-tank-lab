@@ -1,3 +1,5 @@
+import type { BuildTagSlug } from "@/lib/build-tags";
+
 export type VisualAssetType = "product" | "plant" | "design";
 
 export type VisualAssetSourceMode =
@@ -155,6 +157,7 @@ export type VisualBuildPayload = {
   tankId: string | null;
   canvasState: VisualCanvasState;
   lineItems: VisualLineItem[];
+  tags: BuildTagSlug[];
   flags: {
     lowTechNoCo2: boolean;
     hasShrimp: boolean;

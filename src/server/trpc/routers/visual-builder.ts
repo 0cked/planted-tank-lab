@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import {
   buildItems,
+  buildTags,
   builds,
   categories,
   offers,
@@ -16,6 +17,7 @@ import {
 import type * as fullSchema from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/server/trpc/trpc";
 import { getDesignLibraryAssets } from "@/server/visual/design-asset-library";
+import { buildTagSlugSchema, normalizeBuildTagSlugs } from "@/lib/build-tags";
 import {
   createFlatSubstrateHeightfield,
   DEFAULT_SUBSTRATE_PROFILE,
@@ -254,6 +256,7 @@ const saveInputSchema = z.object({
   lineItems: z.array(lineItemSchema).max(500).default([]),
   isPublic: z.boolean().optional(),
   flags: z.record(z.string(), z.unknown()).optional(),
+  tags: z.array(buildTagSlugSchema).max(9).default([]),
   thumbnailDataUrl: z.string().trim().max(MAX_THUMBNAIL_DATA_URL_LENGTH).optional(),
 });
 
@@ -1036,6 +1039,12 @@ export const visualBuilderRouter = createTRPCRouter({
         .leftJoin(plants, eq(buildItems.plantId, plants.id))
         .where(eq(buildItems.buildId, build.id));
 
+      const tagRows = await ctx.db
+        .select({ tagSlug: buildTags.tagSlug })
+        .from(buildTags)
+        .where(eq(buildTags.buildId, build.id));
+      const tags = normalizeBuildTagSlugs(tagRows.map((row) => row.tagSlug));
+
       return {
         build: {
           id: build.id,
@@ -1049,6 +1058,7 @@ export const visualBuilderRouter = createTRPCRouter({
           totalPriceCents: build.totalPriceCents,
           itemCount: build.itemCount,
           updatedAt: build.updatedAt,
+          tags,
         },
         initialState: {
           buildId: build.id,
@@ -1059,6 +1069,7 @@ export const visualBuilderRouter = createTRPCRouter({
           tankId: build.tankId,
           canvasState: parseCanvasState(build.canvasState),
           flags: normalizeVisualBuilderFlags(build.flags),
+          tags,
           lineItems: itemRows.map((row) => ({
             id: row.itemId,
             categorySlug: row.categorySlug,
@@ -1120,6 +1131,7 @@ export const visualBuilderRouter = createTRPCRouter({
       let existingFlags: Record<string, unknown> = {};
 
       const normalizedFlags = normalizeVisualBuilderFlags(input.flags);
+      const normalizedTags = normalizeBuildTagSlugs(input.tags);
       const requestedThumbnailDataUrl = sanitizeThumbnailDataUrl(input.thumbnailDataUrl);
 
       if (buildId) {
@@ -1368,6 +1380,16 @@ export const visualBuilderRouter = createTRPCRouter({
         await tx.insert(buildItems).values(lineRows);
       }
 
+      await tx.delete(buildTags).where(eq(buildTags.buildId, buildId));
+      if (normalizedTags.length > 0) {
+        await tx.insert(buildTags).values(
+          normalizedTags.map((tagSlug) => ({
+            buildId,
+            tagSlug,
+          })),
+        );
+      }
+
       const itemCount = lineRows.reduce((sum, row) => sum + row.quantity, 0);
       const nextPublic = input.isPublic ?? existingPublic;
 
@@ -1396,6 +1418,7 @@ export const visualBuilderRouter = createTRPCRouter({
         isPublic: nextPublic,
         itemCount,
         totalPriceCents,
+        tags: normalizedTags,
       };
     });
   }),
@@ -1479,6 +1502,20 @@ export const visualBuilderRouter = createTRPCRouter({
               quantity: item.quantity,
               notes: item.notes,
               selectedOfferId: item.selectedOfferId,
+            })),
+          );
+        }
+
+        const sourceTags = await tx
+          .select({ tagSlug: buildTags.tagSlug })
+          .from(buildTags)
+          .where(eq(buildTags.buildId, source.id));
+
+        if (sourceTags.length > 0) {
+          await tx.insert(buildTags).values(
+            sourceTags.map((tag) => ({
+              buildId: newBuildId,
+              tagSlug: tag.tagSlug,
             })),
           );
         }

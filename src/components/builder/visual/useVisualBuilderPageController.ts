@@ -110,6 +110,7 @@ export function useVisualBuilderPageController(
   const shareSlug = useVisualBuilderStore((state) => state.shareSlug);
   const name = useVisualBuilderStore((state) => state.name);
   const description = useVisualBuilderStore((state) => state.description);
+  const tags = useVisualBuilderStore((state) => state.tags);
   const isPublic = useVisualBuilderStore((state) => state.isPublic);
   const tankId = useVisualBuilderStore((state) => state.tankId);
   const canvasState = useVisualBuilderStore((state) => state.canvasState);
@@ -121,6 +122,7 @@ export function useVisualBuilderPageController(
   const setBuildIdentity = useVisualBuilderStore((state) => state.setBuildIdentity);
   const setName = useVisualBuilderStore((state) => state.setName);
   const setDescription = useVisualBuilderStore((state) => state.setDescription);
+  const toggleTag = useVisualBuilderStore((state) => state.toggleTag);
   const setPublic = useVisualBuilderStore((state) => state.setPublic);
   const setTank = useVisualBuilderStore((state) => state.setTank);
   const setSubstrateHeightfield = useVisualBuilderStore((state) => state.setSubstrateHeightfield);
@@ -171,6 +173,7 @@ export function useVisualBuilderPageController(
       tankId: initialBuild.initialState.tankId,
       canvasState: initialBuild.initialState.canvasState,
       lineItems: initialBuild.initialState.lineItems,
+      tags: initialBuild.initialState.tags,
       flags: initialBuild.initialState.flags,
     });
 
@@ -281,8 +284,8 @@ export function useVisualBuilderPageController(
         if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) return false;
         if (!query) return true;
 
-        const tags = asset.tags?.join(" ") ?? "";
-        const haystack = `${asset.name} ${asset.slug} ${asset.categoryName} ${tags}`.toLowerCase();
+        const assetTags = asset.tags?.join(" ") ?? "";
+        const haystack = `${asset.name} ${asset.slug} ${asset.categoryName} ${assetTags}`.toLowerCase();
         return haystack.includes(query);
       })
       .sort((a, b) => {
@@ -503,6 +506,7 @@ export function useVisualBuilderPageController(
         canvasState: payload.canvasState,
         lineItems: payload.lineItems,
         isPublic: publish,
+        tags: payload.tags,
         flags: payload.flags,
         thumbnailDataUrl,
       });
@@ -653,6 +657,7 @@ export function useVisualBuilderPageController(
   const metadataPanelProps: ComponentProps<typeof BuildMetadataPanel> = {
     name,
     description,
+    selectedTags: tags,
     buildId,
     shareSlug,
     buildLink,
@@ -661,6 +666,7 @@ export function useVisualBuilderPageController(
     isSharedSnapshot,
     onNameChange: setName,
     onDescriptionChange: setDescription,
+    onTagToggle: toggleTag,
     onSaveDraft: () => {
       void saveBuild(false);
     },

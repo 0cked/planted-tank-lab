@@ -664,6 +664,24 @@ export const buildVotes = pgTable(
   ],
 );
 
+export const buildTags = pgTable(
+  "build_tags",
+  {
+    buildId: uuid("build_id")
+      .notNull()
+      .references(() => builds.id, { onDelete: "cascade" }),
+    tagSlug: varchar("tag_slug", { length: 40 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.buildId, t.tagSlug] }),
+    index("idx_build_tags_build").on(t.buildId),
+    index("idx_build_tags_tag").on(t.tagSlug),
+  ],
+);
+
 export const buildComments = pgTable(
   "build_comments",
   {

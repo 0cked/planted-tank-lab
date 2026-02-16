@@ -151,7 +151,7 @@ describe("ingestion: offers head refresh", () => {
       .limit(1);
 
     expect(mappings[0]!.canonicalId).toBe(offerId);
-  });
+  }, 20_000);
 
   test("does not mutate canonical offer stock/freshness on transport failure", async () => {
     expect(createdOfferId).toBeTruthy();

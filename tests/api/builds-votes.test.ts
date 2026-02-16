@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { db } from "@/server/db";
-import { buildVotes, builds, users } from "@/server/db/schema";
+import { buildTags, buildVotes, builds, users } from "@/server/db/schema";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
@@ -116,7 +116,7 @@ describe("tRPC builds voting", () => {
     const voteState = await caller.builds.getVotes({ buildIds: [buildId] });
     expect(voteState.totalsByBuildId[buildId]).toBe(1);
     expect(voteState.viewerVotedBuildIds).toContain(buildId);
-  });
+  }, 20_000);
 
   it("sorts public builds by vote count descending", async () => {
     const owner = await createUser();
@@ -151,5 +151,26 @@ describe("tRPC builds voting", () => {
 
     expect(lowRow?.voteCount).toBe(1);
     expect(highRow?.voteCount).toBe(2);
+  });
+
+  it("filters public builds by tag and returns attached tags", async () => {
+    const owner = await createUser();
+    const iwagumiBuildId = await createPublicBuild(owner.id, "Tag filter Iwagumi");
+    const jungleBuildId = await createPublicBuild(owner.id, "Tag filter Jungle");
+
+    await db.insert(buildTags).values([
+      { buildId: iwagumiBuildId, tagSlug: "iwagumi" },
+      { buildId: iwagumiBuildId, tagSlug: "nano" },
+      { buildId: jungleBuildId, tagSlug: "jungle" },
+    ]);
+
+    const caller = await createPublicCaller();
+    const filtered = await caller.builds.listPublic({ limit: 100, tag: "iwagumi" });
+
+    expect(filtered.some((row) => row.id === iwagumiBuildId)).toBe(true);
+    expect(filtered.some((row) => row.id === jungleBuildId)).toBe(false);
+
+    const iwagumiRow = filtered.find((row) => row.id === iwagumiBuildId);
+    expect(iwagumiRow?.tags).toEqual(["iwagumi", "nano"]);
   });
 });

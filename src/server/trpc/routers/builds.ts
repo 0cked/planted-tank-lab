@@ -8,6 +8,7 @@ import {
   buildComments,
   buildItems,
   buildReports,
+  buildTags,
   buildVotes,
   builds,
   categories,
@@ -23,6 +24,7 @@ import {
   publicProcedure,
 } from "@/server/trpc/trpc";
 import type { PlantSnapshot, ProductSnapshot } from "@/engine/types";
+import { buildTagSlugSchema, normalizeBuildTagSlugs } from "@/lib/build-tags";
 import type * as fullSchema from "@/server/db/schema";
 
 const buildFlagsSchema = z
@@ -139,42 +141,92 @@ export const buildsRouter = createTRPCRouter({
       z
         .object({
           limit: z.number().int().min(1).max(100).default(50),
+          tag: buildTagSlugSchema.optional(),
         })
         .optional(),
     )
     .query(async ({ ctx, input }) => {
       const limit = input?.limit ?? 50;
+      const activeTag = input?.tag;
       const voteCount = sql<number>`coalesce(count(${buildVotes.userId}), 0)::int`;
 
-      return ctx.db
-        .select({
-          id: builds.id,
-          name: builds.name,
-          style: builds.style,
-          shareSlug: builds.shareSlug,
-          description: builds.description,
-          coverImageUrl: builds.coverImageUrl,
-          totalPriceCents: builds.totalPriceCents,
-          itemCount: builds.itemCount,
-          updatedAt: builds.updatedAt,
-          voteCount: voteCount.as("voteCount"),
-        })
-        .from(builds)
-        .leftJoin(buildVotes, eq(buildVotes.buildId, builds.id))
-        .where(eq(builds.isPublic, true))
-        .groupBy(
-          builds.id,
-          builds.name,
-          builds.style,
-          builds.shareSlug,
-          builds.description,
-          builds.coverImageUrl,
-          builds.totalPriceCents,
-          builds.itemCount,
-          builds.updatedAt,
-        )
-        .orderBy(desc(voteCount), desc(builds.updatedAt))
-        .limit(limit);
+      const buildSelect = {
+        id: builds.id,
+        name: builds.name,
+        style: builds.style,
+        shareSlug: builds.shareSlug,
+        description: builds.description,
+        coverImageUrl: builds.coverImageUrl,
+        totalPriceCents: builds.totalPriceCents,
+        itemCount: builds.itemCount,
+        updatedAt: builds.updatedAt,
+        voteCount: voteCount.as("voteCount"),
+      };
+
+      const rows = activeTag
+        ? await ctx.db
+            .select(buildSelect)
+            .from(builds)
+            .innerJoin(
+              buildTags,
+              and(eq(buildTags.buildId, builds.id), eq(buildTags.tagSlug, activeTag)),
+            )
+            .leftJoin(buildVotes, eq(buildVotes.buildId, builds.id))
+            .where(eq(builds.isPublic, true))
+            .groupBy(
+              builds.id,
+              builds.name,
+              builds.style,
+              builds.shareSlug,
+              builds.description,
+              builds.coverImageUrl,
+              builds.totalPriceCents,
+              builds.itemCount,
+              builds.updatedAt,
+            )
+            .orderBy(desc(voteCount), desc(builds.updatedAt))
+            .limit(limit)
+        : await ctx.db
+            .select(buildSelect)
+            .from(builds)
+            .leftJoin(buildVotes, eq(buildVotes.buildId, builds.id))
+            .where(eq(builds.isPublic, true))
+            .groupBy(
+              builds.id,
+              builds.name,
+              builds.style,
+              builds.shareSlug,
+              builds.description,
+              builds.coverImageUrl,
+              builds.totalPriceCents,
+              builds.itemCount,
+              builds.updatedAt,
+            )
+            .orderBy(desc(voteCount), desc(builds.updatedAt))
+            .limit(limit);
+
+      const buildIds = rows.map((row) => row.id);
+      const tagRows = buildIds.length
+        ? await ctx.db
+            .select({
+              buildId: buildTags.buildId,
+              tagSlug: buildTags.tagSlug,
+            })
+            .from(buildTags)
+            .where(inArray(buildTags.buildId, buildIds))
+        : [];
+
+      const tagsByBuildId = new Map<string, string[]>();
+      for (const row of tagRows) {
+        const previous = tagsByBuildId.get(row.buildId) ?? [];
+        previous.push(row.tagSlug);
+        tagsByBuildId.set(row.buildId, previous);
+      }
+
+      return rows.map((row) => ({
+        ...row,
+        tags: normalizeBuildTagSlugs(tagsByBuildId.get(row.id) ?? []),
+      }));
     }),
 
   getVotes: publicProcedure

@@ -1,3 +1,9 @@
+import {
+  BUILD_TAG_OPTIONS,
+  buildTagLabel,
+  type BuildTagSlug,
+} from "@/lib/build-tags";
+
 type BuildSaveState = {
   type: "idle" | "ok" | "error";
   message: string;
@@ -6,6 +12,7 @@ type BuildSaveState = {
 type BuildMetadataPanelProps = {
   name: string;
   description: string;
+  selectedTags: BuildTagSlug[];
   buildId: string | null;
   shareSlug: string | null;
   buildLink: string | null;
@@ -14,6 +21,7 @@ type BuildMetadataPanelProps = {
   isSharedSnapshot?: boolean;
   onNameChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
+  onTagToggle: (tag: BuildTagSlug) => void;
   onSaveDraft: () => void;
   onDuplicate: () => void;
   onRemix?: () => void;
@@ -32,6 +40,14 @@ function saveStateClasses(saveState: BuildSaveState): string {
   }
 
   return "border-white/20 bg-slate-900/70 text-slate-200";
+}
+
+function tagButtonClasses(selected: boolean): string {
+  if (selected) {
+    return "border-emerald-300/75 bg-emerald-400/20 text-emerald-100";
+  }
+
+  return "border-white/20 bg-slate-950/60 text-slate-300 hover:border-white/35 hover:text-slate-100";
 }
 
 export function BuildMetadataPanel(props: BuildMetadataPanelProps) {
@@ -73,6 +89,27 @@ export function BuildMetadataPanel(props: BuildMetadataPanelProps) {
             className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none"
             placeholder="Low-tech jungle with cinematic hardscape composition"
           />
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+          Build tags
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {BUILD_TAG_OPTIONS.map((tag) => {
+            const selected = props.selectedTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => props.onTagToggle(tag)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${tagButtonClasses(selected)}`}
+              >
+                {buildTagLabel(tag)}
+              </button>
+            );
+          })}
         </div>
       </div>
 

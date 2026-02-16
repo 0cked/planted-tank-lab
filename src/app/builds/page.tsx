@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { BUILD_TAG_OPTIONS, buildTagLabel, isBuildTagSlug } from "@/lib/build-tags";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 import { BuildVoteButton } from "./BuildVoteButton";
@@ -12,6 +13,21 @@ export const metadata: Metadata = {
     url: "/builds",
   },
 };
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function first(searchParams: SearchParams, key: string): string | null {
+  const value = searchParams[key];
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value[0] ?? null;
+  return null;
+}
+
+function activeTagFromSearchParams(searchParams: SearchParams): (typeof BUILD_TAG_OPTIONS)[number] | null {
+  const rawTag = (first(searchParams, "tag") ?? "").trim().toLowerCase();
+  if (!rawTag || !isBuildTagSlug(rawTag)) return null;
+  return rawTag;
+}
 
 function formatMoney(cents: number | null | undefined): string {
   if (cents == null || cents <= 0) return "—";
@@ -64,10 +80,14 @@ function tierMeta(style: string | null | undefined): {
   return null;
 }
 
-export default async function BuildsIndexPage() {
+export default async function BuildsIndexPage(props: { searchParams: Promise<SearchParams> }) {
   const caller = await getServerCaller();
+  const searchParams = await props.searchParams;
+  const activeTag = activeTagFromSearchParams(searchParams);
 
-  const rows = await caller.builds.listPublic({ limit: 50 }).catch(() => []);
+  const rows = await caller.builds
+    .listPublic({ limit: 50, tag: activeTag ?? undefined })
+    .catch(() => []);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -88,13 +108,48 @@ export default async function BuildsIndexPage() {
         </Link>
       </div>
 
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-neutral-600">
+          Filter
+        </span>
+        <Link
+          href="/builds"
+          className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+            activeTag === null
+              ? "border-emerald-300/80 bg-emerald-100 text-emerald-900"
+              : "border-neutral-300 bg-white/80 text-neutral-700 hover:border-neutral-400"
+          }`}
+        >
+          All
+        </Link>
+        {BUILD_TAG_OPTIONS.map((tag) => {
+          const selected = activeTag === tag;
+          return (
+            <Link
+              key={tag}
+              href={`/builds?tag=${tag}`}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                selected
+                  ? "border-emerald-300/80 bg-emerald-100 text-emerald-900"
+                  : "border-neutral-300 bg-white/80 text-neutral-700 hover:border-neutral-400"
+              }`}
+            >
+              {buildTagLabel(tag)}
+            </Link>
+          );
+        })}
+      </div>
+
       {rows.length === 0 ? (
         <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="ptl-surface p-7 sm:p-9">
-            <div className="ptl-section-title text-neutral-900">No public builds yet</div>
+            <div className="ptl-section-title text-neutral-900">
+              {activeTag ? `No ${buildTagLabel(activeTag)} builds yet` : "No public builds yet"}
+            </div>
             <p className="mt-3 ptl-lede text-neutral-700">
-              When someone shares a build, it shows up here. If you want to help
-              kick things off, build a setup and share the link.
+              {activeTag
+                ? `No shared builds are tagged ${buildTagLabel(activeTag)} yet. Start one and publish it to set the vibe.`
+                : "When someone shares a build, it shows up here. If you want to help kick things off, build a setup and share the link."}
             </p>
 
             <div className="mt-6 rounded-3xl border bg-white/70 p-5 text-sm text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
@@ -174,6 +229,18 @@ export default async function BuildsIndexPage() {
                     <div className="mt-3 line-clamp-3 text-sm text-neutral-700">
                       {b.description ?? "Build snapshot"}
                     </div>
+                    {b.tags.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {b.tags.map((tag) => (
+                          <span
+                            key={`${b.id}-${tag}`}
+                            className="rounded-full border border-neutral-300 bg-white/75 px-2 py-0.5 text-[11px] font-medium text-neutral-700"
+                          >
+                            {buildTagLabel(tag)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                     <div className="mt-4 text-xs font-semibold text-emerald-800">
                       View build
                     </div>

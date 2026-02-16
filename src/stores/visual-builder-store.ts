@@ -16,6 +16,7 @@ import type {
   VisualSceneSettings,
   VisualSubstrateProfile,
 } from "@/components/builder/visual/types";
+import { normalizeBuildTagSlugs, type BuildTagSlug } from "@/lib/build-tags";
 import {
   createFlatSubstrateHeightfield,
   normalizeSubstrateHeightfield,
@@ -44,6 +45,7 @@ type VisualBuilderState = {
   shareSlug: string | null;
   name: string;
   description: string;
+  tags: BuildTagSlug[];
   isPublic: boolean;
   tankId: string | null;
 
@@ -63,6 +65,8 @@ type VisualBuilderState = {
   setBuildIdentity: (next: { buildId: string | null; shareSlug: string | null }) => void;
   setName: (value: string) => void;
   setDescription: (value: string) => void;
+  setTags: (next: BuildTagSlug[]) => void;
+  toggleTag: (tag: BuildTagSlug) => void;
   setPublic: (value: boolean) => void;
   setTank: (tankId: string, dims: { widthIn: number; heightIn: number; depthIn: number }) => void;
   setSubstrateHeightfield: (next: SubstrateHeightfield) => void;
@@ -103,6 +107,7 @@ type VisualBuilderState = {
     shareSlug: string | null;
     name: string;
     description: string | null;
+    tags?: string[];
     isPublic: boolean;
     tankId: string | null;
     canvasState: {
@@ -481,6 +486,7 @@ const initialState = {
   shareSlug: null as string | null,
   name: "Visual Build",
   description: "",
+  tags: [] as BuildTagSlug[],
   isPublic: false,
   tankId: null as string | null,
   canvasState: initialCanvasState,
@@ -563,6 +569,20 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
       setBuildIdentity: (next) => set({ buildId: next.buildId, shareSlug: next.shareSlug }),
       setName: (value) => set({ name: value.slice(0, 300) }),
       setDescription: (value) => set({ description: value.slice(0, 5000) }),
+      setTags: (next) => set({ tags: normalizeBuildTagSlugs(next) }),
+      toggleTag: (tag) =>
+        set((state) => {
+          const exists = state.tags.includes(tag);
+          if (exists) {
+            return {
+              tags: state.tags.filter((currentTag) => currentTag !== tag),
+            };
+          }
+
+          return {
+            tags: normalizeBuildTagSlugs([...state.tags, tag]),
+          };
+        }),
       setPublic: (value) => set({ isPublic: value }),
 
       setTank: (tankId, dims) =>
@@ -956,6 +976,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             shareSlug: payload.shareSlug,
             name: payload.name,
             description: payload.description ?? "",
+            tags: normalizeBuildTagSlugs(payload.tags ?? []),
             isPublic: payload.isPublic,
             tankId: payload.tankId,
             canvasState: normalizeCanvasState({
@@ -989,6 +1010,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           description: s.description.trim(),
           isPublic: s.isPublic,
           tankId: s.tankId,
+          tags: normalizeBuildTagSlugs(s.tags),
           canvasState: normalizeCanvasState({
             widthIn: s.canvasState.widthIn,
             heightIn: s.canvasState.heightIn,
@@ -1061,9 +1083,12 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           heightIn,
         );
 
+        const sourceTags = Array.isArray(source.tags) ? source.tags : [];
+
         return {
           ...initialState,
           ...source,
+          tags: normalizeBuildTagSlugs(sourceTags),
           canvasState: normalizeCanvasState({
             widthIn,
             heightIn,
@@ -1079,6 +1104,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
         shareSlug: state.shareSlug,
         name: state.name,
         description: state.description,
+        tags: state.tags,
         isPublic: state.isPublic,
         tankId: state.tankId,
         canvasState: state.canvasState,
