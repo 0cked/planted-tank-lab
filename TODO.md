@@ -252,7 +252,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Show vote count on each build card with an upvote button (heart or arrow icon).
   - **Verify:** Log in. Upvote a build. Refresh the page. Vote persists. Vote count updates. Cannot vote twice.
 
-- [ ] **P4-3: Homepage content expansion**
+- [x] **P4-3: Homepage content expansion**
   - Add a "How it works" section below the hero with 3 steps (Pick your gear -> Check compatibility -> Share your build). Use icons or simple illustrations (CSS/SVG, not external images).
   - Add a "Featured builds" row pulling the top 3 voted builds with their screenshot thumbnails (depends on P3-3 and P4-2, but can use placeholder cards if those aren't done yet).
   - Add a "Browse plants" preview row showing 6 popular plants with images from the existing plant data.
