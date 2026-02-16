@@ -16,6 +16,25 @@ function formatMoney(cents: number | null | undefined): string {
   return (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
+function buildThumbnailSrc(
+  coverImageUrl: string | null | undefined,
+  updatedAt: Date | string | null | undefined,
+): string | null {
+  if (!coverImageUrl) return null;
+
+  const timestamp =
+    updatedAt instanceof Date
+      ? updatedAt.getTime()
+      : typeof updatedAt === "string"
+        ? Date.parse(updatedAt)
+        : Number.NaN;
+
+  if (!Number.isFinite(timestamp)) return coverImageUrl;
+
+  const separator = coverImageUrl.includes("?") ? "&" : "?";
+  return `${coverImageUrl}${separator}v=${timestamp}`;
+}
+
 function tierMeta(style: string | null | undefined): {
   label: string;
   className: string;
@@ -113,30 +132,50 @@ export default async function BuildsIndexPage() {
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((b) => {
             const tier = tierMeta(b.style);
+            const thumbnailSrc = buildThumbnailSrc(b.coverImageUrl, b.updatedAt);
+
             return (
               <Link
                 key={b.id}
                 href={b.shareSlug ? `/builds/${b.shareSlug}` : "/builder"}
-                className="ptl-surface block p-6 ptl-hover-lift transition hover:bg-white/70"
+                className="ptl-surface block overflow-hidden ptl-hover-lift transition hover:bg-white/70"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="text-sm font-semibold text-neutral-900">{b.name}</div>
-                  {tier ? (
-                    <div
-                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${tier.className}`}
-                    >
-                      {tier.label}
+                <div className="aspect-[16/10] w-full border-b" style={{ borderColor: "var(--ptl-border)" }}>
+                  {thumbnailSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={thumbnailSrc}
+                      alt={`${b.name} thumbnail`}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-emerald-50 px-6 text-center text-xs font-medium uppercase tracking-wide text-neutral-500">
+                      Screenshot preview available after save
                     </div>
-                  ) : null}
+                  )}
                 </div>
-                <div className="mt-2 text-xs text-neutral-600">
-                  {b.itemCount} item(s) · {formatMoney(b.totalPriceCents)}
-                </div>
-                <div className="mt-3 line-clamp-3 text-sm text-neutral-700">
-                  {b.description ?? "Build snapshot"}
-                </div>
-                <div className="mt-4 text-xs font-semibold text-emerald-800">
-                  View build
+
+                <div className="p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-sm font-semibold text-neutral-900">{b.name}</div>
+                    {tier ? (
+                      <div
+                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${tier.className}`}
+                      >
+                        {tier.label}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="mt-2 text-xs text-neutral-600">
+                    {b.itemCount} item(s) · {formatMoney(b.totalPriceCents)}
+                  </div>
+                  <div className="mt-3 line-clamp-3 text-sm text-neutral-700">
+                    {b.description ?? "Build snapshot"}
+                  </div>
+                  <div className="mt-4 text-xs font-semibold text-emerald-800">
+                    View build
+                  </div>
                 </div>
               </Link>
             );

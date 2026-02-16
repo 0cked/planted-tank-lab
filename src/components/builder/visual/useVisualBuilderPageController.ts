@@ -45,6 +45,37 @@ import { useVisualBuilderStore } from "@/stores/visual-builder-store";
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type InitialBuildResponse = RouterOutputs["visualBuilder"]["getByShareSlug"];
 
+const MAX_THUMBNAIL_WIDTH = 960;
+
+function captureSceneThumbnailDataUrl(canvas: HTMLCanvasElement | null): string | undefined {
+  if (!canvas) return undefined;
+
+  try {
+    const sourceWidth = canvas.width;
+    const sourceHeight = canvas.height;
+    if (sourceWidth <= 0 || sourceHeight <= 0) return undefined;
+
+    const scale = Math.min(1, MAX_THUMBNAIL_WIDTH / sourceWidth);
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
+
+    const targetCanvas = document.createElement("canvas");
+    targetCanvas.width = width;
+    targetCanvas.height = height;
+
+    const context = targetCanvas.getContext("2d");
+    if (!context) return undefined;
+
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(canvas, 0, 0, width, height);
+
+    return targetCanvas.toDataURL("image/png");
+  } catch {
+    return undefined;
+  }
+}
+
 type VisualBuilderPageController = {
   metadataPanelProps: ComponentProps<typeof BuildMetadataPanel>;
   stepNavigatorProps: ComponentProps<typeof BuildStepNavigator>;
@@ -456,6 +487,8 @@ export function useVisualBuilderPageController(
 
     try {
       const payload = toBuildPayload({ bomLineItems: bomForSave });
+      const thumbnailDataUrl = captureSceneThumbnailDataUrl(sceneCanvasRef.current);
+
       const result = await saveMutation.mutateAsync({
         buildId: payload.buildId ?? undefined,
         shareSlug: payload.shareSlug ?? undefined,
@@ -466,6 +499,7 @@ export function useVisualBuilderPageController(
         lineItems: payload.lineItems,
         isPublic: publish,
         flags: payload.flags,
+        thumbnailDataUrl,
       });
 
       setBuildIdentity({ buildId: result.buildId, shareSlug: result.shareSlug });

@@ -31,6 +31,9 @@ async function expectTrpcErrorCode<T>(promise: Promise<T>, code: TRPCError["code
   }
 }
 
+const ONE_PIXEL_PNG_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/w8AAgMBAQEAH4QAAAAASUVORK5CYII=";
+
 describe("tRPC visualBuilder router", () => {
   it("saves and reloads a public visual build by share slug", async () => {
     const anon = await getAnonCaller();
@@ -75,6 +78,57 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.initialState.canvasState.version).toBe(4);
     expect(loaded.initialState.canvasState.substrateHeightfield).toBeInstanceOf(Float32Array);
     expect(loaded.initialState.canvasState.substrateHeightfield.length).toBe(32 * 32);
+
+    await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
+    await db.delete(builds).where(eq(builds.id, saved.buildId));
+  }, 20_000);
+
+  it("stores visual build thumbnails for gallery cards and social previews", async () => {
+    const anon = await getAnonCaller();
+    const catalog = await anon.visualBuilder.catalog();
+    const tank = catalog.tanks[0];
+    expect(tank?.id).toBeTruthy();
+
+    const saved = await anon.visualBuilder.save({
+      name: "Visual Builder Thumbnail Test",
+      description: "Stores a scene screenshot thumbnail",
+      tankId: tank!.id,
+      canvasState: {
+        version: 4,
+        widthIn: tank!.widthIn,
+        heightIn: tank!.heightIn,
+        depthIn: tank!.depthIn,
+        substrateHeightfield: Array.from({ length: 32 * 32 }, () => 1),
+        sceneSettings: {
+          qualityTier: "auto",
+          postprocessingEnabled: true,
+          guidesVisible: true,
+          audioEnabled: false,
+          cameraPreset: "step",
+        },
+        items: [],
+      },
+      lineItems: [],
+      isPublic: true,
+      flags: {},
+      thumbnailDataUrl: ONE_PIXEL_PNG_DATA_URL,
+    });
+
+    const loaded = await anon.visualBuilder.getByShareSlug({ shareSlug: saved.shareSlug });
+    expect(loaded.build.coverImageUrl).toBe(`/api/builds/${saved.shareSlug}/thumbnail`);
+    expect(loaded.initialState.flags).toEqual({ hasShrimp: false, lowTechNoCo2: false });
+
+    const persistedRows = await db
+      .select({ coverImageUrl: builds.coverImageUrl, flags: builds.flags })
+      .from(builds)
+      .where(eq(builds.id, saved.buildId))
+      .limit(1);
+
+    const persisted = persistedRows[0];
+    expect(persisted?.coverImageUrl).toBe(`/api/builds/${saved.shareSlug}/thumbnail`);
+    expect(typeof (persisted?.flags as Record<string, unknown>)?.["thumbnailDataUrl"]).toBe(
+      "string",
+    );
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));

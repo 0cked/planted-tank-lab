@@ -229,7 +229,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Add a simple responsive layout: on viewports <768px, move the workflow stepper to the bottom and stack panels vertically.
   - **Verify:** Open the builder on an iPad or phone emulator. Orbit, pan, zoom with touch. Tap to place items. Sculpt substrate with finger drag.
 
-- [ ] **P3-3: Build screenshot thumbnails**
+- [x] **P3-3: Build screenshot thumbnails**
   - When a user saves or shares a build, capture the current 3D scene as a PNG using the existing `preserveDrawingBuffer` canvas.
   - Store the screenshot as the build's thumbnail (upload to Supabase storage or encode as base64 in the build record).
   - Display thumbnails on the `/builds` gallery page instead of text-only cards.

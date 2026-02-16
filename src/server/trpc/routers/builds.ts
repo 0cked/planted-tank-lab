@@ -313,6 +313,7 @@ export const buildsRouter = createTRPCRouter({
           style: build.style,
           shareSlug: build.shareSlug,
           description: build.description,
+          coverImageUrl: build.coverImageUrl,
           isPublic: build.isPublic,
           itemCount: build.itemCount,
           totalPriceCents: build.totalPriceCents,

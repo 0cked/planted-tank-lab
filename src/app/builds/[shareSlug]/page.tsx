@@ -7,6 +7,25 @@ import { ReportBuildDialog } from "./ReportBuildDialog";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
+function versionedThumbnailUrl(
+  coverImageUrl: string | null | undefined,
+  updatedAt: Date | string | null | undefined,
+): string | undefined {
+  if (!coverImageUrl) return undefined;
+
+  const timestamp =
+    updatedAt instanceof Date
+      ? updatedAt.getTime()
+      : typeof updatedAt === "string"
+        ? Date.parse(updatedAt)
+        : Number.NaN;
+
+  if (!Number.isFinite(timestamp)) return coverImageUrl;
+
+  const separator = coverImageUrl.includes("?") ? "&" : "?";
+  return `${coverImageUrl}${separator}v=${timestamp}`;
+}
+
 export async function generateMetadata(props: {
   params: Promise<{ shareSlug: string }>;
 }): Promise<Metadata> {
@@ -16,6 +35,12 @@ export async function generateMetadata(props: {
   );
   const data = await caller.builds.getByShareSlug({ shareSlug }).catch(() => null);
   if (!data) return { title: "Build" };
+
+  const thumbnailUrl = versionedThumbnailUrl(
+    data.build.coverImageUrl,
+    data.build.updatedAt,
+  );
+
   return {
     title: data.build.name,
     description:
@@ -23,6 +48,11 @@ export async function generateMetadata(props: {
       `A planted tank build snapshot with ${data.build.itemCount} items.`,
     openGraph: {
       url: `/builds/${shareSlug}`,
+      images: thumbnailUrl ? [{ url: thumbnailUrl, alt: `${data.build.name} thumbnail` }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      images: thumbnailUrl ? [thumbnailUrl] : undefined,
     },
   };
 }

@@ -240,6 +240,10 @@ const lineItemSchema = z
     }
   });
 
+const MAX_THUMBNAIL_DATA_URL_LENGTH = 1_500_000;
+const PNG_DATA_URL_PREFIX = "data:image/png;base64,";
+const BUILD_THUMBNAIL_FLAG_KEY = "thumbnailDataUrl";
+
 const saveInputSchema = z.object({
   buildId: z.string().uuid().optional(),
   shareSlug: z.string().min(1).max(20).optional(),
@@ -250,6 +254,7 @@ const saveInputSchema = z.object({
   lineItems: z.array(lineItemSchema).max(500).default([]),
   isPublic: z.boolean().optional(),
   flags: z.record(z.string(), z.unknown()).optional(),
+  thumbnailDataUrl: z.string().trim().max(MAX_THUMBNAIL_DATA_URL_LENGTH).optional(),
 });
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -273,6 +278,55 @@ function asNumber(value: unknown): number | null {
 
 function asBoolean(value: unknown): boolean | null {
   return typeof value === "boolean" ? value : null;
+}
+
+function normalizeVisualBuilderFlags(value: unknown): {
+  hasShrimp: boolean;
+  lowTechNoCo2: boolean;
+} {
+  const flags = asRecord(value);
+  return {
+    hasShrimp: Boolean(flags["hasShrimp"]),
+    lowTechNoCo2: Boolean(flags["lowTechNoCo2"]),
+  };
+}
+
+function sanitizeThumbnailDataUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+
+  const normalized = value.trim();
+  if (!normalized.startsWith(PNG_DATA_URL_PREFIX)) return null;
+  if (normalized.length > MAX_THUMBNAIL_DATA_URL_LENGTH) return null;
+
+  const encoded = normalized.slice(PNG_DATA_URL_PREFIX.length);
+  if (!encoded) return null;
+  if (!/^[A-Za-z0-9+/]+=*$/.test(encoded)) return null;
+
+  return normalized;
+}
+
+function extractThumbnailDataUrl(flags: unknown): string | null {
+  const row = asRecord(flags);
+  return sanitizeThumbnailDataUrl(row[BUILD_THUMBNAIL_FLAG_KEY]);
+}
+
+function withThumbnailFlag(
+  flags: {
+    hasShrimp: boolean;
+    lowTechNoCo2: boolean;
+  },
+  thumbnailDataUrl: string | null,
+): Record<string, unknown> {
+  if (!thumbnailDataUrl) return { ...flags };
+
+  return {
+    ...flags,
+    [BUILD_THUMBNAIL_FLAG_KEY]: thumbnailDataUrl,
+  };
+}
+
+function buildThumbnailRoute(shareSlug: string): string {
+  return `/api/builds/${shareSlug}/thumbnail`;
 }
 
 function firstImage(primary: string | null, imageUrls: unknown): string | null {
@@ -940,6 +994,7 @@ export const visualBuilderRouter = createTRPCRouter({
           tankId: builds.tankId,
           canvasState: builds.canvasState,
           flags: builds.flags,
+          coverImageUrl: builds.coverImageUrl,
           totalPriceCents: builds.totalPriceCents,
           itemCount: builds.itemCount,
           updatedAt: builds.updatedAt,
@@ -982,7 +1037,19 @@ export const visualBuilderRouter = createTRPCRouter({
         .where(eq(buildItems.buildId, build.id));
 
       return {
-        build,
+        build: {
+          id: build.id,
+          userId: build.userId,
+          name: build.name,
+          description: build.description,
+          shareSlug: build.shareSlug,
+          isPublic: build.isPublic,
+          tankId: build.tankId,
+          coverImageUrl: build.coverImageUrl,
+          totalPriceCents: build.totalPriceCents,
+          itemCount: build.itemCount,
+          updatedAt: build.updatedAt,
+        },
         initialState: {
           buildId: build.id,
           shareSlug: build.shareSlug,
@@ -991,7 +1058,7 @@ export const visualBuilderRouter = createTRPCRouter({
           isPublic: build.isPublic,
           tankId: build.tankId,
           canvasState: parseCanvasState(build.canvasState),
-          flags: asRecord(build.flags),
+          flags: normalizeVisualBuilderFlags(build.flags),
           lineItems: itemRows.map((row) => ({
             id: row.itemId,
             categorySlug: row.categorySlug,
@@ -1050,6 +1117,10 @@ export const visualBuilderRouter = createTRPCRouter({
       let shareSlug = input.shareSlug ?? null;
       let existingPublic = false;
       let ownerUserId: string | null = userId;
+      let existingFlags: Record<string, unknown> = {};
+
+      const normalizedFlags = normalizeVisualBuilderFlags(input.flags);
+      const requestedThumbnailDataUrl = sanitizeThumbnailDataUrl(input.thumbnailDataUrl);
 
       if (buildId) {
         const existing = await tx
@@ -1058,6 +1129,7 @@ export const visualBuilderRouter = createTRPCRouter({
             userId: builds.userId,
             shareSlug: builds.shareSlug,
             isPublic: builds.isPublic,
+            flags: builds.flags,
           })
           .from(builds)
           .where(eq(builds.id, buildId))
@@ -1071,6 +1143,7 @@ export const visualBuilderRouter = createTRPCRouter({
         shareSlug = row.shareSlug;
         existingPublic = row.isPublic;
         ownerUserId = row.userId ?? userId ?? null;
+        existingFlags = asRecord(row.flags);
       }
 
       if (!buildId && shareSlug) {
@@ -1079,6 +1152,7 @@ export const visualBuilderRouter = createTRPCRouter({
             id: builds.id,
             userId: builds.userId,
             isPublic: builds.isPublic,
+            flags: builds.flags,
           })
           .from(builds)
           .where(eq(builds.shareSlug, shareSlug))
@@ -1092,11 +1166,26 @@ export const visualBuilderRouter = createTRPCRouter({
           buildId = row.id;
           existingPublic = row.isPublic;
           ownerUserId = row.userId ?? userId ?? null;
+          existingFlags = asRecord(row.flags);
         }
       }
 
       if (!buildId) {
         shareSlug = shareSlug ?? nanoid(10);
+      }
+
+      if (!shareSlug) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Unable to save visual build.",
+        });
+      }
+
+      const thumbnailDataUrl = requestedThumbnailDataUrl ?? extractThumbnailDataUrl(existingFlags);
+      const buildFlags = withThumbnailFlag(normalizedFlags, thumbnailDataUrl);
+      const coverImageUrl = thumbnailDataUrl ? buildThumbnailRoute(shareSlug) : null;
+
+      if (!buildId) {
         const created = await tx
           .insert(builds)
           .values({
@@ -1107,7 +1196,8 @@ export const visualBuilderRouter = createTRPCRouter({
             style: "visual-v2",
             tankId: input.tankId,
             canvasState: input.canvasState,
-            flags: input.flags ?? {},
+            flags: buildFlags,
+            coverImageUrl,
             isPublic: input.isPublic ?? false,
             isCompleted: true,
             totalPriceCents: 0,
@@ -1119,11 +1209,11 @@ export const visualBuilderRouter = createTRPCRouter({
           .returning({ id: builds.id, shareSlug: builds.shareSlug, isPublic: builds.isPublic });
 
         buildId = created[0]?.id ?? null;
-        shareSlug = created[0]?.shareSlug ?? null;
+        shareSlug = created[0]?.shareSlug ?? shareSlug;
         existingPublic = created[0]?.isPublic ?? false;
       }
 
-      if (!buildId || !shareSlug) {
+      if (!buildId) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Unable to save visual build.",
@@ -1290,7 +1380,8 @@ export const visualBuilderRouter = createTRPCRouter({
           style: "visual-v1",
           tankId: input.tankId,
           canvasState: input.canvasState,
-          flags: input.flags ?? {},
+          flags: buildFlags,
+          coverImageUrl,
           isPublic: nextPublic,
           isCompleted: true,
           itemCount,
@@ -1346,6 +1437,7 @@ export const visualBuilderRouter = createTRPCRouter({
             tankId: source.tankId,
             canvasState: source.canvasState,
             flags: source.flags ?? {},
+            coverImageUrl: extractThumbnailDataUrl(source.flags) ? buildThumbnailRoute(shareSlug) : null,
             isPublic: false,
             isCompleted: true,
             totalPriceCents: source.totalPriceCents,
