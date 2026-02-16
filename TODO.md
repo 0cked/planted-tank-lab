@@ -267,7 +267,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Only authenticated users can comment. Show a "sign in to comment" prompt for guests.
   - **Verify:** Log in, view a shared build, post a comment. Refresh — comment persists. Reply to a comment — reply appears nested.
 
-- [ ] **P4-5: User profile page**
+- [x] **P4-5: User profile page**
   - On `/profile`, show the user's display name, join date, and a grid of their saved builds (with thumbnails if P3-3 is done, otherwise text cards).
   - Add a public profile route `/profile/[userId]` showing the same info for any user.
   - Show vote count and build count as stats.
