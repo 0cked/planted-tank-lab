@@ -4,7 +4,7 @@ import { Edges, Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer, Noise, SSAO, ToneMapping, Vignette } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BlendFunction, ToneMappingMode } from "postprocessing";
 import * as THREE from "three";
 
@@ -30,6 +30,10 @@ import {
   type SceneDims,
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
+import {
+  normalizeSubstrateHeightfield,
+  SUBSTRATE_HEIGHTFIELD_RESOLUTION,
+} from "@/lib/visual/substrate";
 
 export type BuilderSceneStep =
   | "tank"
@@ -138,6 +142,32 @@ const CLUSTER_OFFSETS: ReadonlyArray<[number, number]> = [
   [-0.035, -0.007],
   [0.012, 0.033],
 ];
+
+const SUBSTRATE_SURFACE_SCALE = 0.96;
+const SUBSTRATE_DEFAULT_DEPTH_IN = 1.6;
+const SUBSTRATE_MIN_DEPTH_IN = 0.2;
+const SUBSTRATE_MAX_DEPTH_RATIO = 0.62;
+const SUBSTRATE_HEIGHT_EPSILON = 0.0001;
+const SUBSTRATE_HEIGHTFIELD_CELL_COUNT =
+  SUBSTRATE_HEIGHTFIELD_RESOLUTION * SUBSTRATE_HEIGHTFIELD_RESOLUTION;
+
+type SubstrateSamplingMap = {
+  sourceIndex00: Uint16Array;
+  sourceIndex10: Uint16Array;
+  sourceIndex01: Uint16Array;
+  sourceIndex11: Uint16Array;
+  tx: Float32Array;
+  tz: Float32Array;
+};
+
+type SubstrateGeometryData = {
+  geometry: THREE.BufferGeometry;
+  positionAttribute: THREE.BufferAttribute;
+  sampling: SubstrateSamplingMap;
+  sampledHeights: Float32Array;
+  sourceValues: Float32Array;
+  sourceChanged: Uint8Array;
+};
 
 function clampPointToTankBounds(point: THREE.Vector3, dims: SceneDims): THREE.Vector3 {
   return new THREE.Vector3(
@@ -262,33 +292,292 @@ function itemWorldPosition(params: {
   return new THREE.Vector3(world.x, Math.max(substrateY, world.y), world.z);
 }
 
-function substrateGeometry(params: {
-  dims: SceneDims;
-  heightfield: SubstrateHeightfield;
-  qualityTier: BuilderSceneQualityTier;
-}): THREE.PlaneGeometry {
-  const segments = params.qualityTier === "low" ? 24 : params.qualityTier === "medium" ? 38 : 56;
-  const geo = new THREE.PlaneGeometry(params.dims.widthIn * 0.96, params.dims.depthIn * 0.96, segments, segments);
-  geo.rotateX(-Math.PI / 2);
+function substrateGridResolution(qualityTier: BuilderSceneQualityTier): number {
+  if (qualityTier === "low") return 24;
+  if (qualityTier === "medium") return 32;
+  return 48;
+}
 
-  const pos = geo.attributes.position;
-  for (let i = 0; i < pos.count; i += 1) {
-    const x = pos.getX(i);
-    const z = pos.getZ(i);
-    const xNorm = clamp01(x / Math.max(1, params.dims.widthIn * 0.96) + 0.5);
-    const zNorm = clamp01(z / Math.max(1, params.dims.depthIn * 0.96) + 0.5);
-    const y = sampleSubstrateDepth({
-      xNorm,
-      zNorm,
-      heightfield: params.heightfield,
-      tankHeightIn: params.dims.heightIn,
-    });
-    pos.setY(i, y);
+function clampSubstrateDepth(depth: number, tankHeightIn: number): number {
+  const safeHeight = Math.max(1, tankHeightIn);
+  const maxDepth = Math.max(SUBSTRATE_MIN_DEPTH_IN, safeHeight * SUBSTRATE_MAX_DEPTH_RATIO);
+  if (!Number.isFinite(depth)) return SUBSTRATE_DEFAULT_DEPTH_IN;
+  if (depth < SUBSTRATE_MIN_DEPTH_IN) return SUBSTRATE_MIN_DEPTH_IN;
+  if (depth > maxDepth) return maxDepth;
+  return depth;
+}
+
+function createSubstrateSamplingMap(resolution: number): SubstrateSamplingMap {
+  const vertexCount = resolution * resolution;
+  const sourceIndex00 = new Uint16Array(vertexCount);
+  const sourceIndex10 = new Uint16Array(vertexCount);
+  const sourceIndex01 = new Uint16Array(vertexCount);
+  const sourceIndex11 = new Uint16Array(vertexCount);
+  const tx = new Float32Array(vertexCount);
+  const tz = new Float32Array(vertexCount);
+
+  const maxTargetIndex = Math.max(1, resolution - 1);
+  const maxSourceIndex = SUBSTRATE_HEIGHTFIELD_RESOLUTION - 1;
+
+  for (let zIndex = 0; zIndex < resolution; zIndex += 1) {
+    const zNorm = zIndex / maxTargetIndex;
+    const sourceZ = zNorm * maxSourceIndex;
+    const sourceZ0 = Math.floor(sourceZ);
+    const sourceZ1 = Math.min(maxSourceIndex, sourceZ0 + 1);
+    const sourceTz = sourceZ - sourceZ0;
+
+    for (let xIndex = 0; xIndex < resolution; xIndex += 1) {
+      const vertexIndex = zIndex * resolution + xIndex;
+      const xNorm = xIndex / maxTargetIndex;
+      const sourceX = xNorm * maxSourceIndex;
+      const sourceX0 = Math.floor(sourceX);
+      const sourceX1 = Math.min(maxSourceIndex, sourceX0 + 1);
+
+      sourceIndex00[vertexIndex] = sourceZ0 * SUBSTRATE_HEIGHTFIELD_RESOLUTION + sourceX0;
+      sourceIndex10[vertexIndex] = sourceZ0 * SUBSTRATE_HEIGHTFIELD_RESOLUTION + sourceX1;
+      sourceIndex01[vertexIndex] = sourceZ1 * SUBSTRATE_HEIGHTFIELD_RESOLUTION + sourceX0;
+      sourceIndex11[vertexIndex] = sourceZ1 * SUBSTRATE_HEIGHTFIELD_RESOLUTION + sourceX1;
+      tx[vertexIndex] = sourceX - sourceX0;
+      tz[vertexIndex] = sourceTz;
+    }
   }
 
-  pos.needsUpdate = true;
-  geo.computeVertexNormals();
-  return geo;
+  return {
+    sourceIndex00,
+    sourceIndex10,
+    sourceIndex01,
+    sourceIndex11,
+    tx,
+    tz,
+  };
+}
+
+function createSubstrateGeometryData(params: {
+  widthIn: number;
+  depthIn: number;
+  qualityTier: BuilderSceneQualityTier;
+}): SubstrateGeometryData {
+  const resolution = substrateGridResolution(params.qualityTier);
+  const vertexCount = resolution * resolution;
+  const width = params.widthIn * SUBSTRATE_SURFACE_SCALE;
+  const depth = params.depthIn * SUBSTRATE_SURFACE_SCALE;
+  const halfWidth = width * 0.5;
+  const halfDepth = depth * 0.5;
+
+  const positions = new Float32Array(vertexCount * 3);
+  const uvs = new Float32Array(vertexCount * 2);
+  const maxIndex = Math.max(1, resolution - 1);
+
+  for (let zIndex = 0; zIndex < resolution; zIndex += 1) {
+    const zNorm = zIndex / maxIndex;
+    const zPosition = zNorm * depth - halfDepth;
+
+    for (let xIndex = 0; xIndex < resolution; xIndex += 1) {
+      const vertexIndex = zIndex * resolution + xIndex;
+      const xNorm = xIndex / maxIndex;
+      const xPosition = xNorm * width - halfWidth;
+
+      const positionOffset = vertexIndex * 3;
+      positions[positionOffset] = xPosition;
+      positions[positionOffset + 1] = 0;
+      positions[positionOffset + 2] = zPosition;
+
+      const uvOffset = vertexIndex * 2;
+      uvs[uvOffset] = xNorm;
+      uvs[uvOffset + 1] = zNorm;
+    }
+  }
+
+  const quadCount = (resolution - 1) * (resolution - 1);
+  const indices = new Uint16Array(quadCount * 6);
+  let cursor = 0;
+
+  for (let zIndex = 0; zIndex < resolution - 1; zIndex += 1) {
+    for (let xIndex = 0; xIndex < resolution - 1; xIndex += 1) {
+      const topLeft = zIndex * resolution + xIndex;
+      const topRight = topLeft + 1;
+      const bottomLeft = topLeft + resolution;
+      const bottomRight = bottomLeft + 1;
+
+      indices[cursor] = topLeft;
+      indices[cursor + 1] = bottomLeft;
+      indices[cursor + 2] = topRight;
+      indices[cursor + 3] = topRight;
+      indices[cursor + 4] = bottomLeft;
+      indices[cursor + 5] = bottomRight;
+      cursor += 6;
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  const positionAttribute = new THREE.BufferAttribute(positions, 3);
+  geometry.setAttribute("position", positionAttribute);
+  geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+
+  const sampledHeights = new Float32Array(vertexCount);
+  sampledHeights.fill(Number.NaN);
+
+  const sourceValues = new Float32Array(SUBSTRATE_HEIGHTFIELD_CELL_COUNT);
+  sourceValues.fill(Number.NaN);
+
+  return {
+    geometry,
+    positionAttribute,
+    sampling: createSubstrateSamplingMap(resolution),
+    sampledHeights,
+    sourceValues,
+    sourceChanged: new Uint8Array(SUBSTRATE_HEIGHTFIELD_CELL_COUNT),
+  };
+}
+
+function resolveSubstrateSourceHeightfield(params: {
+  heightfield: SubstrateHeightfield;
+  tankHeightIn: number;
+}): SubstrateHeightfield {
+  if (params.heightfield.length === SUBSTRATE_HEIGHTFIELD_CELL_COUNT) {
+    return params.heightfield;
+  }
+
+  return normalizeSubstrateHeightfield(params.heightfield, params.tankHeightIn);
+}
+
+function refreshChangedSourceValues(params: {
+  source: SubstrateHeightfield;
+  sourceValues: Float32Array;
+  sourceChanged: Uint8Array;
+  tankHeightIn: number;
+}): boolean {
+  let hasChanges = false;
+
+  for (let index = 0; index < SUBSTRATE_HEIGHTFIELD_CELL_COUNT; index += 1) {
+    const raw = params.source[index];
+    const nextValue = clampSubstrateDepth(
+      Number.isFinite(raw) ? raw : SUBSTRATE_DEFAULT_DEPTH_IN,
+      params.tankHeightIn,
+    );
+    const previousValue = params.sourceValues[index];
+    const didChange =
+      !Number.isFinite(previousValue) ||
+      Math.abs(nextValue - previousValue) > SUBSTRATE_HEIGHT_EPSILON;
+
+    params.sourceChanged[index] = didChange ? 1 : 0;
+    if (!didChange) continue;
+
+    params.sourceValues[index] = nextValue;
+    hasChanges = true;
+  }
+
+  return hasChanges;
+}
+
+function isVertexAffectedBySourceChange(params: {
+  vertexIndex: number;
+  sampling: SubstrateSamplingMap;
+  sourceChanged: Uint8Array;
+}): boolean {
+  const index00 = params.sampling.sourceIndex00[params.vertexIndex] ?? 0;
+  const index10 = params.sampling.sourceIndex10[params.vertexIndex] ?? 0;
+  const index01 = params.sampling.sourceIndex01[params.vertexIndex] ?? 0;
+  const index11 = params.sampling.sourceIndex11[params.vertexIndex] ?? 0;
+
+  return (
+    params.sourceChanged[index00] === 1 ||
+    params.sourceChanged[index10] === 1 ||
+    params.sourceChanged[index01] === 1 ||
+    params.sourceChanged[index11] === 1
+  );
+}
+
+function sampleInterpolatedSubstrateHeight(params: {
+  vertexIndex: number;
+  sampling: SubstrateSamplingMap;
+  sourceValues: Float32Array;
+  tankHeightIn: number;
+}): number {
+  const index00 = params.sampling.sourceIndex00[params.vertexIndex] ?? 0;
+  const index10 = params.sampling.sourceIndex10[params.vertexIndex] ?? 0;
+  const index01 = params.sampling.sourceIndex01[params.vertexIndex] ?? 0;
+  const index11 = params.sampling.sourceIndex11[params.vertexIndex] ?? 0;
+  const tx = params.sampling.tx[params.vertexIndex] ?? 0;
+  const tz = params.sampling.tz[params.vertexIndex] ?? 0;
+
+  const v00 = params.sourceValues[index00] ?? SUBSTRATE_DEFAULT_DEPTH_IN;
+  const v10 = params.sourceValues[index10] ?? SUBSTRATE_DEFAULT_DEPTH_IN;
+  const v01 = params.sourceValues[index01] ?? SUBSTRATE_DEFAULT_DEPTH_IN;
+  const v11 = params.sourceValues[index11] ?? SUBSTRATE_DEFAULT_DEPTH_IN;
+
+  const top = v00 * (1 - tx) + v10 * tx;
+  const bottom = v01 * (1 - tx) + v11 * tx;
+  return clampSubstrateDepth(top * (1 - tz) + bottom * tz, params.tankHeightIn);
+}
+
+function applyHeightfieldToSubstrateGeometry(params: {
+  data: SubstrateGeometryData;
+  heightfield: SubstrateHeightfield;
+  tankHeightIn: number;
+}): boolean {
+  const source = resolveSubstrateSourceHeightfield({
+    heightfield: params.heightfield,
+    tankHeightIn: params.tankHeightIn,
+  });
+
+  const sourceDidChange = refreshChangedSourceValues({
+    source,
+    sourceValues: params.data.sourceValues,
+    sourceChanged: params.data.sourceChanged,
+    tankHeightIn: params.tankHeightIn,
+  });
+
+  if (!sourceDidChange) return false;
+
+  const positionBuffer = params.data.positionAttribute.array;
+  if (!(positionBuffer instanceof Float32Array)) return false;
+
+  let changedVertices = false;
+
+  for (let vertexIndex = 0; vertexIndex < params.data.sampledHeights.length; vertexIndex += 1) {
+    const previousHeight = params.data.sampledHeights[vertexIndex];
+    const needsUpdate =
+      !Number.isFinite(previousHeight) ||
+      isVertexAffectedBySourceChange({
+        vertexIndex,
+        sampling: params.data.sampling,
+        sourceChanged: params.data.sourceChanged,
+      });
+    if (!needsUpdate) continue;
+
+    const nextHeight = sampleInterpolatedSubstrateHeight({
+      vertexIndex,
+      sampling: params.data.sampling,
+      sourceValues: params.data.sourceValues,
+      tankHeightIn: params.tankHeightIn,
+    });
+
+    if (
+      Number.isFinite(previousHeight) &&
+      Math.abs(nextHeight - previousHeight) <= SUBSTRATE_HEIGHT_EPSILON
+    ) {
+      continue;
+    }
+
+    params.data.sampledHeights[vertexIndex] = nextHeight;
+    positionBuffer[vertexIndex * 3 + 1] = nextHeight;
+    changedVertices = true;
+  }
+
+  if (!changedVertices) return false;
+
+  params.data.positionAttribute.needsUpdate = true;
+  params.data.geometry.computeVertexNormals();
+  params.data.geometry.computeBoundingSphere();
+
+  const normalAttribute = params.data.geometry.getAttribute("normal");
+  if (normalAttribute instanceof THREE.BufferAttribute) {
+    normalAttribute.needsUpdate = true;
+  }
+
+  return true;
 }
 
 function SceneCaptureBridge(props: { onCaptureCanvas?: (canvas: HTMLCanvasElement | null) => void }) {
@@ -552,21 +841,29 @@ function TankShell(props: {
   onSurfaceDown: (event: ThreeEvent<PointerEvent>, anchorType: VisualAnchorType, itemId: string | null) => void;
   onSurfaceUp: (event: ThreeEvent<PointerEvent>) => void;
 }) {
-  const substrateGeo = useMemo(
+  const substrateGeometryData = useMemo(
     () =>
-      substrateGeometry({
-        dims: props.dims,
-        heightfield: props.substrateHeightfield,
+      createSubstrateGeometryData({
+        widthIn: props.dims.widthIn,
+        depthIn: props.dims.depthIn,
         qualityTier: props.qualityTier,
       }),
-    [props.dims, props.qualityTier, props.substrateHeightfield],
+    [props.dims.widthIn, props.dims.depthIn, props.qualityTier],
   );
+
+  useLayoutEffect(() => {
+    applyHeightfieldToSubstrateGeometry({
+      data: substrateGeometryData,
+      heightfield: props.substrateHeightfield,
+      tankHeightIn: props.dims.heightIn,
+    });
+  }, [props.substrateHeightfield, props.dims.heightIn, substrateGeometryData]);
 
   useEffect(() => {
     return () => {
-      substrateGeo.dispose();
+      substrateGeometryData.geometry.dispose();
     };
-  }, [substrateGeo]);
+  }, [substrateGeometryData]);
 
   const waterHeight = props.dims.heightIn * 0.94;
 
@@ -620,7 +917,7 @@ function TankShell(props: {
       </mesh>
 
       <mesh
-        geometry={substrateGeo}
+        geometry={substrateGeometryData.geometry}
         receiveShadow
         castShadow
         position={[0, 0, 0]}

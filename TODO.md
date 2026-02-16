@@ -145,7 +145,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - The existing presets (flat, island, slope, valley) should generate heightfield grids instead of setting 7 parameters.
   - **Verify:** Existing saved builds load without errors. New builds start with a flat heightfield. Store migration test passes.
 
-- [ ] **P1-2: Implement per-vertex mesh updates**
+- [x] **P1-2: Implement per-vertex mesh updates**
   - Update `VisualBuilderScene.tsx` substrate geometry generation to read from the heightfield grid instead of `sampleSubstrateDepth`.
   - Use `BufferGeometry` with a position attribute that maps grid values to vertex Y positions.
   - On heightfield change, update only the affected vertex positions and recompute normals (don't rebuild the entire geometry).
