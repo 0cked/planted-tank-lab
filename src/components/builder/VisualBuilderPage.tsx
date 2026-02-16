@@ -2066,28 +2066,28 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                   }
                   className="mt-2 rounded border border-white/20 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-slate-200"
                 >
-                  Mark restore verified
+                  Mark S03 verified
                 </button>
               </div>
             </div>
             <div className="mt-2 rounded-lg border border-white/15 bg-slate-900/50 p-2">
-              <div className="mb-1 text-[11px] font-semibold text-slate-100">Gate evidence snapshot</div>
-              <div className="mb-2 text-[10px] text-slate-400">Captured at: {cameraEvidenceCapturedAtLabel}</div>
+              <div className="mb-1 text-[11px] font-semibold text-slate-100">Gate snapshot</div>
+              <div className="mb-2 text-[10px] text-slate-400">Captured: {cameraEvidenceCapturedAtLabel}</div>
 
               <div className="rounded bg-slate-950/70 p-2 text-[10px] text-slate-300">
                 <div>Step: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.step}</span></div>
                 <div>Mode: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.mode}</span></div>
                 <div>
-                  Status: <span className="font-semibold text-slate-100">S01 {cameraEvidenceSummary.s01}</span> ·{" "}
+                  Scenarios: <span className="font-semibold text-slate-100">S01 {cameraEvidenceSummary.s01}</span> ·{" "}
                   <span className="font-semibold text-slate-100">S02 {cameraEvidenceSummary.s02}</span> ·{" "}
                   <span className="font-semibold text-slate-100">S03 {cameraEvidenceSummary.s03}</span>
                 </div>
                 <div>
-                  Signals: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.intentCount}</span> intents ·{" "}
-                  <span className="font-semibold text-slate-100">{cameraEvidenceSummary.unexpectedPoseDeltas}</span> unexpected deltas
+                  Events: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.intentCount}</span> intents ·{" "}
+                  <span className="font-semibold text-slate-100">{cameraEvidenceSummary.unexpectedPoseDeltas}</span> deltas
                 </div>
                 <div className="truncate">Last intent: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.lastIntent}</span></div>
-                <div className="truncate">Last pose delta: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.lastPoseDelta}</span></div>
+                <div className="truncate">Last delta: <span className="font-semibold text-slate-100">{cameraEvidenceSummary.lastPoseDelta}</span></div>
               </div>
 
               <div className="mt-2">
@@ -2096,7 +2096,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                   onClick={() => setShowExpandedCameraEvidence((prev) => !prev)}
                   className="rounded border border-white/20 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-slate-200"
                 >
-                  {showExpandedCameraEvidence ? "Hide raw JSON" : "Show raw JSON"}
+                  {showExpandedCameraEvidence ? "Hide JSON" : "Show JSON"}
                 </button>
               </div>
 
@@ -2112,7 +2112,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                   }}
                   className="rounded border border-white/20 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-slate-200"
                 >
-                  Copy evidence payload
+                  Copy snapshot JSON
                 </button>
                 {cameraEvidenceCopyStatus === "copied" ? (
                   <span className="text-[10px] font-semibold text-emerald-200">Copied</span>
@@ -2139,7 +2139,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 }
                 className="rounded border border-white/20 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-slate-200"
               >
-                Reset camera validation counters
+                Reset camera checks
               </button>
             </div>
           </div>

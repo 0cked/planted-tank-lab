@@ -378,9 +378,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T048
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T050 — Camera Evidence Panel Microcopy Tightening (Gate Operator Pass)**
+- [x] **T050 — Camera Evidence Panel Microcopy Tightening (Gate Operator Pass)**
   - **Goal:** Tighten evidence panel labels and copy for faster gate-operator scanning.
   - **Why it matters:** Reduces cognitive load during repeated camera evidence capture and review loops.
   - **Definition of Done:** Evidence panel label text and control copy are concise, unambiguous, and aligned with gate-review wording while preserving existing behavior.
   - **Dependencies:** T049
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T051 — Camera Evidence Badge Legend (Pass/Fail/Pending Semantics)**
+  - **Goal:** Add compact legend text clarifying scenario badge semantics for gate reviewers.
+  - **Why it matters:** Prevents interpretation drift when pass-ready/fail-risk/pending labels are reviewed asynchronously.
+  - **Definition of Done:** Evidence section includes a concise legend mapping badge text to operator action expectations.
+  - **Dependencies:** T050
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)
