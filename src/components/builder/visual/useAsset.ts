@@ -315,7 +315,7 @@ function resolveProceduralWoodType(
   return inferWoodFallbackType(asset);
 }
 
-export function useAsset(
+export function resolveVisualAsset(
   asset: VisualAsset,
   options?: {
     failedPath?: string | null;
@@ -340,4 +340,13 @@ export function useAsset(
     proceduralRockType: resolveProceduralRockType(asset, fallbackKind, entry),
     proceduralWoodType: resolveProceduralWoodType(asset, fallbackKind, entry),
   };
+}
+
+export function useAsset(
+  asset: VisualAsset,
+  options?: {
+    failedPath?: string | null;
+  },
+): ResolvedVisualAsset {
+  return resolveVisualAsset(asset, options);
 }

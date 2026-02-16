@@ -1,6 +1,6 @@
 "use client";
 
-import { Edges, Environment, OrbitControls } from "@react-three/drei";
+import { Edges, Environment, Html, OrbitControls, useProgress } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer, Noise, SSAO, ToneMapping, Vignette } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -11,6 +11,7 @@ import * as THREE from "three";
 import {
   AssetLoader,
   AssetLoaderErrorBoundary,
+  preloadVisualAsset,
   type LoadedAssetModel,
 } from "@/components/builder/visual/AssetLoader";
 import type {
@@ -44,7 +45,11 @@ import {
   type SceneDims,
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
-import { useAsset, type ResolvedVisualAsset } from "@/components/builder/visual/useAsset";
+import {
+  resolveVisualAsset,
+  useAsset,
+  type ResolvedVisualAsset,
+} from "@/components/builder/visual/useAsset";
 import {
   normalizeSubstrateHeightfield,
   SUBSTRATE_HEIGHTFIELD_RESOLUTION,
@@ -172,6 +177,7 @@ const SUBSTRATE_MAX_DEPTH_RATIO = 0.62;
 const SUBSTRATE_HEIGHT_EPSILON = 0.0001;
 const SUBSTRATE_HEIGHTFIELD_CELL_COUNT =
   SUBSTRATE_HEIGHTFIELD_RESOLUTION * SUBSTRATE_HEIGHTFIELD_RESOLUTION;
+const ASSET_LOAD_RETRY_DELAY_MS = 3500;
 
 type SubstrateSamplingMap = {
   sourceIndex00: Uint16Array;
@@ -304,6 +310,99 @@ function cloneInstancedMaterial(source: THREE.Material | null, fallbackColor: st
   });
   fallback.vertexColors = true;
   return fallback;
+}
+
+function collectBuildAssetGlbPaths(params: {
+  items: VisualCanvasItem[];
+  assetsById: Map<string, VisualAsset>;
+}): string[] {
+  const paths = new Set<string>();
+
+  for (const item of params.items) {
+    const asset = params.assetsById.get(item.assetId);
+    if (!asset) continue;
+
+    const resolvedAsset = resolveVisualAsset(asset);
+    if (!resolvedAsset.glbPath) continue;
+
+    paths.add(resolvedAsset.glbPath);
+  }
+
+  return Array.from(paths);
+}
+
+function useRetryableFailedAssetPath(assetId: string): {
+  failedPath: string | null;
+  markPathFailed: (path: string) => void;
+} {
+  const [failureState, setFailureState] = useState<{
+    assetId: string;
+    path: string;
+    failedAt: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!failureState) return;
+
+    const elapsedMs = Date.now() - failureState.failedAt;
+    const timeoutMs = Math.max(0, ASSET_LOAD_RETRY_DELAY_MS - elapsedMs);
+
+    const retryTimeout = window.setTimeout(() => {
+      setFailureState((current) => {
+        if (!current) return null;
+        if (current.assetId !== failureState.assetId) return current;
+        if (current.path !== failureState.path) return current;
+        return null;
+      });
+    }, timeoutMs);
+
+    return () => {
+      window.clearTimeout(retryTimeout);
+    };
+  }, [failureState]);
+
+  return {
+    failedPath: failureState?.assetId === assetId ? failureState.path : null,
+    markPathFailed: (path: string) => {
+      if (!path) return;
+      setFailureState({
+        assetId,
+        path,
+        failedAt: Date.now(),
+      });
+    },
+  };
+}
+
+function SceneAssetLoadingIndicator(props: {
+  enabled: boolean;
+}) {
+  const { active, progress, loaded, total } = useProgress();
+  const clampedProgress = Number.isFinite(progress)
+    ? THREE.MathUtils.clamp(progress, 0, 100)
+    : 0;
+
+  if (!props.enabled || !active || total < 1 || loaded >= total) {
+    return null;
+  }
+
+  return (
+    <Html center style={{ pointerEvents: "none" }}>
+      <div className="rounded-xl border border-white/20 bg-slate-950/82 px-3 py-2 shadow-2xl backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
+          <span className="text-[11px] font-semibold text-slate-100">Loading 3D assets</span>
+          <span className="text-[10px] text-slate-300">{Math.round(clampedProgress)}%</span>
+        </div>
+        <div className="mt-1.5 h-1.5 w-32 overflow-hidden rounded-full bg-slate-700/75">
+          <div
+            className="h-full rounded-full bg-cyan-300 transition-[width] duration-150"
+            style={{ width: `${clampedProgress}%` }}
+          />
+        </div>
+      </div>
+    </Html>
+  );
 }
 
 function itemWorldPosition(params: {
@@ -915,11 +1014,7 @@ function ItemMesh(props: {
     [props.renderItem.item.rotation],
   );
   const highlightColor = props.selected ? "#cbf2dd" : props.hovered ? "#d6e9ff" : null;
-  const [failedAssetModel, setFailedAssetModel] = useState<{ assetId: string; path: string } | null>(
-    null,
-  );
-  const failedPath =
-    failedAssetModel?.assetId === props.renderItem.asset.id ? failedAssetModel.path : null;
+  const { failedPath, markPathFailed } = useRetryableFailedAssetPath(props.renderItem.asset.id);
   const resolvedAsset = useAsset(props.renderItem.asset, { failedPath });
 
   useFrame((state) => {
@@ -979,10 +1074,7 @@ function ItemMesh(props: {
           fallback={proceduralMesh}
           onError={() => {
             if (!resolvedAsset.glbPath) return;
-            setFailedAssetModel({
-              assetId: props.renderItem.asset.id,
-              path: resolvedAsset.glbPath,
-            });
+            markPathFailed(resolvedAsset.glbPath);
           }}
         >
           <Suspense fallback={proceduralMesh}>
@@ -1223,10 +1315,7 @@ function PlantInstancedGroupMesh(props: {
   ) => void;
   onSurfaceUp: (event: ThreeEvent<PointerEvent>) => void;
 }) {
-  const [failedAssetModel, setFailedAssetModel] = useState<{ assetId: string; path: string } | null>(
-    null,
-  );
-  const failedPath = failedAssetModel?.assetId === props.group.asset.id ? failedAssetModel.path : null;
+  const { failedPath, markPathFailed } = useRetryableFailedAssetPath(props.group.asset.id);
   const resolvedAsset = useAsset(props.group.asset, { failedPath });
   const proceduralSeed = useMemo(
     () => proceduralPlantSeedFromString(props.group.asset.id),
@@ -1289,10 +1378,7 @@ function PlantInstancedGroupMesh(props: {
       fallback={fallbackNode}
       onError={() => {
         if (!resolvedAsset.glbPath) return;
-        setFailedAssetModel({
-          assetId: props.group.asset.id,
-          path: resolvedAsset.glbPath,
-        });
+        markPathFailed(resolvedAsset.glbPath);
       }}
     >
       <Suspense fallback={fallbackNode}>
@@ -1511,6 +1597,15 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     }
     return resolved;
   }, [dims, props.assetsById, props.canvasState.items, props.canvasState.substrateHeightfield]);
+
+  const loadableAssetPaths = useMemo(
+    () =>
+      collectBuildAssetGlbPaths({
+        items: props.canvasState.items,
+        assetsById: props.assetsById,
+      }),
+    [props.assetsById, props.canvasState.items],
+  );
 
   const { singleRenderItems, plantInstancedGroups } = useMemo(() => {
     const singles: SceneRenderItem[] = [];
@@ -1940,6 +2035,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         />
       ) : null}
 
+      <SceneAssetLoadingIndicator enabled={loadableAssetPaths.length > 0} />
+
       {props.postprocessingEnabled && props.qualityTier !== "low" ? (
         <EffectComposer multisampling={4}>
           <SSAO
@@ -1983,6 +2080,25 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 export function VisualBuilderScene(props: VisualBuilderSceneProps) {
   const dims = useMemo(() => normalizeDims(props.tank, props.canvasState), [props.canvasState, props.tank]);
   const camera = useMemo(() => cameraPreset(props.currentStep, dims), [dims, props.currentStep]);
+  const buildAssetGlbPaths = useMemo(
+    () =>
+      collectBuildAssetGlbPaths({
+        items: props.canvasState.items,
+        assetsById: props.assetsById,
+      }),
+    [props.assetsById, props.canvasState.items],
+  );
+  const preloadedAssetPathsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (buildAssetGlbPaths.length === 0) return;
+
+    for (const path of buildAssetGlbPaths) {
+      if (preloadedAssetPathsRef.current.has(path)) continue;
+      preloadVisualAsset(path);
+      preloadedAssetPathsRef.current.add(path);
+    }
+  }, [buildAssetGlbPaths]);
 
   return (
     <Canvas

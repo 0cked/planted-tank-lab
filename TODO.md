@@ -204,7 +204,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Register as fallback geometries in the asset manifest.
   - **Verify:** Place rocks and wood in the builder. They should look like rocks and wood, not geometric primitives.
 
-- [ ] **P2-4: Asset hot-swap and preloading**
+- [x] **P2-4: Asset hot-swap and preloading**
   - When a GLB file is added to `public/visual-assets/` and registered in `manifest.json`, it should automatically replace the procedural fallback — no code changes needed.
   - Add `useGLTF.preload()` calls for all assets in the current build's item list (preload on builder mount, not on place).
   - Add a loading progress indicator in the 3D scene (small spinner or progress bar) while assets load.
