@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BuildCommentsSection } from "./BuildCommentsSection";
 import { ReportBuildDialog } from "./ReportBuildDialog";
 
 import { createTRPCContext } from "@/server/trpc/context";
@@ -116,6 +117,26 @@ export default async function BuildSharePage(props: {
   const data = await caller.builds.getByShareSlug({ shareSlug }).catch(() => null);
   if (!data) notFound();
 
+  const initialComments = await caller.builds
+    .listComments({ shareSlug })
+    .then((result) => result.comments)
+    .catch(() => []);
+
+  const serializedInitialComments = initialComments.map((comment) => ({
+    ...comment,
+    createdAt:
+      comment.createdAt instanceof Date
+        ? comment.createdAt.toISOString()
+        : comment.createdAt,
+    replies: comment.replies.map((reply) => ({
+      ...reply,
+      createdAt:
+        reply.createdAt instanceof Date
+          ? reply.createdAt.toISOString()
+          : reply.createdAt,
+    })),
+  }));
+
   const gear = data.items.filter(
     (
       item,
@@ -217,7 +238,7 @@ export default async function BuildSharePage(props: {
                         {g.product.name}
                       </Link>
                     ) : (
-                      (g.product?.name ?? "—")
+                      g.product?.name ?? "—"
                     )}
                   </div>
                   <div className="mt-1 text-xs text-neutral-700">
@@ -237,8 +258,15 @@ export default async function BuildSharePage(props: {
           ) : (
             <ul className="mt-4 space-y-3">
               {plantItems.map((p) => (
-                <li key={p.id} className="rounded-2xl border bg-white/55 p-4" style={{ borderColor: "var(--ptl-border)" }}>
-                  <Link href={`/plants/${p.plant.slug}`} className="text-sm font-semibold text-neutral-900 hover:underline">
+                <li
+                  key={p.id}
+                  className="rounded-2xl border bg-white/55 p-4"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                >
+                  <Link
+                    href={`/plants/${p.plant.slug}`}
+                    className="text-sm font-semibold text-neutral-900 hover:underline"
+                  >
                     {p.plant.commonName}
                   </Link>
                   <div className="mt-1 text-xs text-neutral-700">
@@ -250,6 +278,13 @@ export default async function BuildSharePage(props: {
             </ul>
           )}
         </section>
+      </div>
+
+      <div className="mt-10">
+        <BuildCommentsSection
+          shareSlug={shareSlug}
+          initialComments={serializedInitialComments}
+        />
       </div>
     </main>
   );

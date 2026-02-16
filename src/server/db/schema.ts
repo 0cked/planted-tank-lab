@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   decimal,
@@ -660,6 +661,30 @@ export const buildVotes = pgTable(
     primaryKey({ columns: [t.buildId, t.userId] }),
     index("idx_build_votes_build").on(t.buildId),
     index("idx_build_votes_user").on(t.userId),
+  ],
+);
+
+export const buildComments = pgTable(
+  "build_comments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    buildId: uuid("build_id")
+      .notNull()
+      .references(() => builds.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    parentId: uuid("parent_id").references((): AnyPgColumn => buildComments.id, {
+      onDelete: "cascade",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_build_comments_build_created").on(t.buildId, t.createdAt),
+    index("idx_build_comments_parent_created").on(t.parentId, t.createdAt),
   ],
 );
 

@@ -259,7 +259,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Add a "Start building" CTA section at the bottom linking to `/builder`.
   - **Verify:** Homepage has meaningful content below the fold. Content sections render correctly. Links work.
 
-- [ ] **P4-4: Build comments**
+- [x] **P4-4: Build comments**
   - Add a `build_comments` table (id, build_id, user_id, body text, created_at, parent_id for threading). Run migration.
   - Add tRPC routes: `builds.addComment`, `builds.listComments`.
   - On the shared build page (`/builds/[shareSlug]`), add a comments section below the build.

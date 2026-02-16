@@ -5,6 +5,7 @@ import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import {
+  buildComments,
   buildItems,
   buildReports,
   buildVotes,
@@ -13,6 +14,7 @@ import {
   offers,
   plants,
   products,
+  users,
 } from "@/server/db/schema";
 import {
   adminProcedure,
@@ -29,6 +31,35 @@ const buildFlagsSchema = z
     lowTechNoCo2: z.boolean().optional(),
   })
   .optional();
+
+const commentBodySchema = z.string().trim().min(1).max(2000);
+
+type BuildCommentSummary = {
+  id: string;
+  parentId: string | null;
+  body: string;
+  createdAt: Date;
+  author: {
+    id: string;
+    name: string;
+  };
+};
+
+function displayNameForCommentAuthor(params: {
+  displayName: string | null;
+  email: string | null;
+}): string {
+  const trimmedDisplayName = params.displayName?.trim();
+  if (trimmedDisplayName) return trimmedDisplayName;
+
+  const localPart = params.email
+    ?.split("@")[0]
+    ?.replace(/[._-]+/g, " ")
+    .trim();
+
+  if (localPart) return localPart;
+  return "Community member";
+}
 
 async function computeTotalPriceCents(
   tx: PostgresJsDatabase<typeof fullSchema>,
@@ -276,6 +307,143 @@ export const buildsRouter = createTRPCRouter({
       });
 
       return { ok: true as const };
+    }),
+
+  addComment: protectedProcedure
+    .input(
+      z.object({
+        shareSlug: z.string().min(1).max(20),
+        body: commentBodySchema,
+        parentId: z.string().uuid().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const buildRow = await ctx.db
+        .select({ id: builds.id })
+        .from(builds)
+        .where(eq(builds.shareSlug, input.shareSlug))
+        .limit(1);
+      const buildId = buildRow[0]?.id;
+
+      if (!buildId) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      if (input.parentId) {
+        const parentRows = await ctx.db
+          .select({ id: buildComments.id, parentId: buildComments.parentId })
+          .from(buildComments)
+          .where(
+            and(
+              eq(buildComments.id, input.parentId),
+              eq(buildComments.buildId, buildId),
+            ),
+          )
+          .limit(1);
+
+        const parent = parentRows[0];
+        if (!parent) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Parent comment not found.",
+          });
+        }
+
+        if (parent.parentId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Only one level of replies is supported.",
+          });
+        }
+      }
+
+      const insertedRows = await ctx.db
+        .insert(buildComments)
+        .values({
+          buildId,
+          userId: ctx.session.user.id,
+          body: input.body,
+          parentId: input.parentId ?? null,
+        })
+        .returning({
+          id: buildComments.id,
+          createdAt: buildComments.createdAt,
+        });
+
+      const inserted = insertedRows[0];
+      if (!inserted) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Unable to save comment.",
+        });
+      }
+
+      return inserted;
+    }),
+
+  listComments: publicProcedure
+    .input(z.object({ shareSlug: z.string().min(1).max(20) }))
+    .query(async ({ ctx, input }) => {
+      const buildRow = await ctx.db
+        .select({ id: builds.id })
+        .from(builds)
+        .where(eq(builds.shareSlug, input.shareSlug))
+        .limit(1);
+      const buildId = buildRow[0]?.id;
+
+      if (!buildId) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      const rows = await ctx.db
+        .select({
+          id: buildComments.id,
+          parentId: buildComments.parentId,
+          body: buildComments.body,
+          createdAt: buildComments.createdAt,
+          authorId: users.id,
+          authorDisplayName: users.displayName,
+          authorEmail: users.email,
+        })
+        .from(buildComments)
+        .innerJoin(users, eq(buildComments.userId, users.id))
+        .where(eq(buildComments.buildId, buildId))
+        .orderBy(buildComments.createdAt);
+
+      const commentRows: BuildCommentSummary[] = rows.map((row) => ({
+        id: row.id,
+        parentId: row.parentId,
+        body: row.body,
+        createdAt: row.createdAt,
+        author: {
+          id: row.authorId,
+          name: displayNameForCommentAuthor({
+            displayName: row.authorDisplayName,
+            email: row.authorEmail,
+          }),
+        },
+      }));
+
+      const topLevelComments: BuildCommentSummary[] = [];
+      const repliesByParentId = new Map<string, BuildCommentSummary[]>();
+
+      for (const comment of commentRows) {
+        if (!comment.parentId) {
+          topLevelComments.push(comment);
+          continue;
+        }
+
+        const replies = repliesByParentId.get(comment.parentId) ?? [];
+        replies.push(comment);
+        repliesByParentId.set(comment.parentId, replies);
+      }
+
+      return {
+        comments: topLevelComments.map((comment) => ({
+          ...comment,
+          replies: repliesByParentId.get(comment.id) ?? [],
+        })),
+      };
     }),
 
   getByShareSlug: publicProcedure
