@@ -6,7 +6,8 @@
       "category": "plant",
       "defaultScale": 0.72,
       "placementZone": "midground",
-      "triangleCount": 12
+      "triangleCount": 12,
+      "fallbackPlantType": "rosette"
     },
     "2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a": {
       "path": "/visual-assets/hardscape/test-seiryu.glb",

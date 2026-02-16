@@ -24,6 +24,10 @@ import type {
   VisualTank,
 } from "@/components/builder/visual/types";
 import {
+  getProceduralPlantModel,
+  proceduralPlantSeedFromString,
+} from "@/components/builder/visual/ProceduralPlants";
+import {
   applySubstrateBrush,
   buildTransformFromNormalized,
   clamp01,
@@ -35,7 +39,7 @@ import {
   type SceneDims,
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
-import { useAsset } from "@/components/builder/visual/useAsset";
+import { useAsset, type ResolvedVisualAsset } from "@/components/builder/visual/useAsset";
 import {
   normalizeSubstrateHeightfield,
   SUBSTRATE_HEIGHTFIELD_RESOLUTION,
@@ -761,8 +765,57 @@ function CinematicCameraRig(props: {
   );
 }
 
+function ProceduralPlantMesh(props: {
+  renderItem: SceneRenderItem;
+  resolvedAsset: ResolvedVisualAsset;
+  highlightColor: string | null;
+}) {
+  const seed = useMemo(
+    () => proceduralPlantSeedFromString(props.renderItem.asset.id),
+    [props.renderItem.asset.id],
+  );
+  const proceduralType = props.resolvedAsset.proceduralPlantType ?? "rosette";
+  const model = useMemo(
+    () =>
+      getProceduralPlantModel({
+        type: proceduralType,
+        seed,
+      }),
+    [proceduralType, seed],
+  );
+  const material = useMemo(() => {
+    const next = new THREE.MeshStandardMaterial({
+      color: "#ffffff",
+      roughness: 0.76,
+      metalness: 0.04,
+      side: THREE.DoubleSide,
+      vertexColors: true,
+    });
+    return next;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      material.dispose();
+    };
+  }, [material]);
+
+  const scale: [number, number, number] = [
+    props.renderItem.size.width / Math.max(0.001, model.bounds.x),
+    props.renderItem.size.height / Math.max(0.001, model.bounds.y),
+    props.renderItem.size.depth / Math.max(0.001, model.bounds.z),
+  ];
+
+  return (
+    <mesh castShadow receiveShadow geometry={model.geometry} material={material} scale={scale}>
+      {props.highlightColor ? <Edges color={props.highlightColor} threshold={22} /> : null}
+    </mesh>
+  );
+}
+
 function ProceduralItemMesh(props: {
   renderItem: SceneRenderItem;
+  resolvedAsset: ResolvedVisualAsset;
   palette: string[];
   highlightColor: string | null;
 }) {
@@ -772,30 +825,11 @@ function ProceduralItemMesh(props: {
 
   if (props.renderItem.asset.categorySlug === "plants") {
     return (
-      <group>
-        {Array.from({ length: 4 }).map((_, index) => {
-          const hue = props.palette[index % props.palette.length] ?? props.palette[0] ?? "#4f9f5f";
-          const localScale = 0.76 + index * 0.18;
-          const localHeight = height * localScale;
-          const localWidth = Math.max(0.2, width * 0.17 * localScale);
-          return (
-            <mesh
-              key={index}
-              castShadow
-              receiveShadow
-              position={[
-                Math.sin(index * 1.73) * width * 0.14,
-                localHeight * 0.5,
-                Math.cos(index * 1.73) * depth * 0.14,
-              ]}
-            >
-              <coneGeometry args={[localWidth, localHeight, 7]} />
-              <meshStandardMaterial color={hue} roughness={0.74} metalness={0.06} />
-              {props.highlightColor ? <Edges color={props.highlightColor} threshold={22} /> : null}
-            </mesh>
-          );
-        })}
-      </group>
+      <ProceduralPlantMesh
+        renderItem={props.renderItem}
+        resolvedAsset={props.resolvedAsset}
+        highlightColor={props.highlightColor}
+      />
     );
   }
 
@@ -872,6 +906,7 @@ function ItemMesh(props: {
   const proceduralMesh = (
     <ProceduralItemMesh
       renderItem={props.renderItem}
+      resolvedAsset={resolvedAsset}
       palette={palette}
       highlightColor={highlightColor}
     />
@@ -987,16 +1022,18 @@ function InstancedPlantRenderer(props: {
         matrixObject.scale.setScalar(uniformScale);
       } else {
         matrixObject.scale.set(
-          Math.max(0.08, renderItem.size.width * 0.44) * pulse,
-          Math.max(0.2, renderItem.size.height) * pulse,
-          Math.max(0.08, renderItem.size.depth * 0.44) * pulse,
+          (renderItem.size.width / Math.max(0.001, props.bounds.x)) * pulse,
+          (renderItem.size.height / Math.max(0.001, props.bounds.y)) * pulse,
+          (renderItem.size.depth / Math.max(0.001, props.bounds.z)) * pulse,
         );
       }
 
       matrixObject.updateMatrix();
       mesh.setMatrixAt(index, matrixObject.matrix);
 
-      const baseColor = palette[index % palette.length] ?? palette[0] ?? "#4f9f5f";
+      const baseColor = props.loadedModel
+        ? (palette[index % palette.length] ?? palette[0] ?? "#4f9f5f")
+        : "#ffffff";
       color.set(isSelected ? "#cbf2dd" : isHovered ? "#d6e9ff" : baseColor);
       mesh.setColorAt(index, color);
     }
@@ -1146,24 +1183,30 @@ function PlantInstancedGroupMesh(props: {
   );
   const failedPath = failedAssetModel?.assetId === props.group.asset.id ? failedAssetModel.path : null;
   const resolvedAsset = useAsset(props.group.asset, { failedPath });
-  const palette = useMemo(() => materialPalette(props.group.asset), [props.group.asset]);
-
-  const fallbackGeometry = useMemo(() => new THREE.ConeGeometry(0.5, 1, 8), []);
-  const fallbackMaterial = useMemo(() => {
-    const material = new THREE.MeshStandardMaterial({
-      color: palette[1] ?? PLANT_COLORS[1],
-      roughness: 0.74,
-      metalness: 0.06,
-    });
-    material.vertexColors = true;
-    return material;
-  }, [palette]);
-
-  useEffect(() => {
-    return () => {
-      fallbackGeometry.dispose();
-    };
-  }, [fallbackGeometry]);
+  const proceduralSeed = useMemo(
+    () => proceduralPlantSeedFromString(props.group.asset.id),
+    [props.group.asset.id],
+  );
+  const proceduralType = resolvedAsset.proceduralPlantType ?? "rosette";
+  const fallbackModel = useMemo(
+    () =>
+      getProceduralPlantModel({
+        type: proceduralType,
+        seed: proceduralSeed,
+      }),
+    [proceduralSeed, proceduralType],
+  );
+  const fallbackMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#ffffff",
+        roughness: 0.76,
+        metalness: 0.04,
+        side: THREE.DoubleSide,
+        vertexColors: true,
+      }),
+    [],
+  );
 
   useEffect(() => {
     return () => {
@@ -1174,9 +1217,9 @@ function PlantInstancedGroupMesh(props: {
   const fallbackNode = (
     <InstancedPlantRenderer
       group={props.group}
-      geometry={fallbackGeometry}
+      geometry={fallbackModel.geometry}
       material={fallbackMaterial}
-      bounds={new THREE.Vector3(1, 1, 1)}
+      bounds={fallbackModel.bounds}
       loadedModel={false}
       selectedItemId={props.selectedItemId}
       hoveredItemId={props.hoveredItemId}

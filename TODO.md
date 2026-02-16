@@ -182,7 +182,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Keep the existing plant sway animation — apply subtle sine rotation to loaded models too.
   - **Verify:** Builder still works identically with no GLB files present (procedural fallback). Add a test GLB to the manifest — it loads and renders.
 
-- [ ] **P2-2: Procedural plant geometry**
+- [x] **P2-2: Procedural plant geometry**
   - Replace the colored cones with parametric plant meshes generated in code (no external files needed).
   - Create `src/components/builder/visual/ProceduralPlants.tsx` with 5 generators:
     - **Rosette** (sword/crypt): radial leaf arrangement using elongated ellipsoid geometries fanning from a central point.

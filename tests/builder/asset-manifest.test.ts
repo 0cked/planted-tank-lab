@@ -56,6 +56,7 @@ describe("useAsset manifest resolution", () => {
     expect(resolved.manifestKey).toBe("plant:java-fern");
     expect(resolved.glbPath).toBe("/visual-assets/plants/test-fern.glb");
     expect(resolved.category).toBe("plant");
+    expect(resolved.proceduralPlantType).toBe("rosette");
   });
 
   it("falls back to procedural geometry when the GLB path has failed", () => {
@@ -64,6 +65,7 @@ describe("useAsset manifest resolution", () => {
 
     expect(resolved.glbPath).toBeNull();
     expect(resolved.fallbackKind).toBe("plant");
+    expect(resolved.proceduralPlantType).toBe("rosette");
   });
 
   it("infers wood fallback for hardscape assets without manifest entries", () => {
@@ -93,5 +95,52 @@ describe("useAsset manifest resolution", () => {
     expect(resolved.manifestKey).toBeNull();
     expect(resolved.glbPath).toBeNull();
     expect(resolved.fallbackKind).toBe("wood");
+    expect(resolved.proceduralPlantType).toBeNull();
+  });
+
+  it("infers floating fallback type from placement when manifest is absent", () => {
+    const asset = buildAsset({
+      id: "floating-plant-id",
+      slug: "red-root-floater",
+      name: "Red Root Floater",
+    });
+
+    if (!asset.plantProfile) {
+      throw new Error("test asset is missing plant profile");
+    }
+
+    const resolved = useAsset({
+      ...asset,
+      plantProfile: {
+        ...asset.plantProfile,
+        placement: "floating",
+      },
+    });
+
+    expect(resolved.manifestKey).toBeNull();
+    expect(resolved.proceduralPlantType).toBe("floating");
+  });
+
+  it("infers stem fallback type for common background stem plants", () => {
+    const asset = buildAsset({
+      id: "rotala-id",
+      slug: "rotala-rotundifolia",
+      name: "Rotala Rotundifolia",
+    });
+
+    if (!asset.plantProfile) {
+      throw new Error("test asset is missing plant profile");
+    }
+
+    const resolved = useAsset({
+      ...asset,
+      plantProfile: {
+        ...asset.plantProfile,
+        placement: "background",
+      },
+    });
+
+    expect(resolved.manifestKey).toBeNull();
+    expect(resolved.proceduralPlantType).toBe("stem");
   });
 });

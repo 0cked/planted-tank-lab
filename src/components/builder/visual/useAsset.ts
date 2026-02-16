@@ -14,12 +14,20 @@ type ManifestPlacementZone =
   | "floating"
   | "any";
 
+export type ProceduralPlantFallbackType =
+  | "rosette"
+  | "stem"
+  | "moss"
+  | "carpet"
+  | "floating";
+
 type ManifestEntry = {
   path?: string | null;
   category?: ManifestCategory;
   defaultScale?: number;
   placementZone?: ManifestPlacementZone;
   triangleCount?: number;
+  fallbackPlantType?: ProceduralPlantFallbackType;
 };
 
 type AssetManifest = {
@@ -37,6 +45,7 @@ export type ResolvedVisualAsset = {
   placementZone: ManifestPlacementZone;
   triangleCount: number | null;
   fallbackKind: AssetFallbackKind;
+  proceduralPlantType: ProceduralPlantFallbackType | null;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -44,6 +53,15 @@ function asRecord(value: unknown): Record<string, unknown> {
     return {};
   }
   return value as Record<string, unknown>;
+}
+
+function normalizePlantFallbackType(value: unknown): ProceduralPlantFallbackType | undefined {
+  if (value === "rosette") return "rosette";
+  if (value === "stem") return "stem";
+  if (value === "moss") return "moss";
+  if (value === "carpet") return "carpet";
+  if (value === "floating") return "floating";
+  return undefined;
 }
 
 function normalizeManifest(input: unknown): AssetManifest {
@@ -79,6 +97,7 @@ function normalizeManifest(input: unknown): AssetManifest {
         typeof row.triangleCount === "number" && Number.isFinite(row.triangleCount)
           ? Math.max(0, Math.round(row.triangleCount))
           : undefined,
+      fallbackPlantType: normalizePlantFallbackType(row.fallbackPlantType),
     };
   }
 
@@ -160,6 +179,56 @@ function sanitizeModelPath(path: string | null | undefined): string | null {
   return trimmed;
 }
 
+function includesAny(text: string, terms: string[]): boolean {
+  for (const term of terms) {
+    if (text.includes(term)) return true;
+  }
+  return false;
+}
+
+function inferPlantFallbackType(asset: VisualAsset): ProceduralPlantFallbackType {
+  const placement = asset.plantProfile?.placement?.toLowerCase() ?? "";
+  const tags = asset.tags?.join(" ").toLowerCase() ?? "";
+  const haystack = `${asset.name} ${asset.slug} ${placement} ${tags}`.toLowerCase();
+
+  if (
+    placement.includes("floating") ||
+    includesAny(haystack, ["duckweed", "frogbit", "salvinia", "water lettuce", "red root"])
+  ) {
+    return "floating";
+  }
+
+  if (includesAny(haystack, ["moss", "riccia", "pellia", "fissidens"])) {
+    return "moss";
+  }
+
+  if (
+    placement.includes("foreground") ||
+    includesAny(haystack, ["carpet", "monte carlo", "hairgrass", "hemianthus", "glosso", "lilaeopsis"])
+  ) {
+    return "carpet";
+  }
+
+  if (
+    placement.includes("background") ||
+    includesAny(haystack, ["stem", "rotala", "ludwigia", "bacopa", "hygrophila", "cabomba"])
+  ) {
+    return "stem";
+  }
+
+  return "rosette";
+}
+
+function resolveProceduralPlantType(
+  asset: VisualAsset,
+  fallbackKind: AssetFallbackKind,
+  entry: ManifestEntry | null,
+): ProceduralPlantFallbackType | null {
+  if (fallbackKind !== "plant") return null;
+  if (entry?.fallbackPlantType) return entry.fallbackPlantType;
+  return inferPlantFallbackType(asset);
+}
+
 export function useAsset(
   asset: VisualAsset,
   options?: {
@@ -180,5 +249,6 @@ export function useAsset(
     placementZone: entry?.placementZone ?? inferPlacementZone(asset),
     triangleCount: entry?.triangleCount ?? null,
     fallbackKind,
+    proceduralPlantType: resolveProceduralPlantType(asset, fallbackKind, entry),
   };
 }
