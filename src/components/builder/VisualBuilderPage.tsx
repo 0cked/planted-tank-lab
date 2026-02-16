@@ -2123,7 +2123,7 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 <pre className="mt-2 max-h-[40vh] overflow-x-auto overflow-y-auto overscroll-contain rounded bg-slate-950/70 p-2 pr-3 text-[10px] leading-relaxed text-slate-300 sm:max-h-72">{cameraEvidenceSnapshot}</pre>
               ) : null}
 
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2 flex items-center justify-between gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -2133,12 +2133,15 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
                 >
                   Copy snapshot JSON
                 </button>
-                {cameraEvidenceCopyStatus === "copied" ? (
-                  <span className="text-[10px] font-semibold text-emerald-200">Copied</span>
-                ) : null}
-                {cameraEvidenceCopyStatus === "error" ? (
-                  <span className="text-[10px] font-semibold text-rose-200">Copy failed</span>
-                ) : null}
+
+                <div className="min-h-[18px] text-right">
+                  {cameraEvidenceCopyStatus === "copied" ? (
+                    <span className="rounded-full border border-emerald-300/40 bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-100">Copied</span>
+                  ) : null}
+                  {cameraEvidenceCopyStatus === "error" ? (
+                    <span className="rounded-full border border-rose-300/40 bg-rose-400/20 px-2 py-0.5 text-[10px] font-semibold text-rose-100">Copy failed</span>
+                  ) : null}
+                </div>
               </div>
             </div>
 

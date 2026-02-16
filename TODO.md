@@ -413,9 +413,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T053
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T055 — Camera Evidence Copy Feedback Placement Polish**
+- [x] **T055 — Camera Evidence Copy Feedback Placement Polish**
   - **Goal:** Reposition copy-status feedback for better visibility without competing with summary/event hierarchy.
   - **Why it matters:** Keeps confirmation/error states noticeable while preserving scan path from summary → events → actions.
   - **Definition of Done:** Copy feedback remains clear and non-sticky, with placement that avoids crowding dense evidence rows.
   - **Dependencies:** T054
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T056 — Camera Evidence Action Row Spacing/Density Fine-Tune**
+  - **Goal:** Fine-tune action-row spacing and vertical rhythm for copy/reset controls under compact evidence layouts.
+  - **Why it matters:** Maintains calm, scannable control affordances after density/contrast updates.
+  - **Definition of Done:** Action controls preserve clear hit targets and balanced spacing with no overlap/crowding across common viewport sizes.
+  - **Dependencies:** T055
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)
