@@ -406,9 +406,16 @@ Purpose: Convert product feedback into an actionable, architecture-first refacto
   - **Dependencies:** T052
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
 
-- [ ] **T054 — Camera Evidence Summary/Event Contrast Tuning**
+- [x] **T054 — Camera Evidence Summary/Event Contrast Tuning**
   - **Goal:** Increase visual contrast between one-line metrics and last-event rows for quicker parsing under repeated gate capture.
   - **Why it matters:** Helps operators separate aggregate status from recent-event detail at a glance.
   - **Definition of Done:** Metrics row and last-event stack have clearer hierarchy (tone/weight/spacing) while preserving compact density and existing actions.
   - **Dependencies:** T053
+  - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (updated)
+
+- [ ] **T055 — Camera Evidence Copy Feedback Placement Polish**
+  - **Goal:** Reposition copy-status feedback for better visibility without competing with summary/event hierarchy.
+  - **Why it matters:** Keeps confirmation/error states noticeable while preserving scan path from summary → events → actions.
+  - **Definition of Done:** Copy feedback remains clear and non-sticky, with placement that avoids crowding dense evidence rows.
+  - **Dependencies:** T054
   - **Artifacts:** `src/components/builder/VisualBuilderPage.tsx` (planned updates)

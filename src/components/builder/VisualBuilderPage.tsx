@@ -2078,27 +2078,34 @@ export function VisualBuilderPage(props: { initialBuild?: InitialBuildResponse |
               <div className="mb-1 text-[11px] font-semibold text-slate-100">Gate snapshot</div>
               <div className="mb-2 text-[10px] text-slate-400">Captured: {cameraEvidenceCapturedAtLabel}</div>
 
-              <div className="rounded bg-slate-950/70 p-2 text-[10px] text-slate-300">
-                <div className="overflow-x-auto whitespace-nowrap">
-                  Step <span className="font-semibold text-slate-100">{cameraEvidenceSummary.step}</span> · Mode <span className="font-semibold text-slate-100">{cameraEvidenceSummary.mode}</span> · S01 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s01}</span> · S02 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s02}</span> · S03 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s03}</span> · Intents <span className="font-semibold text-slate-100">{cameraEvidenceSummary.intentCount}</span> · Deltas <span className="font-semibold text-slate-100">{cameraEvidenceSummary.unexpectedPoseDeltas}</span>
+              <div className="space-y-1.5">
+                <div className="rounded border border-cyan-300/20 bg-slate-950/80 p-2 text-[10px] text-slate-300">
+                  <div className="mb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-cyan-100/75">Summary</div>
+                  <div className="overflow-x-auto whitespace-nowrap">
+                    Step <span className="font-semibold text-slate-100">{cameraEvidenceSummary.step}</span> · Mode <span className="font-semibold text-slate-100">{cameraEvidenceSummary.mode}</span> · S01 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s01}</span> · S02 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s02}</span> · S03 <span className="font-semibold text-slate-100">{cameraEvidenceSummary.s03}</span> · Intents <span className="font-semibold text-slate-100">{cameraEvidenceSummary.intentCount}</span> · Deltas <span className="font-semibold text-slate-100">{cameraEvidenceSummary.unexpectedPoseDeltas}</span>
+                  </div>
                 </div>
-                <div className="mt-1 text-[10px] leading-tight text-slate-300">
-                  <span className="mr-1">Last intent:</span>
-                  <span
-                    className="font-semibold text-slate-100"
-                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
-                  >
-                    {cameraEvidenceSummary.lastIntent}
-                  </span>
-                </div>
-                <div className="mt-0.5 text-[10px] leading-tight text-slate-300">
-                  <span className="mr-1">Last delta:</span>
-                  <span
-                    className="font-semibold text-slate-100"
-                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
-                  >
-                    {cameraEvidenceSummary.lastPoseDelta}
-                  </span>
+
+                <div className="rounded border border-white/10 bg-slate-900/55 p-2 text-[10px] text-slate-300">
+                  <div className="mb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300/85">Last events</div>
+                  <div className="text-[10px] leading-tight text-slate-300">
+                    <span className="mr-1 text-slate-400">Last intent:</span>
+                    <span
+                      className="font-semibold text-slate-100"
+                      style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                    >
+                      {cameraEvidenceSummary.lastIntent}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 text-[10px] leading-tight text-slate-300">
+                    <span className="mr-1 text-slate-400">Last delta:</span>
+                    <span
+                      className="font-semibold text-slate-100"
+                      style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                    >
+                      {cameraEvidenceSummary.lastPoseDelta}
+                    </span>
+                  </div>
                 </div>
               </div>
 
