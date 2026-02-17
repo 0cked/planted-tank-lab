@@ -290,4 +290,18 @@ describe("visual-builder-store canvas item actions", () => {
     expect(hydratedItem?.transform.rotation[1]).toBeCloseTo((72 * Math.PI) / 180, 4);
     expect(hydratedItem?.transform.scale).toEqual([1.85, 1.85, 1.85]);
   });
+
+  it("defaults grid snap off and preserves the toggle in saved payloads", () => {
+    const store = useVisualBuilderStore.getState();
+
+    expect(store.canvasState.sceneSettings.gridSnapEnabled).toBe(false);
+
+    store.setSceneSettings({ gridSnapEnabled: true });
+
+    const stateAfterToggle = useVisualBuilderStore.getState();
+    expect(stateAfterToggle.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
+
+    const payload = stateAfterToggle.toBuildPayload({ bomLineItems: [] });
+    expect(payload.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
+  });
 });

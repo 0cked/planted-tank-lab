@@ -11,11 +11,13 @@ type BuilderSceneToolbarProps = {
   placementRotationDeg: number;
   clusterBrushCount: number;
   guidesVisible: boolean;
+  gridSnapEnabled: boolean;
   shortcutsOpen: boolean;
   onToolModeChange: (mode: BuilderSceneToolMode) => void;
   onPlacementRotationChange: (value: number) => void;
   onClusterBrushCountChange: (value: number) => void;
   onToggleGuides: () => void;
+  onToggleGridSnap: () => void;
   onToggleShortcuts: () => void;
 };
 
@@ -94,6 +96,18 @@ export function BuilderSceneToolbar(props: BuilderSceneToolbarProps) {
         className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-xs font-semibold text-slate-200"
       >
         {props.guidesVisible ? "Hide guides" : "Show guides"}
+      </button>
+
+      <button
+        onClick={props.onToggleGridSnap}
+        aria-pressed={props.gridSnapEnabled}
+        className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold ${
+          props.gridSnapEnabled
+            ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
+            : "border-white/20 bg-slate-950/70 text-slate-200"
+        }`}
+      >
+        {props.gridSnapEnabled ? "Grid snap on" : "Grid snap off"}
       </button>
 
       <button

@@ -125,6 +125,7 @@ export type VisualSceneSettings = {
   qualityTier: "auto" | "high" | "medium" | "low";
   postprocessingEnabled: boolean;
   guidesVisible: boolean;
+  gridSnapEnabled: boolean;
   glassWallsEnabled: boolean;
   ambientParticlesEnabled: boolean;
   audioEnabled: boolean;

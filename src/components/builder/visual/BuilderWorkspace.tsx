@@ -98,6 +98,7 @@ export type BuilderWorkspaceProps = {
   onPlacementRotationChange: (value: number) => void;
   onClusterBrushCountChange: (value: number) => void;
   onToggleGuides: () => void;
+  onToggleGridSnap: () => void;
   shortcutsOverlayOpen: boolean;
   onToggleShortcutsOverlay: () => void;
   onCloseShortcutsOverlay: () => void;
@@ -186,11 +187,13 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       placementRotationDeg={props.placementRotationDeg}
       clusterBrushCount={props.clusterBrushCount}
       guidesVisible={props.canvasState.sceneSettings.guidesVisible}
+      gridSnapEnabled={props.canvasState.sceneSettings.gridSnapEnabled}
       shortcutsOpen={props.shortcutsOverlayOpen}
       onToolModeChange={props.onToolModeChange}
       onPlacementRotationChange={props.onPlacementRotationChange}
       onClusterBrushCountChange={props.onClusterBrushCountChange}
       onToggleGuides={props.onToggleGuides}
+      onToggleGridSnap={props.onToggleGridSnap}
       onToggleShortcuts={props.onToggleShortcutsOverlay}
     />
   );
@@ -208,6 +211,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       placementRotationDeg={props.placementRotationDeg}
       placementClusterCount={props.clusterBrushCount}
       showDepthGuides={props.canvasState.sceneSettings.guidesVisible}
+      gridSnapEnabled={props.canvasState.sceneSettings.gridSnapEnabled}
       qualityTier={props.qualityTier}
       postprocessingEnabled={props.canvasState.sceneSettings.postprocessingEnabled}
       glassWallsEnabled={props.canvasState.sceneSettings.glassWallsEnabled}

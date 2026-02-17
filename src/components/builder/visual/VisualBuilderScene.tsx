@@ -128,6 +128,7 @@ type VisualBuilderSceneProps = {
   placementRotationDeg: number;
   placementClusterCount: number;
   showDepthGuides: boolean;
+  gridSnapEnabled: boolean;
   qualityTier: BuilderSceneQualityTier;
   postprocessingEnabled: boolean;
   glassWallsEnabled: boolean;
@@ -243,6 +244,7 @@ const SIMPLEX_GRADIENTS_2D: ReadonlyArray<[number, number]> = [
 ];
 const DISABLED_RAYCAST: THREE.Mesh["raycast"] = () => undefined;
 const DISABLED_POINTS_RAYCAST: THREE.Points["raycast"] = () => undefined;
+const DISABLED_LINE_SEGMENTS_RAYCAST: THREE.LineSegments["raycast"] = () => undefined;
 const TRANSFORM_HANDLE_RING_COLOR = "#8fd3ff";
 const TRANSFORM_HANDLE_SCALE_COLOR = "#9ceec5";
 const TRANSFORM_HANDLE_RING_EMISSIVE = "#2f6f96";
@@ -366,6 +368,46 @@ function clampPointToTankBounds(point: THREE.Vector3, dims: SceneDims): THREE.Ve
     THREE.MathUtils.clamp(point.y, 0, dims.heightIn),
     THREE.MathUtils.clamp(point.z, -dims.depthIn * 0.49, dims.depthIn * 0.49),
   );
+}
+
+function inchGridStepNormalized(sizeIn: number): number {
+  if (!Number.isFinite(sizeIn) || sizeIn <= 0) return 1;
+  return 1 / Math.max(1, sizeIn);
+}
+
+function snapNormalizedToInchGrid(value: number, sizeIn: number): number {
+  const step = inchGridStepNormalized(sizeIn);
+  if (!Number.isFinite(step) || step <= 0) return clamp01(value);
+
+  const clampedValue = clamp01(value);
+  const snappedValue = clamp01(Math.round(clampedValue / step) * step);
+
+  const minInterior = step;
+  const maxInterior = 1 - step;
+  if (minInterior >= maxInterior) {
+    return 0.5;
+  }
+
+  return THREE.MathUtils.clamp(snappedValue, minInterior, maxInterior);
+}
+
+function buildInchGridAxisValues(sizeIn: number): number[] {
+  const safeSize = Math.max(1, sizeIn);
+  const step = inchGridStepNormalized(safeSize);
+
+  const axisValues: number[] = [0];
+  let nextValue = step;
+
+  while (nextValue < 1) {
+    axisValues.push(clamp01(nextValue));
+    nextValue += step;
+  }
+
+  if ((axisValues[axisValues.length - 1] ?? 0) < 1) {
+    axisValues.push(1);
+  }
+
+  return axisValues;
 }
 
 function clampRotation(rotation: number): number {
@@ -2716,6 +2758,98 @@ function SubstrateCausticMaterial(props: {
   );
 }
 
+function SubstrateSnapGridOverlay(props: {
+  dims: SceneDims;
+  substrateHeightfield: SubstrateHeightfield;
+}) {
+  const geometry = useMemo(() => {
+    const positions: number[] = [];
+    const xAxis = buildInchGridAxisValues(props.dims.widthIn);
+    const zAxis = buildInchGridAxisValues(props.dims.depthIn);
+    const yOffset = 0.035;
+
+    for (const zNorm of zAxis) {
+      const zWorld = (zNorm - 0.5) * props.dims.depthIn;
+
+      for (let index = 0; index < xAxis.length - 1; index += 1) {
+        const startXNorm = xAxis[index] ?? 0;
+        const endXNorm = xAxis[index + 1] ?? 1;
+
+        const startXWorld = (startXNorm - 0.5) * props.dims.widthIn;
+        const endXWorld = (endXNorm - 0.5) * props.dims.widthIn;
+
+        const startY =
+          sampleSubstrateDepth({
+            xNorm: startXNorm,
+            zNorm,
+            heightfield: props.substrateHeightfield,
+            tankHeightIn: props.dims.heightIn,
+          }) + yOffset;
+        const endY =
+          sampleSubstrateDepth({
+            xNorm: endXNorm,
+            zNorm,
+            heightfield: props.substrateHeightfield,
+            tankHeightIn: props.dims.heightIn,
+          }) + yOffset;
+
+        positions.push(startXWorld, startY, zWorld, endXWorld, endY, zWorld);
+      }
+    }
+
+    for (const xNorm of xAxis) {
+      const xWorld = (xNorm - 0.5) * props.dims.widthIn;
+
+      for (let index = 0; index < zAxis.length - 1; index += 1) {
+        const startZNorm = zAxis[index] ?? 0;
+        const endZNorm = zAxis[index + 1] ?? 1;
+
+        const startZWorld = (startZNorm - 0.5) * props.dims.depthIn;
+        const endZWorld = (endZNorm - 0.5) * props.dims.depthIn;
+
+        const startY =
+          sampleSubstrateDepth({
+            xNorm,
+            zNorm: startZNorm,
+            heightfield: props.substrateHeightfield,
+            tankHeightIn: props.dims.heightIn,
+          }) + yOffset;
+        const endY =
+          sampleSubstrateDepth({
+            xNorm,
+            zNorm: endZNorm,
+            heightfield: props.substrateHeightfield,
+            tankHeightIn: props.dims.heightIn,
+          }) + yOffset;
+
+        positions.push(xWorld, startY, startZWorld, xWorld, endY, endZWorld);
+      }
+    }
+
+    const nextGeometry = new THREE.BufferGeometry();
+    nextGeometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    return nextGeometry;
+  }, [props.dims.depthIn, props.dims.heightIn, props.dims.widthIn, props.substrateHeightfield]);
+
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+    };
+  }, [geometry]);
+
+  return (
+    <lineSegments geometry={geometry} renderOrder={24} raycast={DISABLED_LINE_SEGMENTS_RAYCAST}>
+      <lineBasicMaterial
+        color="#8fd3ff"
+        transparent
+        opacity={0.28}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </lineSegments>
+  );
+}
+
 function TankShell(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
@@ -2723,6 +2857,7 @@ function TankShell(props: {
   showGlassWalls: boolean;
   showAmbientParticles: boolean;
   showDepthGuides: boolean;
+  showSnapGrid: boolean;
   currentStep: BuilderSceneStep;
   onSurfacePointer: (event: ThreeEvent<PointerEvent>, anchorType: VisualAnchorType, itemId: string | null) => void;
   onSurfaceDown: (event: ThreeEvent<PointerEvent>, anchorType: VisualAnchorType, itemId: string | null) => void;
@@ -2866,6 +3001,13 @@ function TankShell(props: {
       >
         <SubstrateCausticMaterial qualityTier={props.qualityTier} />
       </mesh>
+
+      {props.showSnapGrid ? (
+        <SubstrateSnapGridOverlay
+          dims={props.dims}
+          substrateHeightfield={props.substrateHeightfield}
+        />
+      ) : null}
 
       {props.showDepthGuides && (props.currentStep === "plants" || props.currentStep === "hardscape") ? (
         <group>
@@ -3072,22 +3214,77 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     moveDragRef.current = null;
   }, [props.toolMode]);
 
+  const resolvePlacementCoordinates = (params: {
+    point: THREE.Vector3;
+    anchorType: VisualAnchorType;
+  }): {
+    xNorm: number;
+    yNorm: number;
+    zNorm: number;
+    point: THREE.Vector3;
+  } => {
+    const boundedPoint = clampPointToTankBounds(params.point, dims);
+    const normalizedPoint = worldToNormalized({
+      x: boundedPoint.x,
+      y: boundedPoint.y,
+      z: boundedPoint.z,
+      dims,
+    });
+
+    const shouldSnapToGrid = props.gridSnapEnabled && params.anchorType === "substrate";
+    const xNorm = shouldSnapToGrid
+      ? snapNormalizedToInchGrid(normalizedPoint.x, dims.widthIn)
+      : normalizedPoint.x;
+    const zNorm = shouldSnapToGrid
+      ? snapNormalizedToInchGrid(normalizedPoint.z, dims.depthIn)
+      : normalizedPoint.z;
+
+    if (params.anchorType === "substrate") {
+      const substrateY = sampleSubstrateDepth({
+        xNorm,
+        zNorm,
+        heightfield: props.canvasState.substrateHeightfield,
+        tankHeightIn: dims.heightIn,
+      });
+      const yNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
+      const worldPoint = normalizedToWorld({ x: xNorm, y: yNorm, z: zNorm, dims });
+
+      return {
+        xNorm,
+        yNorm,
+        zNorm,
+        point: new THREE.Vector3(worldPoint.x, substrateY, worldPoint.z),
+      };
+    }
+
+    const worldPoint = normalizedToWorld({
+      x: xNorm,
+      y: normalizedPoint.y,
+      z: zNorm,
+      dims,
+    });
+
+    return {
+      xNorm,
+      yNorm: normalizedPoint.y,
+      zNorm,
+      point: new THREE.Vector3(worldPoint.x, worldPoint.y, worldPoint.z),
+    };
+  };
+
   const evaluatePlacement = (
     nextCandidate: PlacementCandidate | null,
     asset: VisualAsset | null,
   ): { valid: boolean; yNorm: number; xNorm: number; zNorm: number } => {
     if (!nextCandidate || !asset) return { valid: false, yNorm: 0, xNorm: 0, zNorm: 0 };
 
-    const snappedPoint = clampPointToTankBounds(nextCandidate.point, dims);
-
-    const norm = worldToNormalized({
-      x: snappedPoint.x,
-      y: snappedPoint.y,
-      z: snappedPoint.z,
-      dims,
+    const resolvedPlacement = resolvePlacementCoordinates({
+      point: nextCandidate.point,
+      anchorType: nextCandidate.anchorType,
     });
 
-    const yNorm = clamp01(snappedPoint.y / Math.max(1, dims.heightIn));
+    const snappedPoint = resolvedPlacement.point;
+    const yNorm = resolvedPlacement.yNorm;
     const scale = Math.max(0.1, asset.defaultScale);
 
     const mockItem: VisualCanvasItem = {
@@ -3097,14 +3294,14 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       categorySlug: asset.categorySlug,
       sku: asset.sku,
       variant: asset.slug,
-      x: norm.x,
+      x: resolvedPlacement.xNorm,
       y: yNorm,
-      z: norm.z,
+      z: resolvedPlacement.zNorm,
       scale,
       rotation: props.placementRotationDeg,
       layer: 0,
       anchorType: nextCandidate.anchorType,
-      depthZone: depthZoneFromZ(norm.z),
+      depthZone: depthZoneFromZ(resolvedPlacement.zNorm),
       constraints: {
         snapToSurface: true,
         canAttachToHardscape: hasHardscapeAttach(asset),
@@ -3113,9 +3310,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         collisionRadiusIn: 1.5,
       },
       transform: buildTransformFromNormalized({
-        x: norm.x,
+        x: resolvedPlacement.xNorm,
         y: yNorm,
-        z: norm.z,
+        z: resolvedPlacement.zNorm,
         scale,
         rotation: props.placementRotationDeg,
         dims,
@@ -3146,7 +3343,12 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const insideY = snappedPoint.y >= 0 && snappedPoint.y <= dims.heightIn;
     valid = valid && insideX && insideZ && insideY;
 
-    return { valid, xNorm: norm.x, yNorm, zNorm: norm.z };
+    return {
+      valid,
+      xNorm: resolvedPlacement.xNorm,
+      yNorm,
+      zNorm: resolvedPlacement.zNorm,
+    };
   };
 
   const placementValidity = evaluatePlacement(candidate, props.placementAsset);
@@ -3159,10 +3361,18 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
     const count = Math.max(1, props.placementClusterCount);
     const anchorType = activeCandidate.anchorType;
+    const shouldSnapToGrid = props.gridSnapEnabled && anchorType === "substrate";
+
     for (let i = 0; i < count; i += 1) {
       const offset = CLUSTER_OFFSETS[i % CLUSTER_OFFSETS.length] ?? [0, 0];
-      const xNorm = clamp01(validity.xNorm + offset[0] * Math.min(1, props.sculptBrushSize + 0.25));
-      const zNorm = clamp01(validity.zNorm + offset[1] * Math.min(1, props.sculptBrushSize + 0.25));
+      let xNorm = clamp01(validity.xNorm + offset[0] * Math.min(1, props.sculptBrushSize + 0.25));
+      let zNorm = clamp01(validity.zNorm + offset[1] * Math.min(1, props.sculptBrushSize + 0.25));
+
+      if (shouldSnapToGrid) {
+        xNorm = snapNormalizedToInchGrid(xNorm, dims.widthIn);
+        zNorm = snapNormalizedToInchGrid(zNorm, dims.depthIn);
+      }
+
       const substrateY = sampleSubstrateDepth({
         xNorm,
         zNorm,
@@ -3343,8 +3553,16 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const surfaceNormal = event.face?.normal
       ? event.face.normal.clone().transformDirection(event.object.matrixWorld)
       : WORLD_UP.clone();
+    const candidatePoint =
+      props.toolMode === "place" && props.placementAsset
+        ? resolvePlacementCoordinates({
+            point: event.point,
+            anchorType,
+          }).point
+        : event.point.clone();
+
     setCandidate({
-      point: event.point.clone(),
+      point: candidatePoint,
       normal: surfaceNormal,
       anchorType,
       anchorItemId: itemId,
@@ -3378,7 +3596,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         ? event.face.normal.clone().transformDirection(event.object.matrixWorld)
         : WORLD_UP.clone();
       const immediateCandidate: PlacementCandidate = {
-        point: event.point.clone(),
+        point: resolvePlacementCoordinates({
+          point: event.point,
+          anchorType,
+        }).point,
         normal: surfaceNormal,
         anchorType,
         anchorItemId: itemId,
@@ -3432,6 +3653,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         showGlassWalls={props.glassWallsEnabled && props.qualityTier !== "low"}
         showAmbientParticles={props.ambientParticlesEnabled && props.qualityTier !== "low"}
         showDepthGuides={props.showDepthGuides}
+        showSnapGrid={props.gridSnapEnabled}
         currentStep={props.currentStep}
         onSurfacePointer={handleSurfacePointer}
         onSurfaceDown={handleSurfaceDown}

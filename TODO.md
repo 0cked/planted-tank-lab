@@ -359,7 +359,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Add a "Select all" (Ctrl+A) and "Deselect all" (Escape) shortcut.
   - **Verify:** Shift+click 3 plants. Press D — all 3 duplicated. Drag one — all 3 move. Delete — all 3 removed.
 
-- [ ] **P6-4: Snap-to-grid placement**
+- [x] **P6-4: Snap-to-grid placement**
   - Add a toggleable grid overlay on the substrate surface (1-inch grid lines).
   - When grid snap is on, items placed via click snap to the nearest grid intersection.
   - Grid visibility toggle: small button in the builder toolbar.

@@ -894,6 +894,9 @@ export function useVisualBuilderPageController(
     onToggleGuides: () => {
       setSceneSettings({ guidesVisible: !canvasState.sceneSettings.guidesVisible });
     },
+    onToggleGridSnap: () => {
+      setSceneSettings({ gridSnapEnabled: !canvasState.sceneSettings.gridSnapEnabled });
+    },
     shortcutsOverlayOpen: showShortcutsOverlay,
     onToggleShortcutsOverlay: () => {
       setShowShortcutsOverlay((previous) => !previous);
