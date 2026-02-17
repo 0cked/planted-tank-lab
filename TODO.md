@@ -346,7 +346,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Show a small "?" button in the builder that opens a shortcuts overlay.
   - **Verify:** Select an item, press Delete — it's removed. Press D — duplicate appears. Press ? — shortcuts list shown.
 
-- [ ] **P6-2: Item rotation and scale handles**
+- [x] **P6-2: Item rotation and scale handles**
   - When an item is selected in the 3D scene, show a rotation ring (Y-axis only — plants don't tip sideways) and scale handles.
   - Rotation ring: a torus around the item's base. Drag to rotate freely.
   - Scale: two small spheres on opposite sides. Drag outward to scale up, inward to scale down. Uniform scale only.

@@ -127,4 +127,55 @@ describe("visual-builder-store canvas item actions", () => {
     expect((duplicate!.x ?? 0) - (original?.x ?? 0)).toBeCloseTo(-widthOffset, 4);
     expect((duplicate!.z ?? 0) - (original?.z ?? 0)).toBeCloseTo(-depthOffset, 4);
   });
+
+  it("persists rotation and scale updates through save + hydrate", () => {
+    const store = useVisualBuilderStore.getState();
+
+    store.addCanvasItemFromAsset(TEST_ASSET, {
+      x: 0.45,
+      y: 0,
+      z: 0.55,
+      scale: 1,
+      rotation: 0,
+      anchorType: "substrate",
+      depthZone: "midground",
+    });
+
+    const createdItemId = useVisualBuilderStore.getState().canvasState.items[0]?.id;
+    expect(createdItemId).toBeDefined();
+
+    store.updateCanvasItem(createdItemId!, {
+      rotation: 72,
+      scale: 1.85,
+    });
+
+    const updatedItem = useVisualBuilderStore.getState().canvasState.items[0];
+    expect(updatedItem?.rotation).toBeCloseTo(72, 4);
+    expect(updatedItem?.scale).toBeCloseTo(1.85, 4);
+    expect(updatedItem?.transform.rotation[1]).toBeCloseTo((72 * Math.PI) / 180, 4);
+    expect(updatedItem?.transform.scale).toEqual([1.85, 1.85, 1.85]);
+
+    const payload = useVisualBuilderStore.getState().toBuildPayload({ bomLineItems: [] });
+
+    store.resetAll();
+
+    store.hydrateFromBuild({
+      buildId: "build-transform-1",
+      shareSlug: null,
+      name: payload.name,
+      description: payload.description,
+      tags: payload.tags,
+      isPublic: payload.isPublic,
+      tankId: payload.tankId,
+      canvasState: payload.canvasState,
+      lineItems: [],
+      flags: payload.flags,
+    });
+
+    const hydratedItem = useVisualBuilderStore.getState().canvasState.items[0];
+    expect(hydratedItem?.rotation).toBeCloseTo(72, 4);
+    expect(hydratedItem?.scale).toBeCloseTo(1.85, 4);
+    expect(hydratedItem?.transform.rotation[1]).toBeCloseTo((72 * Math.PI) / 180, 4);
+    expect(hydratedItem?.transform.scale).toEqual([1.85, 1.85, 1.85]);
+  });
 });
