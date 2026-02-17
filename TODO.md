@@ -396,7 +396,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 > **Standalone utility pages that drive organic search traffic and provide value even for non-builder users.**
 
-- [ ] **P7-1: Substrate volume calculator**
+- [x] **P7-1: Substrate volume calculator**
   - Create `/tools/substrate-calculator` page.
   - Inputs: tank length, width (inches or cm), desired substrate depth at front and back.
   - Calculate: volume in liters and pounds for common substrate types (aquasoil, sand, gravel) using known densities.
