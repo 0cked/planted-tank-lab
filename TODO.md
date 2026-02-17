@@ -298,7 +298,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Water plane should not obstruct item selection (set `raycast` to null or use a separate interaction layer).
   - **Verify:** Water surface visible in the builder. Gently animates. Items below water are visible through it. Clicking items through water still works.
 
-- [ ] **P5-2: Glass tank walls**
+- [x] **P5-2: Glass tank walls**
   - Render the tank walls as transparent glass using `MeshPhysicalMaterial` with `transmission: 0.9`, `roughness: 0.05`, `thickness: 0.3`.
   - Only render the back and side walls (front is open for visibility). Use `BackSide` rendering for the interior faces.
   - Add subtle edge highlights (Fresnel effect via the built-in `MeshPhysicalMaterial` IOR).

@@ -13,6 +13,12 @@ const QUALITY_TIERS: Array<VisualSceneSettings["qualityTier"]> = ["auto", "high"
 const CAMERA_MODES: Array<VisualSceneSettings["cameraPreset"]> = ["step", "free"];
 
 export function QualitySettings(props: QualitySettingsProps) {
+  const resolvedQualityTier =
+    props.sceneSettings.qualityTier === "auto"
+      ? props.autoQualityTier
+      : props.sceneSettings.qualityTier;
+  const glassWallsDisabled = resolvedQualityTier === "low";
+
   return (
     <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
       <div className="mb-2 flex items-center justify-between">
@@ -36,7 +42,7 @@ export function QualitySettings(props: QualitySettingsProps) {
         ))}
       </div>
 
-      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+      <div className="mt-2 grid gap-2 text-[11px] text-slate-300">
         <label className="flex items-center gap-1.5">
           <input
             type="checkbox"
@@ -55,6 +61,19 @@ export function QualitySettings(props: QualitySettingsProps) {
             onChange={(event) => props.onSceneSettingsChange({ guidesVisible: event.target.checked })}
           />
           Guides
+        </label>
+
+        <label
+          className={`flex items-center gap-1.5 ${glassWallsDisabled ? "opacity-65" : ""}`}
+          title={glassWallsDisabled ? "Glass walls are disabled on low quality for performance." : undefined}
+        >
+          <input
+            type="checkbox"
+            checked={glassWallsDisabled ? false : props.sceneSettings.glassWallsEnabled}
+            disabled={glassWallsDisabled}
+            onChange={(event) => props.onSceneSettingsChange({ glassWallsEnabled: event.target.checked })}
+          />
+          Glass walls {glassWallsDisabled ? "(low tier)" : ""}
         </label>
       </div>
 

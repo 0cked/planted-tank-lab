@@ -202,6 +202,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       showDepthGuides={props.canvasState.sceneSettings.guidesVisible}
       qualityTier={props.qualityTier}
       postprocessingEnabled={props.canvasState.sceneSettings.postprocessingEnabled}
+      glassWallsEnabled={props.canvasState.sceneSettings.glassWallsEnabled}
       sculptMode={props.sculptMode}
       sculptBrushSize={props.sculptBrushSize}
       sculptStrength={props.sculptStrength}

@@ -88,6 +88,7 @@ const sceneSettingsSchema = z.object({
   qualityTier: z.enum(["auto", "high", "medium", "low"]).optional(),
   postprocessingEnabled: z.boolean().optional(),
   guidesVisible: z.boolean().optional(),
+  glassWallsEnabled: z.boolean().optional(),
   audioEnabled: z.boolean().optional(),
   cameraPreset: z.enum(["step", "free"]).optional(),
 });
@@ -515,15 +516,18 @@ function normalizeSceneSettings(
   input: Partial<VisualSceneSettings> | undefined,
 ): VisualSceneSettings {
   const source = input ?? {};
+  const qualityTier =
+    source.qualityTier === "high" ||
+    source.qualityTier === "medium" ||
+    source.qualityTier === "low"
+      ? source.qualityTier
+      : "auto";
+
   return {
-    qualityTier:
-      source.qualityTier === "high" ||
-      source.qualityTier === "medium" ||
-      source.qualityTier === "low"
-        ? source.qualityTier
-        : "auto",
+    qualityTier,
     postprocessingEnabled: source.postprocessingEnabled ?? true,
     guidesVisible: source.guidesVisible ?? true,
+    glassWallsEnabled: source.glassWallsEnabled ?? qualityTier !== "low",
     audioEnabled: source.audioEnabled ?? false,
     cameraPreset: source.cameraPreset === "free" ? "free" : "step",
   };

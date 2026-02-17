@@ -123,6 +123,7 @@ type VisualBuilderSceneProps = {
   showDepthGuides: boolean;
   qualityTier: BuilderSceneQualityTier;
   postprocessingEnabled: boolean;
+  glassWallsEnabled: boolean;
   sculptMode: SubstrateBrushMode;
   sculptBrushSize: number;
   sculptStrength: number;
@@ -1812,6 +1813,7 @@ function TankShell(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
   substrateHeightfield: SubstrateHeightfield;
+  showGlassWalls: boolean;
   showDepthGuides: boolean;
   currentStep: BuilderSceneStep;
   onSurfacePointer: (event: ThreeEvent<PointerEvent>, anchorType: VisualAnchorType, itemId: string | null) => void;
@@ -1843,6 +1845,9 @@ function TankShell(props: {
   }, [substrateGeometryData]);
 
   const waterHeight = props.dims.heightIn * 0.94;
+  const wallCenterY = props.dims.heightIn * 0.5;
+  const halfWidth = props.dims.widthIn * 0.5;
+  const halfDepth = props.dims.depthIn * 0.5;
 
   return (
     <group>
@@ -1879,26 +1884,60 @@ function TankShell(props: {
         qualityTier={props.qualityTier}
       />
 
-      <mesh
-        position={[0, props.dims.heightIn * 0.5, 0]}
-        receiveShadow
-        onPointerMove={(event) => props.onSurfacePointer(event, "substrate", null)}
-        onPointerDown={(event) => props.onSurfaceDown(event, "substrate", null)}
-        onPointerUp={props.onSurfaceUp}
-      >
-        <boxGeometry args={[props.dims.widthIn, props.dims.heightIn, props.dims.depthIn]} />
-        <meshPhysicalMaterial
-          color="#c8f0ff"
-          transparent
-          opacity={0.12}
-          transmission={0.99}
-          roughness={0.03}
-          thickness={1.5}
-          ior={1.5}
-          clearcoat={1}
-          clearcoatRoughness={0.04}
-        />
-      </mesh>
+      {props.showGlassWalls ? (
+        <group>
+          <mesh position={[0, wallCenterY, halfDepth]} receiveShadow>
+            <planeGeometry args={[props.dims.widthIn, props.dims.heightIn]} />
+            <meshPhysicalMaterial
+              color="#cfefff"
+              transparent
+              opacity={0.18}
+              transmission={0.9}
+              roughness={0.05}
+              thickness={0.3}
+              ior={1.48}
+              clearcoat={1}
+              clearcoatRoughness={0.03}
+              envMapIntensity={1.15}
+              side={THREE.BackSide}
+            />
+          </mesh>
+
+          <mesh position={[-halfWidth, wallCenterY, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+            <planeGeometry args={[props.dims.depthIn, props.dims.heightIn]} />
+            <meshPhysicalMaterial
+              color="#cfefff"
+              transparent
+              opacity={0.18}
+              transmission={0.9}
+              roughness={0.05}
+              thickness={0.3}
+              ior={1.48}
+              clearcoat={1}
+              clearcoatRoughness={0.03}
+              envMapIntensity={1.15}
+              side={THREE.BackSide}
+            />
+          </mesh>
+
+          <mesh position={[halfWidth, wallCenterY, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+            <planeGeometry args={[props.dims.depthIn, props.dims.heightIn]} />
+            <meshPhysicalMaterial
+              color="#cfefff"
+              transparent
+              opacity={0.18}
+              transmission={0.9}
+              roughness={0.05}
+              thickness={0.3}
+              ior={1.48}
+              clearcoat={1}
+              clearcoatRoughness={0.03}
+              envMapIntensity={1.15}
+              side={THREE.BackSide}
+            />
+          </mesh>
+        </group>
+      ) : null}
 
       <mesh
         geometry={substrateGeometryData.geometry}
@@ -2367,6 +2406,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         dims={dims}
         qualityTier={props.qualityTier}
         substrateHeightfield={props.canvasState.substrateHeightfield}
+        showGlassWalls={props.glassWallsEnabled && props.qualityTier !== "low"}
         showDepthGuides={props.showDepthGuides}
         currentStep={props.currentStep}
         onSurfacePointer={handleSurfacePointer}

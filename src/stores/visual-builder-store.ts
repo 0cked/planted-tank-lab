@@ -244,6 +244,7 @@ function normalizeSceneSettings(input: Partial<VisualSceneSettings> | undefined)
     qualityTier,
     postprocessingEnabled: next.postprocessingEnabled ?? true,
     guidesVisible: next.guidesVisible ?? true,
+    glassWallsEnabled: next.glassWallsEnabled ?? qualityTier !== "low",
     audioEnabled: next.audioEnabled ?? false,
     cameraPreset,
   };
@@ -475,6 +476,7 @@ const initialCanvasState: VisualCanvasState = {
     qualityTier: "auto",
     postprocessingEnabled: true,
     guidesVisible: true,
+    glassWallsEnabled: true,
     audioEnabled: false,
     cameraPreset: "step",
   },
