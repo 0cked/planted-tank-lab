@@ -311,7 +311,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Add soft ambient lighting + one directional light from above-front to simulate room lighting.
   - **Verify:** Scene has visual depth. Tank doesn't float in a void. Lighting looks natural.
 
-- [ ] **P5-4: Caustic light patterns**
+- [x] **P5-4: Caustic light patterns**
   - Project animated caustic light patterns onto the substrate surface.
   - Generate a caustic texture procedurally: tile 2-3 layers of scrolling Voronoi noise in a `DataTexture`, update each frame.
   - Apply as a projected light texture using a `SpotLight` with a `map` property, or multiply into the substrate material's emissive channel.

@@ -182,6 +182,7 @@ const ASSET_LOAD_RETRY_DELAY_MS = 3500;
 const WATER_SURFACE_TEXTURE_SEED = 0x51f91f7;
 const WATER_SURFACE_NOISE_SCALE = 5.25;
 const WATER_SURFACE_OCTAVES = 4;
+const CAUSTIC_TEXTURE_SEED = 0x2a9df53;
 const SIMPLEX_F2 = (Math.sqrt(3) - 1) * 0.5;
 const SIMPLEX_G2 = (3 - Math.sqrt(3)) / 6;
 const SIMPLEX_GRADIENTS_2D: ReadonlyArray<[number, number]> = [
@@ -549,6 +550,293 @@ function createWaterSurfaceNormalTexture(params: {
   texture.needsUpdate = true;
 
   return texture;
+}
+
+type CausticVoronoiLayer = {
+  cellCount: number;
+  speedX: number;
+  speedY: number;
+  weight: number;
+  sharpness: number;
+  seedOffset: number;
+};
+
+type AnimatedCausticTexture = {
+  texture: THREE.DataTexture;
+  data: Uint8Array;
+  size: number;
+  layers: ReadonlyArray<CausticVoronoiLayer>;
+};
+
+const CAUSTIC_LAYERS_BY_QUALITY: Record<BuilderSceneQualityTier, ReadonlyArray<CausticVoronoiLayer>> = {
+  low: [
+    {
+      cellCount: 8,
+      speedX: 0.028,
+      speedY: -0.018,
+      weight: 0.66,
+      sharpness: 5.8,
+      seedOffset: 0x17b8,
+    },
+    {
+      cellCount: 14,
+      speedX: -0.021,
+      speedY: 0.024,
+      weight: 0.34,
+      sharpness: 7.4,
+      seedOffset: 0x2ea1,
+    },
+  ],
+  medium: [
+    {
+      cellCount: 9,
+      speedX: 0.031,
+      speedY: -0.02,
+      weight: 0.45,
+      sharpness: 6,
+      seedOffset: 0x17b8,
+    },
+    {
+      cellCount: 15,
+      speedX: -0.023,
+      speedY: 0.027,
+      weight: 0.34,
+      sharpness: 7.8,
+      seedOffset: 0x2ea1,
+    },
+    {
+      cellCount: 24,
+      speedX: 0.017,
+      speedY: 0.018,
+      weight: 0.21,
+      sharpness: 9.2,
+      seedOffset: 0x438c,
+    },
+  ],
+  high: [
+    {
+      cellCount: 10,
+      speedX: 0.034,
+      speedY: -0.022,
+      weight: 0.42,
+      sharpness: 6.2,
+      seedOffset: 0x17b8,
+    },
+    {
+      cellCount: 16,
+      speedX: -0.024,
+      speedY: 0.029,
+      weight: 0.33,
+      sharpness: 8,
+      seedOffset: 0x2ea1,
+    },
+    {
+      cellCount: 26,
+      speedX: 0.019,
+      speedY: 0.02,
+      weight: 0.25,
+      sharpness: 9.5,
+      seedOffset: 0x438c,
+    },
+  ],
+};
+
+function causticTextureSize(qualityTier: BuilderSceneQualityTier): number {
+  if (qualityTier === "low") return 56;
+  if (qualityTier === "medium") return 72;
+  return 96;
+}
+
+function causticEmissiveIntensity(qualityTier: BuilderSceneQualityTier): number {
+  if (qualityTier === "low") return 0.1;
+  if (qualityTier === "medium") return 0.15;
+  return 0.19;
+}
+
+function hashGridFloat(params: {
+  x: number;
+  y: number;
+  seed: number;
+}): number {
+  let value =
+    Math.imul((params.x | 0) ^ 0x9e3779b9, 0x85ebca6b) ^
+    Math.imul((params.y | 0) ^ 0xc2b2ae35, 0x27d4eb2f) ^
+    (params.seed | 0);
+
+  value ^= value >>> 15;
+  value = Math.imul(value, 0x2c1b3c6d);
+  value ^= value >>> 12;
+  value = Math.imul(value, 0x297a2d39);
+  value ^= value >>> 15;
+
+  return (value >>> 0) / 4294967296;
+}
+
+function sampleTileableVoronoiDistances(params: {
+  u: number;
+  v: number;
+  cellCount: number;
+  seed: number;
+}): {
+  f1: number;
+  f2: number;
+} {
+  const cellCount = Math.max(1, Math.floor(params.cellCount));
+  const sampleX = THREE.MathUtils.euclideanModulo(params.u, 1) * cellCount;
+  const sampleY = THREE.MathUtils.euclideanModulo(params.v, 1) * cellCount;
+  const baseCellX = Math.floor(sampleX);
+  const baseCellY = Math.floor(sampleY);
+
+  let nearestDistanceSquared = Number.POSITIVE_INFINITY;
+  let secondNearestDistanceSquared = Number.POSITIVE_INFINITY;
+
+  for (let yOffset = -1; yOffset <= 1; yOffset += 1) {
+    for (let xOffset = -1; xOffset <= 1; xOffset += 1) {
+      const cellX = baseCellX + xOffset;
+      const cellY = baseCellY + yOffset;
+
+      const wrappedCellX = THREE.MathUtils.euclideanModulo(cellX, cellCount);
+      const wrappedCellY = THREE.MathUtils.euclideanModulo(cellY, cellCount);
+      const featureOffsetX = hashGridFloat({
+        x: wrappedCellX,
+        y: wrappedCellY,
+        seed: params.seed,
+      });
+      const featureOffsetY = hashGridFloat({
+        x: wrappedCellX,
+        y: wrappedCellY,
+        seed: params.seed ^ 0x9e3779b9,
+      });
+
+      const dx = cellX + featureOffsetX - sampleX;
+      const dy = cellY + featureOffsetY - sampleY;
+      const distanceSquared = dx * dx + dy * dy;
+
+      if (distanceSquared < nearestDistanceSquared) {
+        secondNearestDistanceSquared = nearestDistanceSquared;
+        nearestDistanceSquared = distanceSquared;
+      } else if (distanceSquared < secondNearestDistanceSquared) {
+        secondNearestDistanceSquared = distanceSquared;
+      }
+    }
+  }
+
+  return {
+    f1: Math.sqrt(Math.max(0, nearestDistanceSquared)),
+    f2: Math.sqrt(Math.max(0, secondNearestDistanceSquared)),
+  };
+}
+
+function sampleCausticLayer(params: {
+  u: number;
+  v: number;
+  time: number;
+  layer: CausticVoronoiLayer;
+}): number {
+  const shiftedU = THREE.MathUtils.euclideanModulo(
+    params.u + params.time * params.layer.speedX,
+    1,
+  );
+  const shiftedV = THREE.MathUtils.euclideanModulo(
+    params.v + params.time * params.layer.speedY,
+    1,
+  );
+
+  const distances = sampleTileableVoronoiDistances({
+    u: shiftedU,
+    v: shiftedV,
+    cellCount: params.layer.cellCount,
+    seed: CAUSTIC_TEXTURE_SEED ^ params.layer.seedOffset,
+  });
+
+  const separation = Math.max(0, distances.f2 - distances.f1);
+  const ridge = 1 - THREE.MathUtils.clamp(separation * params.layer.sharpness, 0, 1);
+  return ridge * ridge;
+}
+
+function createAnimatedCausticTexture(
+  qualityTier: BuilderSceneQualityTier,
+): AnimatedCausticTexture {
+  const size = causticTextureSize(qualityTier);
+  const data = new Uint8Array(size * size * 4);
+  data.fill(0);
+
+  const texture = new THREE.DataTexture(
+    data,
+    size,
+    size,
+    THREE.RGBAFormat,
+    THREE.UnsignedByteType,
+  );
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+
+  return {
+    texture,
+    data,
+    size,
+    layers: CAUSTIC_LAYERS_BY_QUALITY[qualityTier],
+  };
+}
+
+function updateAnimatedCausticTexture(params: {
+  state: AnimatedCausticTexture;
+  qualityTier: BuilderSceneQualityTier;
+  time: number;
+}) {
+  const { data, size, layers, texture } = params.state;
+  const maxIndex = Math.max(1, size - 1);
+  const qualityGain =
+    params.qualityTier === "high"
+      ? 1
+      : params.qualityTier === "medium"
+        ? 0.88
+        : 0.72;
+
+  for (let yIndex = 0; yIndex < size; yIndex += 1) {
+    const v = yIndex / maxIndex;
+
+    for (let xIndex = 0; xIndex < size; xIndex += 1) {
+      const u = xIndex / maxIndex;
+      let combined = 0;
+      let totalWeight = 0;
+
+      for (const layer of layers) {
+        combined +=
+          sampleCausticLayer({
+            u,
+            v,
+            time: params.time,
+            layer,
+          }) * layer.weight;
+        totalWeight += layer.weight;
+      }
+
+      const normalized = totalWeight > 0 ? combined / totalWeight : 0;
+      const shaped = Math.pow(normalized, 1.5);
+      const thresholded = THREE.MathUtils.clamp(
+        (shaped - 0.19) * 1.52 * qualityGain,
+        0,
+        1,
+      );
+      const shimmer =
+        0.92 + Math.sin(u * 26.3 + v * 17.8 + params.time * 2.1) * 0.08;
+      const luminance = THREE.MathUtils.clamp(thresholded * shimmer, 0, 1);
+      const encoded = Math.round(luminance * 255);
+
+      const offset = (yIndex * size + xIndex) * 4;
+      data[offset] = encoded;
+      data[offset + 1] = encoded;
+      data[offset + 2] = encoded;
+      data[offset + 3] = 255;
+    }
+  }
+
+  texture.needsUpdate = true;
 }
 
 function cameraPreset(step: BuilderSceneStep, dims: SceneDims): {
@@ -1887,6 +2175,46 @@ function SceneGroundPlane(props: { dims: SceneDims }) {
   );
 }
 
+function SubstrateCausticMaterial(props: {
+  qualityTier: BuilderSceneQualityTier;
+}) {
+  const caustics = useMemo(
+    () => createAnimatedCausticTexture(props.qualityTier),
+    [props.qualityTier],
+  );
+
+  useFrame((state) => {
+    updateAnimatedCausticTexture({
+      state: caustics,
+      qualityTier: props.qualityTier,
+      time: state.clock.elapsedTime,
+    });
+  });
+
+  useEffect(() => {
+    updateAnimatedCausticTexture({
+      state: caustics,
+      qualityTier: props.qualityTier,
+      time: 0,
+    });
+
+    return () => {
+      caustics.texture.dispose();
+    };
+  }, [caustics, props.qualityTier]);
+
+  return (
+    <meshStandardMaterial
+      color="#a68354"
+      roughness={0.93}
+      metalness={0.03}
+      emissive="#8fbfca"
+      emissiveMap={caustics.texture}
+      emissiveIntensity={causticEmissiveIntensity(props.qualityTier)}
+    />
+  );
+}
+
 function TankShell(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
@@ -2026,7 +2354,7 @@ function TankShell(props: {
         onPointerDown={(event) => props.onSurfaceDown(event, "substrate", null)}
         onPointerUp={props.onSurfaceUp}
       >
-        <meshStandardMaterial color="#a68354" roughness={0.93} metalness={0.03} />
+        <SubstrateCausticMaterial qualityTier={props.qualityTier} />
       </mesh>
 
       {props.showDepthGuides && (props.currentStep === "plants" || props.currentStep === "hardscape") ? (
