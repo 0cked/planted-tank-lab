@@ -103,6 +103,7 @@ type PlantInstancedGroup = {
 };
 
 type CameraPresetMode = "step" | "free";
+type MeasurementUnit = "in" | "cm";
 
 type CameraDiagnosticEvent = {
   type: "unexpected_pose_delta_detected";
@@ -141,6 +142,8 @@ type VisualBuilderSceneProps = {
   placementClusterCount: number;
   showDepthGuides: boolean;
   gridSnapEnabled: boolean;
+  showMeasurements: boolean;
+  measurementUnit: MeasurementUnit;
   qualityTier: BuilderSceneQualityTier;
   postprocessingEnabled: boolean;
   glassWallsEnabled: boolean;
@@ -420,6 +423,60 @@ function buildInchGridAxisValues(sizeIn: number): number[] {
   }
 
   return axisValues;
+}
+
+function formatDimensionValue(valueIn: number, unit: MeasurementUnit): string {
+  const scaledValue = unit === "cm" ? valueIn * 2.54 : valueIn;
+  const rounded = Math.round(scaledValue * 10) / 10;
+
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function formatDimensionLabel(prefix: string, valueIn: number, unit: MeasurementUnit): string {
+  return `${prefix}: ${formatDimensionValue(valueIn, unit)} ${unit}`;
+}
+
+function pushLineSegment(
+  positions: number[],
+  start: readonly [number, number, number],
+  end: readonly [number, number, number],
+) {
+  positions.push(start[0], start[1], start[2], end[0], end[1], end[2]);
+}
+
+function pushDimensionLineWithCaps(params: {
+  positions: number[];
+  start: readonly [number, number, number];
+  end: readonly [number, number, number];
+  capDirection: readonly [number, number, number];
+  capLength: number;
+}) {
+  pushLineSegment(params.positions, params.start, params.end);
+
+  const halfCap = params.capLength * 0.5;
+  const startCapStart: [number, number, number] = [
+    params.start[0] - params.capDirection[0] * halfCap,
+    params.start[1] - params.capDirection[1] * halfCap,
+    params.start[2] - params.capDirection[2] * halfCap,
+  ];
+  const startCapEnd: [number, number, number] = [
+    params.start[0] + params.capDirection[0] * halfCap,
+    params.start[1] + params.capDirection[1] * halfCap,
+    params.start[2] + params.capDirection[2] * halfCap,
+  ];
+  const endCapStart: [number, number, number] = [
+    params.end[0] - params.capDirection[0] * halfCap,
+    params.end[1] - params.capDirection[1] * halfCap,
+    params.end[2] - params.capDirection[2] * halfCap,
+  ];
+  const endCapEnd: [number, number, number] = [
+    params.end[0] + params.capDirection[0] * halfCap,
+    params.end[1] + params.capDirection[1] * halfCap,
+    params.end[2] + params.capDirection[2] * halfCap,
+  ];
+
+  pushLineSegment(params.positions, startCapStart, startCapEnd);
+  pushLineSegment(params.positions, endCapStart, endCapEnd);
 }
 
 function clampRotation(rotation: number): number {
@@ -2921,6 +2978,112 @@ function SubstrateSnapGridOverlay(props: {
   );
 }
 
+function TankMeasurementOverlay(props: {
+  dims: SceneDims;
+  unit: MeasurementUnit;
+}) {
+  const geometry = useMemo(() => {
+    const halfWidth = props.dims.widthIn * 0.5;
+    const halfDepth = props.dims.depthIn * 0.5;
+    const sideOffset = Math.max(0.36, Math.min(1.4, Math.min(props.dims.widthIn, props.dims.depthIn) * 0.06));
+    const capLength = Math.max(0.16, sideOffset * 0.6);
+    const baseY = -0.16;
+    const widthLineZ = -halfDepth - sideOffset;
+    const depthLineX = halfWidth + sideOffset;
+    const heightLineX = -halfWidth - sideOffset;
+    const heightLineZ = -halfDepth;
+
+    const positions: number[] = [];
+
+    const widthStart: [number, number, number] = [-halfWidth, baseY, widthLineZ];
+    const widthEnd: [number, number, number] = [halfWidth, baseY, widthLineZ];
+    pushDimensionLineWithCaps({
+      positions,
+      start: widthStart,
+      end: widthEnd,
+      capDirection: [0, 0, 1],
+      capLength,
+    });
+
+    const depthStart: [number, number, number] = [depthLineX, baseY, -halfDepth];
+    const depthEnd: [number, number, number] = [depthLineX, baseY, halfDepth];
+    pushDimensionLineWithCaps({
+      positions,
+      start: depthStart,
+      end: depthEnd,
+      capDirection: [1, 0, 0],
+      capLength,
+    });
+
+    const heightStart: [number, number, number] = [heightLineX, 0, heightLineZ];
+    const heightEnd: [number, number, number] = [heightLineX, props.dims.heightIn, heightLineZ];
+    pushDimensionLineWithCaps({
+      positions,
+      start: heightStart,
+      end: heightEnd,
+      capDirection: [0, 0, 1],
+      capLength,
+    });
+
+    pushLineSegment(positions, [-halfWidth, baseY, -halfDepth], widthStart);
+    pushLineSegment(positions, [halfWidth, baseY, -halfDepth], widthEnd);
+    pushLineSegment(positions, [halfWidth, baseY, -halfDepth], depthStart);
+    pushLineSegment(positions, [halfWidth, baseY, halfDepth], depthEnd);
+    pushLineSegment(positions, [-halfWidth, 0, -halfDepth], heightStart);
+    pushLineSegment(positions, [-halfWidth, props.dims.heightIn, -halfDepth], heightEnd);
+
+    const nextGeometry = new THREE.BufferGeometry();
+    nextGeometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+
+    return {
+      geometry: nextGeometry,
+      labels: {
+        width: [0, baseY - 0.05, widthLineZ] as [number, number, number],
+        depth: [depthLineX, baseY - 0.05, 0] as [number, number, number],
+        height: [heightLineX, props.dims.heightIn * 0.5, heightLineZ] as [number, number, number],
+      },
+    };
+  }, [props.dims.depthIn, props.dims.heightIn, props.dims.widthIn]);
+
+  useEffect(() => {
+    return () => {
+      geometry.geometry.dispose();
+    };
+  }, [geometry]);
+
+  return (
+    <group renderOrder={26}>
+      <lineSegments geometry={geometry.geometry} raycast={DISABLED_LINE_SEGMENTS_RAYCAST}>
+        <lineBasicMaterial
+          color="#c9e8ff"
+          transparent
+          opacity={0.78}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </lineSegments>
+
+      <Html center position={geometry.labels.width} style={{ pointerEvents: "none" }}>
+        <div className="rounded-full border border-cyan-200/40 bg-slate-950/75 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-cyan-100 shadow-[0_0_16px_rgba(20,68,90,0.45)]">
+          {formatDimensionLabel("W", props.dims.widthIn, props.unit)}
+        </div>
+      </Html>
+
+      <Html center position={geometry.labels.depth} style={{ pointerEvents: "none" }}>
+        <div className="rounded-full border border-cyan-200/40 bg-slate-950/75 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-cyan-100 shadow-[0_0_16px_rgba(20,68,90,0.45)]">
+          {formatDimensionLabel("D", props.dims.depthIn, props.unit)}
+        </div>
+      </Html>
+
+      <Html center position={geometry.labels.height} style={{ pointerEvents: "none" }}>
+        <div className="rounded-full border border-cyan-200/40 bg-slate-950/75 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-cyan-100 shadow-[0_0_16px_rgba(20,68,90,0.45)]">
+          {formatDimensionLabel("H", props.dims.heightIn, props.unit)}
+        </div>
+      </Html>
+    </group>
+  );
+}
+
 function TankShell(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
@@ -3746,6 +3909,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         onSurfaceDown={handleSurfaceDown}
         onSurfaceUp={handleSurfaceUp}
       />
+
+      {props.showMeasurements ? (
+        <TankMeasurementOverlay dims={dims} unit={props.measurementUnit} />
+      ) : null}
 
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}

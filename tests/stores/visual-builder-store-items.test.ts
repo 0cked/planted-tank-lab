@@ -291,17 +291,27 @@ describe("visual-builder-store canvas item actions", () => {
     expect(hydratedItem?.transform.scale).toEqual([1.85, 1.85, 1.85]);
   });
 
-  it("defaults grid snap off and preserves the toggle in saved payloads", () => {
+  it("defaults grid snap + measurement overlay off and preserves scene setting toggles", () => {
     const store = useVisualBuilderStore.getState();
 
     expect(store.canvasState.sceneSettings.gridSnapEnabled).toBe(false);
+    expect(store.canvasState.sceneSettings.measurementsVisible).toBe(false);
+    expect(store.canvasState.sceneSettings.measurementUnit).toBe("in");
 
-    store.setSceneSettings({ gridSnapEnabled: true });
+    store.setSceneSettings({
+      gridSnapEnabled: true,
+      measurementsVisible: true,
+      measurementUnit: "cm",
+    });
 
     const stateAfterToggle = useVisualBuilderStore.getState();
     expect(stateAfterToggle.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
+    expect(stateAfterToggle.canvasState.sceneSettings.measurementsVisible).toBe(true);
+    expect(stateAfterToggle.canvasState.sceneSettings.measurementUnit).toBe("cm");
 
     const payload = stateAfterToggle.toBuildPayload({ bomLineItems: [] });
     expect(payload.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
+    expect(payload.canvasState.sceneSettings.measurementsVisible).toBe(true);
+    expect(payload.canvasState.sceneSettings.measurementUnit).toBe("cm");
   });
 });

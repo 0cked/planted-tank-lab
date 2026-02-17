@@ -126,6 +126,8 @@ export type VisualSceneSettings = {
   postprocessingEnabled: boolean;
   guidesVisible: boolean;
   gridSnapEnabled: boolean;
+  measurementsVisible: boolean;
+  measurementUnit: "in" | "cm";
   glassWallsEnabled: boolean;
   ambientParticlesEnabled: boolean;
   audioEnabled: boolean;

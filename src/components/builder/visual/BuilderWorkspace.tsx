@@ -111,6 +111,8 @@ export type BuilderWorkspaceProps = {
   onClusterBrushCountChange: (value: number) => void;
   onToggleGuides: () => void;
   onToggleGridSnap: () => void;
+  onToggleMeasurements: () => void;
+  onToggleMeasurementUnit: () => void;
   shortcutsOverlayOpen: boolean;
   onToggleShortcutsOverlay: () => void;
   onCloseShortcutsOverlay: () => void;
@@ -204,12 +206,16 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       clusterBrushCount={props.clusterBrushCount}
       guidesVisible={props.canvasState.sceneSettings.guidesVisible}
       gridSnapEnabled={props.canvasState.sceneSettings.gridSnapEnabled}
+      measurementsVisible={props.canvasState.sceneSettings.measurementsVisible}
+      measurementUnit={props.canvasState.sceneSettings.measurementUnit}
       shortcutsOpen={props.shortcutsOverlayOpen}
       onToolModeChange={props.onToolModeChange}
       onPlacementRotationChange={props.onPlacementRotationChange}
       onClusterBrushCountChange={props.onClusterBrushCountChange}
       onToggleGuides={props.onToggleGuides}
       onToggleGridSnap={props.onToggleGridSnap}
+      onToggleMeasurements={props.onToggleMeasurements}
+      onToggleMeasurementUnit={props.onToggleMeasurementUnit}
       onToggleShortcuts={props.onToggleShortcutsOverlay}
     />
   );
@@ -228,6 +234,8 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       placementClusterCount={props.clusterBrushCount}
       showDepthGuides={props.canvasState.sceneSettings.guidesVisible}
       gridSnapEnabled={props.canvasState.sceneSettings.gridSnapEnabled}
+      showMeasurements={props.canvasState.sceneSettings.measurementsVisible}
+      measurementUnit={props.canvasState.sceneSettings.measurementUnit}
       qualityTier={props.qualityTier}
       postprocessingEnabled={props.canvasState.sceneSettings.postprocessingEnabled}
       glassWallsEnabled={props.canvasState.sceneSettings.glassWallsEnabled}

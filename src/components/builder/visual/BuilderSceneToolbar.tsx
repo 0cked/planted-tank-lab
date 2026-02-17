@@ -12,12 +12,16 @@ type BuilderSceneToolbarProps = {
   clusterBrushCount: number;
   guidesVisible: boolean;
   gridSnapEnabled: boolean;
+  measurementsVisible: boolean;
+  measurementUnit: "in" | "cm";
   shortcutsOpen: boolean;
   onToolModeChange: (mode: BuilderSceneToolMode) => void;
   onPlacementRotationChange: (value: number) => void;
   onClusterBrushCountChange: (value: number) => void;
   onToggleGuides: () => void;
   onToggleGridSnap: () => void;
+  onToggleMeasurements: () => void;
+  onToggleMeasurementUnit: () => void;
   onToggleShortcuts: () => void;
 };
 
@@ -109,6 +113,27 @@ export function BuilderSceneToolbar(props: BuilderSceneToolbarProps) {
       >
         {props.gridSnapEnabled ? "Grid snap on" : "Grid snap off"}
       </button>
+
+      <button
+        onClick={props.onToggleMeasurements}
+        aria-pressed={props.measurementsVisible}
+        className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold ${
+          props.measurementsVisible
+            ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
+            : "border-white/20 bg-slate-950/70 text-slate-200"
+        }`}
+      >
+        {props.measurementsVisible ? "Measurements on" : "Measurements off"}
+      </button>
+
+      {props.measurementsVisible ? (
+        <button
+          onClick={props.onToggleMeasurementUnit}
+          className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-xs font-semibold text-slate-200"
+        >
+          Units: {props.measurementUnit.toUpperCase()}
+        </button>
+      ) : null}
 
       <button
         onClick={props.onToggleShortcuts}

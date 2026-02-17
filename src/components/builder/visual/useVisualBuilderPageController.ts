@@ -917,6 +917,14 @@ export function useVisualBuilderPageController(
     onToggleGridSnap: () => {
       setSceneSettings({ gridSnapEnabled: !canvasState.sceneSettings.gridSnapEnabled });
     },
+    onToggleMeasurements: () => {
+      setSceneSettings({ measurementsVisible: !canvasState.sceneSettings.measurementsVisible });
+    },
+    onToggleMeasurementUnit: () => {
+      setSceneSettings({
+        measurementUnit: canvasState.sceneSettings.measurementUnit === "in" ? "cm" : "in",
+      });
+    },
     shortcutsOverlayOpen: showShortcutsOverlay,
     onToggleShortcutsOverlay: () => {
       setShowShortcutsOverlay((previous) => !previous);

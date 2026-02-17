@@ -374,7 +374,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Sort by placement order (most recent first) or alphabetically.
   - **Verify:** Place 5 items. Open sidebar — all 5 listed. Click a row — item highlights in scene. Remove via sidebar — item disappears.
 
-- [ ] **P6-6: Measurement overlay**
+- [x] **P6-6: Measurement overlay**
   - Display tank dimensions as floating labels in the 3D scene: width, height, depth in inches (and cm toggle).
   - Show dimension lines along the tank edges (thin lines with end caps and text labels, similar to CAD dimension annotations).
   - Toggle on/off via a toolbar button. Off by default.
