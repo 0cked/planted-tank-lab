@@ -21,6 +21,17 @@ import {
 import type { Severity } from "@/engine/types";
 import type { CameraDiagnosticEvent } from "@/hooks/useCameraEvidence";
 
+export type BuilderWorkspaceCameraIntent =
+  | {
+      type: "reframe" | "reset";
+      seq: number;
+    }
+  | {
+      type: "focus-item";
+      itemId: string;
+      seq: number;
+    };
+
 export type BuilderWorkspaceProps = {
   selectedTank: VisualTank | null;
   canvasState: VisualCanvasState;
@@ -38,7 +49,7 @@ export type BuilderWorkspaceProps = {
   sculptBrushSize: number;
   sculptStrength: number;
   equipmentSceneAssets: VisualAsset[];
-  cameraIntent: { type: "reframe" | "reset"; seq: number } | null;
+  cameraIntent: BuilderWorkspaceCameraIntent | null;
   canSceneTools: boolean;
   autoQualityTier: BuilderSceneQualityTier;
   selectedItem: VisualCanvasItem | null;
@@ -87,6 +98,7 @@ export type BuilderWorkspaceProps = {
   onSceneSettingsChange: (patch: Partial<VisualSceneSettings>) => void;
   onReframe: () => void;
   onResetView: () => void;
+  onFocusSceneItem: (itemId: string) => void;
   onUpdateCanvasItem: (itemId: string, patch: Partial<VisualCanvasItem>) => void;
   onMoveCanvasItemLayer: (itemId: string, direction: "up" | "down" | "top" | "bottom") => void;
   onDuplicateCanvasItem: (itemId: string) => void;
@@ -158,12 +170,16 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       onReframe={props.onReframe}
       onResetView={props.onResetView}
       selectedItem={props.selectedItem}
+      selectedItemId={props.selectedItemId}
       selectedAsset={props.selectedAsset}
       hoveredItemId={props.hoveredItemId}
+      canvasItems={props.canvasState.items}
+      assetsById={props.assetsById}
       onUpdateCanvasItem={props.onUpdateCanvasItem}
       onMoveCanvasItemLayer={props.onMoveCanvasItemLayer}
       onDuplicateCanvasItem={props.onDuplicateCanvasItem}
       onRemoveCanvasItem={props.onRemoveCanvasItem}
+      onFocusSceneItem={props.onFocusSceneItem}
       bomLines={props.bomLines}
       totalCents={props.totalCents}
       sceneItemCount={props.canvasState.items.length}

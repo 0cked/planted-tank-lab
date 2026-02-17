@@ -1,6 +1,7 @@
 import type { Severity } from "@/engine/types";
 
 import { BOMSidebar } from "@/components/builder/visual/BOMSidebar";
+import { ItemInventorySidebar } from "@/components/builder/visual/ItemInventorySidebar";
 import { QualitySettings } from "@/components/builder/visual/QualitySettings";
 import { severityClasses, type BomLine } from "@/components/builder/visual/builder-page-utils";
 import type { VisualAsset, VisualCanvasItem, VisualSceneSettings } from "@/components/builder/visual/types";
@@ -20,12 +21,16 @@ type BuilderRightSidebarProps = {
   onReframe: () => void;
   onResetView: () => void;
   selectedItem: VisualCanvasItem | null;
+  selectedItemId: string | null;
   selectedAsset: VisualAsset | null;
   hoveredItemId: string | null;
+  canvasItems: VisualCanvasItem[];
+  assetsById: Map<string, VisualAsset>;
   onUpdateCanvasItem: (itemId: string, patch: Partial<VisualCanvasItem>) => void;
   onMoveCanvasItemLayer: (itemId: string, direction: "up" | "down" | "top" | "bottom") => void;
   onDuplicateCanvasItem: (itemId: string) => void;
   onRemoveCanvasItem: (itemId: string) => void;
+  onFocusSceneItem: (itemId: string) => void;
   bomLines: BomLine[];
   totalCents: number;
   sceneItemCount: number;
@@ -154,6 +159,14 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
         onSceneSettingsChange={props.onSceneSettingsChange}
         onReframe={props.onReframe}
         onResetView={props.onResetView}
+      />
+
+      <ItemInventorySidebar
+        items={props.canvasItems}
+        assetsById={props.assetsById}
+        selectedItemId={props.selectedItemId}
+        onSelectItem={props.onFocusSceneItem}
+        onRemoveItem={props.onRemoveCanvasItem}
       />
 
       <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">{selectedObjectPanel}</div>

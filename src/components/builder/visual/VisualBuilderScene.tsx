@@ -111,9 +111,21 @@ type CameraDiagnosticEvent = {
   targetDelta: number;
 };
 
-type CameraIntent = {
-  type: "reframe" | "reset";
-  seq: number;
+type CameraIntent =
+  | {
+      type: "reframe" | "reset";
+      seq: number;
+    }
+  | {
+      type: "focus-item";
+      itemId: string;
+      seq: number;
+    };
+
+type CameraFocusTarget = {
+  itemId: string;
+  target: [number, number, number];
+  radius: number;
 };
 
 type VisualBuilderSceneProps = {
@@ -1095,6 +1107,47 @@ function cameraPreset(step: BuilderSceneStep, dims: SceneDims): {
   };
 }
 
+function focusItemCameraPreset(params: {
+  target: CameraFocusTarget["target"];
+  radius: number;
+  dims: SceneDims;
+}): {
+  position: [number, number, number];
+  target: [number, number, number];
+  fov: number;
+} {
+  const framingRadius = Math.max(0.35, params.radius);
+  const baseDistance = Math.max(
+    framingRadius * 4.8,
+    params.dims.widthIn * 0.24,
+    params.dims.depthIn * 0.24,
+  );
+  const maxDistance = Math.max(12, params.dims.widthIn * 1.9);
+  const distance = THREE.MathUtils.clamp(baseDistance, 3.6, maxDistance);
+
+  const targetX = params.target[0];
+  const targetY = params.target[1];
+  const targetZ = params.target[2];
+
+  const maxX = params.dims.widthIn * 1.15;
+  const maxY = params.dims.heightIn * 1.28;
+  const maxZ = params.dims.depthIn * 1.2;
+
+  const positionX = THREE.MathUtils.clamp(targetX + distance * 0.74, -maxX, maxX);
+  const positionY = THREE.MathUtils.clamp(
+    targetY + Math.max(framingRadius * 2.1, params.dims.heightIn * 0.1),
+    1,
+    maxY,
+  );
+  const positionZ = THREE.MathUtils.clamp(targetZ + distance * 0.92, -maxZ, maxZ);
+
+  return {
+    position: [positionX, positionY, positionZ],
+    target: [targetX, targetY, targetZ],
+    fov: 40,
+  };
+}
+
 function materialPalette(asset: VisualAsset): string[] {
   const type = (asset.materialType ?? "").toLowerCase();
   if (type.includes("wood") || type.includes("branch") || type.includes("root")) {
@@ -1572,6 +1625,7 @@ function CinematicCameraRig(props: {
   onCameraPresetModeChange?: (mode: CameraPresetMode) => void;
   onCameraDiagnostic?: (event: CameraDiagnosticEvent) => void;
   cameraIntent?: CameraIntent | null;
+  focusTarget?: CameraFocusTarget | null;
 }) {
   const camera = useThree((state) => state.camera as THREE.PerspectiveCamera);
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -1633,6 +1687,16 @@ function CinematicCameraRig(props: {
 
     if (props.cameraIntent.type === "reset") {
       forcedPresetRef.current = cameraPreset("review", props.dims);
+    } else if (props.cameraIntent.type === "focus-item") {
+      if (props.focusTarget && props.focusTarget.itemId === props.cameraIntent.itemId) {
+        forcedPresetRef.current = focusItemCameraPreset({
+          target: props.focusTarget.target,
+          radius: props.focusTarget.radius,
+          dims: props.dims,
+        });
+      } else {
+        forcedPresetRef.current = cameraPreset(props.step, props.dims);
+      }
     } else {
       forcedPresetRef.current = cameraPreset(props.step, props.dims);
     }
@@ -1640,7 +1704,14 @@ function CinematicCameraRig(props: {
     if (props.cameraPresetMode !== "step") {
       props.onCameraPresetModeChange?.("step");
     }
-  }, [props.cameraIntent, props.cameraPresetMode, props.dims, props.onCameraPresetModeChange, props.step]);
+  }, [
+    props.cameraIntent,
+    props.cameraPresetMode,
+    props.dims,
+    props.focusTarget,
+    props.onCameraPresetModeChange,
+    props.step,
+  ]);
 
   useFrame((_, delta) => {
     const controls = controlsRef.current;
@@ -3121,6 +3192,22 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     return renderItems.find((renderItem) => renderItem.item.id === props.selectedItemId) ?? null;
   }, [props.selectedItemId, renderItems, selectedItemIdSet]);
 
+  const cameraFocusTarget = useMemo<CameraFocusTarget | null>(() => {
+    const intent = props.cameraIntent;
+    if (!intent || intent.type !== "focus-item") return null;
+
+    const renderItem = renderItems.find((nextItem) => nextItem.item.id === intent.itemId);
+    if (!renderItem) return null;
+
+    const focusY = renderItem.position.y + renderItem.size.height * 0.45;
+
+    return {
+      itemId: renderItem.item.id,
+      target: [renderItem.position.x, focusY, renderItem.position.z],
+      radius: Math.max(renderItem.collisionRadius, renderItem.size.width * 0.5, renderItem.size.depth * 0.5),
+    };
+  }, [props.cameraIntent, renderItems]);
+
   const loadableAssetPaths = useMemo(
     () =>
       collectBuildAssetGlbPaths({
@@ -3773,6 +3860,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         onCameraPresetModeChange={props.onCameraPresetModeChange}
         onCameraDiagnostic={props.onCameraDiagnostic}
         cameraIntent={props.cameraIntent}
+        focusTarget={cameraFocusTarget}
       />
       <SceneCaptureBridge onCaptureCanvas={props.onCaptureCanvas} />
     </>

@@ -7,7 +7,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "@/components/TRPCProvider";
 import { BuildMetadataPanel } from "@/components/builder/visual/BuildMetadataPanel";
 import { BuildStepNavigator } from "@/components/builder/visual/BuildStepNavigator";
-import type { BuilderWorkspaceProps } from "@/components/builder/visual/BuilderWorkspace";
+import type {
+  BuilderWorkspaceCameraIntent,
+  BuilderWorkspaceProps,
+} from "@/components/builder/visual/BuilderWorkspace";
 import { CameraDiagnosticsPanel } from "@/components/builder/visual/CameraDiagnosticsPanel";
 import { evaluateVisualCompatibility } from "@/components/builder/visual/compatibility";
 import { exportVisualLayoutPng } from "@/components/builder/visual/export";
@@ -113,7 +116,7 @@ export function useVisualBuilderPageController(
   const [sculptBrushSize, setSculptBrushSize] = useState(0.25);
   const [sculptStrength, setSculptStrength] = useState(0.42);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
-  const [cameraIntent, setCameraIntent] = useState<{ type: "reframe" | "reset"; seq: number } | null>(null);
+  const [cameraIntent, setCameraIntent] = useState<BuilderWorkspaceCameraIntent | null>(null);
   const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
 
   const buildId = useVisualBuilderStore((state) => state.buildId);
@@ -471,20 +474,36 @@ export function useVisualBuilderPageController(
     [cameraEvidence],
   );
 
-  const triggerCameraIntent = (type: "reframe" | "reset") => {
+  const triggerCameraIntent = (
+    intent: { type: "reframe" | "reset" } | { type: "focus-item"; itemId: string },
+  ) => {
     const nextSeq = (cameraIntent?.seq ?? 0) + 1;
     setSceneSettings({ cameraPreset: "step" });
-    setCameraIntent({ type, seq: nextSeq });
-    cameraEvidence.recordIntent(type);
+    setCameraIntent({ ...intent, seq: nextSeq });
+    cameraEvidence.recordIntent(intent.type === "reset" ? "reset" : "reframe");
 
     void trackEvent("camera_command_invoked", {
       buildId: buildId ?? undefined,
       meta: {
-        command: type === "reframe" ? "frame_tank" : "reset",
+        command:
+          intent.type === "reframe"
+            ? "frame_tank"
+            : intent.type === "reset"
+              ? "reset"
+              : "focus_item",
         step_id: currentStep,
         trigger_source: "user",
+        ...(intent.type === "focus-item" ? { target_item_id: intent.itemId } : {}),
       },
     });
+  };
+
+  const handleFocusSceneItem = (itemId: string) => {
+    const itemExists = canvasState.items.some((item) => item.id === itemId);
+    if (!itemExists) return;
+
+    setSelectedItem(itemId);
+    triggerCameraIntent({ type: "focus-item", itemId });
   };
 
   const handleChooseAsset = (asset: VisualAsset) => {
@@ -879,8 +898,9 @@ export function useVisualBuilderPageController(
       onSculptStrengthChange: setSculptStrength,
     },
     onSceneSettingsChange: setSceneSettings,
-    onReframe: () => triggerCameraIntent("reframe"),
-    onResetView: () => triggerCameraIntent("reset"),
+    onReframe: () => triggerCameraIntent({ type: "reframe" }),
+    onResetView: () => triggerCameraIntent({ type: "reset" }),
+    onFocusSceneItem: handleFocusSceneItem,
     onUpdateCanvasItem: updateCanvasItem,
     onMoveCanvasItemLayer: moveCanvasItemLayer,
     onDuplicateCanvasItem: duplicateCanvasItem,

@@ -366,7 +366,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Grid uses a `GridHelper` from Three.js or a custom shader on the substrate.
   - **Verify:** Toggle grid on — grid lines visible on substrate. Place an item — it snaps to the nearest grid point. Toggle off — free placement.
 
-- [ ] **P6-5: Item inventory sidebar**
+- [x] **P6-5: Item inventory sidebar**
   - Add a collapsible sidebar panel listing all items currently placed in the build.
   - Each row: item name, small icon/thumbnail, quantity (if duplicated species), and a click-to-select action.
   - Clicking a row selects that item in the 3D scene and orbits the camera to frame it.
