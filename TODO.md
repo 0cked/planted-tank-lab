@@ -291,7 +291,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 > **All code-only tasks.** No external assets needed — these are shaders, materials, and rendering improvements.
 
-- [ ] **P5-1: Water surface shader**
+- [x] **P5-1: Water surface shader**
   - Add a semi-transparent animated water surface plane at the tank's water line height.
   - Use a custom `ShaderMaterial` with scrolling normal map (generate procedurally from 2D simplex noise baked to a DataTexture).
   - The surface should have slight opacity (~0.3), blue-green tint, and gentle wave animation via vertex displacement.

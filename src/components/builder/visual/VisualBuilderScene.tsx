@@ -178,6 +178,91 @@ const SUBSTRATE_HEIGHT_EPSILON = 0.0001;
 const SUBSTRATE_HEIGHTFIELD_CELL_COUNT =
   SUBSTRATE_HEIGHTFIELD_RESOLUTION * SUBSTRATE_HEIGHTFIELD_RESOLUTION;
 const ASSET_LOAD_RETRY_DELAY_MS = 3500;
+const WATER_SURFACE_TEXTURE_SEED = 0x51f91f7;
+const WATER_SURFACE_NOISE_SCALE = 5.25;
+const WATER_SURFACE_OCTAVES = 4;
+const SIMPLEX_F2 = (Math.sqrt(3) - 1) * 0.5;
+const SIMPLEX_G2 = (3 - Math.sqrt(3)) / 6;
+const SIMPLEX_GRADIENTS_2D: ReadonlyArray<[number, number]> = [
+  [1, 1],
+  [-1, 1],
+  [1, -1],
+  [-1, -1],
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+const DISABLED_RAYCAST: THREE.Mesh["raycast"] = () => undefined;
+
+const WATER_SURFACE_VERTEX_SHADER = `
+  varying vec2 vUv;
+  varying vec3 vWorldPosition;
+  varying vec3 vWorldNormal;
+
+  uniform sampler2D uNormalMap;
+  uniform float uTime;
+  uniform float uWaveAmplitude;
+  uniform float uWaveScale;
+  uniform float uNormalStrength;
+
+  void main() {
+    vUv = uv;
+
+    vec2 flowUvA = uv * uWaveScale + vec2(uTime * 0.036, -uTime * 0.028);
+    vec2 flowUvB = uv * (uWaveScale * 1.74) + vec2(-uTime * 0.022, uTime * 0.031);
+
+    vec3 waveSampleA = texture2D(uNormalMap, flowUvA).xyz * 2.0 - 1.0;
+    vec3 waveSampleB = texture2D(uNormalMap, flowUvB).xyz * 2.0 - 1.0;
+    vec2 wave = (waveSampleA.xy + waveSampleB.xy) * 0.5;
+
+    vec3 transformed = position;
+    transformed.z += wave.x * uWaveAmplitude;
+
+    vec3 perturbedNormal = normalize(vec3(wave * uNormalStrength, 1.0));
+    vWorldNormal = normalize(mat3(modelMatrix) * perturbedNormal);
+
+    vec4 worldPosition = modelMatrix * vec4(transformed, 1.0);
+    vWorldPosition = worldPosition.xyz;
+
+    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+  }
+`;
+
+const WATER_SURFACE_FRAGMENT_SHADER = `
+  varying vec2 vUv;
+  varying vec3 vWorldPosition;
+  varying vec3 vWorldNormal;
+
+  uniform sampler2D uNormalMap;
+  uniform float uTime;
+  uniform vec3 uTintColor;
+  uniform float uOpacity;
+  uniform float uNormalStrength;
+  uniform float uFlowScale;
+
+  void main() {
+    vec2 detailUvA = vUv * uFlowScale + vec2(uTime * 0.027, -uTime * 0.021);
+    vec2 detailUvB = vUv * (uFlowScale * 1.63) + vec2(-uTime * 0.016, uTime * 0.024);
+
+    vec3 detailA = texture2D(uNormalMap, detailUvA).xyz * 2.0 - 1.0;
+    vec3 detailB = texture2D(uNormalMap, detailUvB).xyz * 2.0 - 1.0;
+
+    vec3 detailNormal = normalize(vec3((detailA.xy + detailB.xy) * (0.5 * uNormalStrength), 1.0));
+    vec3 normal = normalize(vWorldNormal + detailNormal * 0.42);
+    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+
+    float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 2.35);
+    float shimmer = 0.5 + 0.5 * sin((vUv.x * 21.0 + vUv.y * 17.0) + uTime * 1.9);
+    float glint = pow(max(dot(normal, normalize(vec3(0.22, 0.95, 0.31))), 0.0), 16.0);
+
+    vec3 tint = mix(uTintColor * 0.82, uTintColor * 1.12, shimmer * 0.28);
+    vec3 color = tint + vec3(0.12, 0.18, 0.22) * fresnel + vec3(0.18, 0.26, 0.34) * glint;
+
+    float alpha = clamp(uOpacity + fresnel * 0.22, 0.0, 0.72);
+    gl_FragColor = vec4(color, alpha);
+  }
+`;
 
 type SubstrateSamplingMap = {
   sourceIndex00: Uint16Array;
@@ -218,6 +303,228 @@ function normalizeDims(tank: VisualTank | null, canvasState: VisualCanvasState):
     heightIn: tank?.heightIn ?? canvasState.heightIn,
     depthIn: tank?.depthIn ?? canvasState.depthIn,
   };
+}
+
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let result = Math.imul(state ^ (state >>> 15), 1 | state);
+    result ^= result + Math.imul(result ^ (result >>> 7), 61 | result);
+    return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildPermutationTable(seed: number): Uint8Array {
+  const values = Array.from({ length: 256 }, (_, index) => index);
+  const random = seededRandom(seed ^ 0x9e3779b9);
+
+  for (let index = values.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    const next = values[index] ?? 0;
+    values[index] = values[swapIndex] ?? 0;
+    values[swapIndex] = next;
+  }
+
+  const permutation = new Uint8Array(512);
+  for (let index = 0; index < permutation.length; index += 1) {
+    permutation[index] = values[index & 255] ?? 0;
+  }
+
+  return permutation;
+}
+
+function simplexDot2(gradient: [number, number], x: number, y: number): number {
+  return gradient[0] * x + gradient[1] * y;
+}
+
+function createSimplexNoise2D(seed: number): (x: number, y: number) => number {
+  const permutation = buildPermutationTable(seed);
+  const perm = (index: number): number => permutation[index & 511] ?? 0;
+
+  return (x: number, y: number): number => {
+    const skew = (x + y) * SIMPLEX_F2;
+    const i = Math.floor(x + skew);
+    const j = Math.floor(y + skew);
+
+    const unskew = (i + j) * SIMPLEX_G2;
+    const x0 = x - (i - unskew);
+    const y0 = y - (j - unskew);
+
+    const i1 = x0 > y0 ? 1 : 0;
+    const j1 = x0 > y0 ? 0 : 1;
+
+    const x1 = x0 - i1 + SIMPLEX_G2;
+    const y1 = y0 - j1 + SIMPLEX_G2;
+    const x2 = x0 - 1 + SIMPLEX_G2 * 2;
+    const y2 = y0 - 1 + SIMPLEX_G2 * 2;
+
+    const ii = i & 255;
+    const jj = j & 255;
+
+    const gi0 = perm(ii + perm(jj)) % SIMPLEX_GRADIENTS_2D.length;
+    const gi1 = perm(ii + i1 + perm(jj + j1)) % SIMPLEX_GRADIENTS_2D.length;
+    const gi2 = perm(ii + 1 + perm(jj + 1)) % SIMPLEX_GRADIENTS_2D.length;
+
+    let n0 = 0;
+    let n1 = 0;
+    let n2 = 0;
+
+    const t0 = 0.5 - x0 * x0 - y0 * y0;
+    if (t0 > 0) {
+      const t0Squared = t0 * t0;
+      n0 =
+        t0Squared *
+        t0Squared *
+        simplexDot2(SIMPLEX_GRADIENTS_2D[gi0] ?? [1, 1], x0, y0);
+    }
+
+    const t1 = 0.5 - x1 * x1 - y1 * y1;
+    if (t1 > 0) {
+      const t1Squared = t1 * t1;
+      n1 =
+        t1Squared *
+        t1Squared *
+        simplexDot2(SIMPLEX_GRADIENTS_2D[gi1] ?? [1, 1], x1, y1);
+    }
+
+    const t2 = 0.5 - x2 * x2 - y2 * y2;
+    if (t2 > 0) {
+      const t2Squared = t2 * t2;
+      n2 =
+        t2Squared *
+        t2Squared *
+        simplexDot2(SIMPLEX_GRADIENTS_2D[gi2] ?? [1, 1], x2, y2);
+    }
+
+    return 70 * (n0 + n1 + n2);
+  };
+}
+
+function sampleTileableSimplex2D(params: {
+  noise: (x: number, y: number) => number;
+  x: number;
+  y: number;
+  periodX: number;
+  periodY: number;
+}): number {
+  const periodX = Math.max(0.0001, params.periodX);
+  const periodY = Math.max(0.0001, params.periodY);
+  const wrappedX = THREE.MathUtils.euclideanModulo(params.x, periodX);
+  const wrappedY = THREE.MathUtils.euclideanModulo(params.y, periodY);
+  const blendX = wrappedX / periodX;
+  const blendY = wrappedY / periodY;
+
+  const n00 = params.noise(wrappedX, wrappedY);
+  const n10 = params.noise(wrappedX - periodX, wrappedY);
+  const n01 = params.noise(wrappedX, wrappedY - periodY);
+  const n11 = params.noise(wrappedX - periodX, wrappedY - periodY);
+
+  const top = THREE.MathUtils.lerp(n00, n10, blendX);
+  const bottom = THREE.MathUtils.lerp(n01, n11, blendX);
+  return THREE.MathUtils.lerp(top, bottom, blendY);
+}
+
+function waterSurfaceTextureSize(qualityTier: BuilderSceneQualityTier): number {
+  if (qualityTier === "low") return 64;
+  if (qualityTier === "medium") return 128;
+  return 256;
+}
+
+function waterSurfaceGridResolution(qualityTier: BuilderSceneQualityTier): number {
+  if (qualityTier === "low") return 52;
+  if (qualityTier === "medium") return 72;
+  return 96;
+}
+
+function createWaterSurfaceNormalTexture(params: {
+  size: number;
+  seed: number;
+}): THREE.DataTexture {
+  const size = Math.max(32, Math.floor(params.size));
+  const heights = new Float32Array(size * size);
+  const noise = createSimplexNoise2D(params.seed);
+  const maxIndex = Math.max(1, size - 1);
+
+  for (let yIndex = 0; yIndex < size; yIndex += 1) {
+    const yNorm = yIndex / maxIndex;
+
+    for (let xIndex = 0; xIndex < size; xIndex += 1) {
+      const xNorm = xIndex / maxIndex;
+      let amplitude = 1;
+      let frequency = 1;
+      let amplitudeTotal = 0;
+      let combined = 0;
+
+      for (let octave = 0; octave < WATER_SURFACE_OCTAVES; octave += 1) {
+        const period = WATER_SURFACE_NOISE_SCALE * frequency;
+        const sampleX = xNorm * period + octave * 17.13;
+        const sampleY = yNorm * period - octave * 11.87;
+        const value = sampleTileableSimplex2D({
+          noise,
+          x: sampleX,
+          y: sampleY,
+          periodX: period,
+          periodY: period,
+        });
+
+        combined += value * amplitude;
+        amplitudeTotal += amplitude;
+        amplitude *= 0.5;
+        frequency *= 2;
+      }
+
+      heights[yIndex * size + xIndex] =
+        amplitudeTotal > 0 ? combined / amplitudeTotal : 0;
+    }
+  }
+
+  const textureData = new Uint8Array(size * size * 4);
+
+  for (let yIndex = 0; yIndex < size; yIndex += 1) {
+    const upRow = ((yIndex + 1) % size) * size;
+    const downRow = ((yIndex - 1 + size) % size) * size;
+    const row = yIndex * size;
+
+    for (let xIndex = 0; xIndex < size; xIndex += 1) {
+      const leftColumn = (xIndex - 1 + size) % size;
+      const rightColumn = (xIndex + 1) % size;
+
+      const left = heights[row + leftColumn] ?? 0;
+      const right = heights[row + rightColumn] ?? 0;
+      const up = heights[upRow + xIndex] ?? 0;
+      const down = heights[downRow + xIndex] ?? 0;
+
+      const gradientX = (right - left) * 1.85;
+      const gradientY = (up - down) * 1.85;
+      const nx = -gradientX;
+      const ny = -gradientY;
+      const nz = 1;
+      const invLength = 1 / Math.max(0.0001, Math.hypot(nx, ny, nz));
+
+      const offset = (row + xIndex) * 4;
+      textureData[offset] = Math.round((nx * invLength * 0.5 + 0.5) * 255);
+      textureData[offset + 1] = Math.round((ny * invLength * 0.5 + 0.5) * 255);
+      textureData[offset + 2] = Math.round((nz * invLength * 0.5 + 0.5) * 255);
+      textureData[offset + 3] = 255;
+    }
+  }
+
+  const texture = new THREE.DataTexture(
+    textureData,
+    size,
+    size,
+    THREE.RGBAFormat,
+    THREE.UnsignedByteType,
+  );
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = true;
+  texture.needsUpdate = true;
+
+  return texture;
 }
 
 function cameraPreset(step: BuilderSceneStep, dims: SceneDims): {
@@ -1409,6 +1716,98 @@ function PlantInstancedGroupMesh(props: {
   );
 }
 
+function WaterSurfacePlane(props: {
+  widthIn: number;
+  depthIn: number;
+  waterLineY: number;
+  qualityTier: BuilderSceneQualityTier;
+}) {
+  const textureSize = waterSurfaceTextureSize(props.qualityTier);
+  const segmentCount = waterSurfaceGridResolution(props.qualityTier);
+  const normalTexture = useMemo(
+    () =>
+      createWaterSurfaceNormalTexture({
+        size: textureSize,
+        seed: WATER_SURFACE_TEXTURE_SEED,
+      }),
+    [textureSize],
+  );
+
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const initialUniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uNormalMap: { value: null as THREE.Texture | null },
+      uTintColor: { value: new THREE.Color("#5da7b5") },
+      uOpacity: { value: 0.3 },
+      uNormalStrength: { value: 0.58 },
+      uFlowScale: { value: 4.4 },
+      uWaveScale: { value: 3.2 },
+      uWaveAmplitude: { value: 0.06 },
+    }),
+    [],
+  );
+
+  useFrame((state) => {
+    const material = materialRef.current;
+    if (!material) return;
+    material.uniforms.uTime.value = state.clock.elapsedTime;
+  });
+
+  useEffect(() => {
+    const material = materialRef.current;
+    if (material) {
+      material.uniforms.uNormalMap.value = normalTexture;
+    }
+
+    return () => {
+      const currentMaterial = materialRef.current;
+      if (currentMaterial && currentMaterial.uniforms.uNormalMap.value === normalTexture) {
+        currentMaterial.uniforms.uNormalMap.value = null;
+      }
+      normalTexture.dispose();
+    };
+  }, [normalTexture]);
+
+  useEffect(() => {
+    const material = materialRef.current;
+    if (!material) return;
+
+    material.uniforms.uFlowScale.value =
+      props.qualityTier === "high" ? 4.8 : props.qualityTier === "medium" ? 4.35 : 4;
+    material.uniforms.uWaveScale.value =
+      props.qualityTier === "high" ? 3.4 : props.qualityTier === "medium" ? 3.1 : 2.8;
+    material.uniforms.uNormalStrength.value =
+      props.qualityTier === "low" ? 0.52 : 0.58;
+    material.uniforms.uWaveAmplitude.value = Math.max(
+      0.045,
+      Math.min(0.1, Math.min(props.widthIn, props.depthIn) * 0.0019),
+    );
+  }, [props.depthIn, props.qualityTier, props.widthIn]);
+
+  return (
+    <mesh
+      position={[0, props.waterLineY + 0.02, 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      raycast={DISABLED_RAYCAST}
+      renderOrder={24}
+    >
+      <planeGeometry
+        args={[props.widthIn * 0.95, props.depthIn * 0.95, segmentCount, segmentCount]}
+      />
+      <shaderMaterial
+        ref={materialRef}
+        uniforms={initialUniforms}
+        vertexShader={WATER_SURFACE_VERTEX_SHADER}
+        fragmentShader={WATER_SURFACE_FRAGMENT_SHADER}
+        transparent
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
 function TankShell(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
@@ -1472,6 +1871,13 @@ function TankShell(props: {
           attenuationDistance={30}
         />
       </mesh>
+
+      <WaterSurfacePlane
+        widthIn={props.dims.widthIn}
+        depthIn={props.dims.depthIn}
+        waterLineY={waterHeight}
+        qualityTier={props.qualityTier}
+      />
 
       <mesh
         position={[0, props.dims.heightIn * 0.5, 0]}
