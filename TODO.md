@@ -335,7 +335,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 ### Phase 6 -- Builder Power Features
 
-- [ ] **P6-1: Keyboard shortcuts**
+- [x] **P6-1: Keyboard shortcuts**
   - Add keyboard shortcuts to the builder (listen on the builder page, not globally):
     - `Delete` / `Backspace`: remove selected item
     - `D`: duplicate selected item (place copy offset by 1 inch)

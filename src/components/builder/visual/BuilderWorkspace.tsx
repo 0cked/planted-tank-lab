@@ -1,6 +1,7 @@
 import { BuilderLeftSidebar } from "@/components/builder/visual/BuilderLeftSidebar";
 import { BuilderRightSidebar } from "@/components/builder/visual/BuilderRightSidebar";
 import { BuilderSceneToolbar } from "@/components/builder/visual/BuilderSceneToolbar";
+import { BuilderShortcutsOverlay } from "@/components/builder/visual/BuilderShortcutsOverlay";
 import { BuilderViewportLayout } from "@/components/builder/visual/BuilderViewportLayout";
 import type { BomLine, BuilderStepId } from "@/components/builder/visual/builder-page-utils";
 import type { SubstrateBrushMode } from "@/components/builder/visual/scene-utils";
@@ -96,6 +97,9 @@ export type BuilderWorkspaceProps = {
   onPlacementRotationChange: (value: number) => void;
   onClusterBrushCountChange: (value: number) => void;
   onToggleGuides: () => void;
+  shortcutsOverlayOpen: boolean;
+  onToggleShortcutsOverlay: () => void;
+  onCloseShortcutsOverlay: () => void;
   onSelectSceneItem: (itemId: string | null) => void;
   onHoverSceneItem: (itemId: string | null) => void;
   onPlaceSceneItem: (request: {
@@ -181,10 +185,12 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       placementRotationDeg={props.placementRotationDeg}
       clusterBrushCount={props.clusterBrushCount}
       guidesVisible={props.canvasState.sceneSettings.guidesVisible}
+      shortcutsOpen={props.shortcutsOverlayOpen}
       onToolModeChange={props.onToolModeChange}
       onPlacementRotationChange={props.onPlacementRotationChange}
       onClusterBrushCountChange={props.onClusterBrushCountChange}
       onToggleGuides={props.onToggleGuides}
+      onToggleShortcuts={props.onToggleShortcutsOverlay}
     />
   );
 
@@ -226,5 +232,10 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
     />
   );
 
-  return <BuilderViewportLayout leftSidebar={leftSidebar} rightSidebar={rightSidebar} scene={scene} toolbar={toolbar} />;
+  return (
+    <>
+      <BuilderViewportLayout leftSidebar={leftSidebar} rightSidebar={rightSidebar} scene={scene} toolbar={toolbar} />
+      <BuilderShortcutsOverlay open={props.shortcutsOverlayOpen} onClose={props.onCloseShortcutsOverlay} />
+    </>
+  );
 }

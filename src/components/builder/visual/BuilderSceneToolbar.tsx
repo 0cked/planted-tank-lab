@@ -11,10 +11,12 @@ type BuilderSceneToolbarProps = {
   placementRotationDeg: number;
   clusterBrushCount: number;
   guidesVisible: boolean;
+  shortcutsOpen: boolean;
   onToolModeChange: (mode: BuilderSceneToolMode) => void;
   onPlacementRotationChange: (value: number) => void;
   onClusterBrushCountChange: (value: number) => void;
   onToggleGuides: () => void;
+  onToggleShortcuts: () => void;
 };
 
 const TOOL_MODES: Array<{ mode: BuilderSceneToolMode; label: string }> = [
@@ -92,6 +94,19 @@ export function BuilderSceneToolbar(props: BuilderSceneToolbarProps) {
         className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-xs font-semibold text-slate-200"
       >
         {props.guidesVisible ? "Hide guides" : "Show guides"}
+      </button>
+
+      <button
+        onClick={props.onToggleShortcuts}
+        aria-label={props.shortcutsOpen ? "Hide keyboard shortcuts" : "Show keyboard shortcuts"}
+        title="Keyboard shortcuts"
+        className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold ${
+          props.shortcutsOpen
+            ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
+            : "border-white/20 bg-slate-950/70 text-slate-200"
+        }`}
+      >
+        ?
       </button>
     </div>
   );

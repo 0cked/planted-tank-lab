@@ -167,6 +167,16 @@ function clampDepthAxis(value: number): number {
   return clamp01(value);
 }
 
+function offsetAxisByInches(value: number, dimensionIn: number, offsetIn = 1): number {
+  const normalizedOffset = offsetIn / Math.max(1, dimensionIn);
+  const positiveOffset = value + normalizedOffset;
+  if (positiveOffset <= 1) {
+    return clamp01(positiveOffset);
+  }
+
+  return clamp01(value - normalizedOffset);
+}
+
 function clampScale(value: number): number {
   if (!Number.isFinite(value)) return 1;
   if (value < 0.1) return 0.1;
@@ -888,8 +898,8 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           if (!source) return state;
 
           const dims = currentDims(state);
-          const nextX = clamp01(source.x + 0.02);
-          const nextY = clamp01(source.y + 0.02);
+          const nextX = offsetAxisByInches(source.x, dims.widthIn, 1);
+          const nextZ = offsetAxisByInches(source.z, dims.depthIn, 1);
 
           const nextItems = normalizeItems(
             [
@@ -898,12 +908,12 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
                 ...source,
                 id: nanoid(10),
                 x: nextX,
-                y: nextY,
+                z: nextZ,
                 layer: state.canvasState.items.length,
                 transform: buildTransformFromNormalized({
                   x: nextX,
-                  y: nextY,
-                  z: source.z,
+                  y: source.y,
+                  z: nextZ,
                   scale: source.scale,
                   rotation: source.rotation,
                   dims,

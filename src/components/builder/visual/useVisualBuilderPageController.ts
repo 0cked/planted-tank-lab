@@ -2,7 +2,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import type { ComponentProps } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { trpc } from "@/components/TRPCProvider";
 import { BuildMetadataPanel } from "@/components/builder/visual/BuildMetadataPanel";
@@ -76,6 +76,15 @@ function captureSceneThumbnailDataUrl(canvas: HTMLCanvasElement | null): string 
   }
 }
 
+function isEditableShortcutTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
+}
+
 type VisualBuilderPageController = {
   metadataPanelProps: ComponentProps<typeof BuildMetadataPanel>;
   stepNavigatorProps: ComponentProps<typeof BuildStepNavigator>;
@@ -105,6 +114,7 @@ export function useVisualBuilderPageController(
   const [sculptStrength, setSculptStrength] = useState(0.42);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [cameraIntent, setCameraIntent] = useState<{ type: "reframe" | "reset"; seq: number } | null>(null);
+  const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
 
   const buildId = useVisualBuilderStore((state) => state.buildId);
   const shareSlug = useVisualBuilderStore((state) => state.shareSlug);
@@ -258,18 +268,21 @@ export function useVisualBuilderPageController(
   const canContinueCurrentStep =
     currentStep === "equipment" ? true : currentStep === "review" ? false : stepCompletion[currentStep];
 
-  const canNavigateToStep = (target: BuilderStepId): boolean => {
-    const targetIndex = STEP_ORDER.indexOf(target);
-    if (targetIndex <= currentStepIndex) return true;
+  const canNavigateToStep = useCallback(
+    (target: BuilderStepId): boolean => {
+      const targetIndex = STEP_ORDER.indexOf(target);
+      if (targetIndex <= currentStepIndex) return true;
 
-    for (let index = 0; index < targetIndex; index += 1) {
-      const step = STEP_ORDER[index]!;
-      if (step === "review") continue;
-      if (!stepCompletion[step]) return false;
-    }
+      for (let index = 0; index < targetIndex; index += 1) {
+        const step = STEP_ORDER[index]!;
+        if (step === "review") continue;
+        if (!stepCompletion[step]) return false;
+      }
 
-    return true;
-  };
+      return true;
+    },
+    [currentStepIndex, stepCompletion],
+  );
 
   const filteredAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -433,23 +446,26 @@ export function useVisualBuilderPageController(
     return next;
   }, [assetsById, selectedProductByCategory]);
 
-  const applyStepChange = (nextStep: BuilderStepId) => {
-    cameraEvidence.recordStepTransition(nextStep);
+  const applyStepChange = useCallback(
+    (nextStep: BuilderStepId) => {
+      cameraEvidence.recordStepTransition(nextStep);
 
-    setCurrentStep(nextStep);
-    if (nextStep === "substrate") {
-      setToolMode("sculpt");
-      return;
-    }
+      setCurrentStep(nextStep);
+      if (nextStep === "substrate") {
+        setToolMode("sculpt");
+        return;
+      }
 
-    if (nextStep === "hardscape" || nextStep === "plants") {
-      setToolMode("place");
-      return;
-    }
+      if (nextStep === "hardscape" || nextStep === "plants") {
+        setToolMode("place");
+        return;
+      }
 
-    setToolMode("move");
-    setPlacementAssetId(null);
-  };
+      setToolMode("move");
+      setPlacementAssetId(null);
+    },
+    [cameraEvidence],
+  );
 
   const triggerCameraIntent = (type: "reframe" | "reset") => {
     const nextSeq = (cameraIntent?.seq ?? 0) + 1;
@@ -600,31 +616,108 @@ export function useVisualBuilderPageController(
   };
 
   useEffect(() => {
-    const handleUndoRedoShortcut = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== "z") return;
+    const handleKeyboardShortcut = (event: KeyboardEvent) => {
+      if (isEditableShortcutTarget(event.target)) return;
 
-      const target = event.target;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement ||
-        (target instanceof HTMLElement && target.isContentEditable)
-      ) {
+      const hasCommandModifier = event.metaKey || event.ctrlKey;
+      const hasBlockedModifier = event.altKey;
+      const keyLower = event.key.toLowerCase();
+      const isHelpKey = event.key === "?" || (event.key === "/" && event.shiftKey);
+
+      if (hasCommandModifier && !hasBlockedModifier && keyLower === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          redoSubstrateStroke();
+          return;
+        }
+
+        undoSubstrateStroke();
         return;
       }
 
-      event.preventDefault();
-      if (event.shiftKey) {
-        redoSubstrateStroke();
+      if (!hasCommandModifier && !hasBlockedModifier && isHelpKey) {
+        event.preventDefault();
+        setShowShortcutsOverlay(true);
         return;
       }
 
-      undoSubstrateStroke();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setShowShortcutsOverlay(false);
+        if (selectedItemId) {
+          setSelectedItem(null);
+        }
+        return;
+      }
+
+      if (showShortcutsOverlay || hasCommandModifier || hasBlockedModifier) return;
+
+      if (!event.shiftKey) {
+        const stepIndex = Number.parseInt(event.key, 10);
+        if (Number.isInteger(stepIndex) && stepIndex >= 1 && stepIndex <= 5) {
+          event.preventDefault();
+
+          const targetStep = STEP_ORDER[stepIndex - 1];
+          if (!targetStep) return;
+
+          if (!canNavigateToStep(targetStep)) {
+            setSaveState({
+              type: "error",
+              message: `Finish the previous workflow steps before jumping to ${STEP_META[targetStep].title.toLowerCase()}.`,
+            });
+            return;
+          }
+
+          applyStepChange(targetStep);
+          return;
+        }
+      }
+
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedItemId) {
+        event.preventDefault();
+        removeCanvasItem(selectedItemId);
+        return;
+      }
+
+      if (keyLower === "d" && selectedItemId) {
+        event.preventDefault();
+        duplicateCanvasItem(selectedItemId);
+        return;
+      }
+
+      if (keyLower === "r" && selectedItemId) {
+        const activeItem = canvasState.items.find((item) => item.id === selectedItemId);
+        if (!activeItem) return;
+
+        event.preventDefault();
+        updateCanvasItem(selectedItemId, {
+          rotation: clampRotationDeg(activeItem.rotation + 45),
+        });
+        return;
+      }
+
+      if (keyLower === "b" && currentStep === "substrate") {
+        event.preventDefault();
+        setToolMode((previous) => (previous === "sculpt" ? "move" : "sculpt"));
+      }
     };
 
-    window.addEventListener("keydown", handleUndoRedoShortcut);
-    return () => window.removeEventListener("keydown", handleUndoRedoShortcut);
-  }, [redoSubstrateStroke, undoSubstrateStroke]);
+    window.addEventListener("keydown", handleKeyboardShortcut);
+    return () => window.removeEventListener("keydown", handleKeyboardShortcut);
+  }, [
+    applyStepChange,
+    canNavigateToStep,
+    canvasState.items,
+    currentStep,
+    duplicateCanvasItem,
+    redoSubstrateStroke,
+    removeCanvasItem,
+    selectedItemId,
+    setSelectedItem,
+    showShortcutsOverlay,
+    undoSubstrateStroke,
+    updateCanvasItem,
+  ]);
 
   const buildLink = shareSlug && typeof window !== "undefined" ? `${window.location.origin}/builder/${shareSlug}` : null;
 
@@ -773,6 +866,13 @@ export function useVisualBuilderPageController(
     onClusterBrushCountChange: setClusterBrushCount,
     onToggleGuides: () => {
       setSceneSettings({ guidesVisible: !canvasState.sceneSettings.guidesVisible });
+    },
+    shortcutsOverlayOpen: showShortcutsOverlay,
+    onToggleShortcutsOverlay: () => {
+      setShowShortcutsOverlay((previous) => !previous);
+    },
+    onCloseShortcutsOverlay: () => {
+      setShowShortcutsOverlay(false);
     },
     onSelectSceneItem: setSelectedItem,
     onHoverSceneItem: setHoveredItemId,
