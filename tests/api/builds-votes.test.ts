@@ -1,13 +1,15 @@
-import { eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { db } from "@/server/db";
-import { buildTags, buildVotes, builds, users } from "@/server/db/schema";
+import { buildItems, buildTags, buildVotes, builds, categories, products, users } from "@/server/db/schema";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
 const createdBuildIds: string[] = [];
 const createdUserIds: string[] = [];
+const createdProductIds: string[] = [];
+const createdCategoryIds: string[] = [];
 
 function randomSuffix(): string {
   return crypto.randomUUID().replace(/-/g, "").slice(0, 10);
@@ -29,16 +31,26 @@ async function createUser() {
   return user;
 }
 
-async function createPublicBuild(ownerUserId: string, name: string) {
+async function createPublicBuild(
+  ownerUserId: string,
+  name: string,
+  options?: {
+    description?: string | null;
+    itemCount?: number;
+    updatedAt?: Date;
+  },
+) {
   const shareSlug = `vote-${randomSuffix()}`;
   const inserted = await db
     .insert(builds)
     .values({
       userId: ownerUserId,
       name,
+      description: options?.description,
       shareSlug,
       isPublic: true,
-      updatedAt: new Date(),
+      itemCount: options?.itemCount ?? 0,
+      updatedAt: options?.updatedAt ?? new Date(),
     })
     .returning({ id: builds.id });
 
@@ -49,6 +61,46 @@ async function createPublicBuild(ownerUserId: string, name: string) {
 
   createdBuildIds.push(row.id);
   return row.id;
+}
+
+async function createCategoryAndProduct(productName: string) {
+  const suffix = randomSuffix();
+  const categoryInserted = await db
+    .insert(categories)
+    .values({
+      slug: `vote-search-${suffix}`,
+      name: `Vote Search ${suffix}`,
+      displayOrder: 9_000,
+    })
+    .returning({ id: categories.id });
+
+  const category = categoryInserted[0];
+  if (!category) {
+    throw new Error("Failed to create test category");
+  }
+
+  createdCategoryIds.push(category.id);
+
+  const productInserted = await db
+    .insert(products)
+    .values({
+      categoryId: category.id,
+      name: productName,
+      slug: `vote-search-product-${suffix}`,
+    })
+    .returning({ id: products.id });
+
+  const product = productInserted[0];
+  if (!product) {
+    throw new Error("Failed to create test product");
+  }
+
+  createdProductIds.push(product.id);
+
+  return {
+    categoryId: category.id,
+    productId: product.id,
+  };
 }
 
 async function createPublicCaller() {
@@ -73,25 +125,23 @@ function createAuthedCaller(user: { id: string; email: string }) {
 
 afterEach(async () => {
   if (createdBuildIds.length > 0) {
-    await db.delete(buildVotes).where(eq(buildVotes.buildId, createdBuildIds[0]!));
-    for (const buildId of createdBuildIds.slice(1)) {
-      await db.delete(buildVotes).where(eq(buildVotes.buildId, buildId));
-    }
-
-    await db.delete(builds).where(eq(builds.id, createdBuildIds[0]!));
-    for (const buildId of createdBuildIds.slice(1)) {
-      await db.delete(builds).where(eq(builds.id, buildId));
-    }
-
+    await db.delete(buildVotes).where(inArray(buildVotes.buildId, createdBuildIds));
+    await db.delete(builds).where(inArray(builds.id, createdBuildIds));
     createdBuildIds.length = 0;
   }
 
-  if (createdUserIds.length > 0) {
-    await db.delete(users).where(eq(users.id, createdUserIds[0]!));
-    for (const userId of createdUserIds.slice(1)) {
-      await db.delete(users).where(eq(users.id, userId));
-    }
+  if (createdProductIds.length > 0) {
+    await db.delete(products).where(inArray(products.id, createdProductIds));
+    createdProductIds.length = 0;
+  }
 
+  if (createdCategoryIds.length > 0) {
+    await db.delete(categories).where(inArray(categories.id, createdCategoryIds));
+    createdCategoryIds.length = 0;
+  }
+
+  if (createdUserIds.length > 0) {
+    await db.delete(users).where(inArray(users.id, createdUserIds));
     createdUserIds.length = 0;
   }
 });
@@ -172,5 +222,123 @@ describe("tRPC builds voting", () => {
 
     const iwagumiRow = filtered.find((row) => row.id === iwagumiBuildId);
     expect(iwagumiRow?.tags).toEqual(["iwagumi", "nano"]);
+  });
+
+  it("supports search across build name, description, and equipment names", async () => {
+    const owner = await createUser();
+
+    const nameToken = `name-${randomSuffix()}`;
+    const descriptionToken = `description-${randomSuffix()}`;
+    const equipmentToken = `equipment-${randomSuffix()}`;
+
+    const nameBuildId = await createPublicBuild(owner.id, `Search ${nameToken}`);
+    const descriptionBuildId = await createPublicBuild(owner.id, "Description search", {
+      description: `This layout uses ${descriptionToken} hardscape`,
+    });
+    const equipmentBuildId = await createPublicBuild(owner.id, "Equipment search");
+
+    const { categoryId, productId } = await createCategoryAndProduct(
+      `Canister Filter ${equipmentToken}`,
+    );
+
+    await db.insert(buildItems).values({
+      buildId: equipmentBuildId,
+      categoryId,
+      productId,
+      quantity: 1,
+    });
+
+    const caller = await createPublicCaller();
+
+    const byName = await caller.builds.listPublic({ limit: 100, search: nameToken });
+    expect(byName.some((row) => row.id === nameBuildId)).toBe(true);
+
+    const byDescription = await caller.builds.listPublic({
+      limit: 100,
+      search: descriptionToken,
+    });
+    expect(byDescription.some((row) => row.id === descriptionBuildId)).toBe(true);
+
+    const byEquipment = await caller.builds.listPublic({
+      limit: 100,
+      search: equipmentToken,
+    });
+    expect(byEquipment.some((row) => row.id === equipmentBuildId)).toBe(true);
+  });
+
+  it("combines search and tag filters", async () => {
+    const owner = await createUser();
+    const token = `tag-search-${randomSuffix()}`;
+
+    const matchingBuildId = await createPublicBuild(owner.id, `Iwagumi ${token}`);
+    const nonMatchingBuildId = await createPublicBuild(owner.id, `Jungle ${token}`);
+
+    await db.insert(buildTags).values([
+      { buildId: matchingBuildId, tagSlug: "iwagumi" },
+      { buildId: nonMatchingBuildId, tagSlug: "jungle" },
+    ]);
+
+    const caller = await createPublicCaller();
+    const rows = await caller.builds.listPublic({
+      limit: 100,
+      search: token,
+      tag: "iwagumi",
+    });
+
+    expect(rows.some((row) => row.id === matchingBuildId)).toBe(true);
+    expect(rows.some((row) => row.id === nonMatchingBuildId)).toBe(false);
+  });
+
+  it("supports newest, most items, and alphabetical sort options", async () => {
+    const owner = await createUser();
+    const token = `sort-${randomSuffix()}`;
+
+    const oldestBuildId = await createPublicBuild(owner.id, `C-${token}`, {
+      itemCount: 1,
+      updatedAt: new Date("2024-01-01T12:00:00Z"),
+    });
+    const newestBuildId = await createPublicBuild(owner.id, `B-${token}`, {
+      itemCount: 5,
+      updatedAt: new Date("2026-01-01T12:00:00Z"),
+    });
+    const mostItemsBuildId = await createPublicBuild(owner.id, `A-${token}`, {
+      itemCount: 40,
+      updatedAt: new Date("2025-01-01T12:00:00Z"),
+    });
+
+    const caller = await createPublicCaller();
+
+    const newestRows = await caller.builds.listPublic({
+      limit: 100,
+      search: token,
+      sort: "newest",
+    });
+    expect(newestRows.map((row) => row.id).slice(0, 3)).toEqual([
+      newestBuildId,
+      mostItemsBuildId,
+      oldestBuildId,
+    ]);
+
+    const mostItemsRows = await caller.builds.listPublic({
+      limit: 100,
+      search: token,
+      sort: "most-items",
+    });
+    expect(mostItemsRows.map((row) => row.id).slice(0, 3)).toEqual([
+      mostItemsBuildId,
+      newestBuildId,
+      oldestBuildId,
+    ]);
+
+    const alphabeticalRows = await caller.builds.listPublic({
+      limit: 100,
+      search: token,
+      sort: "alphabetical",
+    });
+    expect(alphabeticalRows.map((row) => row.id).slice(0, 3)).toEqual([
+      mostItemsBuildId,
+      newestBuildId,
+      oldestBuildId,
+    ]);
   });
 });

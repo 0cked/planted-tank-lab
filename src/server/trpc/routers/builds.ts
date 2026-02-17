@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
-import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import {
@@ -24,6 +24,10 @@ import {
   publicProcedure,
 } from "@/server/trpc/trpc";
 import type { PlantSnapshot, ProductSnapshot } from "@/engine/types";
+import {
+  DEFAULT_BUILD_SORT_OPTION,
+  buildSortOptionSchema,
+} from "@/lib/build-sort";
 import { buildTagSlugSchema, normalizeBuildTagSlugs } from "@/lib/build-tags";
 import type * as fullSchema from "@/server/db/schema";
 
@@ -61,6 +65,10 @@ function displayNameForCommentAuthor(params: {
 
   if (localPart) return localPart;
   return "Community member";
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
 }
 
 async function computeTotalPriceCents(
@@ -142,12 +150,18 @@ export const buildsRouter = createTRPCRouter({
         .object({
           limit: z.number().int().min(1).max(100).default(50),
           tag: buildTagSlugSchema.optional(),
+          search: z.string().trim().min(1).max(120).optional(),
+          sort: buildSortOptionSchema.default(DEFAULT_BUILD_SORT_OPTION),
         })
         .optional(),
     )
     .query(async ({ ctx, input }) => {
       const limit = input?.limit ?? 50;
       const activeTag = input?.tag;
+      const sort = input?.sort ?? DEFAULT_BUILD_SORT_OPTION;
+      const searchPattern = input?.search
+        ? `%${escapeLikePattern(input.search)}%`
+        : null;
       const voteCount = sql<number>`coalesce(count(${buildVotes.userId}), 0)::int`;
 
       const buildSelect = {
@@ -163,6 +177,36 @@ export const buildsRouter = createTRPCRouter({
         voteCount: voteCount.as("voteCount"),
       };
 
+      const whereFilter = and(
+        eq(builds.isPublic, true),
+        searchPattern
+          ? or(
+              ilike(builds.name, searchPattern),
+              ilike(builds.description, searchPattern),
+              sql<boolean>`exists (
+                select 1
+                from ${buildItems}
+                left join ${products} on ${products.id} = ${buildItems.productId}
+                left join ${plants} on ${plants.id} = ${buildItems.plantId}
+                where ${buildItems.buildId} = ${builds.id}
+                  and (
+                    ${products.name} ilike ${searchPattern}
+                    or ${plants.commonName} ilike ${searchPattern}
+                  )
+              )`,
+            )
+          : undefined,
+      );
+
+      const orderBy =
+        sort === "newest"
+          ? [desc(builds.updatedAt), desc(voteCount)]
+          : sort === "most-items"
+            ? [desc(builds.itemCount), desc(voteCount), desc(builds.updatedAt)]
+            : sort === "alphabetical"
+              ? [asc(sql`lower(${builds.name})`), desc(voteCount), desc(builds.updatedAt)]
+              : [desc(voteCount), desc(builds.updatedAt)];
+
       const rows = activeTag
         ? await ctx.db
             .select(buildSelect)
@@ -172,7 +216,7 @@ export const buildsRouter = createTRPCRouter({
               and(eq(buildTags.buildId, builds.id), eq(buildTags.tagSlug, activeTag)),
             )
             .leftJoin(buildVotes, eq(buildVotes.buildId, builds.id))
-            .where(eq(builds.isPublic, true))
+            .where(whereFilter)
             .groupBy(
               builds.id,
               builds.name,
@@ -184,13 +228,13 @@ export const buildsRouter = createTRPCRouter({
               builds.itemCount,
               builds.updatedAt,
             )
-            .orderBy(desc(voteCount), desc(builds.updatedAt))
+            .orderBy(...orderBy)
             .limit(limit)
         : await ctx.db
             .select(buildSelect)
             .from(builds)
             .leftJoin(buildVotes, eq(buildVotes.buildId, builds.id))
-            .where(eq(builds.isPublic, true))
+            .where(whereFilter)
             .groupBy(
               builds.id,
               builds.name,
@@ -202,7 +246,7 @@ export const buildsRouter = createTRPCRouter({
               builds.itemCount,
               builds.updatedAt,
             )
-            .orderBy(desc(voteCount), desc(builds.updatedAt))
+            .orderBy(...orderBy)
             .limit(limit);
 
       const buildIds = rows.map((row) => row.id);

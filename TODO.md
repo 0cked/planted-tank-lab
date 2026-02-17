@@ -280,7 +280,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Store selected tags in URL query params (`?tag=iwagumi`).
   - **Verify:** Save a build with tags. Visit `/builds`. Filter by tag — only matching builds appear.
 
-- [ ] **P4-7: Build search**
+- [x] **P4-7: Build search**
   - On `/builds`, add a search bar that filters builds by name, description, and equipment names.
   - Use a simple `ILIKE` query on the builds table (no full-text search engine needed yet).
   - Combine with tag filters (P4-6) — search + tag work together.

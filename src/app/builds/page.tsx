@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { BUILD_TAG_OPTIONS, buildTagLabel, isBuildTagSlug } from "@/lib/build-tags";
+import {
+  BUILD_SORT_OPTIONS,
+  DEFAULT_BUILD_SORT_OPTION,
+  buildSortLabel,
+  normalizeBuildSortOption,
+} from "@/lib/build-sort";
+import { BUILD_TAG_OPTIONS, buildTagLabel, type BuildTagSlug, isBuildTagSlug } from "@/lib/build-tags";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 import { BuildVoteButton } from "./BuildVoteButton";
@@ -23,10 +29,41 @@ function first(searchParams: SearchParams, key: string): string | null {
   return null;
 }
 
-function activeTagFromSearchParams(searchParams: SearchParams): (typeof BUILD_TAG_OPTIONS)[number] | null {
+function activeTagFromSearchParams(searchParams: SearchParams): BuildTagSlug | null {
   const rawTag = (first(searchParams, "tag") ?? "").trim().toLowerCase();
   if (!rawTag || !isBuildTagSlug(rawTag)) return null;
   return rawTag;
+}
+
+function searchQueryFromSearchParams(searchParams: SearchParams): string {
+  return (first(searchParams, "q") ?? "").trim();
+}
+
+function sortFromSearchParams(searchParams: SearchParams) {
+  return normalizeBuildSortOption(first(searchParams, "sort"));
+}
+
+function buildsHref(filters: {
+  tag: BuildTagSlug | null;
+  query: string;
+  sort: (typeof BUILD_SORT_OPTIONS)[number];
+}): string {
+  const params = new URLSearchParams();
+
+  if (filters.tag) {
+    params.set("tag", filters.tag);
+  }
+
+  if (filters.query) {
+    params.set("q", filters.query);
+  }
+
+  if (filters.sort !== DEFAULT_BUILD_SORT_OPTION) {
+    params.set("sort", filters.sort);
+  }
+
+  const serialized = params.toString();
+  return serialized ? `/builds?${serialized}` : "/builds";
 }
 
 function formatMoney(cents: number | null | undefined): string {
@@ -84,9 +121,16 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
   const caller = await getServerCaller();
   const searchParams = await props.searchParams;
   const activeTag = activeTagFromSearchParams(searchParams);
+  const searchQuery = searchQueryFromSearchParams(searchParams);
+  const activeSort = sortFromSearchParams(searchParams);
 
   const rows = await caller.builds
-    .listPublic({ limit: 50, tag: activeTag ?? undefined })
+    .listPublic({
+      limit: 50,
+      tag: activeTag ?? undefined,
+      search: searchQuery || undefined,
+      sort: activeSort,
+    })
     .catch(() => []);
 
   return (
@@ -108,12 +152,55 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
         </Link>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-2">
+      <form
+        method="get"
+        className="mt-6 grid gap-3 rounded-3xl border bg-white/70 p-4 sm:grid-cols-[minmax(0,1fr)_13rem_auto] sm:items-center"
+        style={{ borderColor: "var(--ptl-border)" }}
+      >
+        {activeTag ? <input type="hidden" name="tag" value={activeTag} /> : null}
+
+        <label htmlFor="builds-search" className="sr-only">
+          Search builds
+        </label>
+        <input
+          id="builds-search"
+          name="q"
+          defaultValue={searchQuery}
+          placeholder="Search by build name, notes, or equipment"
+          className="h-11 rounded-2xl border border-neutral-300 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+        />
+
+        <label htmlFor="builds-sort" className="sr-only">
+          Sort builds
+        </label>
+        <select
+          id="builds-sort"
+          name="sort"
+          defaultValue={activeSort}
+          className="h-11 rounded-2xl border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-800 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+        >
+          {BUILD_SORT_OPTIONS.map((sort) => (
+            <option key={sort} value={sort}>
+              {buildSortLabel(sort)}
+            </option>
+          ))}
+        </select>
+
+        <button type="submit" className="ptl-btn-secondary h-11">
+          Apply
+        </button>
+      </form>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-neutral-600">
           Filter
         </span>
         <Link
-          href="/builds"
+          href={buildsHref({
+            tag: null,
+            query: searchQuery,
+            sort: activeSort,
+          })}
           className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
             activeTag === null
               ? "border-emerald-300/80 bg-emerald-100 text-emerald-900"
@@ -127,7 +214,11 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
           return (
             <Link
               key={tag}
-              href={`/builds?tag=${tag}`}
+              href={buildsHref({
+                tag,
+                query: searchQuery,
+                sort: activeSort,
+              })}
               className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                 selected
                   ? "border-emerald-300/80 bg-emerald-100 text-emerald-900"
@@ -138,18 +229,39 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
             </Link>
           );
         })}
+
+        {searchQuery ? (
+          <Link
+            href={buildsHref({
+              tag: activeTag,
+              query: "",
+              sort: activeSort,
+            })}
+            className="rounded-full border border-neutral-300 bg-white/80 px-3 py-1.5 text-xs font-semibold text-neutral-700 transition hover:border-neutral-400"
+          >
+            Clear search
+          </Link>
+        ) : null}
       </div>
 
       {rows.length === 0 ? (
         <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="ptl-surface p-7 sm:p-9">
             <div className="ptl-section-title text-neutral-900">
-              {activeTag ? `No ${buildTagLabel(activeTag)} builds yet` : "No public builds yet"}
+              {searchQuery
+                ? activeTag
+                  ? `No ${buildTagLabel(activeTag)} builds matching “${searchQuery}”`
+                  : `No builds matching “${searchQuery}”`
+                : activeTag
+                  ? `No ${buildTagLabel(activeTag)} builds yet`
+                  : "No public builds yet"}
             </div>
             <p className="mt-3 ptl-lede text-neutral-700">
-              {activeTag
-                ? `No shared builds are tagged ${buildTagLabel(activeTag)} yet. Start one and publish it to set the vibe.`
-                : "When someone shares a build, it shows up here. If you want to help kick things off, build a setup and share the link."}
+              {searchQuery
+                ? "Try a broader search term or clear the search field to browse all public builds."
+                : activeTag
+                  ? `No shared builds are tagged ${buildTagLabel(activeTag)} yet. Start one and publish it to set the vibe.`
+                  : "When someone shares a build, it shows up here. If you want to help kick things off, build a setup and share the link."}
             </p>
 
             <div className="mt-6 rounded-3xl border bg-white/70 p-5 text-sm text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
@@ -186,78 +298,85 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
           </div>
         </div>
       ) : (
-        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map((b) => {
-            const tier = tierMeta(b.style);
-            const thumbnailSrc = buildThumbnailSrc(b.coverImageUrl, b.updatedAt);
+        <>
+          <div className="mt-6 text-sm text-neutral-600">
+            Showing {rows.length} build{rows.length === 1 ? "" : "s"}
+            {searchQuery ? ` matching “${searchQuery}”` : ""} · Sorted by {buildSortLabel(activeSort)}
+          </div>
 
-            const buildHref = b.shareSlug ? `/builds/${b.shareSlug}` : "/builder";
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {rows.map((b) => {
+              const tier = tierMeta(b.style);
+              const thumbnailSrc = buildThumbnailSrc(b.coverImageUrl, b.updatedAt);
 
-            return (
-              <article key={b.id} className="ptl-surface overflow-hidden">
-                <Link href={buildHref} className="block ptl-hover-lift transition hover:bg-white/70">
-                  <div className="aspect-[16/10] w-full border-b" style={{ borderColor: "var(--ptl-border)" }}>
-                    {thumbnailSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={thumbnailSrc}
-                        alt={`${b.name} thumbnail`}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-emerald-50 px-6 text-center text-xs font-medium uppercase tracking-wide text-neutral-500">
-                        Screenshot preview available after save
+              const buildHref = b.shareSlug ? `/builds/${b.shareSlug}` : "/builder";
+
+              return (
+                <article key={b.id} className="ptl-surface overflow-hidden">
+                  <Link href={buildHref} className="block ptl-hover-lift transition hover:bg-white/70">
+                    <div className="aspect-[16/10] w-full border-b" style={{ borderColor: "var(--ptl-border)" }}>
+                      {thumbnailSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={thumbnailSrc}
+                          alt={`${b.name} thumbnail`}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-emerald-50 px-6 text-center text-xs font-medium uppercase tracking-wide text-neutral-500">
+                          Screenshot preview available after save
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="text-sm font-semibold text-neutral-900">{b.name}</div>
+                        {tier ? (
+                          <div
+                            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${tier.className}`}
+                          >
+                            {tier.label}
+                          </div>
+                        ) : null}
                       </div>
-                    )}
-                  </div>
-
-                  <div className="p-6">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="text-sm font-semibold text-neutral-900">{b.name}</div>
-                      {tier ? (
-                        <div
-                          className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${tier.className}`}
-                        >
-                          {tier.label}
+                      <div className="mt-2 text-xs text-neutral-600">
+                        {b.itemCount} item(s) · {formatMoney(b.totalPriceCents)}
+                      </div>
+                      <div className="mt-3 line-clamp-3 text-sm text-neutral-700">
+                        {b.description ?? "Build snapshot"}
+                      </div>
+                      {b.tags.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {b.tags.map((tag) => (
+                            <span
+                              key={`${b.id}-${tag}`}
+                              className="rounded-full border border-neutral-300 bg-white/75 px-2 py-0.5 text-[11px] font-medium text-neutral-700"
+                            >
+                              {buildTagLabel(tag)}
+                            </span>
+                          ))}
                         </div>
                       ) : null}
-                    </div>
-                    <div className="mt-2 text-xs text-neutral-600">
-                      {b.itemCount} item(s) · {formatMoney(b.totalPriceCents)}
-                    </div>
-                    <div className="mt-3 line-clamp-3 text-sm text-neutral-700">
-                      {b.description ?? "Build snapshot"}
-                    </div>
-                    {b.tags.length > 0 ? (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {b.tags.map((tag) => (
-                          <span
-                            key={`${b.id}-${tag}`}
-                            className="rounded-full border border-neutral-300 bg-white/75 px-2 py-0.5 text-[11px] font-medium text-neutral-700"
-                          >
-                            {buildTagLabel(tag)}
-                          </span>
-                        ))}
+                      <div className="mt-4 text-xs font-semibold text-emerald-800">
+                        View build
                       </div>
-                    ) : null}
-                    <div className="mt-4 text-xs font-semibold text-emerald-800">
-                      View build
                     </div>
-                  </div>
-                </Link>
+                  </Link>
 
-                <div
-                  className="flex items-center justify-between border-t px-6 py-4"
-                  style={{ borderColor: "var(--ptl-border)" }}
-                >
-                  <span className="text-xs text-neutral-600">Community votes</span>
-                  <BuildVoteButton buildId={b.id} initialVoteCount={b.voteCount ?? 0} />
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                  <div
+                    className="flex items-center justify-between border-t px-6 py-4"
+                    style={{ borderColor: "var(--ptl-border)" }}
+                  >
+                    <span className="text-xs text-neutral-600">Community votes</span>
+                    <BuildVoteButton buildId={b.id} initialVoteCount={b.voteCount ?? 0} />
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </>
       )}
     </main>
   );
