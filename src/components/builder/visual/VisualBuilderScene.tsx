@@ -265,6 +265,29 @@ const WATER_SURFACE_FRAGMENT_SHADER = `
   }
 `;
 
+const BACKDROP_VERTEX_SHADER = `
+  varying float vGradient;
+
+  void main() {
+    vGradient = clamp(position.y * 0.5 + 0.5, 0.0, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const BACKDROP_FRAGMENT_SHADER = `
+  varying float vGradient;
+
+  uniform vec3 uTopColor;
+  uniform vec3 uBottomColor;
+  uniform float uCurve;
+
+  void main() {
+    float t = pow(vGradient, uCurve);
+    vec3 color = mix(uBottomColor, uTopColor, t);
+    gl_FragColor = vec4(color, 1.0);
+  }
+`;
+
 type SubstrateSamplingMap = {
   sourceIndex00: Uint16Array;
   sourceIndex10: Uint16Array;
@@ -1809,6 +1832,61 @@ function WaterSurfacePlane(props: {
   );
 }
 
+function SceneBackdrop() {
+  const uniforms = useMemo(
+    () => ({
+      uTopColor: { value: new THREE.Color("#1b3042") },
+      uBottomColor: { value: new THREE.Color("#071019") },
+      uCurve: { value: 1.25 },
+    }),
+    [],
+  );
+
+  return (
+    <mesh scale={[460, 460, 460]} renderOrder={-1000} raycast={DISABLED_RAYCAST}>
+      <sphereGeometry args={[1, 40, 26]} />
+      <shaderMaterial
+        uniforms={uniforms}
+        vertexShader={BACKDROP_VERTEX_SHADER}
+        fragmentShader={BACKDROP_FRAGMENT_SHADER}
+        side={THREE.BackSide}
+        depthTest={false}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </mesh>
+  );
+}
+
+function SceneGroundPlane(props: { dims: SceneDims }) {
+  const groundWidth = props.dims.widthIn * 3.6;
+  const groundDepth = props.dims.depthIn * 3.4;
+  const groundY = -0.16;
+
+  return (
+    <group>
+      <mesh
+        position={[0, groundY, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+        raycast={DISABLED_RAYCAST}
+      >
+        <planeGeometry args={[groundWidth, groundDepth]} />
+        <meshStandardMaterial color="#141f29" roughness={0.94} metalness={0.04} />
+      </mesh>
+      <mesh
+        position={[0, groundY + 0.0015, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+        raycast={DISABLED_RAYCAST}
+      >
+        <planeGeometry args={[groundWidth, groundDepth]} />
+        <shadowMaterial transparent opacity={0.22} />
+      </mesh>
+    </group>
+  );
+}
+
 function TankShell(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
@@ -2375,32 +2453,29 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
   return (
     <>
-      <color attach="background" args={["#08141f"]} />
-      <fogExp2 attach="fog" args={["#0a1622", props.qualityTier === "low" ? 0.028 : 0.02]} />
+      <color attach="background" args={["#071019"]} />
+      <SceneBackdrop />
+      <fogExp2 attach="fog" args={["#0b1723", props.qualityTier === "low" ? 0.027 : 0.019]} />
 
-      <ambientLight intensity={0.28} color="#95bed6" />
-      <hemisphereLight intensity={0.44} color="#9fcde3" groundColor="#2d261f" />
+      <ambientLight intensity={0.46} color="#a4c0d3" />
       <directionalLight
         castShadow
-        intensity={1.35}
-        color="#fff2d6"
-        position={[dims.widthIn * 0.8, dims.heightIn * 1.6, dims.depthIn * 0.7]}
+        intensity={1.25}
+        color="#ffe9cc"
+        position={[dims.widthIn * 0.72, dims.heightIn * 1.55, dims.depthIn * 1.05]}
         shadow-mapSize-width={shadowMapSize}
         shadow-mapSize-height={shadowMapSize}
-        shadow-camera-left={-dims.widthIn}
-        shadow-camera-right={dims.widthIn}
-        shadow-camera-top={dims.heightIn * 1.4}
-        shadow-camera-bottom={-dims.heightIn * 0.6}
-        shadow-camera-near={0.5}
-        shadow-camera-far={dims.widthIn * 4}
+        shadow-camera-left={-dims.widthIn * 1.1}
+        shadow-camera-right={dims.widthIn * 1.1}
+        shadow-camera-top={dims.heightIn * 1.35}
+        shadow-camera-bottom={-dims.heightIn * 0.8}
+        shadow-camera-near={0.4}
+        shadow-camera-far={dims.widthIn * 4.4}
+        shadow-bias={-0.0002}
       />
-      <directionalLight
-        intensity={0.6}
-        color="#7bb7ff"
-        position={[-dims.widthIn * 0.75, dims.heightIn * 1.1, -dims.depthIn * 1.2]}
-      />
-      <pointLight intensity={0.38} color="#d8ecff" position={[0, dims.heightIn * 0.5, dims.depthIn * 0.9]} />
       <Environment preset="city" background={false} blur={0.66} />
+
+      <SceneGroundPlane dims={dims} />
 
       <TankShell
         dims={dims}

@@ -305,7 +305,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Toggle glass walls on/off in the quality settings (off by default on low quality tier).
   - **Verify:** Tank walls visible as transparent glass. Scene items visible through walls. Toggling quality setting hides/shows walls.
 
-- [ ] **P5-3: Environment and backdrop**
+- [x] **P5-3: Environment and backdrop**
   - Add a simple gradient background behind the tank (dark blue-gray at top to lighter at bottom) using a `<color>` or fullscreen quad.
   - Add a subtle floor plane below the tank (soft shadow receiver, dark material) to ground the scene.
   - Add soft ambient lighting + one directional light from above-front to simulate room lighting.
