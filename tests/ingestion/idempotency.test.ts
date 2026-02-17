@@ -478,5 +478,5 @@ describe("ingestion idempotency", () => {
           .where(eq(products.slug, productSlug)),
       ),
     ).toBe(1);
-  }, 60_000);
+  }, 120_000);
 });

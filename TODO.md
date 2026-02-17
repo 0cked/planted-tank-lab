@@ -318,7 +318,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Intensity should be subtle — accent, not distraction. Reduce on low quality tier.
   - **Verify:** Moving light patterns visible on the substrate, reminiscent of real aquarium caustics. Subtle and pleasant.
 
-- [ ] **P5-5: Post-processing pipeline**
+- [x] **P5-5: Post-processing pipeline**
   - Add `@react-three/postprocessing` (or use drei's `EffectComposer`).
   - Enable: subtle bloom (threshold: 0.8, intensity: 0.3) for specular highlights on water and glass, tone mapping (ACES filmic), and mild vignette.
   - Gate behind quality setting: no post-processing on low tier, bloom-only on medium, full on high.

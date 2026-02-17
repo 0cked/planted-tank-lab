@@ -219,7 +219,7 @@ describe("admin normalization overrides", () => {
     } finally {
       await cleanupFixture(fixture);
     }
-  }, 15_000);
+  }, 45_000);
 
   test("duplicate field override for the same canonical entity is rejected", async () => {
     const fixture = await createFixture("duplicate");

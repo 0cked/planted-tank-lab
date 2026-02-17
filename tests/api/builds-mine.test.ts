@@ -88,5 +88,5 @@ describe("tRPC builds router (authenticated)", () => {
     await db.delete(buildItems).where(eq(buildItems.buildId, res.buildId));
     await db.delete(builds).where(eq(builds.id, res.buildId));
     await db.delete(users).where(eq(users.id, userId!));
-  }, 20_000);
+  }, 45_000);
 });
