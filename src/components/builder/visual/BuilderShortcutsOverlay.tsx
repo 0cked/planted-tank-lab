@@ -9,10 +9,12 @@ type ShortcutRow = {
 };
 
 const SHORTCUT_ROWS: ShortcutRow[] = [
-  { keys: "Delete / Backspace", description: "Remove selected item" },
-  { keys: "D", description: "Duplicate selected item (offset by 1 inch)" },
+  { keys: "Shift + Click", description: "Add or remove items from selection" },
+  { keys: "Cmd/Ctrl + A", description: "Select all placed items" },
+  { keys: "Delete / Backspace", description: "Remove selected item(s)" },
+  { keys: "D", description: "Duplicate selected item(s) (offset by 1 inch)" },
   { keys: "R", description: "Rotate selected item by 45°" },
-  { keys: "Escape", description: "Deselect active item" },
+  { keys: "Escape", description: "Deselect all" },
   { keys: "1-5", description: "Jump to workflow step" },
   { keys: "B", description: "Toggle substrate brush mode" },
   { keys: "Cmd/Ctrl + Z", description: "Undo last substrate stroke" },

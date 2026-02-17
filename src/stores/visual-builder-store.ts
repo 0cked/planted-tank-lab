@@ -51,6 +51,7 @@ type VisualBuilderState = {
 
   canvasState: VisualCanvasState;
   selectedItemId: string | null;
+  selectedItemIds: string[];
   substrateUndoStack: SubstrateHeightfieldDiff[];
   substrateRedoStack: SubstrateHeightfieldDiff[];
   activeSubstrateStrokeStart: SubstrateHeightfield | null;
@@ -96,10 +97,14 @@ type VisualBuilderState = {
     },
   ) => void;
   updateCanvasItem: (itemId: string, patch: Partial<VisualCanvasItem>) => void;
-  removeCanvasItem: (itemId: string) => void;
-  duplicateCanvasItem: (itemId: string) => void;
+  removeCanvasItem: (itemId: string | string[]) => void;
+  duplicateCanvasItem: (itemId: string | string[]) => void;
   moveCanvasItemLayer: (itemId: string, direction: "up" | "down" | "top" | "bottom") => void;
   setSelectedItem: (itemId: string | null) => void;
+  setSelectedItems: (itemIds: string[]) => void;
+  toggleSelectedItem: (itemId: string) => void;
+  selectAllCanvasItems: () => void;
+  clearSelectedItems: () => void;
   clearCanvas: () => void;
 
   hydrateFromBuild: (payload: {
@@ -167,14 +172,82 @@ function clampDepthAxis(value: number): number {
   return clamp01(value);
 }
 
-function offsetAxisByInches(value: number, dimensionIn: number, offsetIn = 1): number {
-  const normalizedOffset = offsetIn / Math.max(1, dimensionIn);
-  const positiveOffset = value + normalizedOffset;
-  if (positiveOffset <= 1) {
-    return clamp01(positiveOffset);
+function normalizeItemIdInput(itemIds: string | string[]): string[] {
+  const source = Array.isArray(itemIds) ? itemIds : [itemIds];
+  const deduped = new Set<string>();
+
+  for (const itemId of source) {
+    if (typeof itemId !== "string" || itemId.trim().length === 0) continue;
+    deduped.add(itemId);
   }
 
-  return clamp01(value - normalizedOffset);
+  return Array.from(deduped);
+}
+
+function normalizeSelectedItemIds(itemIds: string[], items: VisualCanvasItem[]): string[] {
+  if (itemIds.length === 0 || items.length === 0) return [];
+
+  const availableItemIds = new Set(items.map((item) => item.id));
+  return itemIds.filter((itemId) => availableItemIds.has(itemId));
+}
+
+function selectionStateFromIds(itemIds: string[]): {
+  selectedItemId: string | null;
+  selectedItemIds: string[];
+} {
+  return {
+    selectedItemId: itemIds[itemIds.length - 1] ?? null,
+    selectedItemIds: itemIds,
+  };
+}
+
+function resolveSelectionIds(state: {
+  selectedItemId: string | null;
+  selectedItemIds: string[];
+  canvasState: { items: VisualCanvasItem[] };
+}): string[] {
+  const normalizedExisting = normalizeSelectedItemIds(state.selectedItemIds, state.canvasState.items);
+  if (normalizedExisting.length > 0) return normalizedExisting;
+
+  if (!state.selectedItemId) return [];
+  return normalizeSelectedItemIds([state.selectedItemId], state.canvasState.items);
+}
+
+function resolveDuplicateOffset(items: VisualCanvasItem[], dims: CanvasDimensions): { x: number; z: number } {
+  if (items.length === 0) {
+    return { x: 0, z: 0 };
+  }
+
+  const widthOffset = 1 / Math.max(1, dims.widthIn);
+  const depthOffset = 1 / Math.max(1, dims.depthIn);
+
+  let minX = 1;
+  let maxX = 0;
+  let minZ = 1;
+  let maxZ = 0;
+
+  for (const item of items) {
+    if (item.x < minX) minX = item.x;
+    if (item.x > maxX) maxX = item.x;
+    if (item.z < minZ) minZ = item.z;
+    if (item.z > maxZ) maxZ = item.z;
+  }
+
+  const x =
+    maxX + widthOffset <= 1
+      ? widthOffset
+      : minX - widthOffset >= 0
+        ? -widthOffset
+        : 0;
+
+  const z =
+    maxZ + depthOffset <= 1
+      ? depthOffset
+      : minZ - depthOffset >= 0
+        ? -depthOffset
+        : 0;
+
+  return { x, z };
 }
 
 function clampScale(value: number): number {
@@ -505,6 +578,7 @@ const initialState = {
   tankId: null as string | null,
   canvasState: initialCanvasState,
   selectedItemId: null as string | null,
+  selectedItemIds: [] as string[],
   substrateUndoStack: [] as SubstrateHeightfieldDiff[],
   substrateRedoStack: [] as SubstrateHeightfieldDiff[],
   activeSubstrateStrokeStart: null as SubstrateHeightfield | null,
@@ -784,13 +858,15 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             ],
             dims,
           );
+          const nextSelectedItemId = nextItems[nextItems.length - 1]?.id ?? null;
 
           return {
             canvasState: {
               ...state.canvasState,
               items: nextItems,
             },
-            selectedItemId: nextItems[nextItems.length - 1]?.id ?? null,
+            selectedItemId: nextSelectedItemId,
+            selectedItemIds: nextSelectedItemId ? [nextSelectedItemId] : [],
           };
         }),
 
@@ -876,59 +952,81 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           };
         }),
 
-      removeCanvasItem: (itemId) =>
+      removeCanvasItem: (itemIdInput) =>
         set((state) => {
+          const requestedItemIds = normalizeItemIdInput(itemIdInput);
+          if (requestedItemIds.length === 0) return state;
+
+          const toRemove = new Set(requestedItemIds);
           const dims = currentDims(state);
           const nextItems = normalizeItems(
-            state.canvasState.items.filter((item) => item.id !== itemId),
+            state.canvasState.items.filter((item) => !toRemove.has(item.id)),
             dims,
           );
+
+          const currentSelectedIds = resolveSelectionIds(state);
+          const nextSelectedIds = normalizeSelectedItemIds(
+            currentSelectedIds.filter((itemId) => !toRemove.has(itemId)),
+            nextItems,
+          );
+
           return {
             canvasState: {
               ...state.canvasState,
               items: nextItems,
             },
-            selectedItemId: state.selectedItemId === itemId ? null : state.selectedItemId,
+            ...selectionStateFromIds(nextSelectedIds),
           };
         }),
 
-      duplicateCanvasItem: (itemId) =>
+      duplicateCanvasItem: (itemIdInput) =>
         set((state) => {
-          const source = state.canvasState.items.find((item) => item.id === itemId);
-          if (!source) return state;
+          const requestedItemIds = normalizeItemIdInput(itemIdInput);
+          if (requestedItemIds.length === 0) return state;
+
+          const sourceById = new Map(state.canvasState.items.map((item) => [item.id, item] as const));
+          const sources: VisualCanvasItem[] = [];
+          for (const itemId of requestedItemIds) {
+            const sourceItem = sourceById.get(itemId);
+            if (!sourceItem) continue;
+            sources.push(sourceItem);
+          }
+
+          if (sources.length === 0) return state;
 
           const dims = currentDims(state);
-          const nextX = offsetAxisByInches(source.x, dims.widthIn, 1);
-          const nextZ = offsetAxisByInches(source.z, dims.depthIn, 1);
+          const offset = resolveDuplicateOffset(sources, dims);
 
-          const nextItems = normalizeItems(
-            [
-              ...state.canvasState.items,
-              {
-                ...source,
-                id: nanoid(10),
+          const duplicates = sources.map((source, index) => {
+            const nextX = clamp01(source.x + offset.x);
+            const nextZ = clamp01(source.z + offset.z);
+
+            return {
+              ...source,
+              id: nanoid(10),
+              x: nextX,
+              z: nextZ,
+              layer: state.canvasState.items.length + index,
+              transform: buildTransformFromNormalized({
                 x: nextX,
+                y: source.y,
                 z: nextZ,
-                layer: state.canvasState.items.length,
-                transform: buildTransformFromNormalized({
-                  x: nextX,
-                  y: source.y,
-                  z: nextZ,
-                  scale: source.scale,
-                  rotation: source.rotation,
-                  dims,
-                }),
-              },
-            ],
-            dims,
-          );
+                scale: source.scale,
+                rotation: source.rotation,
+                dims,
+              }),
+            } satisfies VisualCanvasItem;
+          });
+
+          const nextItems = normalizeItems([...state.canvasState.items, ...duplicates], dims);
+          const duplicateIds = duplicates.map((item) => item.id);
 
           return {
             canvasState: {
               ...state.canvasState,
               items: nextItems,
             },
-            selectedItemId: nextItems[nextItems.length - 1]?.id ?? null,
+            ...selectionStateFromIds(duplicateIds),
           };
         }),
 
@@ -966,7 +1064,45 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           };
         }),
 
-      setSelectedItem: (itemId) => set({ selectedItemId: itemId }),
+      setSelectedItem: (itemId) => {
+        if (!itemId) {
+          set(selectionStateFromIds([]));
+          return;
+        }
+
+        set((state) => {
+          const itemExists = state.canvasState.items.some((item) => item.id === itemId);
+          return selectionStateFromIds(itemExists ? [itemId] : []);
+        });
+      },
+
+      setSelectedItems: (itemIds) =>
+        set((state) => {
+          const nextSelectedIds = normalizeSelectedItemIds(
+            normalizeItemIdInput(itemIds),
+            state.canvasState.items,
+          );
+          return selectionStateFromIds(nextSelectedIds);
+        }),
+
+      toggleSelectedItem: (itemId) =>
+        set((state) => {
+          const itemExists = state.canvasState.items.some((item) => item.id === itemId);
+          if (!itemExists) return state;
+
+          const currentSelectedIds = resolveSelectionIds(state);
+          const isSelected = currentSelectedIds.includes(itemId);
+          const nextSelectedIds = isSelected
+            ? currentSelectedIds.filter((currentId) => currentId !== itemId)
+            : [...currentSelectedIds, itemId];
+
+          return selectionStateFromIds(nextSelectedIds);
+        }),
+
+      selectAllCanvasItems: () =>
+        set((state) => selectionStateFromIds(state.canvasState.items.map((item) => item.id))),
+
+      clearSelectedItems: () => set(selectionStateFromIds([])),
 
       clearCanvas: () =>
         set((state) => ({
@@ -974,7 +1110,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             ...state.canvasState,
             items: [],
           },
-          selectedItemId: null,
+          ...selectionStateFromIds([]),
         })),
 
       hydrateFromBuild: (payload) => {
@@ -1007,7 +1143,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
               lowTechNoCo2: Boolean(payload.flags.lowTechNoCo2),
               hasShrimp: Boolean(payload.flags.hasShrimp),
             },
-            selectedItemId: null,
+            ...selectionStateFromIds([]),
             ...clearSubstrateHistoryState(),
           };
         });

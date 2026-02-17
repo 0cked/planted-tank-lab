@@ -128,6 +128,118 @@ describe("visual-builder-store canvas item actions", () => {
     expect((duplicate!.z ?? 0) - (original?.z ?? 0)).toBeCloseTo(-depthOffset, 4);
   });
 
+  it("duplicates multi-selection with a consistent offset and preserved spacing", () => {
+    const store = useVisualBuilderStore.getState();
+
+    store.addCanvasItemFromAsset(TEST_ASSET, {
+      x: 0.22,
+      y: 0,
+      z: 0.18,
+      scale: 1,
+      rotation: 0,
+      anchorType: "substrate",
+      depthZone: "foreground",
+    });
+
+    store.addCanvasItemFromAsset(TEST_ASSET, {
+      x: 0.44,
+      y: 0,
+      z: 0.47,
+      scale: 1,
+      rotation: 15,
+      anchorType: "substrate",
+      depthZone: "midground",
+    });
+
+    const originals = useVisualBuilderStore.getState().canvasState.items;
+    expect(originals).toHaveLength(2);
+
+    const firstOriginal = originals[0];
+    const secondOriginal = originals[1];
+    expect(firstOriginal).toBeDefined();
+    expect(secondOriginal).toBeDefined();
+
+    store.setSelectedItems([firstOriginal!.id, secondOriginal!.id]);
+    store.duplicateCanvasItem([firstOriginal!.id, secondOriginal!.id]);
+
+    const stateAfterDuplicate = useVisualBuilderStore.getState();
+    expect(stateAfterDuplicate.canvasState.items).toHaveLength(4);
+    expect(stateAfterDuplicate.selectedItemIds).toHaveLength(2);
+
+    const [duplicateFirstId, duplicateSecondId] = stateAfterDuplicate.selectedItemIds;
+    const duplicateFirst = stateAfterDuplicate.canvasState.items.find((item) => item.id === duplicateFirstId);
+    const duplicateSecond = stateAfterDuplicate.canvasState.items.find((item) => item.id === duplicateSecondId);
+
+    expect(duplicateFirst).toBeDefined();
+    expect(duplicateSecond).toBeDefined();
+
+    const firstOffsetX = (duplicateFirst?.x ?? 0) - (firstOriginal?.x ?? 0);
+    const firstOffsetZ = (duplicateFirst?.z ?? 0) - (firstOriginal?.z ?? 0);
+    const secondOffsetX = (duplicateSecond?.x ?? 0) - (secondOriginal?.x ?? 0);
+    const secondOffsetZ = (duplicateSecond?.z ?? 0) - (secondOriginal?.z ?? 0);
+
+    expect(firstOffsetX).toBeCloseTo(secondOffsetX, 4);
+    expect(firstOffsetZ).toBeCloseTo(secondOffsetZ, 4);
+    expect((duplicateSecond?.x ?? 0) - (duplicateFirst?.x ?? 0)).toBeCloseTo(
+      (secondOriginal?.x ?? 0) - (firstOriginal?.x ?? 0),
+      4,
+    );
+    expect((duplicateSecond?.z ?? 0) - (duplicateFirst?.z ?? 0)).toBeCloseTo(
+      (secondOriginal?.z ?? 0) - (firstOriginal?.z ?? 0),
+      4,
+    );
+  });
+
+  it("removes all selected items when deleting a multi-selection", () => {
+    const store = useVisualBuilderStore.getState();
+
+    store.addCanvasItemFromAsset(TEST_ASSET, {
+      x: 0.2,
+      y: 0,
+      z: 0.2,
+      scale: 1,
+      rotation: 0,
+      anchorType: "substrate",
+      depthZone: "foreground",
+    });
+
+    store.addCanvasItemFromAsset(TEST_ASSET, {
+      x: 0.35,
+      y: 0,
+      z: 0.35,
+      scale: 1,
+      rotation: 0,
+      anchorType: "substrate",
+      depthZone: "midground",
+    });
+
+    store.addCanvasItemFromAsset(TEST_ASSET, {
+      x: 0.7,
+      y: 0,
+      z: 0.7,
+      scale: 1,
+      rotation: 0,
+      anchorType: "substrate",
+      depthZone: "background",
+    });
+
+    const initialItems = useVisualBuilderStore.getState().canvasState.items;
+    const [firstItem, secondItem, thirdItem] = initialItems;
+
+    expect(firstItem).toBeDefined();
+    expect(secondItem).toBeDefined();
+    expect(thirdItem).toBeDefined();
+
+    store.setSelectedItems([firstItem!.id, secondItem!.id]);
+    store.removeCanvasItem(useVisualBuilderStore.getState().selectedItemIds);
+
+    const afterDelete = useVisualBuilderStore.getState();
+    expect(afterDelete.canvasState.items).toHaveLength(1);
+    expect(afterDelete.canvasState.items[0]?.id).toBe(thirdItem?.id);
+    expect(afterDelete.selectedItemIds).toEqual([]);
+    expect(afterDelete.selectedItemId).toBeNull();
+  });
+
   it("persists rotation and scale updates through save + hydrate", () => {
     const store = useVisualBuilderStore.getState();
 

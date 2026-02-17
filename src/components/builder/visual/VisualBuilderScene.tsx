@@ -121,6 +121,7 @@ type VisualBuilderSceneProps = {
   canvasState: VisualCanvasState;
   assetsById: Map<string, VisualAsset>;
   selectedItemId: string | null;
+  selectedItemIds: string[];
   currentStep: BuilderSceneStep;
   toolMode: BuilderSceneToolMode;
   placementAsset: VisualAsset | null;
@@ -137,7 +138,7 @@ type VisualBuilderSceneProps = {
   idleOrbit: boolean;
   cameraPresetMode: CameraPresetMode;
   equipmentAssets: VisualAsset[];
-  onSelectItem: (itemId: string | null) => void;
+  onSelectItem: (itemId: string | null, selectionMode?: "replace" | "toggle") => void;
   onHoverItem?: (itemId: string | null) => void;
   onPlaceItem: (request: PlacementRequest) => void;
   onMoveItem: (itemId: string, patch: Partial<VisualCanvasItem>) => void;
@@ -174,6 +175,22 @@ type TransformHandleDragState =
       direction: THREE.Vector3;
       directionSign: 1 | -1;
     };
+
+type MoveDragState = {
+  pointerId: number;
+  startPointer: { x: number; z: number };
+  minDeltaX: number;
+  maxDeltaX: number;
+  minDeltaZ: number;
+  maxDeltaZ: number;
+  items: Array<{
+    id: string;
+    x: number;
+    z: number;
+    scale: number;
+    rotation: number;
+  }>;
+};
 
 const TEMP_VEC3 = new THREE.Vector3();
 const TEMP_VEC3_B = new THREE.Vector3();
@@ -1778,7 +1795,7 @@ function ItemMesh(props: {
   selected: boolean;
   hovered: boolean;
   toolMode: BuilderSceneToolMode;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string | null, selectionMode?: "replace" | "toggle") => void;
   onHover: (id: string | null) => void;
   onRotate: (itemId: string, deltaDeg: number) => void;
   onDelete: (itemId: string) => void;
@@ -1816,7 +1833,7 @@ function ItemMesh(props: {
       props.onRotate(props.renderItem.item.id, props.renderItem.item.constraints.rotationSnapDeg);
       return;
     }
-    props.onSelect(props.renderItem.item.id);
+    props.onSelect(props.renderItem.item.id, event.shiftKey ? "toggle" : "replace");
   };
 
   const proceduralMesh = (
@@ -2115,10 +2132,10 @@ function InstancedPlantRenderer(props: {
   material: THREE.Material;
   bounds: THREE.Vector3;
   loadedModel: boolean;
-  selectedItemId: string | null;
+  selectedItemIds: ReadonlySet<string>;
   hoveredItemId: string | null;
   toolMode: BuilderSceneToolMode;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string | null, selectionMode?: "replace" | "toggle") => void;
   onHover: (id: string | null) => void;
   onRotate: (itemId: string, deltaDeg: number) => void;
   onDelete: (itemId: string) => void;
@@ -2149,7 +2166,7 @@ function InstancedPlantRenderer(props: {
       const renderItem = props.group.items[index];
       if (!renderItem) continue;
 
-      const isSelected = renderItem.item.id === props.selectedItemId;
+      const isSelected = props.selectedItemIds.has(renderItem.item.id);
       const isHovered = renderItem.item.id === props.hoveredItemId;
       const sway = Math.sin(now * 1.25 + renderItem.position.x * 0.2 + index * 0.31) * 0.06;
       const pulse = isSelected ? 1 + Math.sin(now * 4.1) * 0.02 : 1;
@@ -2205,7 +2222,7 @@ function InstancedPlantRenderer(props: {
       return;
     }
 
-    props.onSelect(renderItem.item.id);
+    props.onSelect(renderItem.item.id, event.shiftKey ? "toggle" : "replace");
   };
 
   return (
@@ -2245,10 +2262,10 @@ function InstancedPlantRenderer(props: {
 function LoadedPlantInstancedRenderer(props: {
   group: PlantInstancedGroup;
   model: LoadedAssetModel;
-  selectedItemId: string | null;
+  selectedItemIds: ReadonlySet<string>;
   hoveredItemId: string | null;
   toolMode: BuilderSceneToolMode;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string | null, selectionMode?: "replace" | "toggle") => void;
   onHover: (id: string | null) => void;
   onRotate: (itemId: string, deltaDeg: number) => void;
   onDelete: (itemId: string) => void;
@@ -2283,7 +2300,7 @@ function LoadedPlantInstancedRenderer(props: {
       material={material}
       bounds={props.model.bounds}
       loadedModel
-      selectedItemId={props.selectedItemId}
+      selectedItemIds={props.selectedItemIds}
       hoveredItemId={props.hoveredItemId}
       toolMode={props.toolMode}
       onSelect={props.onSelect}
@@ -2299,10 +2316,10 @@ function LoadedPlantInstancedRenderer(props: {
 
 function PlantInstancedGroupMesh(props: {
   group: PlantInstancedGroup;
-  selectedItemId: string | null;
+  selectedItemIds: ReadonlySet<string>;
   hoveredItemId: string | null;
   toolMode: BuilderSceneToolMode;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string | null, selectionMode?: "replace" | "toggle") => void;
   onHover: (id: string | null) => void;
   onRotate: (itemId: string, deltaDeg: number) => void;
   onDelete: (itemId: string) => void;
@@ -2358,7 +2375,7 @@ function PlantInstancedGroupMesh(props: {
       material={fallbackMaterial}
       bounds={fallbackModel.bounds}
       loadedModel={false}
-      selectedItemId={props.selectedItemId}
+      selectedItemIds={props.selectedItemIds}
       hoveredItemId={props.hoveredItemId}
       toolMode={props.toolMode}
       onSelect={props.onSelect}
@@ -2390,7 +2407,7 @@ function PlantInstancedGroupMesh(props: {
             <LoadedPlantInstancedRenderer
               group={props.group}
               model={model}
-              selectedItemId={props.selectedItemId}
+              selectedItemIds={props.selectedItemIds}
               hoveredItemId={props.hoveredItemId}
               toolMode={props.toolMode}
               onSelect={props.onSelect}
@@ -2913,8 +2930,18 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const [candidate, setCandidate] = useState<PlacementCandidate | null>(null);
   const [transformInteractionLocked, setTransformInteractionLocked] = useState(false);
   const sculptingRef = useRef(false);
+  const moveDragRef = useRef<MoveDragState | null>(null);
   const onSubstrateStrokeStart = props.onSubstrateStrokeStart;
   const onSubstrateStrokeEnd = props.onSubstrateStrokeEnd;
+  const selectedItemIds = props.selectedItemIds;
+
+  const selectedItemIdSet = useMemo(() => {
+    const next = new Set(selectedItemIds);
+    if (props.selectedItemId) {
+      next.add(props.selectedItemId);
+    }
+    return next;
+  }, [props.selectedItemId, selectedItemIds]);
 
   const renderItems = useMemo(() => {
     const resolved: SceneRenderItem[] = [];
@@ -2948,9 +2975,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   }, [dims, props.assetsById, props.canvasState.items, props.canvasState.substrateHeightfield]);
 
   const selectedRenderItem = useMemo(() => {
-    if (!props.selectedItemId) return null;
+    if (!props.selectedItemId || selectedItemIdSet.size !== 1) return null;
     return renderItems.find((renderItem) => renderItem.item.id === props.selectedItemId) ?? null;
-  }, [props.selectedItemId, renderItems]);
+  }, [props.selectedItemId, renderItems, selectedItemIdSet]);
 
   const loadableAssetPaths = useMemo(
     () =>
@@ -3015,6 +3042,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
   useEffect(() => {
     const handleGlobalPointerUp = () => {
+      moveDragRef.current = null;
+
       if (!sculptingRef.current) return;
       sculptingRef.current = false;
       onSubstrateStrokeEnd?.();
@@ -3037,6 +3066,11 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
     finishSculptStroke();
   }, [props.currentStep, props.toolMode, onSubstrateStrokeEnd, finishSculptStroke]);
+
+  useEffect(() => {
+    if (props.toolMode === "move") return;
+    moveDragRef.current = null;
+  }, [props.toolMode]);
 
   const evaluatePlacement = (
     nextCandidate: PlacementCandidate | null,
@@ -3179,6 +3213,115 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     props.onSubstrateHeightfield(nextHeightfield);
   };
 
+  const startMoveDrag = (event: ThreeEvent<PointerEvent>, anchorItemId: string | null) => {
+    if (event.shiftKey) return;
+
+    const fallbackSelectionId = props.selectedItemId;
+    if (!fallbackSelectionId) return;
+
+    const candidateSelectionIds =
+      anchorItemId && selectedItemIdSet.has(anchorItemId) ? selectedItemIds : [fallbackSelectionId];
+
+    const selectedDragItems: MoveDragState["items"] = [];
+    for (const selectedId of candidateSelectionIds) {
+      const selectedItem = props.canvasState.items.find((item) => item.id === selectedId);
+      if (!selectedItem) continue;
+
+      selectedDragItems.push({
+        id: selectedItem.id,
+        x: selectedItem.x,
+        z: selectedItem.z,
+        scale: selectedItem.scale,
+        rotation: selectedItem.rotation,
+      });
+    }
+
+    if (selectedDragItems.length === 0) return;
+
+    const pointerNorm = worldToNormalized({
+      x: event.point.x,
+      y: event.point.y,
+      z: event.point.z,
+      dims,
+    });
+
+    let minX = 1;
+    let maxX = 0;
+    let minZ = 1;
+    let maxZ = 0;
+    for (const selectedDragItem of selectedDragItems) {
+      if (selectedDragItem.x < minX) minX = selectedDragItem.x;
+      if (selectedDragItem.x > maxX) maxX = selectedDragItem.x;
+      if (selectedDragItem.z < minZ) minZ = selectedDragItem.z;
+      if (selectedDragItem.z > maxZ) maxZ = selectedDragItem.z;
+    }
+
+    moveDragRef.current = {
+      pointerId: event.pointerId,
+      startPointer: {
+        x: pointerNorm.x,
+        z: pointerNorm.z,
+      },
+      minDeltaX: -minX,
+      maxDeltaX: 1 - maxX,
+      minDeltaZ: -minZ,
+      maxDeltaZ: 1 - maxZ,
+      items: selectedDragItems,
+    };
+  };
+
+  const moveSelectedItems = (event: ThreeEvent<PointerEvent>) => {
+    const activeMoveDrag = moveDragRef.current;
+    if (!activeMoveDrag) return;
+    if (activeMoveDrag.pointerId !== event.pointerId) return;
+
+    const pointerNorm = worldToNormalized({
+      x: event.point.x,
+      y: event.point.y,
+      z: event.point.z,
+      dims,
+    });
+
+    const deltaX = THREE.MathUtils.clamp(
+      pointerNorm.x - activeMoveDrag.startPointer.x,
+      activeMoveDrag.minDeltaX,
+      activeMoveDrag.maxDeltaX,
+    );
+    const deltaZ = THREE.MathUtils.clamp(
+      pointerNorm.z - activeMoveDrag.startPointer.z,
+      activeMoveDrag.minDeltaZ,
+      activeMoveDrag.maxDeltaZ,
+    );
+
+    for (const selectedDragItem of activeMoveDrag.items) {
+      const nextX = clamp01(selectedDragItem.x + deltaX);
+      const nextZ = clamp01(selectedDragItem.z + deltaZ);
+      const substrateY = sampleSubstrateDepth({
+        xNorm: nextX,
+        zNorm: nextZ,
+        heightfield: props.canvasState.substrateHeightfield,
+        tankHeightIn: dims.heightIn,
+      });
+      const nextY = clamp01(substrateY / Math.max(1, dims.heightIn));
+
+      props.onMoveItem(selectedDragItem.id, {
+        x: nextX,
+        y: nextY,
+        z: nextZ,
+        anchorType: "substrate",
+        depthZone: depthZoneFromZ(nextZ),
+        transform: buildTransformFromNormalized({
+          x: nextX,
+          y: nextY,
+          z: nextZ,
+          scale: selectedDragItem.scale,
+          rotation: selectedDragItem.rotation,
+          dims,
+        }),
+      });
+    }
+  };
+
   const handleSurfacePointer = (
     event: ThreeEvent<PointerEvent>,
     anchorType: VisualAnchorType,
@@ -3189,37 +3332,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const isMoveDragGesture =
       event.buttons === 1 || (event.pointerType === "touch" && event.isPrimary);
 
-    if (props.toolMode === "move" && props.selectedItemId && isMoveDragGesture) {
-      const norm = worldToNormalized({
-        x: event.point.x,
-        y: event.point.y,
-        z: event.point.z,
-        dims,
-      });
-      const substrateY = sampleSubstrateDepth({
-        xNorm: norm.x,
-        zNorm: norm.z,
-        heightfield: props.canvasState.substrateHeightfield,
-        tankHeightIn: dims.heightIn,
-      });
-      const yNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
-      props.onMoveItem(props.selectedItemId, {
-        x: norm.x,
-        y: yNorm,
-        z: norm.z,
-        anchorType: "substrate",
-        depthZone: depthZoneFromZ(norm.z),
-        transform: buildTransformFromNormalized({
-          x: norm.x,
-          y: yNorm,
-          z: norm.z,
-          scale:
-            props.canvasState.items.find((item) => item.id === props.selectedItemId)?.scale ?? 1,
-          rotation:
-            props.canvasState.items.find((item) => item.id === props.selectedItemId)?.rotation ?? 0,
-          dims,
-        }),
-      });
+    if (props.toolMode === "move" && isMoveDragGesture) {
+      moveSelectedItems(event);
     }
 
     if (props.toolMode === "sculpt" && sculptingRef.current && props.currentStep === "substrate") {
@@ -3253,7 +3367,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       return;
     }
 
-    if (props.toolMode === "move" && props.selectedItemId) {
+    if (props.toolMode === "move" && (selectedItemIds.length > 0 || props.selectedItemId)) {
+      startMoveDrag(event, itemId);
       handleSurfacePointer(event, anchorType, itemId);
       return;
     }
@@ -3278,6 +3393,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
   const handleSurfaceUp = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
+    moveDragRef.current = null;
     finishSculptStroke();
   };
 
@@ -3346,7 +3462,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         >
           <ItemMesh
             renderItem={renderItem}
-            selected={renderItem.item.id === props.selectedItemId}
+            selected={selectedItemIdSet.has(renderItem.item.id)}
             hovered={renderItem.item.id === hoveredItemId}
             toolMode={props.toolMode}
             onSelect={props.onSelectItem}
@@ -3361,7 +3477,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         <PlantInstancedGroupMesh
           key={`${group.asset.id}:${group.items.length}`}
           group={group}
-          selectedItemId={props.selectedItemId}
+          selectedItemIds={selectedItemIdSet}
           hoveredItemId={hoveredItemId}
           toolMode={props.toolMode}
           onSelect={props.onSelectItem}

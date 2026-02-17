@@ -26,6 +26,7 @@ export type BuilderWorkspaceProps = {
   canvasState: VisualCanvasState;
   assetsById: Map<string, VisualAsset>;
   selectedItemId: string | null;
+  selectedItemIds: string[];
   currentStep: BuilderStepId;
   toolMode: BuilderSceneToolMode;
   placementAsset: VisualAsset | null;
@@ -100,7 +101,7 @@ export type BuilderWorkspaceProps = {
   shortcutsOverlayOpen: boolean;
   onToggleShortcutsOverlay: () => void;
   onCloseShortcutsOverlay: () => void;
-  onSelectSceneItem: (itemId: string | null) => void;
+  onSelectSceneItem: (itemId: string | null, selectionMode?: "replace" | "toggle") => void;
   onHoverSceneItem: (itemId: string | null) => void;
   onPlaceSceneItem: (request: {
     asset: VisualAsset;
@@ -200,6 +201,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       canvasState={props.canvasState}
       assetsById={props.assetsById}
       selectedItemId={props.selectedItemId}
+      selectedItemIds={props.selectedItemIds}
       currentStep={props.currentStep}
       toolMode={props.toolMode}
       placementAsset={props.placementAsset}

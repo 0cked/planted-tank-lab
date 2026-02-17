@@ -125,6 +125,7 @@ export function useVisualBuilderPageController(
   const tankId = useVisualBuilderStore((state) => state.tankId);
   const canvasState = useVisualBuilderStore((state) => state.canvasState);
   const selectedItemId = useVisualBuilderStore((state) => state.selectedItemId);
+  const selectedItemIds = useVisualBuilderStore((state) => state.selectedItemIds);
   const selectedProductByCategory = useVisualBuilderStore((state) => state.selectedProductByCategory);
   const compatibilityEnabled = useVisualBuilderStore((state) => state.compatibilityEnabled);
   const flags = useVisualBuilderStore((state) => state.flags);
@@ -151,6 +152,9 @@ export function useVisualBuilderPageController(
   const duplicateCanvasItem = useVisualBuilderStore((state) => state.duplicateCanvasItem);
   const moveCanvasItemLayer = useVisualBuilderStore((state) => state.moveCanvasItemLayer);
   const setSelectedItem = useVisualBuilderStore((state) => state.setSelectedItem);
+  const toggleSelectedItem = useVisualBuilderStore((state) => state.toggleSelectedItem);
+  const selectAllCanvasItems = useVisualBuilderStore((state) => state.selectAllCanvasItems);
+  const clearSelectedItems = useVisualBuilderStore((state) => state.clearSelectedItems);
   const hydrateFromBuild = useVisualBuilderStore((state) => state.hydrateFromBuild);
   const resetAll = useVisualBuilderStore((state) => state.resetAll);
   const toBuildPayload = useVisualBuilderStore((state) => state.toBuildPayload);
@@ -635,6 +639,12 @@ export function useVisualBuilderPageController(
         return;
       }
 
+      if (hasCommandModifier && !hasBlockedModifier && keyLower === "a") {
+        event.preventDefault();
+        selectAllCanvasItems();
+        return;
+      }
+
       if (!hasCommandModifier && !hasBlockedModifier && isHelpKey) {
         event.preventDefault();
         setShowShortcutsOverlay(true);
@@ -644,8 +654,8 @@ export function useVisualBuilderPageController(
       if (event.key === "Escape") {
         event.preventDefault();
         setShowShortcutsOverlay(false);
-        if (selectedItemId) {
-          setSelectedItem(null);
+        if (selectedItemIds.length > 0) {
+          clearSelectedItems();
         }
         return;
       }
@@ -673,15 +683,15 @@ export function useVisualBuilderPageController(
         }
       }
 
-      if ((event.key === "Delete" || event.key === "Backspace") && selectedItemId) {
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedItemIds.length > 0) {
         event.preventDefault();
-        removeCanvasItem(selectedItemId);
+        removeCanvasItem(selectedItemIds);
         return;
       }
 
-      if (keyLower === "d" && selectedItemId) {
+      if (keyLower === "d" && selectedItemIds.length > 0) {
         event.preventDefault();
-        duplicateCanvasItem(selectedItemId);
+        duplicateCanvasItem(selectedItemIds);
         return;
       }
 
@@ -708,12 +718,14 @@ export function useVisualBuilderPageController(
     applyStepChange,
     canNavigateToStep,
     canvasState.items,
+    clearSelectedItems,
     currentStep,
     duplicateCanvasItem,
     redoSubstrateStroke,
     removeCanvasItem,
+    selectAllCanvasItems,
     selectedItemId,
-    setSelectedItem,
+    selectedItemIds,
     showShortcutsOverlay,
     undoSubstrateStroke,
     updateCanvasItem,
@@ -745,6 +757,20 @@ export function useVisualBuilderPageController(
       tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
     });
     setSubstrateHeightfield(heightfield);
+  };
+
+  const handleSceneSelectionChange: BuilderWorkspaceProps["onSelectSceneItem"] = (itemId, selectionMode) => {
+    if (!itemId) {
+      clearSelectedItems();
+      return;
+    }
+
+    if (selectionMode === "toggle") {
+      toggleSelectedItem(itemId);
+      return;
+    }
+
+    setSelectedItem(itemId);
   };
 
   const metadataPanelProps: ComponentProps<typeof BuildMetadataPanel> = {
@@ -800,6 +826,7 @@ export function useVisualBuilderPageController(
     canvasState,
     assetsById,
     selectedItemId,
+    selectedItemIds,
     currentStep,
     toolMode,
     placementAsset,
@@ -874,7 +901,7 @@ export function useVisualBuilderPageController(
     onCloseShortcutsOverlay: () => {
       setShowShortcutsOverlay(false);
     },
-    onSelectSceneItem: setSelectedItem,
+    onSelectSceneItem: handleSceneSelectionChange,
     onHoverSceneItem: setHoveredItemId,
     onPlaceSceneItem: (request) => {
       addCanvasItemFromAsset(request.asset, request);

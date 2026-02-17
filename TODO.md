@@ -353,7 +353,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Store rotation (Y radians) and scale (uniform float) in the canvas item state.
   - **Verify:** Select a plant. Drag the rotation ring — it spins. Drag the scale handle — it grows/shrinks. Save and reload — transforms persist.
 
-- [ ] **P6-3: Multi-select and group operations**
+- [x] **P6-3: Multi-select and group operations**
   - Shift+click to add/remove items from selection. Show selection highlight (outline or glow) on all selected items.
   - When multiple items selected: Delete removes all, D duplicates all (maintaining relative positions), drag moves all together.
   - Add a "Select all" (Ctrl+A) and "Deselect all" (Escape) shortcut.
