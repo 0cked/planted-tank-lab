@@ -89,6 +89,7 @@ const sceneSettingsSchema = z.object({
   postprocessingEnabled: z.boolean().optional(),
   guidesVisible: z.boolean().optional(),
   glassWallsEnabled: z.boolean().optional(),
+  ambientParticlesEnabled: z.boolean().optional(),
   audioEnabled: z.boolean().optional(),
   cameraPreset: z.enum(["step", "free"]).optional(),
 });
@@ -528,6 +529,7 @@ function normalizeSceneSettings(
     postprocessingEnabled: source.postprocessingEnabled ?? true,
     guidesVisible: source.guidesVisible ?? true,
     glassWallsEnabled: source.glassWallsEnabled ?? qualityTier !== "low",
+    ambientParticlesEnabled: source.ambientParticlesEnabled ?? qualityTier !== "low",
     audioEnabled: source.audioEnabled ?? false,
     cameraPreset: source.cameraPreset === "free" ? "free" : "step",
   };

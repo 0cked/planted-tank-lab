@@ -130,6 +130,7 @@ type VisualBuilderSceneProps = {
   qualityTier: BuilderSceneQualityTier;
   postprocessingEnabled: boolean;
   glassWallsEnabled: boolean;
+  ambientParticlesEnabled: boolean;
   sculptMode: SubstrateBrushMode;
   sculptBrushSize: number;
   sculptStrength: number;
@@ -189,6 +190,12 @@ const WATER_SURFACE_TEXTURE_SEED = 0x51f91f7;
 const WATER_SURFACE_NOISE_SCALE = 5.25;
 const WATER_SURFACE_OCTAVES = 4;
 const CAUSTIC_TEXTURE_SEED = 0x2a9df53;
+const AMBIENT_PARTICLE_SEED = 0x1bd5c91;
+const AMBIENT_PARTICLE_COLORS: ReadonlyArray<[number, number, number]> = [
+  [0.94, 0.99, 0.97],
+  [0.88, 0.97, 0.92],
+  [0.9, 0.95, 0.9],
+];
 const SIMPLEX_F2 = (Math.sqrt(3) - 1) * 0.5;
 const SIMPLEX_G2 = (3 - Math.sqrt(3)) / 6;
 const SIMPLEX_GRADIENTS_2D: ReadonlyArray<[number, number]> = [
@@ -202,6 +209,7 @@ const SIMPLEX_GRADIENTS_2D: ReadonlyArray<[number, number]> = [
   [0, -1],
 ];
 const DISABLED_RAYCAST: THREE.Mesh["raycast"] = () => undefined;
+const DISABLED_POINTS_RAYCAST: THREE.Points["raycast"] = () => undefined;
 
 const WATER_SURFACE_VERTEX_SHADER = `
   varying vec2 vUv;
@@ -843,6 +851,96 @@ function updateAnimatedCausticTexture(params: {
   }
 
   texture.needsUpdate = true;
+}
+
+type AmbientParticleField = {
+  positions: Float32Array;
+  colors: Float32Array;
+  baseX: Float32Array;
+  baseZ: Float32Array;
+  y: Float32Array;
+  speed: Float32Array;
+  wobbleAmplitude: Float32Array;
+  wobbleFrequency: Float32Array;
+  phase: Float32Array;
+};
+
+function ambientParticleCount(qualityTier: BuilderSceneQualityTier): number {
+  if (qualityTier === "high") return 220;
+  if (qualityTier === "medium") return 190;
+  return 150;
+}
+
+function ambientParticleSizePx(qualityTier: BuilderSceneQualityTier): number {
+  if (qualityTier === "high") return 2;
+  if (qualityTier === "medium") return 1.8;
+  return 1.5;
+}
+
+function createAmbientParticleField(params: {
+  count: number;
+  dims: SceneDims;
+  waterLineY: number;
+  seed: number;
+}): AmbientParticleField {
+  const count = Math.max(1, Math.floor(params.count));
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const baseX = new Float32Array(count);
+  const baseZ = new Float32Array(count);
+  const y = new Float32Array(count);
+  const speed = new Float32Array(count);
+  const wobbleAmplitude = new Float32Array(count);
+  const wobbleFrequency = new Float32Array(count);
+  const phase = new Float32Array(count);
+
+  const random = seededRandom(params.seed);
+  const halfWidth = params.dims.widthIn * 0.46;
+  const halfDepth = params.dims.depthIn * 0.46;
+  const minY = Math.max(0.16, params.waterLineY * 0.08);
+  const maxY = Math.max(minY + 0.2, params.waterLineY - 0.12);
+  const verticalSpan = Math.max(0.2, maxY - minY);
+
+  for (let index = 0; index < count; index += 1) {
+    const offset = index * 3;
+
+    baseX[index] = THREE.MathUtils.lerp(-halfWidth, halfWidth, random());
+    baseZ[index] = THREE.MathUtils.lerp(-halfDepth, halfDepth, random());
+    y[index] = minY + random() * verticalSpan;
+    speed[index] = THREE.MathUtils.lerp(0.045, 0.115, random());
+    wobbleAmplitude[index] = THREE.MathUtils.lerp(0.012, 0.052, random());
+    wobbleFrequency[index] = THREE.MathUtils.lerp(0.45, 1.05, random());
+    phase[index] = random() * Math.PI * 2;
+
+    const wobbleX = Math.sin(phase[index]) * wobbleAmplitude[index];
+    const wobbleZ = Math.cos(phase[index] * 1.37) * wobbleAmplitude[index] * 0.8;
+
+    positions[offset] = baseX[index] + wobbleX;
+    positions[offset + 1] = y[index];
+    positions[offset + 2] = baseZ[index] + wobbleZ;
+
+    const paletteColor =
+      AMBIENT_PARTICLE_COLORS[Math.floor(random() * AMBIENT_PARTICLE_COLORS.length)] ??
+      AMBIENT_PARTICLE_COLORS[0] ??
+      [0.9, 0.98, 0.95];
+    const tint = THREE.MathUtils.lerp(0.9, 1.04, random());
+
+    colors[offset] = paletteColor[0] * tint;
+    colors[offset + 1] = paletteColor[1] * tint;
+    colors[offset + 2] = paletteColor[2] * tint;
+  }
+
+  return {
+    positions,
+    colors,
+    baseX,
+    baseZ,
+    y,
+    speed,
+    wobbleAmplitude,
+    wobbleFrequency,
+    phase,
+  };
 }
 
 function cameraPreset(step: BuilderSceneStep, dims: SceneDims): {
@@ -2126,6 +2224,110 @@ function WaterSurfacePlane(props: {
   );
 }
 
+function AmbientWaterParticles(props: {
+  dims: SceneDims;
+  qualityTier: BuilderSceneQualityTier;
+  waterLineY: number;
+}) {
+  const particleCount = ambientParticleCount(props.qualityTier);
+  const fieldSeed = useMemo(
+    () =>
+      AMBIENT_PARTICLE_SEED ^
+      Math.round(props.dims.widthIn * 67) ^
+      Math.round(props.dims.depthIn * 43) ^
+      Math.round(props.waterLineY * 29) ^
+      (props.qualityTier === "high" ? 0x1f7a : props.qualityTier === "medium" ? 0x09d3 : 0x0471),
+    [props.dims.depthIn, props.dims.widthIn, props.qualityTier, props.waterLineY],
+  );
+
+  const field = useMemo(
+    () =>
+      createAmbientParticleField({
+        count: particleCount,
+        dims: props.dims,
+        waterLineY: props.waterLineY,
+        seed: fieldSeed,
+      }),
+    [fieldSeed, particleCount, props.dims, props.waterLineY],
+  );
+
+  const fieldRef = useRef<AmbientParticleField>(field);
+  const recycleRandomRef = useRef<() => number>(seededRandom(fieldSeed ^ 0x7f4a7c15));
+  const positionAttributeRef = useRef<THREE.BufferAttribute>(null);
+
+  useEffect(() => {
+    fieldRef.current = field;
+  }, [field]);
+
+  useEffect(() => {
+    recycleRandomRef.current = seededRandom(fieldSeed ^ 0x7f4a7c15);
+  }, [fieldSeed]);
+
+  useFrame((state, deltaSeconds) => {
+    const currentField = fieldRef.current;
+    const random = recycleRandomRef.current;
+    const safeDeltaSeconds = Math.min(0.08, Math.max(0, deltaSeconds));
+    const time = state.clock.elapsedTime;
+    const halfWidth = props.dims.widthIn * 0.46;
+    const halfDepth = props.dims.depthIn * 0.46;
+    const minY = Math.max(0.16, props.waterLineY * 0.08);
+    const maxY = Math.max(minY + 0.2, props.waterLineY - 0.12);
+    const resetSpan = Math.max(0.18, maxY - minY);
+
+    for (let index = 0; index < currentField.y.length; index += 1) {
+      currentField.y[index] += currentField.speed[index] * safeDeltaSeconds;
+
+      if (currentField.y[index] > maxY) {
+        currentField.y[index] = minY - random() * Math.min(0.5, resetSpan * 0.35);
+        currentField.baseX[index] = THREE.MathUtils.lerp(-halfWidth, halfWidth, random());
+        currentField.baseZ[index] = THREE.MathUtils.lerp(-halfDepth, halfDepth, random());
+        currentField.speed[index] = THREE.MathUtils.lerp(0.045, 0.115, random());
+        currentField.phase[index] = random() * Math.PI * 2;
+      }
+
+      const wobblePhase = time * currentField.wobbleFrequency[index] + currentField.phase[index];
+      const wobbleAmplitude = currentField.wobbleAmplitude[index];
+      const x = currentField.baseX[index] + Math.sin(wobblePhase) * wobbleAmplitude;
+      const z =
+        currentField.baseZ[index] +
+        Math.cos(wobblePhase * 0.83 + currentField.phase[index] * 0.37) * wobbleAmplitude * 0.78;
+      const offset = index * 3;
+
+      currentField.positions[offset] = THREE.MathUtils.clamp(x, -halfWidth, halfWidth);
+      currentField.positions[offset + 1] = currentField.y[index];
+      currentField.positions[offset + 2] = THREE.MathUtils.clamp(z, -halfDepth, halfDepth);
+    }
+
+    const positionAttribute = positionAttributeRef.current;
+    if (positionAttribute) {
+      positionAttribute.needsUpdate = true;
+    }
+  });
+
+  return (
+    <points raycast={DISABLED_POINTS_RAYCAST} renderOrder={22} frustumCulled={false}>
+      <bufferGeometry>
+        <bufferAttribute
+          ref={positionAttributeRef}
+          attach="attributes-position"
+          args={[field.positions, 3]}
+          usage={THREE.DynamicDrawUsage}
+        />
+        <bufferAttribute attach="attributes-color" args={[field.colors, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        vertexColors
+        size={ambientParticleSizePx(props.qualityTier)}
+        sizeAttenuation={false}
+        transparent
+        opacity={props.qualityTier === "high" ? 0.5 : 0.44}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </points>
+  );
+}
+
 function SceneBackdrop() {
   const uniforms = useMemo(
     () => ({
@@ -2226,6 +2428,7 @@ function TankShell(props: {
   qualityTier: BuilderSceneQualityTier;
   substrateHeightfield: SubstrateHeightfield;
   showGlassWalls: boolean;
+  showAmbientParticles: boolean;
   showDepthGuides: boolean;
   currentStep: BuilderSceneStep;
   onSurfacePointer: (event: ThreeEvent<PointerEvent>, anchorType: VisualAnchorType, itemId: string | null) => void;
@@ -2288,6 +2491,14 @@ function TankShell(props: {
           attenuationDistance={30}
         />
       </mesh>
+
+      {props.showAmbientParticles ? (
+        <AmbientWaterParticles
+          dims={props.dims}
+          qualityTier={props.qualityTier}
+          waterLineY={waterHeight}
+        />
+      ) : null}
 
       <WaterSurfacePlane
         widthIn={props.dims.widthIn}
@@ -2821,6 +3032,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         qualityTier={props.qualityTier}
         substrateHeightfield={props.canvasState.substrateHeightfield}
         showGlassWalls={props.glassWallsEnabled && props.qualityTier !== "low"}
+        showAmbientParticles={props.ambientParticlesEnabled && props.qualityTier !== "low"}
         showDepthGuides={props.showDepthGuides}
         currentStep={props.currentStep}
         onSurfacePointer={handleSurfacePointer}

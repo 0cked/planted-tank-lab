@@ -203,6 +203,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       qualityTier={props.qualityTier}
       postprocessingEnabled={props.canvasState.sceneSettings.postprocessingEnabled}
       glassWallsEnabled={props.canvasState.sceneSettings.glassWallsEnabled}
+      ambientParticlesEnabled={props.canvasState.sceneSettings.ambientParticlesEnabled}
       sculptMode={props.sculptMode}
       sculptBrushSize={props.sculptBrushSize}
       sculptStrength={props.sculptStrength}

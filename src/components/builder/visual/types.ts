@@ -126,6 +126,7 @@ export type VisualSceneSettings = {
   postprocessingEnabled: boolean;
   guidesVisible: boolean;
   glassWallsEnabled: boolean;
+  ambientParticlesEnabled: boolean;
   audioEnabled: boolean;
   cameraPreset: "step" | "free";
 };

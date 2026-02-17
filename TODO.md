@@ -325,7 +325,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Ensure post-processing doesn't break screenshot capture (P3-3).
   - **Verify:** Scene looks richer with post-processing on high quality. No visual artifacts. Toggle quality tier — effects scale appropriately.
 
-- [ ] **P5-6: Ambient particles**
+- [x] **P5-6: Ambient particles**
   - Add floating particles in the water volume (subtle, slow-moving specks like real aquarium debris/microorganisms).
   - Use a `Points` geometry with ~200 points randomly distributed within the tank bounds.
   - Animate with slow upward drift + slight sine wobble. Recycle particles that leave bounds.

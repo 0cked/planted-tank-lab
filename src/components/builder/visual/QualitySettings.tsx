@@ -19,6 +19,7 @@ export function QualitySettings(props: QualitySettingsProps) {
       ? props.autoQualityTier
       : props.sceneSettings.qualityTier;
   const glassWallsDisabled = resolvedQualityTier === "low";
+  const ambientParticlesDisabled = resolvedQualityTier === "low";
   const postprocessingPipeline = resolveScenePostprocessingPipeline({
     enabled: props.sceneSettings.postprocessingEnabled,
     qualityTier: resolvedQualityTier,
@@ -90,6 +91,25 @@ export function QualitySettings(props: QualitySettingsProps) {
             onChange={(event) => props.onSceneSettingsChange({ glassWallsEnabled: event.target.checked })}
           />
           Glass walls {glassWallsDisabled ? "(low tier)" : ""}
+        </label>
+
+        <label
+          className={`flex items-center gap-1.5 ${ambientParticlesDisabled ? "opacity-65" : ""}`}
+          title={
+            ambientParticlesDisabled
+              ? "Ambient particles are disabled on low quality for performance."
+              : undefined
+          }
+        >
+          <input
+            type="checkbox"
+            checked={ambientParticlesDisabled ? false : props.sceneSettings.ambientParticlesEnabled}
+            disabled={ambientParticlesDisabled}
+            onChange={(event) =>
+              props.onSceneSettingsChange({ ambientParticlesEnabled: event.target.checked })
+            }
+          />
+          Ambient particles {ambientParticlesDisabled ? "(low tier)" : ""}
         </label>
       </div>
 
