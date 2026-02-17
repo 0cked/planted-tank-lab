@@ -404,7 +404,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Add SEO metadata: "Aquarium Substrate Calculator - How Much Substrate Do I Need?"
   - **Verify:** Enter 36x18 tank, 1" front / 3" back. Calculator shows correct volume. Diagram updates.
 
-- [ ] **P7-2: CO2 calculator**
+- [x] **P7-2: CO2 calculator**
   - Create `/tools/co2-calculator` page.
   - Inputs: tank volume (gallons or liters), desired CO2 level (ppm), KH (carbonate hardness).
   - Output: pH target from CO2/KH/pH table, suggested bubble rate, estimated CO2 consumption (g/day).
