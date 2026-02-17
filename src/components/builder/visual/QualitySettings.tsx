@@ -1,3 +1,4 @@
+import { resolveScenePostprocessingPipeline } from "@/components/builder/visual/postprocessing";
 import type { VisualSceneSettings } from "@/components/builder/visual/types";
 import type { BuilderSceneQualityTier } from "@/components/builder/visual/VisualBuilderScene";
 
@@ -18,6 +19,18 @@ export function QualitySettings(props: QualitySettingsProps) {
       ? props.autoQualityTier
       : props.sceneSettings.qualityTier;
   const glassWallsDisabled = resolvedQualityTier === "low";
+  const postprocessingPipeline = resolveScenePostprocessingPipeline({
+    enabled: props.sceneSettings.postprocessingEnabled,
+    qualityTier: resolvedQualityTier,
+  });
+  const postprocessingHint =
+    postprocessingPipeline === "full"
+      ? "Bloom + ACES tone mapping + vignette"
+      : postprocessingPipeline === "bloom"
+        ? "Bloom only (medium tier)"
+        : resolvedQualityTier === "low"
+          ? "Unavailable on low tier"
+          : "Off";
 
   return (
     <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
@@ -43,15 +56,18 @@ export function QualitySettings(props: QualitySettingsProps) {
       </div>
 
       <div className="mt-2 grid gap-2 text-[11px] text-slate-300">
-        <label className="flex items-center gap-1.5">
-          <input
-            type="checkbox"
-            checked={props.sceneSettings.postprocessingEnabled}
-            onChange={(event) =>
-              props.onSceneSettingsChange({ postprocessingEnabled: event.target.checked })
-            }
-          />
-          Post FX
+        <label className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={props.sceneSettings.postprocessingEnabled}
+              onChange={(event) =>
+                props.onSceneSettingsChange({ postprocessingEnabled: event.target.checked })
+              }
+            />
+            Post FX
+          </span>
+          <span className="text-[10px] text-slate-400">{postprocessingHint}</span>
         </label>
 
         <label className="flex items-center gap-1.5">

@@ -2,10 +2,10 @@
 
 import { Edges, Environment, Html, OrbitControls, useProgress } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
-import { Bloom, EffectComposer, Noise, SSAO, ToneMapping, Vignette } from "@react-three/postprocessing";
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { BlendFunction, ToneMappingMode } from "postprocessing";
+import { Bloom, EffectComposer, ToneMapping, Vignette } from "@react-three/postprocessing";
+import { ToneMappingMode } from "postprocessing";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 
 import {
@@ -45,6 +45,12 @@ import {
   type SceneDims,
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
+import {
+  BLOOM_INTENSITY,
+  BLOOM_LUMINANCE_SMOOTHING,
+  BLOOM_LUMINANCE_THRESHOLD,
+  resolveScenePostprocessingPipeline,
+} from "@/components/builder/visual/postprocessing";
 import {
   resolveVisualAsset,
   useAsset,
@@ -2462,6 +2468,11 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     [props.assetsById, props.canvasState.items],
   );
 
+  const postprocessingPipeline = resolveScenePostprocessingPipeline({
+    enabled: props.postprocessingEnabled,
+    qualityTier: props.qualityTier,
+  });
+
   const { singleRenderItems, plantInstancedGroups } = useMemo(() => {
     const singles: SceneRenderItem[] = [];
     const groupedPlants = new Map<string, PlantInstancedGroup>();
@@ -2893,29 +2904,23 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
       <SceneAssetLoadingIndicator enabled={loadableAssetPaths.length > 0} />
 
-      {props.postprocessingEnabled && props.qualityTier !== "low" ? (
+      {postprocessingPipeline === "full" ? (
         <EffectComposer multisampling={4}>
-          <SSAO
-            samples={props.qualityTier === "high" ? 28 : 18}
-            radius={props.qualityTier === "high" ? 0.26 : 0.2}
-            intensity={props.qualityTier === "high" ? 12 : 8}
-            luminanceInfluence={0.45}
-          />
           <Bloom
-            luminanceThreshold={0.72}
-            luminanceSmoothing={0.44}
-            intensity={props.qualityTier === "high" ? 0.48 : 0.4}
+            luminanceThreshold={BLOOM_LUMINANCE_THRESHOLD}
+            luminanceSmoothing={BLOOM_LUMINANCE_SMOOTHING}
+            intensity={BLOOM_INTENSITY}
           />
-          <Vignette eskil={false} offset={0.22} darkness={0.42} />
-          <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.02} />
+          <Vignette eskil={false} offset={0.24} darkness={0.33} />
           <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         </EffectComposer>
-      ) : props.postprocessingEnabled ? (
-        <EffectComposer multisampling={0}>
-          <Bloom luminanceThreshold={0.72} luminanceSmoothing={0.44} intensity={0.3} />
-          <Vignette eskil={false} offset={0.22} darkness={0.36} />
-          <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.018} />
-          <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+      ) : postprocessingPipeline === "bloom" ? (
+        <EffectComposer multisampling={2}>
+          <Bloom
+            luminanceThreshold={BLOOM_LUMINANCE_THRESHOLD}
+            luminanceSmoothing={BLOOM_LUMINANCE_SMOOTHING}
+            intensity={BLOOM_INTENSITY}
+          />
         </EffectComposer>
       ) : null}
 
