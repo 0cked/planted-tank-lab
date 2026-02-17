@@ -11,6 +11,11 @@ import type {
   BuilderWorkspaceCameraIntent,
   BuilderWorkspaceProps,
 } from "@/components/builder/visual/BuilderWorkspace";
+import {
+  getVisualBuildTemplateCards,
+  resolveVisualBuildTemplate,
+  type VisualBuildTemplateId,
+} from "@/components/builder/visual/build-templates";
 import { CameraDiagnosticsPanel } from "@/components/builder/visual/CameraDiagnosticsPanel";
 import { evaluateVisualCompatibility } from "@/components/builder/visual/compatibility";
 import { exportVisualLayoutPng } from "@/components/builder/visual/export";
@@ -49,6 +54,7 @@ type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type InitialBuildResponse = RouterOutputs["visualBuilder"]["getByShareSlug"];
 
 const MAX_THUMBNAIL_WIDTH = 960;
+const VISUAL_BUILD_TEMPLATE_CARDS = getVisualBuildTemplateCards();
 
 function captureSceneThumbnailDataUrl(canvas: HTMLCanvasElement | null): string | undefined {
   if (!canvas) return undefined;
@@ -228,6 +234,38 @@ export function useVisualBuilderPageController(
       depthIn: selectedTank.depthIn,
     });
   }, [selectedTank, setTank, tankId]);
+
+  const resolvedTemplatesById = useMemo(() => {
+    const map = new Map<VisualBuildTemplateId, ReturnType<typeof resolveVisualBuildTemplate>>();
+    const assets = catalogQuery.data?.assets ?? [];
+    const tanks = catalogQuery.data?.tanks ?? [];
+
+    for (const template of VISUAL_BUILD_TEMPLATE_CARDS) {
+      const resolved = resolveVisualBuildTemplate({
+        templateId: template.id,
+        assets,
+        tanks,
+      });
+      if (resolved) {
+        map.set(template.id, resolved);
+      }
+    }
+
+    return map;
+  }, [catalogQuery.data?.assets, catalogQuery.data?.tanks]);
+
+  const templateCards = useMemo(() => {
+    return VISUAL_BUILD_TEMPLATE_CARDS.map((template) => {
+      const available = resolvedTemplatesById.has(template.id);
+      return {
+        ...template,
+        available,
+        unavailableReason: available
+          ? undefined
+          : "Template needs catalog data for this session.",
+      };
+    });
+  }, [resolvedTemplatesById]);
 
   const equipmentCategories = useMemo(() => {
     const next = new Set<string>();
@@ -770,6 +808,66 @@ export function useVisualBuilderPageController(
     });
   };
 
+  const handleApplyTemplate = (templateId: VisualBuildTemplateId) => {
+    const template = resolvedTemplatesById.get(templateId);
+    if (!template) {
+      setSaveState({
+        type: "error",
+        message: "Template is unavailable until catalog data has loaded.",
+      });
+      return;
+    }
+
+    if (canvasState.items.length > 0 && typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        `Replace your current aquascape with \"${template.name}\"? Existing placed items will be removed.`,
+      );
+      if (!confirmed) return;
+    }
+
+    const lineItems = Object.entries(template.selectedProductByCategory)
+      .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0)
+      .map(([categorySlug, productId]) => ({
+        categorySlug,
+        product: {
+          id: productId,
+        },
+        plant: null,
+      }));
+
+    hydrateFromBuild({
+      buildId,
+      shareSlug,
+      name,
+      description,
+      tags,
+      isPublic,
+      tankId: template.tank.id,
+      canvasState: {
+        widthIn: template.tank.widthIn,
+        heightIn: template.tank.heightIn,
+        depthIn: template.tank.depthIn,
+        substrateHeightfield: template.substrateHeightfield,
+        sceneSettings: canvasState.sceneSettings,
+        items: template.items,
+      },
+      lineItems,
+      flags: {
+        lowTechNoCo2: template.flags.lowTechNoCo2,
+        hasShrimp: template.flags.hasShrimp,
+      },
+    });
+
+    applyStepChange("tank");
+    setPlacementAssetId(null);
+    setToolMode("move");
+    setSearch("");
+    setSaveState({
+      type: "ok",
+      message: `${template.name} template loaded. Tweak it however you like.`,
+    });
+  };
+
   const handleApplySubstratePreset = (preset: "flat" | "island" | "slope" | "valley") => {
     const heightfield = buildSubstratePreset({
       preset,
@@ -874,6 +972,8 @@ export function useVisualBuilderPageController(
     hardscapeVolumeRatio: compatibility.hardscapeVolumeRatio,
     tanks: catalogQuery.data?.tanks ?? [],
     onSelectTank: handleSelectTank,
+    templates: templateCards,
+    onApplyTemplate: handleApplyTemplate,
     equipmentCategories,
     activeEquipmentCategory,
     onEquipmentCategoryChange: setEquipmentCategoryFilter,

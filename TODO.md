@@ -381,7 +381,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Use drei's `Html` component for text labels positioned at tank edges.
   - **Verify:** Toggle measurements on — dimension labels appear along tank edges showing correct measurements. Toggle off — labels disappear.
 
-- [ ] **P6-7: Build templates**
+- [x] **P6-7: Build templates**
   - Add 3-5 starter templates that pre-populate a build with curated items and substrate:
     - "Low-tech beginner" (anubias, java fern, simple substrate)
     - "Nature Aquarium" (stem plants, rocks, sloped substrate)

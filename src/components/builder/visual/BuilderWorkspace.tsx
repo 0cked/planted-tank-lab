@@ -3,6 +3,10 @@ import { BuilderRightSidebar } from "@/components/builder/visual/BuilderRightSid
 import { BuilderSceneToolbar } from "@/components/builder/visual/BuilderSceneToolbar";
 import { BuilderShortcutsOverlay } from "@/components/builder/visual/BuilderShortcutsOverlay";
 import { BuilderViewportLayout } from "@/components/builder/visual/BuilderViewportLayout";
+import type {
+  VisualBuildTemplateCatalogCard,
+  VisualBuildTemplateId,
+} from "@/components/builder/visual/build-templates";
 import type { BomLine, BuilderStepId } from "@/components/builder/visual/builder-page-utils";
 import type { SubstrateBrushMode } from "@/components/builder/visual/scene-utils";
 import type {
@@ -71,6 +75,8 @@ export type BuilderWorkspaceProps = {
   hardscapeVolumeRatio: number | null;
   tanks: VisualTank[];
   onSelectTank: (tankId: string) => void;
+  templates: VisualBuildTemplateCatalogCard[];
+  onApplyTemplate: (templateId: VisualBuildTemplateId) => void;
   equipmentCategories: string[];
   activeEquipmentCategory: string;
   onEquipmentCategoryChange: (categorySlug: string) => void;
@@ -147,6 +153,8 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       selectedTank={props.selectedTank}
       tanks={props.tanks}
       onSelectTank={props.onSelectTank}
+      templates={props.templates}
+      onApplyTemplate={props.onApplyTemplate}
       equipmentCategories={props.equipmentCategories}
       activeEquipmentCategory={props.activeEquipmentCategory}
       onEquipmentCategoryChange={props.onEquipmentCategoryChange}
