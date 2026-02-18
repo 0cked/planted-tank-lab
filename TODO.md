@@ -497,7 +497,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - The builder should never white-screen. If the 3D scene crashes, the toolbar and sidebar should still be usable.
   - **Verify:** Intentionally break a tRPC call in dev — error boundary catches it and shows recovery UI. Builder scene error doesn't crash the whole page.
 
-- [ ] **P9-4: SEO structured data**
+- [x] **P9-4: SEO structured data**
   - Add JSON-LD structured data to key pages:
     - `/plants/[slug]`: `Product` schema with name, image, description.
     - `/products/[category]/[slug]`: `Product` schema with offers (price, retailer, availability).

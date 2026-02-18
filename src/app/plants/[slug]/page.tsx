@@ -6,6 +6,8 @@ import { SmartImage } from "@/components/SmartImage";
 import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-data";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
+const BASE_URL = "https://plantedtanklab.com";
+
 function sourcesList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((v): v is string => typeof v === "string" && v.startsWith("http"));
@@ -95,6 +97,19 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
   const typeLabel = p.substrateType ?? p.placement;
   const missingPlantImage = missingSourceImageCopy("plant");
   const imageUrl = firstCatalogImageUrl({ imageUrl: p.imageUrl ?? null, imageUrls: p.imageUrls });
+  const plantUrl = `${BASE_URL}/plants/${p.slug}`;
+  const plantStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: p.commonName,
+    ...(p.scientificName ? { alternateName: p.scientificName } : {}),
+    description:
+      p.description ??
+      `Care parameters for ${p.commonName}: difficulty, light, CO2, placement, and water ranges.`,
+    url: plantUrl,
+    ...(imageUrl ? { image: [imageUrl] } : {}),
+    category: "Aquatic plant",
+  };
 
   const plantInfoRows: Array<{ label: string; value: string }> = [
     { label: "Type", value: titleWords(typeLabel) },
@@ -107,6 +122,13 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(plantStructuredData),
+        }}
+      />
+
       <div className="flex items-start justify-between gap-6">
         <div className="min-w-0">
           <div className="ptl-kicker">

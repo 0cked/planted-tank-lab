@@ -16,6 +16,8 @@ import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-d
 import { formatSpecs } from "@/lib/specs";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
+const BASE_URL = "https://plantedtanklab.com";
+
 function formatMoney(cents: number | null | undefined): string {
   if (cents == null) return "—";
   const dollars = cents / 100;
@@ -57,6 +59,10 @@ function shippingInfoLabel(retailerSlug: string): string {
     default:
       return "Shipping shown at checkout";
   }
+}
+
+function offerAvailability(inStock: boolean): string {
+  return inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
 }
 
 function offerSummaryTopline(summary: OfferSummaryLike): { priceCents: number | null; note: string } {
@@ -204,8 +210,56 @@ export default async function ProductDetailPage(props: {
 
   const bestOfferId = sortedOffers.find((o) => o.inStock && o.priceCents != null)?.id ?? null;
 
+  const productUrl = `${BASE_URL}/products/${p.category.slug}/${p.slug}`;
+  const productImages = Array.from(
+    new Set(
+      [primaryImage, ...gallery].filter((image): image is string => typeof image === "string" && image.length > 0),
+    ),
+  );
+  const structuredOffers = sortedOffers.map((offer) => {
+    const inStock = offer.inStock && offer.priceCents != null;
+    const price = offer.priceCents == null ? null : (offer.priceCents / 100).toFixed(2);
+
+    return {
+      "@type": "Offer",
+      url: offer.goUrl,
+      availability: offerAvailability(inStock),
+      ...(price ? { price, priceCurrency: "USD" } : {}),
+      seller: {
+        "@type": "Organization",
+        name: offer.retailer.name,
+      },
+    };
+  });
+  const productStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: title,
+    description: p.description ?? `Specs, prices, and details for ${title}.`,
+    url: productUrl,
+    ...(productImages.length > 0 ? { image: productImages } : {}),
+    ...(brandName
+      ? {
+          brand: {
+            "@type": "Brand",
+            name: brandName,
+          },
+        }
+      : {}),
+    category: p.category.name,
+    sku: p.id,
+    ...(structuredOffers.length > 0 ? { offers: structuredOffers } : {}),
+  };
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productStructuredData),
+        }}
+      />
+
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="ptl-kicker">

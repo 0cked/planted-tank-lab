@@ -13,6 +13,8 @@ import {
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
+const BASE_URL = "https://plantedtanklab.com";
+
 function versionedThumbnailUrl(
   coverImageUrl: string | null | undefined,
   updatedAt: Date | string | null | undefined,
@@ -222,8 +224,43 @@ export default async function BuildSharePage(props: {
     })
     .filter((item) => item.options.length > 0);
 
+  const buildUrl = `${BASE_URL}/builds/${shareSlug}`;
+  const buildThumbnailUrl = versionedThumbnailUrl(
+    data.build.coverImageUrl,
+    data.build.updatedAt,
+  );
+  const updatedAt =
+    data.build.updatedAt instanceof Date
+      ? data.build.updatedAt
+      : typeof data.build.updatedAt === "string"
+        ? new Date(data.build.updatedAt)
+        : null;
+  const updatedAtIso = updatedAt && !Number.isNaN(updatedAt.getTime()) ? updatedAt.toISOString() : null;
+  const buildStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: data.build.name,
+    description:
+      data.build.description ?? `A planted tank build snapshot with ${data.build.itemCount} items.`,
+    url: buildUrl,
+    ...(buildThumbnailUrl ? { image: [buildThumbnailUrl] } : {}),
+    author: {
+      "@type": "Organization",
+      name: "PlantedTankLab Community",
+      url: BASE_URL,
+    },
+    ...(updatedAtIso ? { dateModified: updatedAtIso } : {}),
+  };
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(buildStructuredData),
+        }}
+      />
+
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="ptl-kicker">Build snapshot</div>
