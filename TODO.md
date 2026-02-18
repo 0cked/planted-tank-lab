@@ -420,7 +420,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Classify result as "suitable for low-tech", "medium", or "high-tech" setups.
   - **Verify:** Enter a 30W LED at 18" depth. Calculator shows estimated PAR and light category.
 
-- [ ] **P7-4: Fertilizer dosing calculator**
+- [x] **P7-4: Fertilizer dosing calculator**
   - Create `/tools/fertilizer-calculator` page.
   - Support two methods: EI (Estimative Index) and PPS-Pro.
   - Inputs: tank volume, dosing method.
