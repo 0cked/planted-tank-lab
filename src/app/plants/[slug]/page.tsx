@@ -172,7 +172,7 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
               {imageUrl ? (
                 <SmartImage
                   src={imageUrl}
-                  alt=""
+                  alt={`${p.commonName} plant photo`}
                   fill
                   sizes="(min-width: 1024px) 560px, 100vw"
                   className="object-cover"

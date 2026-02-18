@@ -110,7 +110,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                         {hasImg ? (
                           <SmartImage
                             src={imageUrl as string}
-                            alt=""
+                            alt={`${p.commonName} plant photo`}
                             fill
                             sizes="(max-width: 1024px) 50vw, 33vw"
                             className="object-cover transition duration-500 group-hover:scale-[1.04]"

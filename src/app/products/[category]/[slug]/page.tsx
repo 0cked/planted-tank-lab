@@ -300,7 +300,7 @@ export default async function ProductDetailPage(props: {
             {primaryImage ? (
               <SmartImage
                 src={primaryImage}
-                alt=""
+                alt={`${title} product photo`}
                 width={720}
                 height={720}
                 className="aspect-square w-full object-cover"
@@ -329,7 +329,7 @@ export default async function ProductDetailPage(props: {
                 >
                   <SmartImage
                     src={u}
-                    alt=""
+                    alt={`${title} gallery photo`}
                     width={160}
                     height={160}
                     className="aspect-square w-full object-cover"
@@ -503,7 +503,7 @@ export default async function ProductDetailPage(props: {
                     {img ? (
                       <SmartImage
                         src={img}
-                        alt=""
+                        alt={`${title} product photo`}
                         width={720}
                         height={540}
                         className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.03]"

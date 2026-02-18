@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
+
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 export type BuyAllItemOption = {
   id: string;
@@ -56,21 +58,17 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
   const [openStatus, setOpenStatus] = useState<OpenStatus>(null);
 
   const dark = props.theme === "dark";
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const titleId = useId();
+  const descriptionId = useId();
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleEscape);
-    return () => {
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [isOpen]);
+  useFocusTrap({
+    containerRef: dialogRef,
+    active: isOpen,
+    onEscape: () => {
+      setIsOpen(false);
+    },
+  });
 
   const selectedRows = useMemo(() => {
     return props.items
@@ -144,8 +142,14 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
       </button>
 
       {isOpen ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4" role="presentation">
           <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            aria-describedby={descriptionId}
+            tabIndex={-1}
             className={
               dark
                 ? "max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-white/20 bg-slate-950 text-slate-100"
@@ -155,14 +159,17 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
             <div className={dark ? "border-b border-white/15 p-5" : "border-b border-neutral-200 p-5"}>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-semibold">{props.title}</h3>
-                  <p className={dark ? "mt-1 text-sm text-slate-300" : "mt-1 text-sm text-neutral-600"}>
+                  <h3 id={titleId} className="text-lg font-semibold">
+                    {props.title}
+                  </h3>
+                  <p id={descriptionId} className={dark ? "mt-1 text-sm text-slate-200" : "mt-1 text-sm text-neutral-700"}>
                     {props.description ??
                       "Pick a retailer for each line item and open all purchase links in one action."}
                   </p>
                 </div>
                 <button
                   type="button"
+                  aria-label="Close buy all items dialog"
                   onClick={() => setIsOpen(false)}
                   className={
                     dark
@@ -193,12 +200,18 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           {item.subtitle ? (
-                            <div className={dark ? "text-[10px] uppercase tracking-[0.12em] text-slate-400" : "text-[10px] uppercase tracking-[0.12em] text-neutral-500"}>
+                            <div
+                              className={
+                                dark
+                                  ? "text-[10px] uppercase tracking-[0.12em] text-slate-300"
+                                  : "text-[10px] uppercase tracking-[0.12em] text-neutral-600"
+                              }
+                            >
                               {item.subtitle}
                             </div>
                           ) : null}
                           <div className="text-sm font-semibold">{item.title}</div>
-                          <div className={dark ? "text-xs text-slate-300" : "text-xs text-neutral-600"}>
+                          <div className={dark ? "text-xs text-slate-200" : "text-xs text-neutral-700"}>
                             Qty {item.quantity}
                           </div>
                         </div>
@@ -209,10 +222,14 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
 
                       {item.options.length > 0 ? (
                         <div className="mt-2">
-                          <label className={dark ? "mb-1 block text-[11px] text-slate-300" : "mb-1 block text-[11px] text-neutral-600"}>
+                          <label
+                            htmlFor={`buy-all-retailer-${item.id}`}
+                            className={dark ? "mb-1 block text-[11px] text-slate-200" : "mb-1 block text-[11px] text-neutral-700"}
+                          >
                             Retailer
                           </label>
                           <select
+                            id={`buy-all-retailer-${item.id}`}
                             value={selectedId}
                             onChange={(event) => {
                               const value = event.target.value;
@@ -250,7 +267,7 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
             <div className={dark ? "border-t border-white/15 p-5" : "border-t border-neutral-200 p-5"}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className={dark ? "text-xs text-slate-300" : "text-xs text-neutral-600"}>Estimated total</div>
+                  <div className={dark ? "text-xs text-slate-200" : "text-xs text-neutral-700"}>Estimated total</div>
                   <div className="text-lg font-semibold">{formatMoney(estimatedTotalCents)}</div>
                 </div>
                 <div className="flex flex-wrap gap-2">

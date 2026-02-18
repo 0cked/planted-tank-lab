@@ -1,3 +1,9 @@
+"use client";
+
+import { useId, useRef } from "react";
+
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+
 type BuilderShortcutsOverlayProps = {
   open: boolean;
   onClose: () => void;
@@ -23,6 +29,16 @@ const SHORTCUT_ROWS: ShortcutRow[] = [
 ];
 
 export function BuilderShortcutsOverlay(props: BuilderShortcutsOverlayProps) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+
+  useFocusTrap({
+    containerRef: dialogRef,
+    active: props.open,
+    onEscape: props.onClose,
+  });
+
   if (!props.open) return null;
 
   return (
@@ -32,20 +48,29 @@ export function BuilderShortcutsOverlay(props: BuilderShortcutsOverlayProps) {
       onClick={props.onClose}
     >
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Builder keyboard shortcuts"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
         className="w-full max-w-xl rounded-2xl border border-white/20 bg-slate-950/95 p-4 shadow-2xl backdrop-blur"
       >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-100">Builder shortcuts</h2>
-            <p className="text-xs text-slate-300">Use these while your focus is in the builder.</p>
+            <h2 id={titleId} className="text-sm font-semibold text-slate-100">
+              Builder shortcuts
+            </h2>
+            <p id={descriptionId} className="text-xs text-slate-200">
+              Use these while your focus is in the builder.
+            </p>
           </div>
 
           <button
+            type="button"
             onClick={props.onClose}
+            aria-label="Close keyboard shortcuts panel"
             className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-slate-900/85 px-4 py-2 text-xs font-semibold text-slate-100"
           >
             Close

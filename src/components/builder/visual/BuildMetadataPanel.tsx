@@ -47,7 +47,7 @@ function tagButtonClasses(selected: boolean): string {
     return "border-emerald-300/75 bg-emerald-400/20 text-emerald-100";
   }
 
-  return "border-white/20 bg-slate-950/60 text-slate-300 hover:border-white/35 hover:text-slate-100";
+  return "border-white/20 bg-slate-950/60 text-slate-200 hover:border-white/35 hover:text-slate-100";
 }
 
 export function BuildMetadataPanel(props: BuildMetadataPanelProps) {
@@ -61,42 +61,44 @@ export function BuildMetadataPanel(props: BuildMetadataPanelProps) {
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-100 sm:text-3xl">
             Game-like 3D aquascaping planner
           </h1>
-          <p className="mt-1 max-w-3xl text-sm text-slate-300">
+          <p className="mt-1 max-w-3xl text-sm text-slate-200">
             Cinematic viewport first. Planner outputs preserved: BOM, compatibility checks, save/share, and
             deterministic scene reconstruction.
           </p>
         </div>
 
         <div className="min-w-[240px] flex-1">
-          <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+          <label htmlFor="visual-build-name" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">
             Build name
           </label>
           <input
+            id="visual-build-name"
             value={props.name}
             onChange={(event) => props.onNameChange(event.target.value)}
-            className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none"
+            className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             placeholder="Visual Build"
           />
         </div>
 
         <div className="min-w-[240px] flex-1">
-          <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+          <label htmlFor="visual-build-description" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">
             Description
           </label>
           <input
+            id="visual-build-description"
             value={props.description}
             onChange={(event) => props.onDescriptionChange(event.target.value)}
-            className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none"
+            className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             placeholder="Low-tech jungle with cinematic hardscape composition"
           />
         </div>
       </div>
 
       <div className="mt-3">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">
           Build tags
         </div>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div role="toolbar" aria-label="Build tags" className="mt-2 flex flex-wrap gap-2">
           {BUILD_TAG_OPTIONS.map((tag) => {
             const selected = props.selectedTags.includes(tag);
             return (
@@ -104,7 +106,9 @@ export function BuildMetadataPanel(props: BuildMetadataPanelProps) {
                 key={tag}
                 type="button"
                 onClick={() => props.onTagToggle(tag)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${tagButtonClasses(selected)}`}
+                aria-label={`Toggle tag ${buildTagLabel(tag)}`}
+                aria-pressed={selected}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${tagButtonClasses(selected)}`}
               >
                 {buildTagLabel(tag)}
               </button>
@@ -113,51 +117,63 @@ export function BuildMetadataPanel(props: BuildMetadataPanelProps) {
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div role="toolbar" aria-label="Build actions" className="mt-3 flex flex-wrap items-center gap-2">
         <button
+          type="button"
           onClick={props.onSaveDraft}
+          aria-label="Save draft"
           disabled={props.saving}
-          className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100 disabled:cursor-wait disabled:opacity-60"
+          className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-wait disabled:opacity-60"
         >
           Save draft
         </button>
         {props.onRemix ? (
           <button
+            type="button"
             onClick={props.onRemix}
-            className="rounded-full border border-cyan-300/70 bg-cyan-400/20 px-4 py-2 text-sm font-semibold text-cyan-100"
+            aria-label="Remix this build"
+            className="rounded-full border border-cyan-300/70 bg-cyan-400/20 px-4 py-2 text-sm font-semibold text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
           >
             Remix
           </button>
         ) : null}
         <button
+          type="button"
           onClick={props.onDuplicate}
-          className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100"
+          aria-label="Duplicate this build"
+          className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
         >
           Duplicate
         </button>
         <button
+          type="button"
           onClick={props.onShare}
+          aria-label="Share this build"
           disabled={props.saving}
-          className="rounded-full border border-emerald-300/70 bg-emerald-400/25 px-4 py-2 text-sm font-semibold text-emerald-100 disabled:cursor-wait disabled:opacity-60"
+          className="rounded-full border border-emerald-300/70 bg-emerald-400/25 px-4 py-2 text-sm font-semibold text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-wait disabled:opacity-60"
         >
           Share
         </button>
         <button
+          type="button"
           onClick={props.onExport}
-          className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100"
+          aria-label="Export build as PNG"
+          className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
         >
           Export PNG
         </button>
         <button
+          type="button"
           onClick={props.onReset}
-          className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100"
+          aria-label="Reset build"
+          className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
         >
           Reset
         </button>
 
         {props.buildLink ? (
           <a
-            className="rounded-full border border-white/20 bg-slate-950/70 px-3 py-1.5 text-xs font-semibold text-slate-200"
+            className="rounded-full border border-white/20 bg-slate-950/70 px-3 py-1.5 text-xs font-semibold text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             href={props.buildLink}
             target="_blank"
             rel="noreferrer"
@@ -179,7 +195,7 @@ export function BuildMetadataPanel(props: BuildMetadataPanelProps) {
         </p>
       ) : null}
 
-      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-300">
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-200">
         <span>
           Build ID: <span className="font-mono text-slate-100">{props.buildId ?? "draft"}</span>
         </span>

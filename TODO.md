@@ -506,7 +506,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Use `<script type="application/ld+json">` in the page metadata.
   - **Verify:** View page source on a plant page — JSON-LD block present and valid. Test with Google's Rich Results Test tool.
 
-- [ ] **P9-5: Accessibility audit and fixes**
+- [x] **P9-5: Accessibility audit and fixes**
   - Audit and fix keyboard navigation:
     - All interactive elements reachable via Tab.
     - Toolbar buttons have `aria-label` attributes.

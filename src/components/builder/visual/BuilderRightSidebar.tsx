@@ -48,10 +48,10 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
   const selectedObjectPanel = (() => {
     if (!props.selectedItem || !props.selectedAsset) {
       return (
-        <div className="text-xs text-slate-300">
+        <div className="text-xs text-slate-200">
           Select an object in the scene to edit transform and placement metadata.
           {props.hoveredItemId ? (
-            <div className="mt-1 text-[11px] text-slate-400">Hover: {props.hoveredItemId}</div>
+            <div className="mt-1 text-[11px] text-slate-300">Hover: {props.hoveredItemId}</div>
           ) : null}
         </div>
       );
@@ -63,14 +63,14 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
     return (
       <div className="space-y-2">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.14em] text-slate-300">Selected object</div>
+          <div className="text-[11px] uppercase tracking-[0.14em] text-slate-200">Selected object</div>
           <div className="text-sm font-semibold text-slate-100">{selectedAsset.name}</div>
-          <div className="text-[11px] text-slate-400">
+          <div className="text-[11px] text-slate-300">
             {selectedAsset.categoryName} · {selectedItem.anchorType} · zone {selectedItem.depthZone ?? "—"}
           </div>
         </div>
 
-        <label className="block text-[11px] text-slate-300">
+        <label className="block text-[11px] text-slate-200">
           Scale ({selectedItem.scale.toFixed(2)})
           <input
             type="range"
@@ -78,6 +78,8 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
             max={2.5}
             step={0.01}
             value={selectedItem.scale}
+            aria-label={`Scale for ${selectedAsset.name}`}
+            aria-valuetext={selectedItem.scale.toFixed(2)}
             onChange={(event) => {
               props.onUpdateCanvasItem(selectedItem.id, {
                 scale: Number(event.target.value),
@@ -87,7 +89,7 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
           />
         </label>
 
-        <label className="block text-[11px] text-slate-300">
+        <label className="block text-[11px] text-slate-200">
           Depth ({Math.round(selectedItem.z * 100)}%)
           <input
             type="range"
@@ -95,6 +97,8 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
             max={1}
             step={0.01}
             value={selectedItem.z}
+            aria-label={`Depth placement for ${selectedAsset.name}`}
+            aria-valuetext={`${Math.round(selectedItem.z * 100)} percent`}
             onChange={(event) => {
               props.onUpdateCanvasItem(selectedItem.id, {
                 z: Number(event.target.value),
@@ -104,7 +108,7 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
           />
         </label>
 
-        <label className="block text-[11px] text-slate-300">
+        <label className="block text-[11px] text-slate-200">
           Rotation ({Math.round(selectedItem.rotation)}°)
           <input
             type="range"
@@ -112,6 +116,8 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
             max={180}
             step={1}
             value={selectedItem.rotation}
+            aria-label={`Rotation for ${selectedAsset.name}`}
+            aria-valuetext={`${Math.round(selectedItem.rotation)} degrees`}
             onChange={(event) => {
               props.onUpdateCanvasItem(selectedItem.id, {
                 rotation: Number(event.target.value),
@@ -121,28 +127,36 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
           />
         </label>
 
-        <div className="flex flex-wrap gap-1.5">
+        <div role="toolbar" aria-label="Selected item actions" className="flex flex-wrap gap-1.5">
           <button
+            type="button"
             onClick={() => props.onMoveCanvasItemLayer(selectedItem.id, "up")}
-            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            aria-label={`Move ${selectedAsset.name} one layer up`}
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
           >
             Layer +
           </button>
           <button
+            type="button"
             onClick={() => props.onMoveCanvasItemLayer(selectedItem.id, "down")}
-            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            aria-label={`Move ${selectedAsset.name} one layer down`}
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
           >
             Layer -
           </button>
           <button
+            type="button"
             onClick={() => props.onDuplicateCanvasItem(selectedItem.id)}
-            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            aria-label={`Duplicate ${selectedAsset.name}`}
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] font-semibold text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
           >
             Duplicate
           </button>
           <button
+            type="button"
             onClick={() => props.onRemoveCanvasItem(selectedItem.id)}
-            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-red-300/60 bg-red-500/15 px-2 py-1 text-[11px] font-semibold text-red-100"
+            aria-label={`Delete ${selectedAsset.name}`}
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-red-300/60 bg-red-500/15 px-2 py-1 text-[11px] font-semibold text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
           >
             Delete
           </button>
@@ -176,9 +190,10 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
       <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-100">Compatibility</h3>
-          <label className="flex items-center gap-2 text-[11px] text-slate-300">
+          <label className="flex items-center gap-2 text-[11px] text-slate-200">
             <input
               type="checkbox"
+              aria-label="Enable compatibility rules"
               checked={props.compatibilityEnabled}
               onChange={(event) => props.onCompatibilityEnabledChange(event.target.checked)}
             />
@@ -187,18 +202,20 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
         </div>
 
         <div className="mb-2 grid grid-cols-2 gap-2 text-[11px]">
-          <label className="flex items-center gap-2 rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1.5 text-slate-300">
+          <label className="flex items-center gap-2 rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1.5 text-slate-200">
             <input
               type="checkbox"
+              aria-label="Assume low-tech setup with no CO2"
               checked={props.lowTechNoCo2}
               onChange={(event) => props.onLowTechNoCo2Change(event.target.checked)}
             />
             Low-tech
           </label>
 
-          <label className="flex items-center gap-2 rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1.5 text-slate-300">
+          <label className="flex items-center gap-2 rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1.5 text-slate-200">
             <input
               type="checkbox"
+              aria-label="Assume shrimp-safe tank"
               checked={props.hasShrimp}
               onChange={(event) => props.onHasShrimpChange(event.target.checked)}
             />
@@ -227,7 +244,7 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
           ) : null}
 
           {props.hardscapeVolumeRatio != null ? (
-            <div className="text-[11px] text-slate-300">
+            <div className="text-[11px] text-slate-200">
               Hardscape volume estimate: {(props.hardscapeVolumeRatio * 100).toFixed(1)}%
             </div>
           ) : null}

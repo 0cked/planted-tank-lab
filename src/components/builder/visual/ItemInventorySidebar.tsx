@@ -76,12 +76,15 @@ export function ItemInventorySidebar(props: ItemInventorySidebarProps) {
   return (
     <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
       <button
+        type="button"
         onClick={() => setCollapsed((previous) => !previous)}
-        className="flex w-full items-start justify-between gap-3 text-left"
+        aria-expanded={!collapsed}
+        aria-controls="item-inventory-list"
+        className="flex w-full items-start justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
       >
         <div>
           <h3 className="text-sm font-semibold text-slate-100">Item inventory</h3>
-          <p className="mt-0.5 text-[11px] text-slate-300">
+          <p className="mt-0.5 text-[11px] text-slate-200">
             {props.items.length} placed · {entries.length} species
           </p>
         </div>
@@ -92,22 +95,23 @@ export function ItemInventorySidebar(props: ItemInventorySidebarProps) {
 
       {collapsed ? null : (
         <>
-          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-300">
+          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-200">
             <label htmlFor="item-inventory-sort" className="font-semibold uppercase tracking-[0.12em]">
               Sort
             </label>
             <select
               id="item-inventory-sort"
+              aria-label="Sort item inventory"
               value={sort}
               onChange={(event) => setSort(event.target.value as InventorySort)}
-              className="rounded-md border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] text-slate-100 outline-none"
+              className="rounded-md border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
               <option value="recent">Most recent</option>
               <option value="alpha">Alphabetical</option>
             </select>
           </div>
 
-          <div className="mt-2 max-h-[24vh] space-y-1.5 overflow-auto pr-1">
+          <div id="item-inventory-list" className="mt-2 max-h-[24vh] space-y-1.5 overflow-auto pr-1">
             {entries.map((entry) => {
               const isSelected = props.selectedItemId != null && entry.itemIds.includes(props.selectedItemId);
 
@@ -121,8 +125,10 @@ export function ItemInventorySidebar(props: ItemInventorySidebarProps) {
                   }`}
                 >
                   <button
+                    type="button"
                     onClick={() => props.onSelectItem(entry.latestItemId)}
-                    className="flex min-h-11 min-w-0 flex-1 touch-manipulation items-center gap-2 text-left"
+                    aria-label={`Select ${entry.asset.name} in scene`}
+                    className="flex min-h-11 min-w-0 flex-1 touch-manipulation items-center gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                   >
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/15 bg-slate-900/70">
                       {entry.asset.imageUrl ? (
@@ -150,13 +156,15 @@ export function ItemInventorySidebar(props: ItemInventorySidebarProps) {
                           </span>
                         ) : null}
                       </div>
-                      <div className="truncate text-[10px] text-slate-400">{entry.asset.categoryName}</div>
+                      <div className="truncate text-[10px] text-slate-300">{entry.asset.categoryName}</div>
                     </div>
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => props.onRemoveItem(entry.latestItemId)}
-                    className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-md border border-red-300/70 bg-red-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-red-100"
+                    aria-label={`Remove ${entry.asset.name} from scene`}
+                    className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-md border border-red-300/70 bg-red-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                   >
                     Remove
                   </button>
@@ -165,7 +173,7 @@ export function ItemInventorySidebar(props: ItemInventorySidebarProps) {
             })}
 
             {entries.length === 0 ? (
-              <div className="rounded-lg border border-white/15 bg-slate-950/55 px-2.5 py-2 text-xs text-slate-300">
+              <div className="rounded-lg border border-white/15 bg-slate-950/55 px-2.5 py-2 text-xs text-slate-200">
                 Place plants or hardscape to populate this inventory.
               </div>
             ) : null}

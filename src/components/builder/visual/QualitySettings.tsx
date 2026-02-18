@@ -36,19 +36,22 @@ export function QualitySettings(props: QualitySettingsProps) {
   return (
     <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
       <div className="mb-2 flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Scene quality</div>
-        <div className="text-[10px] text-slate-400">Auto picks {props.autoQualityTier}</div>
+        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">Scene quality</div>
+        <div className="text-[10px] text-slate-300">Auto picks {props.autoQualityTier}</div>
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5">
+      <div role="toolbar" aria-label="Scene quality tier" className="grid grid-cols-4 gap-1.5">
         {QUALITY_TIERS.map((tier) => (
           <button
             key={tier}
+            type="button"
+            aria-label={`Set quality to ${tier}`}
+            aria-pressed={props.sceneSettings.qualityTier === tier}
             onClick={() => props.onSceneSettingsChange({ qualityTier: tier })}
-            className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+            className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
               props.sceneSettings.qualityTier === tier
                 ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
-                : "border-white/20 bg-slate-950/60 text-slate-300"
+                : "border-white/20 bg-slate-950/60 text-slate-200"
             }`}
           >
             {tier}
@@ -56,11 +59,12 @@ export function QualitySettings(props: QualitySettingsProps) {
         ))}
       </div>
 
-      <div className="mt-2 grid gap-2 text-[11px] text-slate-300">
+      <div className="mt-2 grid gap-2 text-[11px] text-slate-200">
         <label className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5">
             <input
               type="checkbox"
+              aria-label="Enable post-processing effects"
               checked={props.sceneSettings.postprocessingEnabled}
               onChange={(event) =>
                 props.onSceneSettingsChange({ postprocessingEnabled: event.target.checked })
@@ -68,12 +72,13 @@ export function QualitySettings(props: QualitySettingsProps) {
             />
             Post FX
           </span>
-          <span className="text-[10px] text-slate-400">{postprocessingHint}</span>
+          <span className="text-[10px] text-slate-300">{postprocessingHint}</span>
         </label>
 
         <label className="flex items-center gap-1.5">
           <input
             type="checkbox"
+            aria-label="Show depth guides"
             checked={props.sceneSettings.guidesVisible}
             onChange={(event) => props.onSceneSettingsChange({ guidesVisible: event.target.checked })}
           />
@@ -86,6 +91,7 @@ export function QualitySettings(props: QualitySettingsProps) {
         >
           <input
             type="checkbox"
+            aria-label="Show glass tank walls"
             checked={glassWallsDisabled ? false : props.sceneSettings.glassWallsEnabled}
             disabled={glassWallsDisabled}
             onChange={(event) => props.onSceneSettingsChange({ glassWallsEnabled: event.target.checked })}
@@ -103,6 +109,7 @@ export function QualitySettings(props: QualitySettingsProps) {
         >
           <input
             type="checkbox"
+            aria-label="Enable ambient particles"
             checked={ambientParticlesDisabled ? false : props.sceneSettings.ambientParticlesEnabled}
             disabled={ambientParticlesDisabled}
             onChange={(event) =>
@@ -114,16 +121,19 @@ export function QualitySettings(props: QualitySettingsProps) {
       </div>
 
       <div className="mt-3">
-        <div className="mb-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">Camera mode</div>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="mb-1 text-[10px] uppercase tracking-[0.16em] text-slate-300">Camera mode</div>
+        <div role="toolbar" aria-label="Camera mode" className="grid grid-cols-2 gap-1.5">
           {CAMERA_MODES.map((mode) => (
             <button
               key={mode}
+              type="button"
+              aria-label={mode === "step" ? "Use step-owned camera mode" : "Use free camera mode"}
+              aria-pressed={props.sceneSettings.cameraPreset === mode}
               onClick={() => props.onSceneSettingsChange({ cameraPreset: mode })}
-              className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+              className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
                 props.sceneSettings.cameraPreset === mode
                   ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
-                  : "border-white/20 bg-slate-950/60 text-slate-300"
+                  : "border-white/20 bg-slate-950/60 text-slate-200"
               }`}
             >
               {mode === "step" ? "Step-owned" : "Free"}
@@ -133,14 +143,18 @@ export function QualitySettings(props: QualitySettingsProps) {
 
         <div className="mt-2 grid grid-cols-2 gap-1.5">
           <button
+            type="button"
             onClick={props.onReframe}
-            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            aria-label="Reframe camera to tank"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
           >
             Reframe
           </button>
           <button
+            type="button"
             onClick={props.onResetView}
-            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200"
+            aria-label="Reset camera view"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
           >
             Reset view
           </button>

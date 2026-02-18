@@ -131,7 +131,7 @@ export default async function AdminProductEditPage(props: {
             >
               {p.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.imageUrl} alt="" className="aspect-square w-full object-cover" />
+                <img src={p.imageUrl} alt={`${p.name} product photo`} className="aspect-square w-full object-cover" />
               ) : (
                 <div className="ptl-image-ph aspect-square w-full" />
               )}

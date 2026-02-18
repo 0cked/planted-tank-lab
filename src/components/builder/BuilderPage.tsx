@@ -849,7 +849,7 @@ function ProductPicker(props: {
                       {img ? (
                         <SmartImage
                           src={img}
-                          alt=""
+                          alt={`${label} product photo`}
                           width={128}
                           height={128}
                           className="h-full w-full object-cover"
@@ -1154,7 +1154,7 @@ function PlantPicker(props: {
                       {img ? (
                         <SmartImage
                           src={img}
-                          alt=""
+                          alt={`${label} plant photo`}
                           width={128}
                           height={128}
                           className="h-full w-full object-cover"

@@ -298,7 +298,7 @@ export default async function ProductCategoryPage(props: {
                             /* `SmartImage` uses next/image for local assets and <img> for remote URLs. */
                             <SmartImage
                               src={productImg}
-                              alt=""
+                              alt={`${brandName ? `${brandName} ` : ""}${p.name} product photo`}
                               width={256}
                               height={256}
                               className="h-full w-full object-cover"
