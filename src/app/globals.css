@@ -48,6 +48,17 @@ body {
     linear-gradient(to bottom, var(--ptl-bg), var(--ptl-bg-2) 40%, #f3f7f0);
 }
 
+@keyframes ptlSkeletonPulse {
+  0%,
+  100% {
+    opacity: 0.58;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   @keyframes ptlFadeUp {
     from {
@@ -174,6 +185,24 @@ label:has(input) {
       ),
       radial-gradient(circle at 70% 80%, rgba(13, 148, 136, 0.18), transparent 55%),
       linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.35));
+  }
+
+  .ptl-skeleton {
+    border-radius: 0.75rem;
+    background: linear-gradient(
+      130deg,
+      rgba(163, 171, 163, 0.24),
+      rgba(255, 255, 255, 0.55),
+      rgba(163, 171, 163, 0.24)
+    );
+    animation: ptlSkeletonPulse 1.35s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ptl-skeleton {
+      animation: none !important;
+      opacity: 0.85;
+    }
   }
 
   .ptl-hover-lift {

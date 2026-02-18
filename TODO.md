@@ -480,7 +480,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Ensure the non-builder pages (home, products, plants, builds, tools) don't load any Three.js code.
   - **Verify:** Load `/products` — check network tab, no Three.js bundles loaded. Navigate to `/builder` — loading skeleton appears, then 3D scene loads.
 
-- [ ] **P9-2: Skeleton loading states**
+- [x] **P9-2: Skeleton loading states**
   - Add skeleton loading states to the main content pages:
     - `/plants`: skeleton grid of plant cards (gray rectangles pulsing).
     - `/products`: skeleton category grid.
