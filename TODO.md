@@ -465,7 +465,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Track the click event in `offer_clicks` for each item.
   - **Verify:** View a build with 4 items. Click "Buy all." Modal shows items with prices. "Open all links" opens 4 tabs.
 
-- [ ] **P8-4: Price alerts**
+- [x] **P8-4: Price alerts**
   - Add a `price_alerts` table (user_id, product_id, target_price, active, last_notified_at). Run migration.
   - On product pages, add a "Set price alert" button for logged-in users. Enter target price.
   - Create a tRPC route to check alerts: query products where current best offer < target price and last_notified_at is null or >24h ago.

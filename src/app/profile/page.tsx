@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/server/auth";
 
+import { PriceAlertsPanel } from "./PriceAlertsPanel";
 import { ProfileBuildGrid } from "./ProfileBuildGrid";
 import { SignOutButton } from "./SignOutButton";
 import { formatJoinDate, getUserProfileData } from "./profile-data";
@@ -99,6 +100,8 @@ export default async function ProfilePage() {
           <div className="mt-2 text-3xl font-semibold text-neutral-900">{profile.voteCount}</div>
         </div>
       </div>
+
+      <PriceAlertsPanel />
 
       <section className="mt-10">
         <div className="flex flex-wrap items-end justify-between gap-3">

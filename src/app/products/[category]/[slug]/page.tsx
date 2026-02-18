@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 
 import { RetailerMark } from "@/components/RetailerMark";
 import { SmartImage } from "@/components/SmartImage";
+
+import { PriceAlertCard } from "./PriceAlertCard";
 import {
   deriveOfferSummaryState,
   formatOfferSummaryCheckedAt,
@@ -145,6 +147,9 @@ export default async function ProductDetailPage(props: {
 
   const brandName = p.brand?.name ?? null;
   const title = brandName ? `${brandName} ${p.name}` : p.name;
+  const loginHref = `/login?callbackUrl=${encodeURIComponent(
+    `/products/${p.category.slug}/${p.slug}`,
+  )}`;
 
   const offerSummary = (
     await caller.offers.summaryByProductIds({
@@ -326,6 +331,13 @@ export default async function ProductDetailPage(props: {
               </div>
             </div>
           ) : null}
+
+          <PriceAlertCard
+            productId={p.id}
+            loginHref={loginHref}
+            suggestedPriceCents={summaryTopline.priceCents}
+          />
+
           {sortedOffers.length === 0 ? (
             <div className="mt-3 text-sm text-neutral-600">No offers available from tracked retailers.</div>
           ) : (

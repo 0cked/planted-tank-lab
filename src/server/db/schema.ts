@@ -555,6 +555,34 @@ export const priceHistory = pgTable(
   (t) => [index("idx_price_history_offer").on(t.offerId, t.recordedAt)],
 );
 
+export const priceAlerts = pgTable(
+  "price_alerts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    targetPrice: integer("target_price").notNull(),
+    active: boolean("active").notNull().default(true),
+    lastNotifiedAt: timestamp("last_notified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("price_alerts_user_product_unique").on(t.userId, t.productId),
+    index("idx_price_alerts_user_active").on(t.userId, t.active),
+    index("idx_price_alerts_product_active").on(t.productId, t.active),
+    index("idx_price_alerts_check").on(t.active, t.lastNotifiedAt),
+  ],
+);
+
 export const plants = pgTable(
   "plants",
   {
