@@ -32,6 +32,10 @@ import {
   legacySubstrateProfileToHeightfield,
   normalizeSubstrateHeightfield,
 } from "@/lib/visual/substrate";
+import {
+  createFlatSubstrateMaterialGrid,
+  normalizeSubstrateMaterialGrid,
+} from "@/lib/visual/substrate-materials";
 import { buildTankIllustrationUrl, tankModelFromSlug } from "@/lib/tank-visual";
 import type {
   SubstrateHeightfield,
@@ -176,6 +180,7 @@ const canvasStateV4Schema = z.object({
   heightIn: z.number().positive(),
   depthIn: z.number().positive(),
   substrateHeightfield: z.unknown(),
+  substrateMaterialGrid: z.unknown().optional(),
   sceneSettings: sceneSettingsSchema.optional(),
   items: z.array(canvasItemSchema).max(1000),
 });
@@ -197,6 +202,7 @@ const canvasStateSchema = z
         heightIn: input.heightIn,
         depthIn: input.depthIn,
         substrateHeightfield: input.substrateHeightfield,
+        substrateMaterialGrid: input.substrateMaterialGrid,
         sceneSettings: input.sceneSettings,
         items: input.items,
       });
@@ -687,6 +693,7 @@ function normalizeCanvasStateV4(input: {
   heightIn: number;
   depthIn: number;
   substrateHeightfield: unknown;
+  substrateMaterialGrid?: unknown;
   sceneSettings?: Partial<VisualSceneSettings>;
   items: CanvasItemInput[];
 }): {
@@ -695,6 +702,7 @@ function normalizeCanvasStateV4(input: {
   heightIn: number;
   depthIn: number;
   substrateHeightfield: SubstrateHeightfield;
+  substrateMaterialGrid: Uint8Array;
   sceneSettings: VisualSceneSettings;
   items: VisualCanvasItem[];
 } {
@@ -720,6 +728,7 @@ function normalizeCanvasStateV4(input: {
     heightIn,
     depthIn,
     substrateHeightfield: normalizeSubstrateHeightfield(input.substrateHeightfield, heightIn),
+    substrateMaterialGrid: normalizeSubstrateMaterialGrid(input.substrateMaterialGrid),
     sceneSettings: normalizeSceneSettings(input.sceneSettings),
     items,
   };
@@ -731,6 +740,7 @@ function parseCanvasState(value: unknown): {
   heightIn: number;
   depthIn: number;
   substrateHeightfield: SubstrateHeightfield;
+  substrateMaterialGrid: Uint8Array;
   sceneSettings: VisualSceneSettings;
   items: VisualCanvasItem[];
 } {
@@ -741,6 +751,7 @@ function parseCanvasState(value: unknown): {
     heightIn: 14,
     depthIn: 12,
     substrateHeightfield: createFlatSubstrateHeightfield({ tankHeightIn: 14 }),
+    substrateMaterialGrid: createFlatSubstrateMaterialGrid("soil"),
     items: [],
   });
 }

@@ -78,6 +78,8 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.initialState.canvasState.version).toBe(4);
     expect(loaded.initialState.canvasState.substrateHeightfield).toBeInstanceOf(Float32Array);
     expect(loaded.initialState.canvasState.substrateHeightfield.length).toBe(32 * 32);
+    expect(loaded.initialState.canvasState.substrateMaterialGrid).toBeInstanceOf(Uint8Array);
+    expect(loaded.initialState.canvasState.substrateMaterialGrid.length).toBe(32 * 32);
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));
@@ -99,6 +101,9 @@ describe("tRPC visualBuilder router", () => {
         heightIn: tank!.heightIn,
         depthIn: tank!.depthIn,
         substrateHeightfield: Array.from({ length: 32 * 32 }, () => 1.1),
+        substrateMaterialGrid: Array.from({ length: 32 * 32 }, (_, index) =>
+          index < 32 * 16 ? 1 : 0,
+        ),
         sceneSettings: {
           qualityTier: "auto",
           postprocessingEnabled: true,
@@ -120,6 +125,8 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.initialState.canvasState.sceneSettings.lightingSimulationEnabled).toBe(false);
     expect(loaded.initialState.canvasState.sceneSettings.lightMountHeightIn).toBe(4);
     expect(loaded.initialState.canvasState.sceneSettings.growthTimelineMonths).toBe(1);
+    expect(loaded.initialState.canvasState.substrateMaterialGrid[0]).toBe(1);
+    expect(loaded.initialState.canvasState.substrateMaterialGrid[32 * 20]).toBe(0);
 
     const tagRows = await db
       .select({ tagSlug: buildTags.tagSlug })
@@ -208,6 +215,8 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.initialState.canvasState.version).toBe(4);
     expect(loaded.initialState.canvasState.substrateHeightfield).toBeInstanceOf(Float32Array);
     expect(loaded.initialState.canvasState.substrateHeightfield.length).toBe(32 * 32);
+    expect(loaded.initialState.canvasState.substrateMaterialGrid).toBeInstanceOf(Uint8Array);
+    expect(loaded.initialState.canvasState.substrateMaterialGrid.length).toBe(32 * 32);
     expect(loaded.initialState.canvasState.substrateHeightfield[16 * 32 + 16]).toBeGreaterThan(0.2);
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));

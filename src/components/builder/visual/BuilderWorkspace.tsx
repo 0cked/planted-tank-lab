@@ -25,6 +25,8 @@ import {
 import type { SubstrateBrushMode } from "@/components/builder/visual/scene-utils";
 import type {
   SubstrateHeightfield,
+  SubstrateMaterialGrid,
+  SubstrateMaterialType,
   VisualAsset,
   VisualCanvasItem,
   VisualCanvasState,
@@ -60,6 +62,7 @@ export type BuilderWorkspaceProps = {
   sculptMode: SubstrateBrushMode;
   sculptBrushSize: number;
   sculptStrength: number;
+  sculptMaterial: SubstrateMaterialType;
   equipmentSceneAssets: VisualAsset[];
   selectedLightAsset: VisualAsset | null;
   cameraIntent: BuilderWorkspaceCameraIntent | null;
@@ -99,6 +102,7 @@ export type BuilderWorkspaceProps = {
     sculptMode: SubstrateBrushMode;
     sculptBrushSize: number;
     sculptStrength: number;
+    sculptMaterial: SubstrateMaterialType;
     substrateVolumeLiters: number;
     hasSelectedSubstrate: boolean;
     substrateBagEstimate: { bagsRequired: number; bagVolumeLiters: number };
@@ -106,6 +110,7 @@ export type BuilderWorkspaceProps = {
     onSculptModeChange: (mode: SubstrateBrushMode) => void;
     onSculptBrushSizeChange: (next: number) => void;
     onSculptStrengthChange: (next: number) => void;
+    onSculptMaterialChange: (material: SubstrateMaterialType) => void;
   };
   onSceneSettingsChange: (patch: Partial<VisualSceneSettings>) => void;
   growthTimelineMonths: GrowthTimelineMonths;
@@ -153,6 +158,7 @@ export type BuilderWorkspaceProps = {
   onDeleteSceneItem: (itemId: string) => void;
   onRotateSceneItem: (itemId: string, deltaDeg: number) => void;
   onSubstrateHeightfield: (next: SubstrateHeightfield) => void;
+  onSubstrateMaterialGrid: (next: SubstrateMaterialGrid) => void;
   onSubstrateStrokeStart: () => void;
   onSubstrateStrokeEnd: () => void;
   onCaptureSceneCanvas: (canvas: HTMLCanvasElement | null) => void;
@@ -564,6 +570,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         sculptMode={props.sculptMode}
         sculptBrushSize={props.sculptBrushSize}
         sculptStrength={props.sculptStrength}
+        sculptMaterial={props.sculptMaterial}
         idleOrbit={props.currentStep === "review"}
         cameraPresetMode={props.canvasState.sceneSettings.cameraPreset}
         equipmentAssets={props.equipmentSceneAssets}
@@ -574,6 +581,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         onDeleteItem={props.onDeleteSceneItem}
         onRotateItem={props.onRotateSceneItem}
         onSubstrateHeightfield={props.onSubstrateHeightfield}
+        onSubstrateMaterialGrid={props.onSubstrateMaterialGrid}
         onSubstrateStrokeStart={props.onSubstrateStrokeStart}
         onSubstrateStrokeEnd={props.onSubstrateStrokeEnd}
         onCaptureCanvas={props.onCaptureSceneCanvas}

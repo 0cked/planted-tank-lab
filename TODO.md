@@ -543,7 +543,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Show a subtle timeline scrubber in the toolbar.
   - **Verify:** Place a stem plant and a carpet plant. Drag slider to 6 months — stem plant is much taller, carpet has spread. Back to 1 month — smaller.
 
-- [ ] **P10-3: Multi-material substrate zones**
+- [x] **P10-3: Multi-material substrate zones**
   - Allow the substrate to have multiple material zones (e.g., dark aquasoil in the back, light sand in the front).
   - Add a "material" brush mode alongside raise/lower/smooth/erode. Material options: soil (dark brown), sand (tan), gravel (gray).
   - Store material assignment per heightfield cell as a second grid (Uint8Array, 32x32, values 0-2 mapping to material types).

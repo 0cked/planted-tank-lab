@@ -12,6 +12,7 @@ import {
 } from "@/components/builder/visual/plant-growth";
 import type {
   SubstrateHeightfield,
+  SubstrateMaterialGrid,
   VisualAnchorType,
   VisualAsset,
   VisualBuildPayload,
@@ -25,6 +26,10 @@ import type {
   VisualSubstrateProfile,
 } from "@/components/builder/visual/types";
 import { normalizeBuildTagSlugs, type BuildTagSlug } from "@/lib/build-tags";
+import {
+  createFlatSubstrateMaterialGrid,
+  normalizeSubstrateMaterialGrid,
+} from "@/lib/visual/substrate-materials";
 import {
   createFlatSubstrateHeightfield,
   normalizeSubstrateHeightfield,
@@ -79,6 +84,7 @@ type VisualBuilderState = {
   setPublic: (value: boolean) => void;
   setTank: (tankId: string, dims: { widthIn: number; heightIn: number; depthIn: number }) => void;
   setSubstrateHeightfield: (next: SubstrateHeightfield) => void;
+  setSubstrateMaterialGrid: (next: SubstrateMaterialGrid) => void;
   beginSubstrateStroke: () => void;
   endSubstrateStroke: () => void;
   undoSubstrateStroke: () => void;
@@ -128,6 +134,7 @@ type VisualBuilderState = {
       heightIn: number;
       depthIn: number;
       substrateHeightfield?: unknown;
+      substrateMaterialGrid?: unknown;
       substrateProfile?: Partial<VisualSubstrateProfile>;
       sceneSettings?: Partial<VisualSceneSettings>;
       items: Array<Partial<VisualCanvasItem>>;
@@ -545,6 +552,7 @@ function normalizeCanvasState(input: {
   heightIn: number;
   depthIn: number;
   substrateHeightfield: unknown;
+  substrateMaterialGrid?: unknown;
   sceneSettings?: Partial<VisualSceneSettings>;
   items: Array<Partial<VisualCanvasItem>>;
 }): VisualCanvasState {
@@ -559,6 +567,7 @@ function normalizeCanvasState(input: {
     heightIn,
     depthIn,
     substrateHeightfield: normalizeSubstrateHeightfield(input.substrateHeightfield, heightIn),
+    substrateMaterialGrid: normalizeSubstrateMaterialGrid(input.substrateMaterialGrid),
     sceneSettings: normalizeSceneSettings(input.sceneSettings),
     items: normalizeItems(input.items, dims),
   };
@@ -570,6 +579,7 @@ const initialCanvasState: VisualCanvasState = {
   heightIn: 14,
   depthIn: 12,
   substrateHeightfield: createFlatSubstrateHeightfield({ tankHeightIn: 14 }),
+  substrateMaterialGrid: createFlatSubstrateMaterialGrid("soil"),
   sceneSettings: {
     qualityTier: "auto",
     postprocessingEnabled: true,
@@ -701,6 +711,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             heightIn: Math.max(1, dims.heightIn),
             depthIn: Math.max(1, dims.depthIn),
             substrateHeightfield: state.canvasState.substrateHeightfield,
+            substrateMaterialGrid: state.canvasState.substrateMaterialGrid,
             sceneSettings: state.canvasState.sceneSettings,
             items: state.canvasState.items,
           }),
@@ -714,6 +725,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             heightIn: state.canvasState.heightIn,
             depthIn: state.canvasState.depthIn,
             substrateHeightfield: next,
+            substrateMaterialGrid: state.canvasState.substrateMaterialGrid,
             sceneSettings: state.canvasState.sceneSettings,
             items: state.canvasState.items,
           });
@@ -723,6 +735,19 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             ...(state.activeSubstrateStrokeStart ? {} : clearSubstrateHistoryState()),
           };
         }),
+
+      setSubstrateMaterialGrid: (next) =>
+        set((state) => ({
+          canvasState: normalizeCanvasState({
+            widthIn: state.canvasState.widthIn,
+            heightIn: state.canvasState.heightIn,
+            depthIn: state.canvasState.depthIn,
+            substrateHeightfield: state.canvasState.substrateHeightfield,
+            substrateMaterialGrid: next,
+            sceneSettings: state.canvasState.sceneSettings,
+            items: state.canvasState.items,
+          }),
+        })),
 
       beginSubstrateStroke: () =>
         set((state) => {
@@ -803,6 +828,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             heightIn: state.canvasState.heightIn,
             depthIn: state.canvasState.depthIn,
             substrateHeightfield: state.canvasState.substrateHeightfield,
+            substrateMaterialGrid: state.canvasState.substrateMaterialGrid,
             sceneSettings: {
               ...state.canvasState.sceneSettings,
               ...patch,
@@ -1155,6 +1181,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
               depthIn: payload.canvasState.depthIn,
               substrateHeightfield:
                 payload.canvasState.substrateHeightfield ?? payload.canvasState.substrateProfile,
+              substrateMaterialGrid: payload.canvasState.substrateMaterialGrid,
               sceneSettings: payload.canvasState.sceneSettings,
               items: payload.canvasState.items,
             }),
@@ -1186,6 +1213,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             heightIn: s.canvasState.heightIn,
             depthIn: s.canvasState.depthIn,
             substrateHeightfield: s.canvasState.substrateHeightfield,
+            substrateMaterialGrid: s.canvasState.substrateMaterialGrid,
             sceneSettings: s.canvasState.sceneSettings,
             items: s.canvasState.items,
           }),
@@ -1199,7 +1227,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
     }),
     {
       name: "ptl-visual-builder-v1",
-      version: 6,
+      version: 7,
       storage: createJSONStorage(() => localStorage),
       migrate: (persistedState: unknown) => {
         const source = persistedState as Partial<VisualBuilderState> | undefined;
@@ -1211,6 +1239,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
               heightIn: initialState.canvasState.heightIn,
               depthIn: initialState.canvasState.depthIn,
               substrateHeightfield: initialState.canvasState.substrateHeightfield,
+              substrateMaterialGrid: initialState.canvasState.substrateMaterialGrid,
               sceneSettings: initialState.canvasState.sceneSettings,
               items: initialState.canvasState.items,
             }),
@@ -1225,6 +1254,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
                 heightIn?: number;
                 depthIn?: number;
                 substrateHeightfield?: unknown;
+                substrateMaterialGrid?: unknown;
                 substrateProfile?: Partial<VisualSubstrateProfile>;
                 sceneSettings?: Partial<VisualSceneSettings>;
                 items?: Array<Partial<VisualCanvasItem>>;
@@ -1265,6 +1295,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             depthIn,
             items,
             substrateHeightfield,
+            substrateMaterialGrid: candidateCanvas.substrateMaterialGrid,
             sceneSettings: candidateCanvas.sceneSettings,
           }),
         } as VisualBuilderState;

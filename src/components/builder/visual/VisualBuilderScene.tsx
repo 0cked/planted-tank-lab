@@ -16,6 +16,8 @@ import {
 } from "@/components/builder/visual/AssetLoader";
 import type {
   SubstrateHeightfield,
+  SubstrateMaterialGrid,
+  SubstrateMaterialType,
   VisualAnchorType,
   VisualAsset,
   VisualCanvasItem,
@@ -35,6 +37,7 @@ import {
 } from "@/components/builder/visual/ProceduralHardscape";
 import {
   applySubstrateBrush,
+  applySubstrateMaterialBrush,
   buildTransformFromNormalized,
   clamp01,
   depthZoneFromZ,
@@ -71,6 +74,10 @@ import {
   normalizeSubstrateHeightfield,
   SUBSTRATE_HEIGHTFIELD_RESOLUTION,
 } from "@/lib/visual/substrate";
+import {
+  normalizeSubstrateMaterialGrid,
+  SUBSTRATE_MATERIAL_RGB_BY_CODE,
+} from "@/lib/visual/substrate-materials";
 import { SubstrateControlPoints } from "@/components/builder/visual/SubstrateControlPoints";
 
 export type BuilderSceneStep =
@@ -167,6 +174,7 @@ type VisualBuilderSceneProps = {
   sculptMode: SubstrateBrushMode;
   sculptBrushSize: number;
   sculptStrength: number;
+  sculptMaterial: SubstrateMaterialType;
   idleOrbit: boolean;
   cameraPresetMode: CameraPresetMode;
   equipmentAssets: VisualAsset[];
@@ -177,6 +185,7 @@ type VisualBuilderSceneProps = {
   onDeleteItem: (itemId: string) => void;
   onRotateItem: (itemId: string, deltaDeg: number) => void;
   onSubstrateHeightfield: (next: SubstrateHeightfield) => void;
+  onSubstrateMaterialGrid: (next: SubstrateMaterialGrid) => void;
   onSubstrateStrokeStart?: () => void;
   onSubstrateStrokeEnd?: () => void;
   onCaptureCanvas?: (canvas: HTMLCanvasElement | null) => void;
@@ -388,7 +397,10 @@ type SubstrateSamplingMap = {
 
 type SubstrateGeometryData = {
   geometry: THREE.BufferGeometry;
+  heatmapGeometry: THREE.BufferGeometry;
   positionAttribute: THREE.BufferAttribute;
+  materialColorAttribute: THREE.BufferAttribute;
+  materialColors: Float32Array;
   heatmapColorAttribute: THREE.BufferAttribute;
   heatmapColors: Float32Array;
   sampling: SubstrateSamplingMap;
@@ -1512,15 +1524,28 @@ function createSubstrateGeometryData(params: {
   }
 
   const geometry = new THREE.BufferGeometry();
+  const heatmapGeometry = new THREE.BufferGeometry();
   const positionAttribute = new THREE.BufferAttribute(positions, 3);
+  const uvAttribute = new THREE.BufferAttribute(uvs, 2);
+  const indexAttribute = new THREE.BufferAttribute(indices, 1);
+
+  const materialColors = new Float32Array(vertexCount * 3);
+  materialColors.fill(0);
+  const materialColorAttribute = new THREE.BufferAttribute(materialColors, 3);
+
   const heatmapColors = new Float32Array(vertexCount * 3);
   heatmapColors.fill(0);
   const heatmapColorAttribute = new THREE.BufferAttribute(heatmapColors, 3);
 
   geometry.setAttribute("position", positionAttribute);
-  geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
-  geometry.setAttribute("color", heatmapColorAttribute);
-  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+  geometry.setAttribute("uv", uvAttribute);
+  geometry.setAttribute("color", materialColorAttribute);
+  geometry.setIndex(indexAttribute);
+
+  heatmapGeometry.setAttribute("position", positionAttribute);
+  heatmapGeometry.setAttribute("uv", uvAttribute);
+  heatmapGeometry.setAttribute("color", heatmapColorAttribute);
+  heatmapGeometry.setIndex(indexAttribute);
 
   const sampledHeights = new Float32Array(vertexCount);
   sampledHeights.fill(Number.NaN);
@@ -1530,7 +1555,10 @@ function createSubstrateGeometryData(params: {
 
   return {
     geometry,
+    heatmapGeometry,
     positionAttribute,
+    materialColorAttribute,
+    materialColors,
     heatmapColorAttribute,
     heatmapColors,
     sampling: createSubstrateSamplingMap(resolution),
@@ -1687,6 +1715,57 @@ function applyHeightfieldToSubstrateGeometry(params: {
   }
 
   return true;
+}
+
+function applySubstrateMaterialsToGeometry(params: {
+  data: SubstrateGeometryData;
+  materialGrid: SubstrateMaterialGrid;
+}) {
+  const source = normalizeSubstrateMaterialGrid(params.materialGrid);
+  const vertexCount = params.data.sampledHeights.length;
+
+  for (let vertexIndex = 0; vertexIndex < vertexCount; vertexIndex += 1) {
+    const sourceIndex00 = params.data.sampling.sourceIndex00[vertexIndex] ?? 0;
+    const sourceIndex10 = params.data.sampling.sourceIndex10[vertexIndex] ?? sourceIndex00;
+    const sourceIndex01 = params.data.sampling.sourceIndex01[vertexIndex] ?? sourceIndex00;
+    const sourceIndex11 = params.data.sampling.sourceIndex11[vertexIndex] ?? sourceIndex00;
+    const tx = params.data.sampling.tx[vertexIndex] ?? 0;
+    const tz = params.data.sampling.tz[vertexIndex] ?? 0;
+
+    const w00 = (1 - tx) * (1 - tz);
+    const w10 = tx * (1 - tz);
+    const w01 = (1 - tx) * tz;
+    const w11 = tx * tz;
+
+    const materialWeights = [0, 0, 0];
+
+    const code00 = Math.min(2, Math.max(0, source[sourceIndex00] ?? 0));
+    const code10 = Math.min(2, Math.max(0, source[sourceIndex10] ?? 0));
+    const code01 = Math.min(2, Math.max(0, source[sourceIndex01] ?? 0));
+    const code11 = Math.min(2, Math.max(0, source[sourceIndex11] ?? 0));
+
+    materialWeights[code00] = (materialWeights[code00] ?? 0) + w00;
+    materialWeights[code10] = (materialWeights[code10] ?? 0) + w10;
+    materialWeights[code01] = (materialWeights[code01] ?? 0) + w01;
+    materialWeights[code11] = (materialWeights[code11] ?? 0) + w11;
+
+    const offset = vertexIndex * 3;
+    const soil = materialWeights[0] ?? 0;
+    const sand = materialWeights[1] ?? 0;
+    const gravel = materialWeights[2] ?? 0;
+
+    const soilRgb = SUBSTRATE_MATERIAL_RGB_BY_CODE[0] ?? [0.36, 0.26, 0.16];
+    const sandRgb = SUBSTRATE_MATERIAL_RGB_BY_CODE[1] ?? [0.76, 0.67, 0.5];
+    const gravelRgb = SUBSTRATE_MATERIAL_RGB_BY_CODE[2] ?? [0.48, 0.5, 0.51];
+
+    params.data.materialColors[offset] = soilRgb[0] * soil + sandRgb[0] * sand + gravelRgb[0] * gravel;
+    params.data.materialColors[offset + 1] =
+      soilRgb[1] * soil + sandRgb[1] * sand + gravelRgb[1] * gravel;
+    params.data.materialColors[offset + 2] =
+      soilRgb[2] * soil + sandRgb[2] * sand + gravelRgb[2] * gravel;
+  }
+
+  params.data.materialColorAttribute.needsUpdate = true;
 }
 
 function applyParHeatmapToSubstrateGeometry(params: {
@@ -2942,7 +3021,8 @@ function SubstrateCausticMaterial(props: {
 
   return (
     <meshStandardMaterial
-      color="#a68354"
+      color="#ffffff"
+      vertexColors
       roughness={0.93}
       metalness={0.03}
       emissive="#8fbfca"
@@ -3154,6 +3234,7 @@ function TankShell(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
   substrateHeightfield: SubstrateHeightfield;
+  substrateMaterialGrid: SubstrateMaterialGrid;
   showGlassWalls: boolean;
   showAmbientParticles: boolean;
   showDepthGuides: boolean;
@@ -3161,6 +3242,7 @@ function TankShell(props: {
   showLightingHeatmap: boolean;
   lightSimulationSource: LightSimulationSource | null;
   lightMountHeightIn: number;
+  showSubstrateControlPoints: boolean;
   currentStep: BuilderSceneStep;
   onSurfacePointer: (event: ThreeEvent<PointerEvent>, anchorType: VisualAnchorType, itemId: string | null) => void;
   onSurfaceDown: (event: ThreeEvent<PointerEvent>, anchorType: VisualAnchorType, itemId: string | null) => void;
@@ -3186,6 +3268,11 @@ function TankShell(props: {
       tankHeightIn: props.dims.heightIn,
     });
 
+    applySubstrateMaterialsToGeometry({
+      data: substrateGeometryData,
+      materialGrid: props.substrateMaterialGrid,
+    });
+
     if (!props.showLightingHeatmap || !props.lightSimulationSource) {
       return;
     }
@@ -3202,12 +3289,14 @@ function TankShell(props: {
     props.lightSimulationSource,
     props.showLightingHeatmap,
     props.substrateHeightfield,
+    props.substrateMaterialGrid,
     substrateGeometryData,
   ]);
 
   useEffect(() => {
     return () => {
       substrateGeometryData.geometry.dispose();
+      substrateGeometryData.heatmapGeometry.dispose();
     };
   }, [substrateGeometryData]);
 
@@ -3328,7 +3417,7 @@ function TankShell(props: {
 
       {props.showLightingHeatmap && props.lightSimulationSource ? (
         <mesh
-          geometry={substrateGeometryData.geometry}
+          geometry={substrateGeometryData.heatmapGeometry}
           position={[0, SUBSTRATE_HEATMAP_Y_OFFSET, 0]}
           raycast={DISABLED_RAYCAST}
           renderOrder={32}
@@ -3350,7 +3439,7 @@ function TankShell(props: {
         />
       ) : null}
 
-      {props.currentStep === "substrate" ? (
+      {props.showSubstrateControlPoints ? (
         <SubstrateControlPoints
           dims={props.dims}
           heightfield={props.substrateHeightfield}
@@ -3798,6 +3887,19 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       dims,
     });
 
+    if (props.sculptMode === "material") {
+      const nextMaterialGrid = applySubstrateMaterialBrush({
+        materialGrid: props.canvasState.substrateMaterialGrid,
+        xNorm: normalized.x,
+        zNorm: normalized.z,
+        brushSize: props.sculptBrushSize,
+        strength: props.sculptStrength,
+        materialType: props.sculptMaterial,
+      });
+      props.onSubstrateMaterialGrid(nextMaterialGrid);
+      return;
+    }
+
     const nextHeightfield = applySubstrateBrush({
       heightfield: props.canvasState.substrateHeightfield,
       mode: props.sculptMode,
@@ -4037,6 +4139,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         dims={dims}
         qualityTier={props.qualityTier}
         substrateHeightfield={props.canvasState.substrateHeightfield}
+        substrateMaterialGrid={props.canvasState.substrateMaterialGrid}
         showGlassWalls={props.glassWallsEnabled && props.qualityTier !== "low"}
         showAmbientParticles={props.ambientParticlesEnabled && props.qualityTier !== "low"}
         showDepthGuides={props.showDepthGuides}
@@ -4044,6 +4147,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         showLightingHeatmap={showLightingHeatmap}
         lightSimulationSource={lightSimulationSource}
         lightMountHeightIn={props.lightMountHeightIn}
+        showSubstrateControlPoints={
+          props.currentStep === "substrate" && props.toolMode !== "sculpt"
+        }
         currentStep={props.currentStep}
         onSurfacePointer={handleSurfacePointer}
         onSurfaceDown={handleSurfaceDown}

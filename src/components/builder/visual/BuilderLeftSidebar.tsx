@@ -12,7 +12,11 @@ import {
 } from "@/components/builder/visual/builder-page-utils";
 import type { SubstrateBrushMode } from "@/components/builder/visual/scene-utils";
 import { SubstrateToolbar } from "@/components/builder/visual/SubstrateToolbar";
-import type { VisualAsset, VisualTank } from "@/components/builder/visual/types";
+import type {
+  SubstrateMaterialType,
+  VisualAsset,
+  VisualTank,
+} from "@/components/builder/visual/types";
 
 type BuilderLeftSidebarProps = {
   currentStep: BuilderStepId;
@@ -38,6 +42,7 @@ type BuilderLeftSidebarProps = {
     sculptMode: SubstrateBrushMode;
     sculptBrushSize: number;
     sculptStrength: number;
+    sculptMaterial: SubstrateMaterialType;
     substrateVolumeLiters: number;
     hasSelectedSubstrate: boolean;
     substrateBagEstimate: {
@@ -48,6 +53,7 @@ type BuilderLeftSidebarProps = {
     onSculptModeChange: (mode: SubstrateBrushMode) => void;
     onSculptBrushSizeChange: (next: number) => void;
     onSculptStrengthChange: (next: number) => void;
+    onSculptMaterialChange: (material: SubstrateMaterialType) => void;
   };
 };
 

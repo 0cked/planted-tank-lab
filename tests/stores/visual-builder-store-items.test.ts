@@ -31,6 +31,13 @@ function createLocalStorageMock(): Storage {
   };
 }
 
+function stateAfterToggleGrid(source: Uint8Array): Uint8Array {
+  const next = source.slice();
+  next[0] = 2;
+  next[32] = 1;
+  return next;
+}
+
 const TEST_ASSET: VisualAsset = {
   id: "asset-test-rock",
   type: "product",
@@ -300,6 +307,9 @@ describe("visual-builder-store canvas item actions", () => {
     expect(store.canvasState.sceneSettings.lightingSimulationEnabled).toBe(false);
     expect(store.canvasState.sceneSettings.lightMountHeightIn).toBe(4);
     expect(store.canvasState.sceneSettings.growthTimelineMonths).toBe(1);
+    expect(store.canvasState.substrateMaterialGrid).toBeInstanceOf(Uint8Array);
+    expect(store.canvasState.substrateMaterialGrid.length).toBe(32 * 32);
+    expect(store.canvasState.substrateMaterialGrid[0]).toBe(0);
 
     store.setSceneSettings({
       gridSnapEnabled: true,
@@ -310,6 +320,11 @@ describe("visual-builder-store canvas item actions", () => {
       growthTimelineMonths: 6,
     });
 
+    const paintedMaterials = stateAfterToggleGrid(
+      useVisualBuilderStore.getState().canvasState.substrateMaterialGrid,
+    );
+    store.setSubstrateMaterialGrid(paintedMaterials);
+
     const stateAfterToggle = useVisualBuilderStore.getState();
     expect(stateAfterToggle.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
     expect(stateAfterToggle.canvasState.sceneSettings.measurementsVisible).toBe(true);
@@ -317,6 +332,8 @@ describe("visual-builder-store canvas item actions", () => {
     expect(stateAfterToggle.canvasState.sceneSettings.lightingSimulationEnabled).toBe(true);
     expect(stateAfterToggle.canvasState.sceneSettings.lightMountHeightIn).toBe(9.5);
     expect(stateAfterToggle.canvasState.sceneSettings.growthTimelineMonths).toBe(6);
+    expect(stateAfterToggle.canvasState.substrateMaterialGrid[0]).toBe(2);
+    expect(stateAfterToggle.canvasState.substrateMaterialGrid[32]).toBe(1);
 
     const payload = stateAfterToggle.toBuildPayload({ bomLineItems: [] });
     expect(payload.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
@@ -325,5 +342,7 @@ describe("visual-builder-store canvas item actions", () => {
     expect(payload.canvasState.sceneSettings.lightingSimulationEnabled).toBe(true);
     expect(payload.canvasState.sceneSettings.lightMountHeightIn).toBe(9.5);
     expect(payload.canvasState.sceneSettings.growthTimelineMonths).toBe(6);
+    expect(payload.canvasState.substrateMaterialGrid[0]).toBe(2);
+    expect(payload.canvasState.substrateMaterialGrid[32]).toBe(1);
   });
 });

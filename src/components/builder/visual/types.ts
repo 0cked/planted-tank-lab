@@ -83,6 +83,12 @@ export type VisualSubstrateProfile = {
 
 export type SubstrateHeightfield = Float32Array;
 
+export type SubstrateMaterialType = "soil" | "sand" | "gravel";
+
+export type SubstrateMaterialCode = 0 | 1 | 2;
+
+export type SubstrateMaterialGrid = Uint8Array;
+
 export type VisualAnchorType = "substrate" | "hardscape" | "glass";
 
 export type VisualDepthZone = "foreground" | "midground" | "background";
@@ -143,6 +149,7 @@ export type VisualCanvasState = {
   heightIn: number;
   depthIn: number;
   substrateHeightfield: SubstrateHeightfield;
+  substrateMaterialGrid: SubstrateMaterialGrid;
   sceneSettings: VisualSceneSettings;
   items: VisualCanvasItem[];
 };

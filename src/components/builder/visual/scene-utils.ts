@@ -1,11 +1,17 @@
 import type {
   SubstrateHeightfield,
+  SubstrateMaterialGrid,
+  SubstrateMaterialType,
   VisualAnchorType,
   VisualCanvasItem,
   VisualDepthZone,
   VisualItemTransform,
   VisualSubstrateProfile,
 } from "@/components/builder/visual/types";
+import {
+  SUBSTRATE_MATERIAL_CODE_BY_TYPE,
+  normalizeSubstrateMaterialGrid,
+} from "@/lib/visual/substrate-materials";
 import {
   legacySubstrateProfileToHeightfield,
   normalizeSubstrateHeightfield,
@@ -19,7 +25,7 @@ export type SceneDims = {
   depthIn: number;
 };
 
-export type SubstrateBrushMode = "raise" | "lower" | "smooth" | "erode";
+export type SubstrateBrushMode = "raise" | "lower" | "smooth" | "erode" | "material";
 
 export type SubstratePreset = "flat" | "island" | "slope" | "valley";
 
@@ -245,6 +251,10 @@ export function applySubstrateBrush(params: {
   tankHeightIn: number;
 }): SubstrateHeightfield {
   const source = normalizeSubstrateHeightfield(params.heightfield, params.tankHeightIn);
+  if (params.mode === "material") {
+    return source.slice();
+  }
+
   const next = source.slice();
 
   const centerX = clamp01(params.xNorm);
@@ -297,6 +307,43 @@ export function applySubstrateBrush(params: {
         loweredDepth + (neighborDepth - loweredDepth) * erosionBlend,
         params.tankHeightIn,
       );
+    }
+  }
+
+  return next;
+}
+
+export function applySubstrateMaterialBrush(params: {
+  materialGrid: SubstrateMaterialGrid;
+  xNorm: number;
+  zNorm: number;
+  brushSize: number;
+  strength: number;
+  materialType: SubstrateMaterialType;
+}): SubstrateMaterialGrid {
+  const source = normalizeSubstrateMaterialGrid(params.materialGrid);
+  const next = source.slice();
+
+  const centerX = clamp01(params.xNorm);
+  const centerZ = clamp01(params.zNorm);
+  const brushRadius = clamp(params.brushSize, 0.05, 0.6);
+  const strength = clamp(params.strength, 0.01, 1);
+  const maxIndex = SUBSTRATE_HEIGHTFIELD_RESOLUTION - 1;
+  const targetCode = SUBSTRATE_MATERIAL_CODE_BY_TYPE[params.materialType] ?? 0;
+  const minimumInfluence = Math.max(0.08, (1 - strength) * 0.22);
+
+  for (let zIndex = 0; zIndex < SUBSTRATE_HEIGHTFIELD_RESOLUTION; zIndex += 1) {
+    const zNorm = maxIndex === 0 ? 0 : zIndex / maxIndex;
+
+    for (let xIndex = 0; xIndex < SUBSTRATE_HEIGHTFIELD_RESOLUTION; xIndex += 1) {
+      const xNorm = maxIndex === 0 ? 0 : xIndex / maxIndex;
+      const distance = Math.hypot(xNorm - centerX, zNorm - centerZ);
+      if (distance > brushRadius) continue;
+
+      const influence = gaussianFalloff(distance, brushRadius) * strength;
+      if (influence < minimumInfluence) continue;
+
+      next[heightfieldIndex(xIndex, zIndex)] = targetCode;
     }
   }
 

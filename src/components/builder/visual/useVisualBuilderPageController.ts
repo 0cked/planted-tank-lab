@@ -35,7 +35,10 @@ import {
   buildSubstratePreset,
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
-import type { VisualAsset } from "@/components/builder/visual/types";
+import type {
+  SubstrateMaterialType,
+  VisualAsset,
+} from "@/components/builder/visual/types";
 import type {
   BuilderSceneQualityTier,
   BuilderSceneToolMode,
@@ -121,6 +124,7 @@ export function useVisualBuilderPageController(
   const [sculptMode, setSculptMode] = useState<SubstrateBrushMode>("raise");
   const [sculptBrushSize, setSculptBrushSize] = useState(0.25);
   const [sculptStrength, setSculptStrength] = useState(0.42);
+  const [sculptMaterial, setSculptMaterial] = useState<SubstrateMaterialType>("soil");
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [cameraIntent, setCameraIntent] = useState<BuilderWorkspaceCameraIntent | null>(null);
   const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
@@ -146,6 +150,7 @@ export function useVisualBuilderPageController(
   const setPublic = useVisualBuilderStore((state) => state.setPublic);
   const setTank = useVisualBuilderStore((state) => state.setTank);
   const setSubstrateHeightfield = useVisualBuilderStore((state) => state.setSubstrateHeightfield);
+  const setSubstrateMaterialGrid = useVisualBuilderStore((state) => state.setSubstrateMaterialGrid);
   const beginSubstrateStroke = useVisualBuilderStore((state) => state.beginSubstrateStroke);
   const endSubstrateStroke = useVisualBuilderStore((state) => state.endSubstrateStroke);
   const undoSubstrateStroke = useVisualBuilderStore((state) => state.undoSubstrateStroke);
@@ -511,7 +516,7 @@ export function useVisualBuilderPageController(
 
       setCurrentStep(nextStep);
       if (nextStep === "substrate") {
-        setToolMode("move");
+        setToolMode("sculpt");
         return;
       }
 
@@ -858,6 +863,7 @@ export function useVisualBuilderPageController(
         heightIn: template.tank.heightIn,
         depthIn: template.tank.depthIn,
         substrateHeightfield: template.substrateHeightfield,
+        substrateMaterialGrid: canvasState.substrateMaterialGrid,
         sceneSettings: canvasState.sceneSettings,
         items: template.items,
       },
@@ -964,6 +970,7 @@ export function useVisualBuilderPageController(
     sculptMode,
     sculptBrushSize,
     sculptStrength,
+    sculptMaterial,
     equipmentSceneAssets,
     selectedLightAsset,
     cameraIntent,
@@ -1000,13 +1007,18 @@ export function useVisualBuilderPageController(
       sculptMode,
       sculptBrushSize,
       sculptStrength,
+      sculptMaterial,
       substrateVolumeLiters: substrateVolume.volumeLiters,
       hasSelectedSubstrate: Boolean(selectedSubstrateAsset),
       substrateBagEstimate: substrateBags,
       onPresetSelect: handleApplySubstratePreset,
-      onSculptModeChange: setSculptMode,
+      onSculptModeChange: (mode) => {
+        setSculptMode(mode);
+        setToolMode("sculpt");
+      },
       onSculptBrushSizeChange: setSculptBrushSize,
       onSculptStrengthChange: setSculptStrength,
+      onSculptMaterialChange: setSculptMaterial,
     },
     onSceneSettingsChange: setSceneSettings,
     growthTimelineMonths: canvasState.sceneSettings.growthTimelineMonths,
@@ -1066,6 +1078,7 @@ export function useVisualBuilderPageController(
       });
     },
     onSubstrateHeightfield: setSubstrateHeightfield,
+    onSubstrateMaterialGrid: setSubstrateMaterialGrid,
     onSubstrateStrokeStart: beginSubstrateStroke,
     onSubstrateStrokeEnd: endSubstrateStroke,
     onCaptureSceneCanvas: (canvas) => {
