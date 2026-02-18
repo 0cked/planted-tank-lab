@@ -578,7 +578,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Add a "Compatible with" section listing equipment categories that match the plant's requirements (e.g., high-light plants → link to high-output LED lights).
   - **Verify:** Visit a plant page. Care guide section shows structured parameters with visual indicators. Equipment links work.
 
-- [ ] **P11-2: Plant comparison tool**
+- [x] **P11-2: Plant comparison tool**
   - Create `/plants/compare` page.
   - Users select 2-4 plants via search/autocomplete. Display a side-by-side comparison table: light, CO2, difficulty, growth rate, placement, size, propagation method.
   - Highlight differences in red/green (easier vs harder parameters).

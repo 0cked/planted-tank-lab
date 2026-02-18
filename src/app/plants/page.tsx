@@ -65,6 +65,14 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
             Image-forward browsing with fast filters. Start with curated beginner picks, then
             widen as you refine your scape.
           </p>
+          <div className="mt-4">
+            <Link
+              href="/plants/compare"
+              className="inline-flex items-center rounded-xl border border-neutral-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-neutral-900 transition hover:border-neutral-300 hover:bg-white"
+            >
+              Compare plants side by side
+            </Link>
+          </div>
         </div>
         <div className="ptl-surface-sand flex items-center gap-3 px-4 py-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
