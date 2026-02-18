@@ -223,6 +223,76 @@ export const offersRouter = createTRPCRouter({
       }));
     }),
 
+  listByProductIds: publicProcedure
+    .input(
+      z.object({
+        productIds: z.array(z.string().uuid()).min(1).max(200),
+        perProductLimit: z.number().int().min(1).max(25).default(8),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const productIds = Array.from(new Set(input.productIds));
+      if (productIds.length === 0) return [];
+
+      const rows = await ctx.db
+        .select({
+          offer: offers,
+          retailer: retailers,
+        })
+        .from(offers)
+        .innerJoin(retailers, eq(offers.retailerId, retailers.id))
+        .where(inArray(offers.productId, productIds))
+        .orderBy(offers.productId, offers.priceCents, desc(offers.updatedAt));
+
+      const rowsByProductId = new Map<string, Array<(typeof rows)[number]>>();
+      for (const row of rows) {
+        const previousRows = rowsByProductId.get(row.offer.productId) ?? [];
+        previousRows.push(row);
+        rowsByProductId.set(row.offer.productId, previousRows);
+      }
+
+      const priceRank = (priceCents: number | null): number => {
+        return priceCents ?? Number.POSITIVE_INFINITY;
+      };
+
+      return productIds.map((productId) => {
+        const productRows = rowsByProductId.get(productId) ?? [];
+
+        const sortedRows = [...productRows].sort((a, b) => {
+          const aInStock = a.offer.inStock === true;
+          const bInStock = b.offer.inStock === true;
+          if (aInStock !== bInStock) return aInStock ? -1 : 1;
+
+          const aPrice = priceRank(a.offer.priceCents);
+          const bPrice = priceRank(b.offer.priceCents);
+          if (aPrice !== bPrice) return aPrice - bPrice;
+
+          return b.offer.updatedAt.getTime() - a.offer.updatedAt.getTime();
+        });
+
+        return {
+          productId,
+          offers: sortedRows.slice(0, input.perProductLimit).map((row) => ({
+            id: row.offer.id,
+            priceCents: row.offer.priceCents,
+            currency: row.offer.currency,
+            inStock: row.offer.inStock,
+            lastCheckedAt: row.offer.lastCheckedAt,
+            updatedAt: row.offer.updatedAt,
+            retailer: {
+              id: row.retailer.id,
+              name: row.retailer.name,
+              slug: row.retailer.slug,
+              websiteUrl: row.retailer.websiteUrl,
+              logoUrl: row.retailer.logoUrl,
+              logoAssetPath: row.retailer.logoAssetPath,
+            },
+            goUrl: `/go/${row.offer.id}`,
+          })),
+        };
+      });
+    }),
+
   priceHistoryByProductId: publicProcedure
     .input(
       z.object({

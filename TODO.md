@@ -458,7 +458,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Add an "Out of stock" indicator when a retailer has no current offer.
   - **Verify:** View a product with multiple offers. Comparison table shows all retailers. Price spark chart renders.
 
-- [ ] **P8-3: "Buy this build" flow**
+- [x] **P8-3: "Buy this build" flow**
   - On shared build pages and the builder BOM, add a "Buy all items" button.
   - Show a modal with all items, selected retailer per item (defaulting to cheapest), and total cost.
   - "Open all links" button opens each retailer's affiliate link in a new tab.

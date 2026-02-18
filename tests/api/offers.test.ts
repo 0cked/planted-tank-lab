@@ -65,6 +65,21 @@ describe("tRPC offers router", () => {
     ).toBe(true);
   });
 
+  test("listByProductIds returns grouped retailer options with tracked go URLs", async () => {
+    const caller = await getCaller();
+    const productId = await pickProductWithOffers();
+
+    const grouped = await caller.offers.listByProductIds({
+      productIds: [productId],
+      perProductLimit: 5,
+    });
+
+    expect(grouped.length).toBe(1);
+    expect(grouped[0]!.productId).toBe(productId);
+    expect(grouped[0]!.offers.length).toBeGreaterThan(0);
+    expect(grouped[0]!.offers[0]!.goUrl).toMatch(/^\/go\//);
+  });
+
   test("priceHistoryByProductId returns history rows (after inserting a point)", async () => {
     const caller = await getCaller();
     const productId = await pickProductWithOffers();

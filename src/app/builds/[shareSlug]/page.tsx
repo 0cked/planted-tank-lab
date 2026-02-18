@@ -5,6 +5,11 @@ import { notFound } from "next/navigation";
 import { BuildCommentsSection } from "./BuildCommentsSection";
 import { ReportBuildDialog } from "./ReportBuildDialog";
 
+import {
+  BuyAllItemsModal,
+  type BuyAllItem,
+  type BuyAllItemOption,
+} from "@/components/offers/BuyAllItemsModal";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
@@ -105,6 +110,27 @@ function tierMeta(style: string | null | undefined): {
   return null;
 }
 
+function compareBuyAllOption(a: BuyAllItemOption, b: BuyAllItemOption): number {
+  const aInStock = a.inStock !== false;
+  const bInStock = b.inStock !== false;
+  if (aInStock !== bInStock) return aInStock ? -1 : 1;
+
+  const aPrice = a.priceCents ?? Number.POSITIVE_INFINITY;
+  const bPrice = b.priceCents ?? Number.POSITIVE_INFINITY;
+  if (aPrice !== bPrice) return aPrice - bPrice;
+
+  return a.label.localeCompare(b.label);
+}
+
+function defaultBuyAllOptionId(options: BuyAllItemOption[]): string | null {
+  return (
+    options.find((option) => option.inStock !== false && option.priceCents != null)?.id ??
+    options.find((option) => option.inStock !== false)?.id ??
+    options[0]?.id ??
+    null
+  );
+}
+
 export default async function BuildSharePage(props: {
   params: Promise<{ shareSlug: string }>;
 }) {
@@ -155,6 +181,47 @@ export default async function BuildSharePage(props: {
   );
   const tier = tierMeta(data.build.style);
 
+  const uniqueGearProductIds = Array.from(new Set(gear.map((item) => item.product.id)));
+  const groupedOffers = uniqueGearProductIds.length
+    ? await caller.offers
+        .listByProductIds({
+          productIds: uniqueGearProductIds,
+          perProductLimit: 12,
+        })
+        .catch(() => [])
+    : [];
+
+  const offersByProductId = new Map(
+    groupedOffers.map((group) => [group.productId, group.offers] as const),
+  );
+
+  const buyAllItems: BuyAllItem[] = gear
+    .map((item) => {
+      const product = item.product;
+      const options = (offersByProductId.get(product.id) ?? [])
+        .map((offer) => ({
+          id: offer.id,
+          label: offer.retailer.name,
+          url: offer.goUrl,
+          priceCents: offer.priceCents,
+          inStock: offer.inStock,
+        }))
+        .sort(compareBuyAllOption);
+
+      return {
+        id: item.id,
+        title: product.name,
+        subtitle: labelForCategory({
+          slug: item.categorySlug,
+          name: item.categoryName,
+        }),
+        quantity: item.quantity,
+        options,
+        defaultOptionId: defaultBuyAllOptionId(options),
+      } satisfies BuyAllItem;
+    })
+    .filter((item) => item.options.length > 0);
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
@@ -195,15 +262,22 @@ export default async function BuildSharePage(props: {
         </div>
 
         <div className="flex flex-col items-start gap-2 sm:items-end">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link href={`/builder/${shareSlug}`} className="ptl-btn-primary">
               Open in builder
             </Link>
+            <BuyAllItemsModal
+              triggerLabel="Buy all items"
+              title="Buy this build"
+              description="Choose a retailer per item (defaulted to the lowest in-stock offer), then open all links at once."
+              items={buyAllItems}
+              triggerClassName="ptl-btn-secondary"
+            />
             <ReportBuildDialog shareSlug={shareSlug} />
           </div>
           <div className="text-xs text-neutral-700">
-            This opens the snapshot in the builder. Click Remix there to start an independent
-            draft.
+            Open in builder to remix this layout, or use Buy all items to launch each affiliate
+            link in one click.
           </div>
         </div>
       </div>

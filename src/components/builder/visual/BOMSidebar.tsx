@@ -1,11 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+import { trpc } from "@/components/TRPCProvider";
 import {
   formatBomShoppingList,
   formatMoney,
   lineUnitPrice,
   type BomLine,
 } from "@/components/builder/visual/builder-page-utils";
+import {
+  BuyAllItemsModal,
+  type BuyAllItem,
+  type BuyAllItemOption,
+} from "@/components/offers/BuyAllItemsModal";
 
 type BOMSidebarProps = {
   lines: BomLine[];
@@ -18,10 +24,112 @@ type ExportState = {
   message: string;
 } | null;
 
+function isTrackableOfferUrl(url: string | null | undefined): url is string {
+  return Boolean(url && url.startsWith("/go/"));
+}
+
+function compareBuyAllOption(a: BuyAllItemOption, b: BuyAllItemOption): number {
+  const aInStock = a.inStock !== false;
+  const bInStock = b.inStock !== false;
+  if (aInStock !== bInStock) return aInStock ? -1 : 1;
+
+  const aPrice = a.priceCents ?? Number.POSITIVE_INFINITY;
+  const bPrice = b.priceCents ?? Number.POSITIVE_INFINITY;
+  if (aPrice !== bPrice) return aPrice - bPrice;
+
+  return a.label.localeCompare(b.label);
+}
+
+function defaultBuyAllOptionId(options: BuyAllItemOption[]): string | null {
+  return (
+    options.find((option) => option.inStock !== false && option.priceCents != null)?.id ??
+    options.find((option) => option.inStock !== false)?.id ??
+    options[0]?.id ??
+    null
+  );
+}
+
+function fallbackBuyAllOption(line: BomLine): BuyAllItemOption | null {
+  if (!isTrackableOfferUrl(line.asset.goUrl)) return null;
+
+  return {
+    id: line.asset.offerId ?? `${line.key}:fallback-offer`,
+    label: line.retailerLinks?.[0]?.label ?? "Best current offer",
+    url: line.asset.goUrl,
+    priceCents: lineUnitPrice(line.asset),
+  };
+}
+
 export function BOMSidebar(props: BOMSidebarProps) {
   const [exportState, setExportState] = useState<ExportState>(null);
 
   const hasLines = props.lines.length > 0;
+
+  const productIdsForOffers = useMemo(() => {
+    const next = new Set<string>();
+
+    for (const line of props.lines) {
+      if (line.type !== "product" && line.type !== "tank") continue;
+      next.add(line.asset.id);
+    }
+
+    return Array.from(next);
+  }, [props.lines]);
+
+  const offersByProductIdQuery = trpc.offers.listByProductIds.useQuery(
+    {
+      productIds: productIdsForOffers,
+      perProductLimit: 12,
+    },
+    {
+      enabled: productIdsForOffers.length > 0,
+      staleTime: 60_000,
+    },
+  );
+
+  const offersByProductId = useMemo(() => {
+    return new Map((offersByProductIdQuery.data ?? []).map((entry) => [entry.productId, entry.offers] as const));
+  }, [offersByProductIdQuery.data]);
+
+  const buyAllItems = useMemo<BuyAllItem[]>(() => {
+    return props.lines
+      .map((line) => {
+        const optionsByUrl = new Map<string, BuyAllItemOption>();
+
+        if (line.type === "product" || line.type === "tank") {
+          const liveOffers = offersByProductId.get(line.asset.id) ?? [];
+
+          for (const offer of liveOffers) {
+            if (!isTrackableOfferUrl(offer.goUrl)) continue;
+
+            optionsByUrl.set(offer.goUrl, {
+              id: offer.id,
+              label: offer.retailer.name,
+              url: offer.goUrl,
+              priceCents: offer.priceCents,
+              inStock: offer.inStock,
+            });
+          }
+        }
+
+        const fallbackOption = fallbackBuyAllOption(line);
+        if (fallbackOption && !optionsByUrl.has(fallbackOption.url)) {
+          optionsByUrl.set(fallbackOption.url, fallbackOption);
+        }
+
+        const options = Array.from(optionsByUrl.values()).sort(compareBuyAllOption);
+
+        return {
+          id: line.key,
+          title: line.asset.name,
+          subtitle: line.categoryName,
+          quantity: line.quantity,
+          options,
+          defaultOptionId: defaultBuyAllOptionId(options),
+        } satisfies BuyAllItem;
+      })
+      .filter((item) => item.options.length > 0);
+  }, [offersByProductId, props.lines]);
 
   const getShoppingListText = () => {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : undefined;
@@ -106,7 +214,25 @@ export function BOMSidebar(props: BOMSidebarProps) {
         >
           Download .txt
         </button>
+        <BuyAllItemsModal
+          triggerLabel="Buy all items"
+          title="Buy this build"
+          description="Pick retailers for each line item and open all affiliate links in one action."
+          items={buyAllItems}
+          theme="dark"
+          triggerClassName="inline-flex min-h-9 items-center justify-center rounded-md border border-sky-300/70 bg-sky-400/20 px-2 py-1 text-[10px] font-semibold text-sky-100 disabled:cursor-not-allowed disabled:opacity-45"
+        />
       </div>
+
+      {offersByProductIdQuery.isFetching ? (
+        <div className="mt-1 text-[10px] text-slate-400">Refreshing retailer options…</div>
+      ) : null}
+
+      {offersByProductIdQuery.error ? (
+        <div className="mt-1 text-[10px] text-rose-200">
+          Unable to refresh all retailer options right now. Showing fallback links.
+        </div>
+      ) : null}
 
       {exportState ? (
         <div className={`mt-1 text-[10px] ${exportState.type === "ok" ? "text-emerald-200" : "text-rose-200"}`}>
