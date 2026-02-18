@@ -6,6 +6,10 @@ import {
   clampLightMountHeightIn,
   DEFAULT_LIGHT_MOUNT_HEIGHT_IN,
 } from "@/components/builder/visual/light-simulation";
+import {
+  DEFAULT_GROWTH_TIMELINE_MONTHS,
+  normalizeGrowthTimelineMonths,
+} from "@/components/builder/visual/plant-growth";
 import type {
   SubstrateHeightfield,
   VisualAnchorType,
@@ -338,6 +342,7 @@ function normalizeSceneSettings(input: Partial<VisualSceneSettings> | undefined)
     ambientParticlesEnabled: next.ambientParticlesEnabled ?? qualityTier !== "low",
     lightingSimulationEnabled: next.lightingSimulationEnabled ?? false,
     lightMountHeightIn: clampLightMountHeightIn(next.lightMountHeightIn),
+    growthTimelineMonths: normalizeGrowthTimelineMonths(next.growthTimelineMonths),
     audioEnabled: next.audioEnabled ?? false,
     cameraPreset,
   };
@@ -576,6 +581,7 @@ const initialCanvasState: VisualCanvasState = {
     ambientParticlesEnabled: true,
     lightingSimulationEnabled: false,
     lightMountHeightIn: DEFAULT_LIGHT_MOUNT_HEIGHT_IN,
+    growthTimelineMonths: DEFAULT_GROWTH_TIMELINE_MONTHS,
     audioEnabled: false,
     cameraPreset: "step",
   },
@@ -1193,7 +1199,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
     }),
     {
       name: "ptl-visual-builder-v1",
-      version: 5,
+      version: 6,
       storage: createJSONStorage(() => localStorage),
       migrate: (persistedState: unknown) => {
         const source = persistedState as Partial<VisualBuilderState> | undefined;

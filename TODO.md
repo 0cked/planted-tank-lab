@@ -534,7 +534,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Render as a color overlay on the substrate mesh: blue (low <30 PAR) → green (30-60) → yellow (60-100) → red (100+).
   - **Verify:** Select a light in the builder. Toggle simulation — heatmap appears showing PAR distribution. Areas directly under the light are brightest.
 
-- [ ] **P10-2: Plant growth projection**
+- [x] **P10-2: Plant growth projection**
   - Add a "Growth timeline" slider (1 month / 3 months / 6 months) to the builder toolbar.
   - For each placed plant, scale its size over time based on growth rate data from the `plants` table.
   - Fast growers (stem plants) scale 2-3x at 6 months. Slow growers (anubias) scale 1.2x.

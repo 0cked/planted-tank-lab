@@ -16,6 +16,12 @@ import {
   type BomLine,
   type BuilderStepId,
 } from "@/components/builder/visual/builder-page-utils";
+import {
+  GROWTH_TIMELINE_MONTH_OPTIONS,
+  growthTimelineFromSliderIndex,
+  growthTimelineSliderIndex,
+  type GrowthTimelineMonths,
+} from "@/components/builder/visual/plant-growth";
 import type { SubstrateBrushMode } from "@/components/builder/visual/scene-utils";
 import type {
   SubstrateHeightfield,
@@ -102,6 +108,8 @@ export type BuilderWorkspaceProps = {
     onSculptStrengthChange: (next: number) => void;
   };
   onSceneSettingsChange: (patch: Partial<VisualSceneSettings>) => void;
+  growthTimelineMonths: GrowthTimelineMonths;
+  onGrowthTimelineMonthsChange: (months: GrowthTimelineMonths) => void;
   onReframe: () => void;
   onResetView: () => void;
   onFocusSceneItem: (itemId: string) => void;
@@ -551,6 +559,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         ambientParticlesEnabled={props.canvasState.sceneSettings.ambientParticlesEnabled}
         lightingSimulationEnabled={props.canvasState.sceneSettings.lightingSimulationEnabled}
         lightMountHeightIn={props.canvasState.sceneSettings.lightMountHeightIn}
+        growthTimelineMonths={props.growthTimelineMonths}
         selectedLightAsset={props.selectedLightAsset}
         sculptMode={props.sculptMode}
         sculptBrushSize={props.sculptBrushSize}
@@ -638,6 +647,51 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
     </>
   );
 
+  const growthTimelineIndex = growthTimelineSliderIndex(props.growthTimelineMonths);
+
+  const growthTimelineToolbar = (
+    <div
+      role="toolbar"
+      aria-label="Plant growth timeline"
+      className="flex min-w-[250px] items-center gap-2 rounded-xl border border-white/10 bg-black/45 px-3 py-2 backdrop-blur-xl"
+    >
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">
+        Growth
+      </span>
+      <input
+        type="range"
+        min={0}
+        max={GROWTH_TIMELINE_MONTH_OPTIONS.length - 1}
+        step={1}
+        value={growthTimelineIndex}
+        aria-label="Plant growth timeline"
+        aria-valuetext={`${props.growthTimelineMonths} months`}
+        onChange={(event) => {
+          const nextIndex = Number.parseInt(event.target.value, 10);
+          props.onGrowthTimelineMonthsChange(growthTimelineFromSliderIndex(nextIndex));
+        }}
+        className="h-1 flex-1 accent-cyan-300"
+      />
+      <div className="flex min-w-[76px] items-center justify-between text-[10px] text-white/70">
+        {GROWTH_TIMELINE_MONTH_OPTIONS.map((months) => (
+          <button
+            key={months}
+            type="button"
+            onClick={() => props.onGrowthTimelineMonthsChange(months)}
+            className={`rounded px-1 transition ${
+              props.growthTimelineMonths === months
+                ? "bg-cyan-200/20 text-cyan-100"
+                : "text-white/60 hover:text-white/85"
+            }`}
+            aria-pressed={props.growthTimelineMonths === months}
+          >
+            {months}m
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <>
       <BuilderViewportLayout
@@ -645,6 +699,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         iconRail={iconRail}
         floatingPanel={panelOpen ? <StepPanel {...props} /> : null}
         floatingRight={<RightPanel {...props} />}
+        bottomToolbar={growthTimelineToolbar}
       />
       <BuilderShortcutsOverlay
         open={props.shortcutsOverlayOpen}

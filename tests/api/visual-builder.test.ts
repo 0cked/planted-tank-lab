@@ -119,6 +119,7 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.build.tags).toEqual(["iwagumi", "nature"]);
     expect(loaded.initialState.canvasState.sceneSettings.lightingSimulationEnabled).toBe(false);
     expect(loaded.initialState.canvasState.sceneSettings.lightMountHeightIn).toBe(4);
+    expect(loaded.initialState.canvasState.sceneSettings.growthTimelineMonths).toBe(1);
 
     const tagRows = await db
       .select({ tagSlug: buildTags.tagSlug })

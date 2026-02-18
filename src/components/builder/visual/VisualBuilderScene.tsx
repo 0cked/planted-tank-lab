@@ -53,6 +53,10 @@ import {
   type LightSimulationSource,
 } from "@/components/builder/visual/light-simulation";
 import {
+  resolvePlantGrowthScale,
+  type GrowthTimelineMonths,
+} from "@/components/builder/visual/plant-growth";
+import {
   BLOOM_INTENSITY,
   BLOOM_LUMINANCE_SMOOTHING,
   BLOOM_LUMINANCE_THRESHOLD,
@@ -158,6 +162,7 @@ type VisualBuilderSceneProps = {
   ambientParticlesEnabled: boolean;
   lightingSimulationEnabled: boolean;
   lightMountHeightIn: number;
+  growthTimelineMonths: GrowthTimelineMonths;
   selectedLightAsset: VisualAsset | null;
   sculptMode: SubstrateBrushMode;
   sculptBrushSize: number;
@@ -3446,10 +3451,19 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         dims,
         substrateHeightfield: props.canvasState.substrateHeightfield,
       });
+      const plantGrowthScale =
+        asset.categorySlug === "plants"
+          ? resolvePlantGrowthScale({
+              asset,
+              timelineMonths: props.growthTimelineMonths,
+              plantTypeHint: resolveVisualAsset(asset).proceduralPlantType,
+            })
+          : { x: 1, y: 1, z: 1 };
+
       const size = {
-        width: Math.max(0.35, asset.widthIn * item.scale * 0.18),
-        height: Math.max(0.35, asset.heightIn * item.scale * 0.18),
-        depth: Math.max(0.35, asset.depthIn * item.scale * 0.18),
+        width: Math.max(0.35, asset.widthIn * item.scale * 0.18 * plantGrowthScale.x),
+        height: Math.max(0.35, asset.heightIn * item.scale * 0.18 * plantGrowthScale.y),
+        depth: Math.max(0.35, asset.depthIn * item.scale * 0.18 * plantGrowthScale.z),
       };
 
       resolved.push({
@@ -3465,7 +3479,13 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       });
     }
     return resolved;
-  }, [dims, props.assetsById, props.canvasState.items, props.canvasState.substrateHeightfield]);
+  }, [
+    dims,
+    props.assetsById,
+    props.canvasState.items,
+    props.canvasState.substrateHeightfield,
+    props.growthTimelineMonths,
+  ]);
 
   const selectedRenderItem = useMemo(() => {
     if (!props.selectedItemId || selectedItemIdSet.size !== 1) return null;

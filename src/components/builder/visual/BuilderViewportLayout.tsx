@@ -5,6 +5,7 @@ type BuilderViewportLayoutProps = {
   iconRail: ReactNode;
   floatingPanel: ReactNode | null;
   floatingRight: ReactNode | null;
+  bottomToolbar?: ReactNode | null;
 };
 
 export function BuilderViewportLayout(props: BuilderViewportLayoutProps) {
@@ -33,6 +34,12 @@ export function BuilderViewportLayout(props: BuilderViewportLayoutProps) {
         <aside className="pointer-events-auto absolute right-3 top-3 z-10 max-h-[calc(100dvh-24px)] overflow-auto rounded-2xl border border-white/10 bg-black/55 p-3 shadow-2xl backdrop-blur-xl">
           {props.floatingRight}
         </aside>
+      ) : null}
+
+      {props.bottomToolbar ? (
+        <div className="pointer-events-auto absolute bottom-3 left-1/2 z-10 -translate-x-1/2">
+          {props.bottomToolbar}
+        </div>
       ) : null}
     </div>
   );

@@ -21,6 +21,10 @@ import {
   clampLightMountHeightIn,
   DEFAULT_LIGHT_MOUNT_HEIGHT_IN,
 } from "@/components/builder/visual/light-simulation";
+import {
+  DEFAULT_GROWTH_TIMELINE_MONTHS,
+  normalizeGrowthTimelineMonths,
+} from "@/components/builder/visual/plant-growth";
 import { buildTagSlugSchema, normalizeBuildTagSlugs } from "@/lib/build-tags";
 import {
   createFlatSubstrateHeightfield,
@@ -99,6 +103,7 @@ const sceneSettingsSchema = z.object({
   ambientParticlesEnabled: z.boolean().optional(),
   lightingSimulationEnabled: z.boolean().optional(),
   lightMountHeightIn: z.number().min(0).max(24).optional(),
+  growthTimelineMonths: z.union([z.literal(1), z.literal(3), z.literal(6)]).optional(),
   audioEnabled: z.boolean().optional(),
   cameraPreset: z.enum(["step", "free"]).optional(),
 });
@@ -547,6 +552,10 @@ function normalizeSceneSettings(
       source.lightMountHeightIn == null
         ? DEFAULT_LIGHT_MOUNT_HEIGHT_IN
         : clampLightMountHeightIn(source.lightMountHeightIn),
+    growthTimelineMonths:
+      source.growthTimelineMonths == null
+        ? DEFAULT_GROWTH_TIMELINE_MONTHS
+        : normalizeGrowthTimelineMonths(source.growthTimelineMonths),
     audioEnabled: source.audioEnabled ?? false,
     cameraPreset: source.cameraPreset === "free" ? "free" : "step",
   };

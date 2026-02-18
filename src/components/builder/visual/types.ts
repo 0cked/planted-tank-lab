@@ -132,6 +132,7 @@ export type VisualSceneSettings = {
   ambientParticlesEnabled: boolean;
   lightingSimulationEnabled: boolean;
   lightMountHeightIn: number;
+  growthTimelineMonths: 1 | 3 | 6;
   audioEnabled: boolean;
   cameraPreset: "step" | "free";
 };

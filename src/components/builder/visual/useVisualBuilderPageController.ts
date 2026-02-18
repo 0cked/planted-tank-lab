@@ -1009,6 +1009,10 @@ export function useVisualBuilderPageController(
       onSculptStrengthChange: setSculptStrength,
     },
     onSceneSettingsChange: setSceneSettings,
+    growthTimelineMonths: canvasState.sceneSettings.growthTimelineMonths,
+    onGrowthTimelineMonthsChange: (months) => {
+      setSceneSettings({ growthTimelineMonths: months });
+    },
     onReframe: () => triggerCameraIntent({ type: "reframe" }),
     onResetView: () => triggerCameraIntent({ type: "reset" }),
     onFocusSceneItem: handleFocusSceneItem,
