@@ -4161,9 +4161,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         showLightingHeatmap={showLightingHeatmap}
         lightSimulationSource={lightSimulationSource}
         lightMountHeightIn={props.lightMountHeightIn}
-        showSubstrateControlPoints={
-          props.currentStep === "substrate" && props.toolMode !== "sculpt"
-        }
+        showSubstrateControlPoints={props.currentStep === "substrate"}
         currentStep={props.currentStep}
         onSurfacePointer={handleSurfacePointer}
         onSurfaceDown={handleSurfaceDown}

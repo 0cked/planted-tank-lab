@@ -23,148 +23,69 @@ type SubstrateToolbarProps = {
   onSculptMaterialChange: (material: SubstrateMaterialType) => void;
 };
 
-const SUBSTRATE_PRESETS: Array<{ value: SubstratePreset; label: string }> = [
-  { value: "flat", label: "Flat" },
-  { value: "island", label: "Island" },
-  { value: "slope", label: "Slope" },
-  { value: "valley", label: "Valley" },
-];
-
-const SCULPT_MODES: Array<{ value: SubstrateBrushMode; label: string }> = [
-  { value: "raise", label: "Raise" },
-  { value: "lower", label: "Lower" },
-  { value: "smooth", label: "Smooth" },
-  { value: "erode", label: "Erode" },
-  { value: "material", label: "Material" },
-];
-
-const MATERIAL_OPTIONS: Array<{
-  value: SubstrateMaterialType;
+const SUBSTRATE_PRESETS: Array<{
+  value: SubstratePreset;
   label: string;
-  swatch: string;
+  desc: string;
 }> = [
-  { value: "soil", label: "Soil", swatch: "#5f452c" },
-  { value: "sand", label: "Sand", swatch: "#c4ae85" },
-  { value: "gravel", label: "Gravel", swatch: "#7b8082" },
+  { value: "flat", label: "Flat", desc: "Even layer" },
+  { value: "island", label: "Island", desc: "Center mound" },
+  { value: "slope", label: "Slope", desc: "Back to front" },
+  { value: "valley", label: "Valley", desc: "U-shaped" },
 ];
 
 export function SubstrateToolbar(props: SubstrateToolbarProps) {
   return (
     <div
       role="region"
-      aria-label="Substrate sculpting controls"
-      className="space-y-2 rounded-2xl border border-white/20 bg-slate-900/55 p-2.5"
+      aria-label="Substrate controls"
+      className="space-y-3"
     >
-      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">
-        Terrain presets
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+        Terrain shape
       </div>
 
-      <div role="toolbar" aria-label="Substrate terrain presets" className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-2 gap-1.5">
         {SUBSTRATE_PRESETS.map((preset) => (
           <button
             key={preset.value}
             type="button"
             aria-label={`Apply ${preset.label.toLowerCase()} terrain preset`}
             onClick={() => props.onPresetSelect(preset.value)}
-            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            className="group flex min-h-11 touch-manipulation flex-col items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 text-center transition hover:border-white/20 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
           >
-            {preset.label}
+            <span className="text-[11px] font-semibold text-white/90">
+              {preset.label}
+            </span>
+            <span className="text-[9px] text-white/40">
+              {preset.desc}
+            </span>
           </button>
         ))}
       </div>
 
-      <div className="space-y-1.5 rounded-lg border border-white/10 bg-slate-950/40 px-2.5 py-2">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-300">
-          Brush mode
+      <p className="text-[10px] leading-relaxed text-white/35">
+        Drag the dots on the substrate to fine-tune terrain height after
+        choosing a preset.
+      </p>
+
+      <div className="rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+          Volume estimate
         </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {SCULPT_MODES.map((mode) => (
-            <button
-              key={mode.value}
-              type="button"
-              aria-pressed={props.sculptMode === mode.value}
-              onClick={() => props.onSculptModeChange(mode.value)}
-              className={`rounded-md border px-2 py-1 text-[10px] font-semibold transition ${
-                props.sculptMode === mode.value
-                  ? "border-cyan-300/60 bg-cyan-300/15 text-cyan-100"
-                  : "border-white/10 text-slate-300 hover:text-slate-100"
-              }`}
-            >
-              {mode.label}
-            </button>
-          ))}
+        <div className="mt-1 text-sm font-semibold tabular-nums text-white/90">
+          {props.substrateVolumeLiters.toFixed(1)} L
         </div>
-
-        <label className="block text-[10px] text-slate-300">
-          Brush size ({Math.round(props.sculptBrushSize * 100)}%)
-          <input
-            type="range"
-            min={0.05}
-            max={0.6}
-            step={0.01}
-            value={props.sculptBrushSize}
-            aria-label="Substrate brush size"
-            onChange={(event) => props.onSculptBrushSizeChange(Number(event.target.value))}
-            className="mt-1 w-full"
-          />
-        </label>
-
-        <label className="block text-[10px] text-slate-300">
-          Strength ({Math.round(props.sculptStrength * 100)}%)
-          <input
-            type="range"
-            min={0.01}
-            max={1}
-            step={0.01}
-            value={props.sculptStrength}
-            aria-label="Substrate brush strength"
-            onChange={(event) => props.onSculptStrengthChange(Number(event.target.value))}
-            className="mt-1 w-full"
-          />
-        </label>
-
-        {props.sculptMode === "material" ? (
-          <div className="space-y-1">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-300">
-              Material
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {MATERIAL_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-pressed={props.sculptMaterial === option.value}
-                  onClick={() => props.onSculptMaterialChange(option.value)}
-                  className={`rounded-md border px-2 py-1 text-[10px] font-semibold transition ${
-                    props.sculptMaterial === option.value
-                      ? "border-cyan-300/60 bg-cyan-300/15 text-cyan-100"
-                      : "border-white/10 text-slate-300 hover:text-slate-100"
-                  }`}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    <span
-                      aria-hidden
-                      className="h-2.5 w-2.5 rounded-full border border-black/30"
-                      style={{ backgroundColor: option.swatch }}
-                    />
-                    {option.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="rounded-lg border border-white/15 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-200">
-        Fill target: {props.substrateVolumeLiters.toFixed(1)} L
         {props.hasSelectedSubstrate ? (
-          <span>
-            {" "}· {props.substrateBagEstimate.bagsRequired} bag(s) @{" "}
-            {props.substrateBagEstimate.bagVolumeLiters.toFixed(1)} L
-          </span>
+          <div className="mt-0.5 text-[10px] text-white/50">
+            {props.substrateBagEstimate.bagsRequired} bag
+            {props.substrateBagEstimate.bagsRequired !== 1 ? "s" : ""} @{" "}
+            {props.substrateBagEstimate.bagVolumeLiters.toFixed(1)} L each
+          </div>
         ) : (
-          <span> · Pick a substrate product to estimate bag count.</span>
+          <div className="mt-0.5 text-[10px] text-white/35">
+            Select a substrate product below for bag estimate.
+          </div>
         )}
       </div>
     </div>

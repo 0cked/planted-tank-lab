@@ -179,16 +179,13 @@ export type BuilderWorkspaceProps = {
   onCaptureSceneCanvas: (canvas: HTMLCanvasElement | null) => void;
   onCameraPresetModeChange: (mode: "step" | "free") => void;
   onCameraDiagnostic: (event: CameraDiagnosticEvent) => void;
-  // Step navigation
   stepCompletion: Record<BuilderStepId, boolean>;
   canNavigateToStep: (step: BuilderStepId) => boolean;
   onStepChange: (step: BuilderStepId) => void;
-  // Metadata actions
   onSaveDraft: () => void;
   saving: boolean;
 };
 
-/* ── Step icon glyphs ── */
 const STEP_ICONS: Record<BuilderStepId, string> = {
   tank: "\u2B21",
   substrate: "\u25A4",
@@ -198,23 +195,22 @@ const STEP_ICONS: Record<BuilderStepId, string> = {
   review: "\u2713",
 };
 
-/* ── Rail icon button ── */
 function RailBtn(props: {
   label: string;
   title: string;
   active?: boolean;
   done?: boolean;
   disabled?: boolean;
+  compact?: boolean;
   onClick: () => void;
 }) {
-  const base =
-    "flex h-8 w-8 items-center justify-center rounded-lg text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300";
+  const size = props.compact ? "h-7 w-7 text-xs" : "h-8 w-8 text-sm";
   const variant = props.disabled
     ? "text-white/20 cursor-not-allowed"
     : props.active
-      ? "bg-white/15 text-white shadow-[0_0_8px_rgba(140,230,255,0.25)]"
+      ? "bg-cyan-400/15 text-cyan-200 shadow-[0_0_12px_rgba(140,230,255,0.2)]"
       : props.done
-        ? "text-emerald-300/80 hover:bg-white/10"
+        ? "text-emerald-300/70 hover:bg-white/10 hover:text-emerald-200"
         : "text-white/50 hover:bg-white/10 hover:text-white/80";
   return (
     <button
@@ -223,7 +219,7 @@ function RailBtn(props: {
       disabled={props.disabled}
       title={props.title}
       aria-label={props.title}
-      className={`${base} ${variant}`}
+      className={`flex ${size} items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 ${variant}`}
     >
       {props.label}
     </button>
@@ -240,39 +236,41 @@ function toInchesFromDisplay(value: number, unit: "in" | "cm"): number {
   return value;
 }
 
-function formatTankPresetDimensions(preset: {
-  widthIn: number;
-  heightIn: number;
-  depthIn: number;
-}, unit: "in" | "cm"): string {
-  const width = toDisplayDimension(preset.widthIn, unit);
-  const depth = toDisplayDimension(preset.depthIn, unit);
-  const height = toDisplayDimension(preset.heightIn, unit);
-
-  return `${width}×${depth}×${height} ${unit}`;
+function formatTankPresetDimensions(
+  preset: { widthIn: number; heightIn: number; depthIn: number },
+  unit: "in" | "cm",
+): string {
+  const w = toDisplayDimension(preset.widthIn, unit);
+  const d = toDisplayDimension(preset.depthIn, unit);
+  const h = toDisplayDimension(preset.heightIn, unit);
+  return `${w}\u00D7${d}\u00D7${h} ${unit}`;
 }
 
 function isTankPresetActive(
-  preset: {
-    widthIn: number;
-    heightIn: number;
-    depthIn: number;
-  },
-  dimensions: {
-    widthIn: number;
-    heightIn: number;
-    depthIn: number;
-  },
+  preset: { widthIn: number; heightIn: number; depthIn: number },
+  dims: { widthIn: number; heightIn: number; depthIn: number },
 ): boolean {
-  const tolerance = 0.01;
+  const t = 0.01;
   return (
-    Math.abs(preset.widthIn - dimensions.widthIn) <= tolerance &&
-    Math.abs(preset.heightIn - dimensions.heightIn) <= tolerance &&
-    Math.abs(preset.depthIn - dimensions.depthIn) <= tolerance
+    Math.abs(preset.widthIn - dims.widthIn) <= t &&
+    Math.abs(preset.heightIn - dims.heightIn) <= t &&
+    Math.abs(preset.depthIn - dims.depthIn) <= t
   );
 }
 
-/* ── Asset list (shared) ── */
+function severityChip(severity: Severity): string {
+  switch (severity) {
+    case "error":
+      return "border-red-400/40 bg-red-400/10 text-red-200";
+    case "warning":
+      return "border-amber-400/40 bg-amber-400/10 text-amber-200";
+    case "recommendation":
+      return "border-sky-400/40 bg-sky-400/10 text-sky-200";
+    case "completeness":
+      return "border-white/10 bg-white/5 text-white/60";
+  }
+}
+
 function AssetList(props: {
   search: string;
   onSearchChange: (v: string) => void;
@@ -287,13 +285,12 @@ function AssetList(props: {
         value={props.search}
         onChange={(e) => props.onSearchChange(e.target.value)}
         placeholder="Search\u2026"
-        className="w-full rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-white/30"
+        className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-white/25 focus:border-white/20"
       />
       <div className="max-h-[50vh] space-y-1 overflow-auto">
         {props.filteredAssets.map((asset) => {
           const isCanvas =
-            asset.categorySlug === "hardscape" ||
-            asset.categorySlug === "plants";
+            asset.categorySlug === "hardscape" || asset.categorySlug === "plants";
           const isArmed = isCanvas && props.placementAssetId === asset.id;
           const sel = props.selectedProductByCategory[asset.categorySlug];
           const isSel = !isCanvas && sel === asset.id;
@@ -305,7 +302,7 @@ function AssetList(props: {
               className={`flex w-full items-center gap-2 rounded-lg border p-1.5 text-left transition ${
                 isArmed || isSel
                   ? "border-cyan-300/40 bg-cyan-300/10"
-                  : "border-white/8 bg-white/3 hover:bg-white/8"
+                  : "border-white/8 bg-white/[0.03] hover:bg-white/[0.06]"
               }`}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-black/40">
@@ -331,7 +328,9 @@ function AssetList(props: {
                 </div>
               </div>
               {isArmed ? (
-                <span className="text-[9px] text-cyan-300">Armed</span>
+                <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-300">
+                  Armed
+                </span>
               ) : null}
             </button>
           );
@@ -346,143 +345,105 @@ function AssetList(props: {
   );
 }
 
-/* ── Floating step panel ── */
+function SectionLabel(props: { children: React.ReactNode }) {
+  return (
+    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+      {props.children}
+    </div>
+  );
+}
+
 function StepPanel(props: BuilderWorkspaceProps) {
   const step = props.currentStep;
-  const measurementUnit = props.canvasState.sceneSettings.measurementUnit;
-  const tankDimensionsIn = {
+  const unit = props.canvasState.sceneSettings.measurementUnit;
+  const tankDims = {
     widthIn: props.canvasState.widthIn,
     heightIn: props.canvasState.heightIn,
     depthIn: props.canvasState.depthIn,
   };
 
-  const handleTankDimensionInput = (
-    key: "widthIn" | "heightIn" | "depthIn",
-    value: string,
-  ) => {
-    const parsed = Number.parseFloat(value);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
-
-    props.onSetTankDimensions({
-      ...tankDimensionsIn,
-      [key]: toInchesFromDisplay(parsed, measurementUnit),
-    });
+  const handleDimInput = (key: "widthIn" | "heightIn" | "depthIn", v: string) => {
+    const n = Number.parseFloat(v);
+    if (!Number.isFinite(n) || n <= 0) return;
+    props.onSetTankDimensions({ ...tankDims, [key]: toInchesFromDisplay(n, unit) });
   };
 
   if (step === "tank") {
     return (
       <div className="space-y-3">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
-          Tank
-        </div>
-        <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-2.5">
+        <SectionLabel>Tank</SectionLabel>
+        <div className="space-y-2 rounded-lg border border-white/8 bg-white/[0.03] p-2.5">
           <div className="flex items-center justify-between">
-            <div className="text-[10px] font-semibold uppercase tracking-widest text-white/45">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
               Dimensions
             </div>
             <div className="inline-flex rounded-md border border-white/10 bg-black/25 p-0.5 text-[10px]">
               <button
                 type="button"
-                aria-pressed={measurementUnit === "in"}
-                onClick={() => {
-                  if (measurementUnit === "cm") props.onToggleMeasurementUnit();
-                }}
-                className={`rounded px-1.5 py-0.5 ${
-                  measurementUnit === "in" ? "bg-white/15 text-white" : "text-white/55"
-                }`}
+                aria-pressed={unit === "in"}
+                onClick={() => { if (unit === "cm") props.onToggleMeasurementUnit(); }}
+                className={`rounded px-1.5 py-0.5 transition ${unit === "in" ? "bg-white/15 text-white" : "text-white/50"}`}
               >
                 in
               </button>
               <button
                 type="button"
-                aria-pressed={measurementUnit === "cm"}
-                onClick={() => {
-                  if (measurementUnit === "in") props.onToggleMeasurementUnit();
-                }}
-                className={`rounded px-1.5 py-0.5 ${
-                  measurementUnit === "cm" ? "bg-white/15 text-white" : "text-white/55"
-                }`}
+                aria-pressed={unit === "cm"}
+                onClick={() => { if (unit === "in") props.onToggleMeasurementUnit(); }}
+                className={`rounded px-1.5 py-0.5 transition ${unit === "cm" ? "bg-white/15 text-white" : "text-white/50"}`}
               >
                 cm
               </button>
             </div>
           </div>
-
           <div className="grid grid-cols-3 gap-1.5">
-            <label className="space-y-1 text-[10px] text-white/60">
-              <span>Width</span>
-              <input
-                type="number"
-                min={measurementUnit === "cm" ? 20 : 8}
-                max={measurementUnit === "cm" ? 244 : 96}
-                step={0.5}
-                value={toDisplayDimension(tankDimensionsIn.widthIn, measurementUnit)}
-                onChange={(event) =>
-                  handleTankDimensionInput("widthIn", event.target.value)
-                }
-                className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs text-white outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-[10px] text-white/60">
-              <span>Depth</span>
-              <input
-                type="number"
-                min={measurementUnit === "cm" ? 20 : 8}
-                max={measurementUnit === "cm" ? 92 : 36}
-                step={0.5}
-                value={toDisplayDimension(tankDimensionsIn.depthIn, measurementUnit)}
-                onChange={(event) =>
-                  handleTankDimensionInput("depthIn", event.target.value)
-                }
-                className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs text-white outline-none"
-              />
-            </label>
-            <label className="space-y-1 text-[10px] text-white/60">
-              <span>Height</span>
-              <input
-                type="number"
-                min={measurementUnit === "cm" ? 20 : 8}
-                max={measurementUnit === "cm" ? 102 : 40}
-                step={0.5}
-                value={toDisplayDimension(tankDimensionsIn.heightIn, measurementUnit)}
-                onChange={(event) =>
-                  handleTankDimensionInput("heightIn", event.target.value)
-                }
-                className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs text-white outline-none"
-              />
-            </label>
+            {([
+              { key: "widthIn" as const, short: "W", maxCm: 244, maxIn: 96 },
+              { key: "depthIn" as const, short: "D", maxCm: 92, maxIn: 36 },
+              { key: "heightIn" as const, short: "H", maxCm: 102, maxIn: 40 },
+            ] as const).map(({ key, short, maxCm, maxIn }) => (
+              <label key={key} className="space-y-1 text-[10px] text-white/50">
+                <span>{short}</span>
+                <input
+                  type="number"
+                  min={unit === "cm" ? 20 : 8}
+                  max={unit === "cm" ? maxCm : maxIn}
+                  step={0.5}
+                  value={toDisplayDimension(tankDims[key], unit)}
+                  onChange={(e) => handleDimInput(key, e.target.value)}
+                  className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs tabular-nums text-white outline-none focus:border-white/25"
+                />
+              </label>
+            ))}
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
-            Common sizes
-          </div>
+          <SectionLabel>Common sizes</SectionLabel>
           <div className="grid grid-cols-2 gap-1.5">
             {props.tankDimensionPresets.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
                 onClick={() => props.onApplyTankDimensionPreset(preset.id)}
-                className={`rounded-md border px-2 py-1.5 text-left text-[10px] transition ${
-                  isTankPresetActive(preset, tankDimensionsIn)
-                    ? "border-cyan-300/60 bg-cyan-300/15 text-cyan-100"
-                    : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                className={`rounded-lg border px-2 py-1.5 text-left text-[10px] transition ${
+                  isTankPresetActive(preset, tankDims)
+                    ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-100"
+                    : "border-white/8 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
                 }`}
               >
                 <div className="font-semibold">{preset.label}</div>
-                <div className="text-[9px] text-white/45">
-                  {formatTankPresetDimensions(preset, measurementUnit)}
+                <div className="text-[9px] text-white/40">
+                  {formatTankPresetDimensions(preset, unit)}
                 </div>
               </button>
             ))}
           </div>
         </div>
+
         {props.templates.length > 0 ? (
           <>
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
-              Templates
-            </div>
+            <SectionLabel>Templates</SectionLabel>
             <div className="space-y-1.5">
               {props.templates.map((t) => (
                 <button
@@ -490,12 +451,10 @@ function StepPanel(props: BuilderWorkspaceProps) {
                   type="button"
                   onClick={() => props.onApplyTemplate(t.id)}
                   disabled={!t.available}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-left text-xs text-white/80 transition hover:bg-white/10 disabled:opacity-40"
+                  className="w-full rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-2 text-left text-xs text-white/80 transition hover:bg-white/[0.06] disabled:opacity-40"
                 >
                   <div className="font-semibold">{t.name}</div>
-                  <div className="mt-0.5 text-[10px] text-white/50">
-                    {t.description}
-                  </div>
+                  <div className="mt-0.5 text-[10px] text-white/45">{t.description}</div>
                 </button>
               ))}
             </div>
@@ -508,10 +467,9 @@ function StepPanel(props: BuilderWorkspaceProps) {
   if (step === "substrate") {
     return (
       <div className="space-y-3">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
-          Substrate
-        </div>
+        <SectionLabel>Substrate</SectionLabel>
         <SubstrateToolbar {...props.substrateControls} />
+        <SectionLabel>Products</SectionLabel>
         <AssetList
           search={props.search}
           onSearchChange={props.onSearchChange}
@@ -527,18 +485,16 @@ function StepPanel(props: BuilderWorkspaceProps) {
   if (step === "equipment") {
     return (
       <div className="space-y-3">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
-          Equipment
-        </div>
+        <SectionLabel>Equipment</SectionLabel>
         <div className="flex flex-wrap gap-1">
           {props.equipmentCategories.map((slug) => (
             <button
               key={slug}
               type="button"
               onClick={() => props.onEquipmentCategoryChange(slug)}
-              className={`rounded-full border px-2 py-1 text-[10px] font-semibold ${
+              className={`rounded-full border px-2 py-1 text-[10px] font-semibold transition ${
                 props.activeEquipmentCategory === slug
-                  ? "border-cyan-300/60 bg-cyan-300/15 text-cyan-200"
+                  ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-200"
                   : "border-white/10 text-white/50 hover:text-white/80"
               }`}
             >
@@ -561,9 +517,7 @@ function StepPanel(props: BuilderWorkspaceProps) {
   if (step === "hardscape" || step === "plants") {
     return (
       <div className="space-y-3">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
-          {step === "hardscape" ? "Hardscape" : "Plants"}
-        </div>
+        <SectionLabel>{step === "hardscape" ? "Hardscape" : "Plants"}</SectionLabel>
         <AssetList
           search={props.search}
           onSearchChange={props.onSearchChange}
@@ -578,43 +532,71 @@ function StepPanel(props: BuilderWorkspaceProps) {
 
   return (
     <div className="space-y-3">
-      <div className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
-        Review
-      </div>
-      <div className="space-y-1.5 text-xs text-white/70">
-        <div>
-          Tank size:{" "}
-          <span className="text-white">
-            {Math.round(props.canvasState.widthIn * 10) / 10}×
-            {Math.round(props.canvasState.depthIn * 10) / 10}×
-            {Math.round(props.canvasState.heightIn * 10) / 10} in
-          </span>
-        </div>
-        <div>Substrate: {props.substrateSelectionLabel}</div>
-        <div>Hardscape: {props.hardscapeCount}</div>
-        <div>Plants: {props.plantCount}</div>
-        <div>
-          Total:{" "}
-          <span className="font-semibold text-white">
-            {formatMoney(props.totalCents)}
-          </span>
-        </div>
-      </div>
-      {props.bomLines.length > 0 ? (
-        <div className="space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
-            BOM
+      <SectionLabel>Review</SectionLabel>
+
+      <div className="rounded-lg border border-white/8 bg-white/[0.03] p-2.5">
+        <div className="space-y-1.5 text-xs">
+          <div className="flex justify-between">
+            <span className="text-white/45">Tank</span>
+            <span className="tabular-nums text-white/85">
+              {Math.round(props.canvasState.widthIn * 10) / 10}{"\u00D7"}
+              {Math.round(props.canvasState.depthIn * 10) / 10}{"\u00D7"}
+              {Math.round(props.canvasState.heightIn * 10) / 10} in
+            </span>
           </div>
-          {props.bomLines.map((line, i) => (
+          <div className="flex justify-between">
+            <span className="text-white/45">Substrate</span>
+            <span className="text-white/70">{props.substrateSelectionLabel}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/45">Hardscape</span>
+            <span className="tabular-nums text-white/70">{props.hardscapeCount}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/45">Plants</span>
+            <span className="tabular-nums text-white/70">{props.plantCount}</span>
+          </div>
+          <div className="flex justify-between border-t border-white/8 pt-1.5">
+            <span className="font-semibold text-white/60">Total</span>
+            <span className="font-semibold tabular-nums text-white">
+              {formatMoney(props.totalCents)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {props.compatibilityEvaluations.length > 0 ? (
+        <div className="space-y-1.5">
+          <SectionLabel>Compatibility</SectionLabel>
+          {props.compatibilityEvaluations.map((ev) => (
             <div
-              key={i}
-              className="flex items-center justify-between text-[11px] text-white/60"
+              key={ev.ruleCode}
+              className={`rounded-lg border px-2.5 py-2 text-[11px] ${severityChip(ev.severity)}`}
             >
-              <span className="truncate pr-2">
+              <div className="font-medium">{ev.message}</div>
+              {ev.fixSuggestion ? (
+                <div className="mt-0.5 text-[10px] opacity-70">{ev.fixSuggestion}</div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {props.bomLines.length > 0 ? (
+        <div className="space-y-1.5">
+          <SectionLabel>Bill of materials</SectionLabel>
+          {props.bomLines.map((line) => (
+            <div
+              key={line.key}
+              className="flex items-center justify-between rounded-md border border-white/6 bg-white/[0.02] px-2 py-1.5 text-[11px]"
+            >
+              <span className="truncate pr-2 text-white/70">
                 {line.asset.name}
-                {line.quantity > 1 ? ` x${line.quantity}` : ""}
+                {line.quantity > 1 ? (
+                  <span className="ml-1 text-white/40">{"\u00D7"}{line.quantity}</span>
+                ) : null}
               </span>
-              <span className="shrink-0 text-white/80">
+              <span className="shrink-0 tabular-nums text-white/85">
                 {formatMoney(lineUnitPrice(line.asset) * line.quantity)}
               </span>
             </div>
@@ -625,35 +607,45 @@ function StepPanel(props: BuilderWorkspaceProps) {
   );
 }
 
-/* ── Right floating panel ── */
 function RightPanel(props: BuilderWorkspaceProps) {
   const dims = {
     widthIn: props.canvasState.widthIn,
     heightIn: props.canvasState.heightIn,
     depthIn: props.canvasState.depthIn,
   };
+  const volumeL =
+    Math.round(dims.widthIn * dims.depthIn * dims.heightIn * 0.004329 * 10) / 10;
 
   return (
     <div className="w-[160px] space-y-3">
-      <div className="space-y-2">
-        <DimRow label="Width" value={dims.widthIn} />
-        <DimRow label="Height" value={dims.heightIn} />
-        <DimRow label="Depth" value={dims.depthIn} />
+      <div className="space-y-1.5">
+        {([
+          { label: "W", value: dims.widthIn },
+          { label: "D", value: dims.depthIn },
+          { label: "H", value: dims.heightIn },
+        ] as const).map((d) => (
+          <div key={d.label} className="flex items-center justify-between text-xs">
+            <span className="text-white/35">{d.label}</span>
+            <span className="tabular-nums text-white/85">
+              {Math.round(d.value * 10) / 10}{" "}
+              <span className="text-white/35">in</span>
+            </span>
+          </div>
+        ))}
       </div>
-      <div className="border-t border-white/10 pt-2 text-center">
-        <div className="text-2xl font-bold tracking-tight text-white">
-          {Math.round(
-            dims.widthIn * dims.depthIn * dims.heightIn * 0.004329 * 10,
-          ) / 10}
+
+      <div className="rounded-lg border border-white/8 bg-white/[0.03] px-2 py-2 text-center">
+        <div className="text-2xl font-bold tabular-nums tracking-tight text-white">
+          {volumeL}
         </div>
-        <div className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
           Liters
         </div>
       </div>
 
       {props.selectedItem && props.selectedAsset ? (
-        <div className="border-t border-white/10 pt-2">
-          <div className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
+        <div className="rounded-lg border border-cyan-300/25 bg-cyan-300/[0.04] p-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
             Selected
           </div>
           <div className="mt-1 text-xs font-medium text-white/90">
@@ -662,17 +654,15 @@ function RightPanel(props: BuilderWorkspaceProps) {
           <div className="mt-2 flex flex-wrap gap-1">
             <button
               type="button"
-              onClick={() =>
-                props.onDuplicateCanvasItem(props.selectedItem!.id)
-              }
-              className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-white/60 hover:text-white"
+              onClick={() => props.onDuplicateCanvasItem(props.selectedItem!.id)}
+              className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-white/60 transition hover:bg-white/10 hover:text-white"
             >
               Dup
             </button>
             <button
               type="button"
               onClick={() => props.onRemoveCanvasItem(props.selectedItem!.id)}
-              className="rounded border border-red-400/30 px-1.5 py-0.5 text-[10px] text-red-300/70 hover:text-red-200"
+              className="rounded border border-red-400/25 px-1.5 py-0.5 text-[10px] text-red-300/70 transition hover:bg-red-400/10 hover:text-red-200"
             >
               Del
             </button>
@@ -683,19 +673,6 @@ function RightPanel(props: BuilderWorkspaceProps) {
   );
 }
 
-function DimRow(props: { label: string; value: number }) {
-  return (
-    <div className="flex items-center justify-between text-xs">
-      <span className="text-white/40">{props.label}</span>
-      <span className="font-medium text-white/90">
-        {Math.round(props.value * 10) / 10}{" "}
-        <span className="text-white/40">in</span>
-      </span>
-    </div>
-  );
-}
-
-/* ── Main component ── */
 export function BuilderWorkspace(props: BuilderWorkspaceProps) {
   const [panelOpen, setPanelOpen] = useState(true);
 
@@ -774,10 +751,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
           active={props.currentStep === stepId}
           done={props.stepCompletion[stepId]}
           disabled={!props.canNavigateToStep(stepId)}
-          onClick={() => {
-            props.onStepChange(stepId);
-            setPanelOpen(true);
-          }}
+          onClick={() => { props.onStepChange(stepId); setPanelOpen(true); }}
         />
       ))}
 
@@ -787,55 +761,52 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         label={"\u2630"}
         title={panelOpen ? "Close panel" : "Open panel"}
         active={panelOpen}
-        onClick={() => setPanelOpen((prev) => !prev)}
+        compact
+        onClick={() => setPanelOpen((p) => !p)}
       />
       <RailBtn
         label={"\u229E"}
-        title={
-          props.canvasState.sceneSettings.gridSnapEnabled
-            ? "Grid snap on"
-            : "Grid snap off"
-        }
+        title={props.canvasState.sceneSettings.gridSnapEnabled ? "Grid snap on" : "Grid snap off"}
         active={props.canvasState.sceneSettings.gridSnapEnabled}
+        compact
         onClick={props.onToggleGridSnap}
       />
       <RailBtn
         label={"\u2317"}
-        title={
-          props.canvasState.sceneSettings.measurementsVisible
-            ? "Hide measurements"
-            : "Show measurements"
-        }
+        title={props.canvasState.sceneSettings.measurementsVisible ? "Hide measurements" : "Show measurements"}
         active={props.canvasState.sceneSettings.measurementsVisible}
+        compact
         onClick={props.onToggleMeasurements}
       />
 
       <div className="flex-1" />
 
       <RailBtn
-        label={"\uD83D\uDCBE"}
+        label={props.saving ? "\u23F3" : "\u2913"}
         title="Save draft"
         disabled={props.saving}
+        compact
         onClick={props.onSaveDraft}
       />
       <RailBtn
         label="?"
         title="Keyboard shortcuts"
         active={props.shortcutsOverlayOpen}
+        compact
         onClick={props.onToggleShortcutsOverlay}
       />
     </>
   );
 
-  const growthTimelineIndex = growthTimelineSliderIndex(props.growthTimelineMonths);
+  const gti = growthTimelineSliderIndex(props.growthTimelineMonths);
 
-  const growthTimelineToolbar = (
+  const growthToolbar = (
     <div
       role="toolbar"
       aria-label="Plant growth timeline"
-      className="flex min-w-[250px] items-center gap-2 rounded-xl border border-white/10 bg-black/45 px-3 py-2 backdrop-blur-xl"
+      className="flex min-w-[250px] items-center gap-2.5 rounded-xl border border-white/8 bg-black/50 px-3 py-2 backdrop-blur-xl"
     >
-      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
         Growth
       </span>
       <input
@@ -843,29 +814,30 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         min={0}
         max={GROWTH_TIMELINE_MONTH_OPTIONS.length - 1}
         step={1}
-        value={growthTimelineIndex}
+        value={gti}
         aria-label="Plant growth timeline"
         aria-valuetext={`${props.growthTimelineMonths} months`}
-        onChange={(event) => {
-          const nextIndex = Number.parseInt(event.target.value, 10);
-          props.onGrowthTimelineMonthsChange(growthTimelineFromSliderIndex(nextIndex));
+        onChange={(e) => {
+          props.onGrowthTimelineMonthsChange(
+            growthTimelineFromSliderIndex(Number.parseInt(e.target.value, 10)),
+          );
         }}
         className="h-1 flex-1 accent-cyan-300"
       />
-      <div className="flex min-w-[76px] items-center justify-between text-[10px] text-white/70">
-        {GROWTH_TIMELINE_MONTH_OPTIONS.map((months) => (
+      <div className="flex min-w-[76px] items-center justify-between text-[10px]">
+        {GROWTH_TIMELINE_MONTH_OPTIONS.map((m) => (
           <button
-            key={months}
+            key={m}
             type="button"
-            onClick={() => props.onGrowthTimelineMonthsChange(months)}
+            onClick={() => props.onGrowthTimelineMonthsChange(m)}
             className={`rounded px-1 transition ${
-              props.growthTimelineMonths === months
-                ? "bg-cyan-200/20 text-cyan-100"
-                : "text-white/60 hover:text-white/85"
+              props.growthTimelineMonths === m
+                ? "bg-cyan-300/15 text-cyan-200"
+                : "text-white/45 hover:text-white/75"
             }`}
-            aria-pressed={props.growthTimelineMonths === months}
+            aria-pressed={props.growthTimelineMonths === m}
           >
-            {months}m
+            {m}m
           </button>
         ))}
       </div>
@@ -879,7 +851,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         iconRail={iconRail}
         floatingPanel={panelOpen ? <StepPanel {...props} /> : null}
         floatingRight={<RightPanel {...props} />}
-        bottomToolbar={growthTimelineToolbar}
+        bottomToolbar={growthToolbar}
       />
       <BuilderShortcutsOverlay
         open={props.shortcutsOverlayOpen}

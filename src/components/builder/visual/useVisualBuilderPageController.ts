@@ -536,7 +536,7 @@ export function useVisualBuilderPageController(
 
       setCurrentStep(nextStep);
       if (nextStep === "substrate") {
-        setToolMode("sculpt");
+        setToolMode("move");
         return;
       }
 

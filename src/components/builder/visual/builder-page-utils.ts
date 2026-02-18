@@ -46,8 +46,8 @@ export const STEP_META: Record<BuilderStepId, StepMeta> = {
   },
   substrate: {
     id: "substrate",
-    title: "Sculpt substrate",
-    summary: "Shape terrain with presets and brush controls. This is your composition foundation.",
+    title: "Shape substrate",
+    summary: "Pick a preset and drag the dots to shape your terrain.",
   },
   hardscape: {
     id: "hardscape",
