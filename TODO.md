@@ -585,7 +585,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Shareable URL with plant slugs as query params (`?plants=anubias-nana,java-fern`).
   - **Verify:** Select 3 plants. Comparison table renders with all parameters. Share URL — comparison loads from URL params.
 
-- [ ] **P11-3: Plant placement guide**
+- [x] **P11-3: Plant placement guide**
   - Create `/guides/plant-placement` page.
   - Interactive SVG diagram of a tank cross-section showing foreground, midground, and background zones.
   - Each zone lists recommended plants (pulled from `plants` table filtered by `placement` field).
