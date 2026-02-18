@@ -436,7 +436,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Warn when incompatible species are combined (e.g., shrimp + aggressive fish).
   - **Verify:** Add 10 neon tetras to a 20 gallon tank — shows ~40% stocked (green). Add 5 more large fish — goes to yellow/red.
 
-- [ ] **P7-6: Tools index page**
+- [x] **P7-6: Tools index page**
   - Create `/tools` page listing all calculators with descriptions and icons.
   - Each tool card links to its page.
   - Add to the main navigation (between Products and Builds).

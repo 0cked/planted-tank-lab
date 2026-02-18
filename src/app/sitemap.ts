@@ -34,6 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/products`, lastModified: now },
     { url: `${BASE_URL}/plants`, lastModified: now },
     { url: `${BASE_URL}/builds`, lastModified: now },
+    { url: `${BASE_URL}/tools`, lastModified: now },
     { url: `${BASE_URL}/tools/substrate-calculator`, lastModified: now },
     { url: `${BASE_URL}/tools/co2-calculator`, lastModified: now },
     { url: `${BASE_URL}/tools/lighting-calculator`, lastModified: now },

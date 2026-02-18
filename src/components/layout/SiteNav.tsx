@@ -13,6 +13,7 @@ const items: Item[] = [
   { href: "/builder", label: "Builder", isActive: (p) => p === "/builder" || p.startsWith("/builder/") },
   { href: "/products", label: "Products", isActive: (p) => p === "/products" || p.startsWith("/products/") },
   { href: "/plants", label: "Plants", isActive: (p) => p === "/plants" || p.startsWith("/plants/") },
+  { href: "/tools", label: "Tools", isActive: (p) => p === "/tools" || p.startsWith("/tools/") },
   { href: "/builds", label: "Builds", isActive: (p) => p === "/builds" || p.startsWith("/builds/") },
 ];
 
