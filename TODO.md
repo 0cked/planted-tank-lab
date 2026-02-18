@@ -445,7 +445,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 ### Phase 8 -- E-commerce Enhancement
 
-- [ ] **P8-1: Shopping list export**
+- [x] **P8-1: Shopping list export**
   - On the builder's BOM (bill of materials) panel, add an "Export shopping list" button.
   - Generate a formatted text list: item name, category, best price, retailer, and affiliate link.
   - Support copy-to-clipboard and download as .txt.

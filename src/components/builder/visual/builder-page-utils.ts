@@ -100,11 +100,134 @@ export function severityClasses(severity: Severity): string {
   }
 }
 
-export function lineUnitPrice(asset: VisualAsset | VisualTank): number {
+function lineUnitPriceOrNull(asset: VisualAsset | VisualTank): number | null {
   if ("estimatedUnitPriceCents" in asset && asset.estimatedUnitPriceCents != null) {
     return asset.priceCents ?? asset.estimatedUnitPriceCents;
   }
-  return asset.priceCents ?? 0;
+  return asset.priceCents ?? null;
+}
+
+export function lineUnitPrice(asset: VisualAsset | VisualTank): number {
+  return lineUnitPriceOrNull(asset) ?? 0;
+}
+
+function normalizeRetailerLabel(label: string): string {
+  const match = label.trim().match(/^(?:buy|shop)\s+(?:from|at)\s+(.+)$/i);
+  if (match?.[1]) {
+    return match[1].trim();
+  }
+
+  return label.trim();
+}
+
+function toAbsoluteUrl(url: string, baseUrl?: string): string {
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  if (!baseUrl) {
+    return url;
+  }
+
+  try {
+    return new URL(url, baseUrl).toString();
+  } catch {
+    return url;
+  }
+}
+
+function inferRetailerFromUrl(url: string, baseUrl?: string): string | null {
+  try {
+    const parsed = new URL(url, baseUrl ?? "https://plantedtanklab.com");
+    const hostname = parsed.hostname.replace(/^www\./i, "");
+    if (!hostname) return null;
+
+    if (hostname === "plantedtanklab.com" && parsed.pathname.startsWith("/go/")) {
+      return "Planted Tank Lab";
+    }
+
+    return hostname;
+  } catch {
+    return null;
+  }
+}
+
+function lineRetailerLinks(line: BomLine): VisualRetailerLink[] {
+  if (line.retailerLinks?.length) {
+    return line.retailerLinks;
+  }
+
+  if ("retailerLinks" in line.asset && Array.isArray(line.asset.retailerLinks)) {
+    return line.asset.retailerLinks;
+  }
+
+  return [];
+}
+
+function resolveBomAffiliateLink(line: BomLine, baseUrl?: string): string | null {
+  const retailerLinks = lineRetailerLinks(line);
+  const rawUrl = line.asset.goUrl ?? line.asset.purchaseUrl ?? retailerLinks[0]?.url ?? null;
+  if (!rawUrl) {
+    return null;
+  }
+
+  return toAbsoluteUrl(rawUrl, baseUrl);
+}
+
+function resolveBomRetailer(line: BomLine, affiliateLink: string | null, baseUrl?: string): string {
+  const retailerLinks = lineRetailerLinks(line);
+  const label = retailerLinks[0]?.label;
+  if (label) {
+    return normalizeRetailerLabel(label);
+  }
+
+  if (affiliateLink) {
+    return inferRetailerFromUrl(affiliateLink, baseUrl) ?? "No retailer listed";
+  }
+
+  return "No retailer listed";
+}
+
+export function formatBomShoppingList(params: {
+  lines: BomLine[];
+  totalCents: number;
+  baseUrl?: string;
+  generatedAt?: Date;
+}): string {
+  const generatedDate = params.generatedAt ?? new Date();
+  const generatedLabel = generatedDate.toISOString().slice(0, 10);
+
+  const linesSection =
+    params.lines.length === 0
+      ? "No items selected yet."
+      : params.lines
+          .map((line, index) => {
+            const bestPriceCents = lineUnitPriceOrNull(line.asset);
+            const bestPriceLabel = formatMoney(bestPriceCents);
+            const affiliateLink = resolveBomAffiliateLink(line, params.baseUrl);
+            const retailer = resolveBomRetailer(line, affiliateLink, params.baseUrl);
+            const lineTotal = formatMoney((bestPriceCents ?? 0) * line.quantity);
+
+            return [
+              `${index + 1}. ${line.asset.name}`,
+              `   Category: ${line.categoryName}`,
+              `   Quantity: ${line.quantity}`,
+              `   Best price: ${bestPriceLabel}`,
+              `   Retailer: ${retailer}`,
+              `   Affiliate link: ${affiliateLink ?? "No affiliate link available"}`,
+              `   Line total: ${lineTotal}`,
+            ].join("\n");
+          })
+          .join("\n\n");
+
+  return [
+    "Planted Tank Lab Shopping List",
+    `Generated: ${generatedLabel}`,
+    "",
+    linesSection,
+    "",
+    `Total estimated cost: ${formatMoney(params.totalCents)}`,
+  ].join("\n");
 }
 
 export function stepAllowsAsset(
