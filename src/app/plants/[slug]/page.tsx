@@ -4,6 +4,11 @@ import { notFound } from "next/navigation";
 
 import { SmartImage } from "@/components/SmartImage";
 import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-data";
+import {
+  buildPlantCareMetrics,
+  buildPlantCompatibleEquipmentLinks,
+  careToneClasses,
+} from "@/lib/plants/care-guide";
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 const BASE_URL = "https://plantedtanklab.com";
@@ -119,6 +124,24 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
     ...(optionalText(p.propagation) ? [{ label: "Propagation", value: optionalText(p.propagation)! }] : []),
     ...(optionalText(p.family) ? [{ label: "Family", value: optionalText(p.family)! }] : []),
   ];
+
+  const careMetrics = buildPlantCareMetrics({
+    difficulty: p.difficulty,
+    lightDemand: p.lightDemand,
+    co2Demand: p.co2Demand,
+    growthRate: p.growthRate,
+    placement: p.placement,
+    beginnerFriendly: p.beginnerFriendly,
+  });
+
+  const compatibleEquipmentLinks = buildPlantCompatibleEquipmentLinks({
+    difficulty: p.difficulty,
+    lightDemand: p.lightDemand,
+    co2Demand: p.co2Demand,
+    growthRate: p.growthRate,
+    placement: p.placement,
+    beginnerFriendly: p.beginnerFriendly,
+  });
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -301,6 +324,70 @@ export default async function PlantDetailPage(props: { params: Promise<{ slug: s
               Last updated: <span className="font-semibold text-neutral-700">{updated}</span>
             </div>
           ) : null}
+        </section>
+
+        <section className="ptl-surface p-6 lg:col-span-2">
+          <div className="text-sm font-medium">Structured care guide</div>
+          <p className="mt-2 text-sm text-neutral-600">
+            Quick-read care signals for this species. Green values are beginner-friendly, yellow values are moderate,
+            and red values are demanding.
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {careMetrics.map((metric) => {
+              const tone = careToneClasses(metric.tone);
+
+              return (
+                <article
+                  key={metric.id}
+                  className="rounded-xl border bg-white/70 p-4"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-neutral-900">{metric.label}</div>
+                      <div className="mt-0.5 text-xs text-neutral-600">{metric.hint}</div>
+                    </div>
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone.badge}`}>
+                      {metric.value}
+                    </span>
+                  </div>
+
+                  <div className={`mt-3 h-2 rounded-full ${tone.rail}`}>
+                    <div
+                      className={`h-full rounded-full ${tone.bar}`}
+                      style={{ width: `${metric.scorePercent}%` }}
+                    />
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="ptl-surface p-6 lg:col-span-2">
+          <div className="text-sm font-medium">Compatible with</div>
+          <p className="mt-2 text-sm text-neutral-600">
+            Recommended equipment categories based on this plant&apos;s light, CO₂, and growth profile.
+          </p>
+
+          <ul className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {compatibleEquipmentLinks.map((link) => (
+              <li key={link.id}>
+                <Link
+                  href={link.href}
+                  className="block rounded-xl border bg-white/70 p-4 transition hover:border-neutral-300 hover:bg-white"
+                  style={{ borderColor: "var(--ptl-border)" }}
+                >
+                  <div className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
+                    {link.categorySlug.replace(/_/g, " ")}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-neutral-900">{link.title}</div>
+                  <div className="mt-1 text-sm text-neutral-600">{link.description}</div>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       </div>
     </main>

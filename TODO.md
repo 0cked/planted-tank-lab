@@ -572,7 +572,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 > **Content-rich pages that drive organic SEO traffic and establish authority in the planted tank niche.**
 
-- [ ] **P11-1: Plant care guide pages**
+- [x] **P11-1: Plant care guide pages**
   - On each plant detail page (`/plants/[slug]`), add a structured care guide section below the existing info.
   - Pull data from the `plants` table fields (difficulty, light, co2, placement, growth_rate, etc.) and render as a visual care card: parameter name, value, and a colored indicator bar (green = easy, yellow = moderate, red = demanding).
   - Add a "Compatible with" section listing equipment categories that match the plant's requirements (e.g., high-light plants → link to high-output LED lights).
