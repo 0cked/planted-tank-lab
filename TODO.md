@@ -428,7 +428,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Show amounts in teaspoons and grams. Include a printable/copyable weekly schedule.
   - **Verify:** Enter 40 gallon tank, EI method. Calculator shows correct daily/weekly doses matching known EI targets.
 
-- [ ] **P7-5: Stocking calculator**
+- [x] **P7-5: Stocking calculator**
   - Create `/tools/stocking-calculator` page.
   - Inputs: tank volume, selected fish/shrimp species (from a predefined list of 30-40 common species with bioload ratings).
   - Output: stocking level as a percentage (0-100%+), with green/yellow/red indicator.
