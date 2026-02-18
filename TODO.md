@@ -412,7 +412,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Add a link to CO2 equipment on the `/products` page.
   - **Verify:** Enter 20 gallon, 30ppm CO2, 4 KH. Calculator shows correct pH target (~6.6) and consumption estimate.
 
-- [ ] **P7-3: Lighting calculator (PAR estimator)**
+- [x] **P7-3: Lighting calculator (PAR estimator)**
   - Create `/tools/lighting-calculator` page.
   - Inputs: light wattage, tank depth, light type (LED/T5/T8), mounting height above water.
   - Output: estimated PAR at substrate level using simplified inverse-square + absorption model.
