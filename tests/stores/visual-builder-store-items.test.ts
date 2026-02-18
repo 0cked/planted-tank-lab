@@ -344,5 +344,43 @@ describe("visual-builder-store canvas item actions", () => {
     expect(payload.canvasState.sceneSettings.growthTimelineMonths).toBe(6);
     expect(payload.canvasState.substrateMaterialGrid[0]).toBe(2);
     expect(payload.canvasState.substrateMaterialGrid[32]).toBe(1);
+
+    store.setCanvasDimensions({
+      widthIn: 40,
+      heightIn: 16,
+      depthIn: 20,
+    });
+
+    const stateAfterDimensionChange = useVisualBuilderStore.getState();
+    expect(stateAfterDimensionChange.canvasState.widthIn).toBe(40);
+    expect(stateAfterDimensionChange.canvasState.heightIn).toBe(16);
+    expect(stateAfterDimensionChange.canvasState.depthIn).toBe(20);
+
+    const payloadAfterDimensionChange = stateAfterDimensionChange.toBuildPayload({
+      bomLineItems: [],
+    });
+    expect(payloadAfterDimensionChange.canvasState.widthIn).toBe(40);
+    expect(payloadAfterDimensionChange.canvasState.heightIn).toBe(16);
+    expect(payloadAfterDimensionChange.canvasState.depthIn).toBe(20);
+
+    store.resetAll();
+
+    store.hydrateFromBuild({
+      buildId: "build-dimensions-1",
+      shareSlug: null,
+      name: payloadAfterDimensionChange.name,
+      description: payloadAfterDimensionChange.description,
+      tags: payloadAfterDimensionChange.tags,
+      isPublic: payloadAfterDimensionChange.isPublic,
+      tankId: payloadAfterDimensionChange.tankId,
+      canvasState: payloadAfterDimensionChange.canvasState,
+      lineItems: [],
+      flags: payloadAfterDimensionChange.flags,
+    });
+
+    const hydratedState = useVisualBuilderStore.getState();
+    expect(hydratedState.canvasState.widthIn).toBe(40);
+    expect(hydratedState.canvasState.heightIn).toBe(16);
+    expect(hydratedState.canvasState.depthIn).toBe(20);
   });
 });

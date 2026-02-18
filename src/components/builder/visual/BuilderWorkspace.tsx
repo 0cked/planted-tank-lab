@@ -87,6 +87,21 @@ export type BuilderWorkspaceProps = {
   hardscapeVolumeRatio: number | null;
   tanks: VisualTank[];
   onSelectTank: (tankId: string) => void;
+  onSetTankDimensions: (next: {
+    widthIn: number;
+    heightIn: number;
+    depthIn: number;
+  }) => void;
+  tankDimensionPresets: ReadonlyArray<{
+    id: "10g" | "20g-long" | "29g" | "40b" | "55g" | "75g";
+    label: string;
+    widthIn: number;
+    heightIn: number;
+    depthIn: number;
+  }>;
+  onApplyTankDimensionPreset: (
+    presetId: "10g" | "20g-long" | "29g" | "40b" | "55g" | "75g",
+  ) => void;
   templates: VisualBuildTemplateCatalogCard[];
   onApplyTemplate: (templateId: VisualBuildTemplateId) => void;
   equipmentCategories: string[];
@@ -215,6 +230,48 @@ function RailBtn(props: {
   );
 }
 
+function toDisplayDimension(inches: number, unit: "in" | "cm"): number {
+  const raw = unit === "cm" ? inches * 2.54 : inches;
+  return Math.round(raw * 10) / 10;
+}
+
+function toInchesFromDisplay(value: number, unit: "in" | "cm"): number {
+  if (unit === "cm") return value / 2.54;
+  return value;
+}
+
+function formatTankPresetDimensions(preset: {
+  widthIn: number;
+  heightIn: number;
+  depthIn: number;
+}, unit: "in" | "cm"): string {
+  const width = toDisplayDimension(preset.widthIn, unit);
+  const depth = toDisplayDimension(preset.depthIn, unit);
+  const height = toDisplayDimension(preset.heightIn, unit);
+
+  return `${width}×${depth}×${height} ${unit}`;
+}
+
+function isTankPresetActive(
+  preset: {
+    widthIn: number;
+    heightIn: number;
+    depthIn: number;
+  },
+  dimensions: {
+    widthIn: number;
+    heightIn: number;
+    depthIn: number;
+  },
+): boolean {
+  const tolerance = 0.01;
+  return (
+    Math.abs(preset.widthIn - dimensions.widthIn) <= tolerance &&
+    Math.abs(preset.heightIn - dimensions.heightIn) <= tolerance &&
+    Math.abs(preset.depthIn - dimensions.depthIn) <= tolerance
+  );
+}
+
 /* ── Asset list (shared) ── */
 function AssetList(props: {
   search: string;
@@ -292,6 +349,25 @@ function AssetList(props: {
 /* ── Floating step panel ── */
 function StepPanel(props: BuilderWorkspaceProps) {
   const step = props.currentStep;
+  const measurementUnit = props.canvasState.sceneSettings.measurementUnit;
+  const tankDimensionsIn = {
+    widthIn: props.canvasState.widthIn,
+    heightIn: props.canvasState.heightIn,
+    depthIn: props.canvasState.depthIn,
+  };
+
+  const handleTankDimensionInput = (
+    key: "widthIn" | "heightIn" | "depthIn",
+    value: string,
+  ) => {
+    const parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+
+    props.onSetTankDimensions({
+      ...tankDimensionsIn,
+      [key]: toInchesFromDisplay(parsed, measurementUnit),
+    });
+  };
 
   if (step === "tank") {
     return (
@@ -299,18 +375,109 @@ function StepPanel(props: BuilderWorkspaceProps) {
         <div className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
           Tank
         </div>
-        <select
-          value={props.selectedTank?.id ?? ""}
-          onChange={(e) => props.onSelectTank(e.target.value)}
-          className="w-full rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-sm text-white outline-none"
-        >
-          {props.tanks.map((tank) => (
-            <option key={tank.id} value={tank.id}>
-              {tank.name} ({tank.widthIn}&times;{tank.depthIn}&times;
-              {tank.heightIn})
-            </option>
-          ))}
-        </select>
+        <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-2.5">
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-white/45">
+              Dimensions
+            </div>
+            <div className="inline-flex rounded-md border border-white/10 bg-black/25 p-0.5 text-[10px]">
+              <button
+                type="button"
+                aria-pressed={measurementUnit === "in"}
+                onClick={() => {
+                  if (measurementUnit === "cm") props.onToggleMeasurementUnit();
+                }}
+                className={`rounded px-1.5 py-0.5 ${
+                  measurementUnit === "in" ? "bg-white/15 text-white" : "text-white/55"
+                }`}
+              >
+                in
+              </button>
+              <button
+                type="button"
+                aria-pressed={measurementUnit === "cm"}
+                onClick={() => {
+                  if (measurementUnit === "in") props.onToggleMeasurementUnit();
+                }}
+                className={`rounded px-1.5 py-0.5 ${
+                  measurementUnit === "cm" ? "bg-white/15 text-white" : "text-white/55"
+                }`}
+              >
+                cm
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5">
+            <label className="space-y-1 text-[10px] text-white/60">
+              <span>Width</span>
+              <input
+                type="number"
+                min={measurementUnit === "cm" ? 20 : 8}
+                max={measurementUnit === "cm" ? 244 : 96}
+                step={0.5}
+                value={toDisplayDimension(tankDimensionsIn.widthIn, measurementUnit)}
+                onChange={(event) =>
+                  handleTankDimensionInput("widthIn", event.target.value)
+                }
+                className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs text-white outline-none"
+              />
+            </label>
+            <label className="space-y-1 text-[10px] text-white/60">
+              <span>Depth</span>
+              <input
+                type="number"
+                min={measurementUnit === "cm" ? 20 : 8}
+                max={measurementUnit === "cm" ? 92 : 36}
+                step={0.5}
+                value={toDisplayDimension(tankDimensionsIn.depthIn, measurementUnit)}
+                onChange={(event) =>
+                  handleTankDimensionInput("depthIn", event.target.value)
+                }
+                className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs text-white outline-none"
+              />
+            </label>
+            <label className="space-y-1 text-[10px] text-white/60">
+              <span>Height</span>
+              <input
+                type="number"
+                min={measurementUnit === "cm" ? 20 : 8}
+                max={measurementUnit === "cm" ? 102 : 40}
+                step={0.5}
+                value={toDisplayDimension(tankDimensionsIn.heightIn, measurementUnit)}
+                onChange={(event) =>
+                  handleTankDimensionInput("heightIn", event.target.value)
+                }
+                className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs text-white outline-none"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
+            Common sizes
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {props.tankDimensionPresets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => props.onApplyTankDimensionPreset(preset.id)}
+                className={`rounded-md border px-2 py-1.5 text-left text-[10px] transition ${
+                  isTankPresetActive(preset, tankDimensionsIn)
+                    ? "border-cyan-300/60 bg-cyan-300/15 text-cyan-100"
+                    : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                }`}
+              >
+                <div className="font-semibold">{preset.label}</div>
+                <div className="text-[9px] text-white/45">
+                  {formatTankPresetDimensions(preset, measurementUnit)}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
         {props.templates.length > 0 ? (
           <>
             <div className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
@@ -416,9 +583,11 @@ function StepPanel(props: BuilderWorkspaceProps) {
       </div>
       <div className="space-y-1.5 text-xs text-white/70">
         <div>
-          Tank:{" "}
+          Tank size:{" "}
           <span className="text-white">
-            {props.selectedTank?.name ?? "None"}
+            {Math.round(props.canvasState.widthIn * 10) / 10}×
+            {Math.round(props.canvasState.depthIn * 10) / 10}×
+            {Math.round(props.canvasState.heightIn * 10) / 10} in
           </span>
         </div>
         <div>Substrate: {props.substrateSelectionLabel}</div>
@@ -458,20 +627,23 @@ function StepPanel(props: BuilderWorkspaceProps) {
 
 /* ── Right floating panel ── */
 function RightPanel(props: BuilderWorkspaceProps) {
-  const tank = props.selectedTank;
-  if (!tank) return null;
+  const dims = {
+    widthIn: props.canvasState.widthIn,
+    heightIn: props.canvasState.heightIn,
+    depthIn: props.canvasState.depthIn,
+  };
 
   return (
     <div className="w-[160px] space-y-3">
       <div className="space-y-2">
-        <DimRow label="Width" value={tank.widthIn} />
-        <DimRow label="Height" value={tank.heightIn} />
-        <DimRow label="Depth" value={tank.depthIn} />
+        <DimRow label="Width" value={dims.widthIn} />
+        <DimRow label="Height" value={dims.heightIn} />
+        <DimRow label="Depth" value={dims.depthIn} />
       </div>
       <div className="border-t border-white/10 pt-2 text-center">
         <div className="text-2xl font-bold tracking-tight text-white">
           {Math.round(
-            tank.widthIn * tank.depthIn * tank.heightIn * 0.004329 * 10,
+            dims.widthIn * dims.depthIn * dims.heightIn * 0.004329 * 10,
           ) / 10}
         </div>
         <div className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
@@ -516,7 +688,7 @@ function DimRow(props: { label: string; value: number }) {
     <div className="flex items-center justify-between text-xs">
       <span className="text-white/40">{props.label}</span>
       <span className="font-medium text-white/90">
-        {props.value}{" "}
+        {Math.round(props.value * 10) / 10}{" "}
         <span className="text-white/40">in</span>
       </span>
     </div>

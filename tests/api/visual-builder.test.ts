@@ -97,9 +97,9 @@ describe("tRPC visualBuilder router", () => {
       tankId: tank!.id,
       canvasState: {
         version: 4,
-        widthIn: tank!.widthIn,
-        heightIn: tank!.heightIn,
-        depthIn: tank!.depthIn,
+        widthIn: 40,
+        heightIn: 16,
+        depthIn: 20,
         substrateHeightfield: Array.from({ length: 32 * 32 }, () => 1.1),
         substrateMaterialGrid: Array.from({ length: 32 * 32 }, (_, index) =>
           index < 32 * 16 ? 1 : 0,
@@ -125,6 +125,9 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.initialState.canvasState.sceneSettings.lightingSimulationEnabled).toBe(false);
     expect(loaded.initialState.canvasState.sceneSettings.lightMountHeightIn).toBe(4);
     expect(loaded.initialState.canvasState.sceneSettings.growthTimelineMonths).toBe(1);
+    expect(loaded.initialState.canvasState.widthIn).toBe(40);
+    expect(loaded.initialState.canvasState.heightIn).toBe(16);
+    expect(loaded.initialState.canvasState.depthIn).toBe(20);
     expect(loaded.initialState.canvasState.substrateMaterialGrid[0]).toBe(1);
     expect(loaded.initialState.canvasState.substrateMaterialGrid[32 * 20]).toBe(0);
 

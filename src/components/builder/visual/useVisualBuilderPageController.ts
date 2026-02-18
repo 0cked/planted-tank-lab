@@ -59,6 +59,28 @@ export type InitialBuildResponse = RouterOutputs["visualBuilder"]["getByShareSlu
 const MAX_THUMBNAIL_WIDTH = 960;
 const VISUAL_BUILD_TEMPLATE_CARDS = getVisualBuildTemplateCards();
 
+export type TankDimensionPreset = {
+  id: "10g" | "20g-long" | "29g" | "40b" | "55g" | "75g";
+  label: string;
+  widthIn: number;
+  heightIn: number;
+  depthIn: number;
+};
+
+export const TANK_DIMENSION_PRESETS: ReadonlyArray<TankDimensionPreset> = [
+  { id: "10g", label: "10g", widthIn: 20, heightIn: 12, depthIn: 10 },
+  { id: "20g-long", label: "20g Long", widthIn: 30, heightIn: 12, depthIn: 12 },
+  { id: "29g", label: "29g", widthIn: 30, heightIn: 18, depthIn: 12 },
+  { id: "40b", label: "40B", widthIn: 36, heightIn: 16, depthIn: 18 },
+  { id: "55g", label: "55g", widthIn: 48, heightIn: 21, depthIn: 13 },
+  { id: "75g", label: "75g", widthIn: 48, heightIn: 21, depthIn: 18 },
+] as const;
+
+function clampTankDimension(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(max, value));
+}
+
 function captureSceneThumbnailDataUrl(canvas: HTMLCanvasElement | null): string | undefined {
   if (!canvas) return undefined;
 
@@ -149,6 +171,7 @@ export function useVisualBuilderPageController(
   const toggleTag = useVisualBuilderStore((state) => state.toggleTag);
   const setPublic = useVisualBuilderStore((state) => state.setPublic);
   const setTank = useVisualBuilderStore((state) => state.setTank);
+  const setCanvasDimensions = useVisualBuilderStore((state) => state.setCanvasDimensions);
   const setSubstrateHeightfield = useVisualBuilderStore((state) => state.setSubstrateHeightfield);
   const setSubstrateMaterialGrid = useVisualBuilderStore((state) => state.setSubstrateMaterialGrid);
   const beginSubstrateStroke = useVisualBuilderStore((state) => state.beginSubstrateStroke);
@@ -379,9 +402,9 @@ export function useVisualBuilderPageController(
 
   const substrateVolume = useMemo(() => {
     return estimateSubstrateVolume({
-      tankWidthIn: selectedTank?.widthIn ?? canvasState.widthIn,
-      tankDepthIn: selectedTank?.depthIn ?? canvasState.depthIn,
-      tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
+      tankWidthIn: canvasState.widthIn,
+      tankDepthIn: canvasState.depthIn,
+      tankHeightIn: canvasState.heightIn,
       heightfield: canvasState.substrateHeightfield,
     });
   }, [
@@ -389,9 +412,6 @@ export function useVisualBuilderPageController(
     canvasState.heightIn,
     canvasState.substrateHeightfield,
     canvasState.widthIn,
-    selectedTank?.depthIn,
-    selectedTank?.heightIn,
-    selectedTank?.widthIn,
   ]);
 
   const substrateBagVolumeLiters = selectedSubstrateAsset?.bagVolumeLiters ?? 8;
@@ -807,7 +827,7 @@ export function useVisualBuilderPageController(
 
   const substrateContour = substrateContourPercentages({
     heightfield: canvasState.substrateHeightfield,
-    tankHeightIn: selectedTank?.heightIn ?? canvasState.heightIn,
+    tankHeightIn: canvasState.heightIn,
   });
 
   const canSceneTools = currentStep === "substrate" || currentStep === "hardscape" || currentStep === "plants";
@@ -820,6 +840,31 @@ export function useVisualBuilderPageController(
       widthIn: tank.widthIn,
       heightIn: tank.heightIn,
       depthIn: tank.depthIn,
+    });
+    triggerCameraIntent({ type: "reframe" });
+  };
+
+  const handleSetTankDimensions = (next: {
+    widthIn: number;
+    heightIn: number;
+    depthIn: number;
+  }) => {
+    setCanvasDimensions({
+      widthIn: clampTankDimension(next.widthIn, 8, 96),
+      heightIn: clampTankDimension(next.heightIn, 8, 40),
+      depthIn: clampTankDimension(next.depthIn, 8, 36),
+    });
+    triggerCameraIntent({ type: "reframe" });
+  };
+
+  const handleApplyTankDimensionPreset = (presetId: TankDimensionPreset["id"]) => {
+    const preset = TANK_DIMENSION_PRESETS.find((candidate) => candidate.id === presetId);
+    if (!preset) return;
+
+    handleSetTankDimensions({
+      widthIn: preset.widthIn,
+      heightIn: preset.heightIn,
+      depthIn: preset.depthIn,
     });
   };
 
@@ -990,6 +1035,9 @@ export function useVisualBuilderPageController(
     hardscapeVolumeRatio: compatibility.hardscapeVolumeRatio,
     tanks: catalogQuery.data?.tanks ?? [],
     onSelectTank: handleSelectTank,
+    onSetTankDimensions: handleSetTankDimensions,
+    tankDimensionPresets: TANK_DIMENSION_PRESETS,
+    onApplyTankDimensionPreset: handleApplyTankDimensionPreset,
     templates: templateCards,
     onApplyTemplate: handleApplyTemplate,
     equipmentCategories,

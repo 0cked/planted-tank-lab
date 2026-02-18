@@ -550,7 +550,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Render using vertex colors on the substrate mesh, blending at zone boundaries.
   - **Verify:** Paint the back half as soil (dark) and front as sand (light). Boundary blends smoothly. Save and reload — materials persist.
 
-- [ ] **P10-4: Tank dimension customizer**
+- [x] **P10-4: Tank dimension customizer**
   - Replace the current fixed tank size presets with a custom dimension input.
   - Three sliders or number inputs: width, height, depth (in inches, with cm conversion).
   - Common presets as quick-select buttons: 10g (20x10x12), 20g Long (30x12x12), 29g (30x12x18), 40B (36x18x16), 55g (48x13x21), 75g (48x18x21).

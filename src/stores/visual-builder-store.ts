@@ -83,6 +83,7 @@ type VisualBuilderState = {
   toggleTag: (tag: BuildTagSlug) => void;
   setPublic: (value: boolean) => void;
   setTank: (tankId: string, dims: { widthIn: number; heightIn: number; depthIn: number }) => void;
+  setCanvasDimensions: (dims: { widthIn: number; heightIn: number; depthIn: number }) => void;
   setSubstrateHeightfield: (next: SubstrateHeightfield) => void;
   setSubstrateMaterialGrid: (next: SubstrateMaterialGrid) => void;
   beginSubstrateStroke: () => void;
@@ -706,6 +707,20 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
       setTank: (tankId, dims) =>
         set((state) => ({
           tankId,
+          canvasState: normalizeCanvasState({
+            widthIn: Math.max(1, dims.widthIn),
+            heightIn: Math.max(1, dims.heightIn),
+            depthIn: Math.max(1, dims.depthIn),
+            substrateHeightfield: state.canvasState.substrateHeightfield,
+            substrateMaterialGrid: state.canvasState.substrateMaterialGrid,
+            sceneSettings: state.canvasState.sceneSettings,
+            items: state.canvasState.items,
+          }),
+          ...clearSubstrateHistoryState(),
+        })),
+
+      setCanvasDimensions: (dims) =>
+        set((state) => ({
           canvasState: normalizeCanvasState({
             widthIn: Math.max(1, dims.widthIn),
             heightIn: Math.max(1, dims.heightIn),

@@ -543,10 +543,23 @@ function transformHandleRadius(renderItem: SceneRenderItem): number {
 }
 
 function normalizeDims(tank: VisualTank | null, canvasState: VisualCanvasState): SceneDims {
+  const widthIn =
+    Number.isFinite(canvasState.widthIn) && canvasState.widthIn > 0
+      ? canvasState.widthIn
+      : tank?.widthIn ?? 24;
+  const heightIn =
+    Number.isFinite(canvasState.heightIn) && canvasState.heightIn > 0
+      ? canvasState.heightIn
+      : tank?.heightIn ?? 14;
+  const depthIn =
+    Number.isFinite(canvasState.depthIn) && canvasState.depthIn > 0
+      ? canvasState.depthIn
+      : tank?.depthIn ?? 12;
+
   return {
-    widthIn: tank?.widthIn ?? canvasState.widthIn,
-    heightIn: tank?.heightIn ?? canvasState.heightIn,
-    depthIn: tank?.depthIn ?? canvasState.depthIn,
+    widthIn,
+    heightIn,
+    depthIn,
   };
 }
 
