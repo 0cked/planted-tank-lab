@@ -17,6 +17,10 @@ import {
 import type * as fullSchema from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/server/trpc/trpc";
 import { getDesignLibraryAssets } from "@/server/visual/design-asset-library";
+import {
+  clampLightMountHeightIn,
+  DEFAULT_LIGHT_MOUNT_HEIGHT_IN,
+} from "@/components/builder/visual/light-simulation";
 import { buildTagSlugSchema, normalizeBuildTagSlugs } from "@/lib/build-tags";
 import {
   createFlatSubstrateHeightfield,
@@ -93,6 +97,8 @@ const sceneSettingsSchema = z.object({
   measurementUnit: z.enum(["in", "cm"]).optional(),
   glassWallsEnabled: z.boolean().optional(),
   ambientParticlesEnabled: z.boolean().optional(),
+  lightingSimulationEnabled: z.boolean().optional(),
+  lightMountHeightIn: z.number().min(0).max(24).optional(),
   audioEnabled: z.boolean().optional(),
   cameraPreset: z.enum(["step", "free"]).optional(),
 });
@@ -536,6 +542,11 @@ function normalizeSceneSettings(
     measurementUnit: source.measurementUnit === "cm" ? "cm" : "in",
     glassWallsEnabled: source.glassWallsEnabled ?? qualityTier !== "low",
     ambientParticlesEnabled: source.ambientParticlesEnabled ?? qualityTier !== "low",
+    lightingSimulationEnabled: source.lightingSimulationEnabled ?? false,
+    lightMountHeightIn:
+      source.lightMountHeightIn == null
+        ? DEFAULT_LIGHT_MOUNT_HEIGHT_IN
+        : clampLightMountHeightIn(source.lightMountHeightIn),
     audioEnabled: source.audioEnabled ?? false,
     cameraPreset: source.cameraPreset === "free" ? "free" : "step",
   };

@@ -2,6 +2,10 @@ import { nanoid } from "nanoid";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import {
+  clampLightMountHeightIn,
+  DEFAULT_LIGHT_MOUNT_HEIGHT_IN,
+} from "@/components/builder/visual/light-simulation";
 import type {
   SubstrateHeightfield,
   VisualAnchorType,
@@ -332,6 +336,8 @@ function normalizeSceneSettings(input: Partial<VisualSceneSettings> | undefined)
     measurementUnit: next.measurementUnit === "cm" ? "cm" : "in",
     glassWallsEnabled: next.glassWallsEnabled ?? qualityTier !== "low",
     ambientParticlesEnabled: next.ambientParticlesEnabled ?? qualityTier !== "low",
+    lightingSimulationEnabled: next.lightingSimulationEnabled ?? false,
+    lightMountHeightIn: clampLightMountHeightIn(next.lightMountHeightIn),
     audioEnabled: next.audioEnabled ?? false,
     cameraPreset,
   };
@@ -568,6 +574,8 @@ const initialCanvasState: VisualCanvasState = {
     measurementUnit: "in",
     glassWallsEnabled: true,
     ambientParticlesEnabled: true,
+    lightingSimulationEnabled: false,
+    lightMountHeightIn: DEFAULT_LIGHT_MOUNT_HEIGHT_IN,
     audioEnabled: false,
     cameraPreset: "step",
   },
@@ -1185,7 +1193,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
     }),
     {
       name: "ptl-visual-builder-v1",
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => localStorage),
       migrate: (persistedState: unknown) => {
         const source = persistedState as Partial<VisualBuilderState> | undefined;

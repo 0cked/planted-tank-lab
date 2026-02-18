@@ -17,6 +17,7 @@ type CompatibilityEvaluation = {
 type BuilderRightSidebarProps = {
   sceneSettings: VisualSceneSettings;
   autoQualityTier: BuilderSceneQualityTier;
+  selectedLightAsset: VisualAsset | null;
   onSceneSettingsChange: (patch: Partial<VisualSceneSettings>) => void;
   onReframe: () => void;
   onResetView: () => void;
@@ -170,6 +171,7 @@ export function BuilderRightSidebar(props: BuilderRightSidebarProps) {
       <QualitySettings
         sceneSettings={props.sceneSettings}
         autoQualityTier={props.autoQualityTier}
+        selectedLightAsset={props.selectedLightAsset}
         onSceneSettingsChange={props.onSceneSettingsChange}
         onReframe={props.onReframe}
         onResetView={props.onResetView}

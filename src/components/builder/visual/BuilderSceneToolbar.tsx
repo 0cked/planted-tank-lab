@@ -53,22 +53,6 @@ export function BuilderSceneToolbar(props: BuilderSceneToolbarProps) {
         </button>
       ))}
 
-      {props.currentStep === "substrate" ? (
-        <button
-          type="button"
-          onClick={() => props.onToolModeChange("sculpt")}
-          aria-label="Sculpt tool"
-          aria-pressed={props.toolMode === "sculpt"}
-          className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
-            props.toolMode === "sculpt"
-              ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
-              : "border-white/20 bg-slate-950/70 text-slate-200"
-          }`}
-        >
-          Sculpt
-        </button>
-      ) : null}
-
       {props.placementAssetArmed ? (
         <>
           <label className="ml-1 text-[11px] text-slate-200">

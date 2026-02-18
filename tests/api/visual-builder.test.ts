@@ -117,6 +117,8 @@ describe("tRPC visualBuilder router", () => {
     const loaded = await anon.visualBuilder.getByShareSlug({ shareSlug: saved.shareSlug });
     expect(loaded.initialState.tags).toEqual(["iwagumi", "nature"]);
     expect(loaded.build.tags).toEqual(["iwagumi", "nature"]);
+    expect(loaded.initialState.canvasState.sceneSettings.lightingSimulationEnabled).toBe(false);
+    expect(loaded.initialState.canvasState.sceneSettings.lightMountHeightIn).toBe(4);
 
     const tagRows = await db
       .select({ tagSlug: buildTags.tagSlug })

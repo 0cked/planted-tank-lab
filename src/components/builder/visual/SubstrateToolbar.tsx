@@ -50,52 +50,9 @@ export function SubstrateToolbar(props: SubstrateToolbarProps) {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <label className="text-[11px] text-slate-200">
-          Tool
-          <select
-            value={props.sculptMode}
-            aria-label="Substrate sculpting tool"
-            onChange={(event) => props.onSculptModeChange(event.target.value as SubstrateBrushMode)}
-            className="mt-1 w-full rounded-lg border border-white/20 bg-slate-950/70 px-2 py-1 text-[11px] text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-          >
-            <option value="raise">Raise</option>
-            <option value="lower">Lower</option>
-            <option value="smooth">Smooth</option>
-            <option value="erode">Erode</option>
-          </select>
-        </label>
-
-        <label className="text-[11px] text-slate-200">
-          Brush size ({(props.sculptBrushSize * 100).toFixed(0)}%)
-          <input
-            type="range"
-            min={0.06}
-            max={0.56}
-            step={0.01}
-            value={props.sculptBrushSize}
-            aria-label="Substrate brush size"
-            aria-valuetext={`${(props.sculptBrushSize * 100).toFixed(0)} percent`}
-            onChange={(event) => props.onSculptBrushSizeChange(Number(event.target.value))}
-            className="mt-1 w-full"
-          />
-        </label>
+      <div className="rounded-lg border border-white/10 bg-slate-950/40 px-2.5 py-2 text-[10px] leading-relaxed text-slate-300">
+        Drag the dots on the substrate up or down to shape your terrain.
       </div>
-
-      <label className="block text-[11px] text-slate-200">
-        Brush strength ({(props.sculptStrength * 100).toFixed(0)}%)
-        <input
-          type="range"
-          min={0.05}
-          max={1}
-          step={0.01}
-          value={props.sculptStrength}
-          aria-label="Substrate brush strength"
-          aria-valuetext={`${(props.sculptStrength * 100).toFixed(0)} percent`}
-          onChange={(event) => props.onSculptStrengthChange(Number(event.target.value))}
-          className="mt-1 w-full"
-        />
-      </label>
 
       <div className="rounded-lg border border-white/15 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-200">
         Fill target: {props.substrateVolumeLiters.toFixed(1)} L

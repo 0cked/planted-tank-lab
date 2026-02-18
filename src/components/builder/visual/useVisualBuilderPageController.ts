@@ -495,13 +495,23 @@ export function useVisualBuilderPageController(
     return next;
   }, [assetsById, selectedProductByCategory]);
 
+  const selectedLightAsset = useMemo(() => {
+    const lightId = selectedProductByCategory.light;
+    if (!lightId) return null;
+
+    const asset = assetsById.get(lightId);
+    if (!asset || asset.categorySlug !== "light") return null;
+
+    return asset;
+  }, [assetsById, selectedProductByCategory.light]);
+
   const applyStepChange = useCallback(
     (nextStep: BuilderStepId) => {
       cameraEvidence.recordStepTransition(nextStep);
 
       setCurrentStep(nextStep);
       if (nextStep === "substrate") {
-        setToolMode("sculpt");
+        setToolMode("move");
         return;
       }
 
@@ -767,10 +777,6 @@ export function useVisualBuilderPageController(
         return;
       }
 
-      if (keyLower === "b" && currentStep === "substrate") {
-        event.preventDefault();
-        setToolMode((previous) => (previous === "sculpt" ? "move" : "sculpt"));
-      }
     };
 
     window.addEventListener("keydown", handleKeyboardShortcut);
@@ -959,6 +965,7 @@ export function useVisualBuilderPageController(
     sculptBrushSize,
     sculptStrength,
     equipmentSceneAssets,
+    selectedLightAsset,
     cameraIntent,
     canSceneTools,
     autoQualityTier,
@@ -1080,6 +1087,15 @@ export function useVisualBuilderPageController(
         },
       });
     },
+    // Step navigation (for icon rail)
+    stepCompletion,
+    canNavigateToStep,
+    onStepChange: applyStepChange,
+    // Metadata actions (for icon rail save button)
+    onSaveDraft: () => {
+      void saveBuild(false);
+    },
+    saving: saveMutation.isPending,
   };
 
   const diagnosticsPanelProps: ComponentProps<typeof CameraDiagnosticsPanel> | null =

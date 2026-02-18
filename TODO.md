@@ -527,7 +527,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 > **High-impact features that make Planted Tank Lab uniquely valuable — no other aquascaping tool offers these.**
 
-- [ ] **P10-1: Lighting PAR distribution heatmap**
+- [x] **P10-1: Lighting PAR distribution heatmap**
   - In the builder, add a "Light simulation" toggle that overlays a color heatmap on the substrate.
   - Input: the selected light fixture's wattage and type (from the build's selected products), tank depth, mounting height (new field in scene settings).
   - Calculate PAR at each substrate grid point using simplified inverse-square with depth absorption: `PAR = (watts * efficiency) / (4π * distance²) * exp(-absorption * depth)`.

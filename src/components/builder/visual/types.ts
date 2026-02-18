@@ -130,6 +130,8 @@ export type VisualSceneSettings = {
   measurementUnit: "in" | "cm";
   glassWallsEnabled: boolean;
   ambientParticlesEnabled: boolean;
+  lightingSimulationEnabled: boolean;
+  lightMountHeightIn: number;
   audioEnabled: boolean;
   cameraPreset: "step" | "free";
 };

@@ -46,6 +46,13 @@ import {
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
 import {
+  clampLightMountHeightIn,
+  estimateParAtSubstratePoint,
+  resolveLightSimulationSource,
+  writeParHeatmapColor,
+  type LightSimulationSource,
+} from "@/components/builder/visual/light-simulation";
+import {
   BLOOM_INTENSITY,
   BLOOM_LUMINANCE_SMOOTHING,
   BLOOM_LUMINANCE_THRESHOLD,
@@ -60,6 +67,7 @@ import {
   normalizeSubstrateHeightfield,
   SUBSTRATE_HEIGHTFIELD_RESOLUTION,
 } from "@/lib/visual/substrate";
+import { SubstrateControlPoints } from "@/components/builder/visual/SubstrateControlPoints";
 
 export type BuilderSceneStep =
   | "tank"
@@ -148,6 +156,9 @@ type VisualBuilderSceneProps = {
   postprocessingEnabled: boolean;
   glassWallsEnabled: boolean;
   ambientParticlesEnabled: boolean;
+  lightingSimulationEnabled: boolean;
+  lightMountHeightIn: number;
+  selectedLightAsset: VisualAsset | null;
   sculptMode: SubstrateBrushMode;
   sculptBrushSize: number;
   sculptStrength: number;
@@ -232,6 +243,8 @@ const SUBSTRATE_DEFAULT_DEPTH_IN = 1.6;
 const SUBSTRATE_MIN_DEPTH_IN = 0.2;
 const SUBSTRATE_MAX_DEPTH_RATIO = 0.62;
 const SUBSTRATE_HEIGHT_EPSILON = 0.0001;
+const SUBSTRATE_HEATMAP_Y_OFFSET = 0.015;
+const SUBSTRATE_HEATMAP_OPACITY = 0.64;
 const SUBSTRATE_HEIGHTFIELD_CELL_COUNT =
   SUBSTRATE_HEIGHTFIELD_RESOLUTION * SUBSTRATE_HEIGHTFIELD_RESOLUTION;
 const ASSET_LOAD_RETRY_DELAY_MS = 3500;
@@ -371,6 +384,8 @@ type SubstrateSamplingMap = {
 type SubstrateGeometryData = {
   geometry: THREE.BufferGeometry;
   positionAttribute: THREE.BufferAttribute;
+  heatmapColorAttribute: THREE.BufferAttribute;
+  heatmapColors: Float32Array;
   sampling: SubstrateSamplingMap;
   sampledHeights: Float32Array;
   sourceValues: Float32Array;
@@ -1493,8 +1508,13 @@ function createSubstrateGeometryData(params: {
 
   const geometry = new THREE.BufferGeometry();
   const positionAttribute = new THREE.BufferAttribute(positions, 3);
+  const heatmapColors = new Float32Array(vertexCount * 3);
+  heatmapColors.fill(0);
+  const heatmapColorAttribute = new THREE.BufferAttribute(heatmapColors, 3);
+
   geometry.setAttribute("position", positionAttribute);
   geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  geometry.setAttribute("color", heatmapColorAttribute);
   geometry.setIndex(new THREE.BufferAttribute(indices, 1));
 
   const sampledHeights = new Float32Array(vertexCount);
@@ -1506,6 +1526,8 @@ function createSubstrateGeometryData(params: {
   return {
     geometry,
     positionAttribute,
+    heatmapColorAttribute,
+    heatmapColors,
     sampling: createSubstrateSamplingMap(resolution),
     sampledHeights,
     sourceValues,
@@ -1660,6 +1682,45 @@ function applyHeightfieldToSubstrateGeometry(params: {
   }
 
   return true;
+}
+
+function applyParHeatmapToSubstrateGeometry(params: {
+  data: SubstrateGeometryData;
+  dims: SceneDims;
+  source: LightSimulationSource;
+  lightMountHeightIn: number;
+}) {
+  const positionBuffer = params.data.positionAttribute.array;
+  if (!(positionBuffer instanceof Float32Array)) return;
+
+  const vertexCount = params.data.sampledHeights.length;
+  const waterLineYIn = params.dims.heightIn * 0.94;
+  const mountHeightIn = clampLightMountHeightIn(params.lightMountHeightIn);
+  const color = { r: 0, g: 0, b: 0 };
+
+  for (let vertexIndex = 0; vertexIndex < vertexCount; vertexIndex += 1) {
+    const offset = vertexIndex * 3;
+    const pointX = positionBuffer[offset] ?? 0;
+    const pointY = positionBuffer[offset + 1] ?? 0;
+    const pointZ = positionBuffer[offset + 2] ?? 0;
+
+    const par = estimateParAtSubstratePoint({
+      source: params.source,
+      pointXIn: pointX,
+      pointYIn: pointY,
+      pointZIn: pointZ,
+      tankHeightIn: params.dims.heightIn,
+      lightMountHeightIn: mountHeightIn,
+      waterLineYIn,
+    });
+
+    writeParHeatmapColor(par, color);
+    params.data.heatmapColors[offset] = color.r;
+    params.data.heatmapColors[offset + 1] = color.g;
+    params.data.heatmapColors[offset + 2] = color.b;
+  }
+
+  params.data.heatmapColorAttribute.needsUpdate = true;
 }
 
 function SceneCaptureBridge(props: { onCaptureCanvas?: (canvas: HTMLCanvasElement | null) => void }) {
@@ -3092,10 +3153,16 @@ function TankShell(props: {
   showAmbientParticles: boolean;
   showDepthGuides: boolean;
   showSnapGrid: boolean;
+  showLightingHeatmap: boolean;
+  lightSimulationSource: LightSimulationSource | null;
+  lightMountHeightIn: number;
   currentStep: BuilderSceneStep;
   onSurfacePointer: (event: ThreeEvent<PointerEvent>, anchorType: VisualAnchorType, itemId: string | null) => void;
   onSurfaceDown: (event: ThreeEvent<PointerEvent>, anchorType: VisualAnchorType, itemId: string | null) => void;
   onSurfaceUp: (event: ThreeEvent<PointerEvent>) => void;
+  onSubstrateHeightfield: (next: SubstrateHeightfield) => void;
+  onSubstrateStrokeStart: () => void;
+  onSubstrateStrokeEnd: () => void;
 }) {
   const substrateGeometryData = useMemo(
     () =>
@@ -3113,7 +3180,25 @@ function TankShell(props: {
       heightfield: props.substrateHeightfield,
       tankHeightIn: props.dims.heightIn,
     });
-  }, [props.substrateHeightfield, props.dims.heightIn, substrateGeometryData]);
+
+    if (!props.showLightingHeatmap || !props.lightSimulationSource) {
+      return;
+    }
+
+    applyParHeatmapToSubstrateGeometry({
+      data: substrateGeometryData,
+      dims: props.dims,
+      source: props.lightSimulationSource,
+      lightMountHeightIn: props.lightMountHeightIn,
+    });
+  }, [
+    props.dims,
+    props.lightMountHeightIn,
+    props.lightSimulationSource,
+    props.showLightingHeatmap,
+    props.substrateHeightfield,
+    substrateGeometryData,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -3236,10 +3321,37 @@ function TankShell(props: {
         <SubstrateCausticMaterial qualityTier={props.qualityTier} />
       </mesh>
 
+      {props.showLightingHeatmap && props.lightSimulationSource ? (
+        <mesh
+          geometry={substrateGeometryData.geometry}
+          position={[0, SUBSTRATE_HEATMAP_Y_OFFSET, 0]}
+          raycast={DISABLED_RAYCAST}
+          renderOrder={32}
+        >
+          <meshBasicMaterial
+            vertexColors
+            transparent
+            opacity={SUBSTRATE_HEATMAP_OPACITY}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ) : null}
+
       {props.showSnapGrid ? (
         <SubstrateSnapGridOverlay
           dims={props.dims}
           substrateHeightfield={props.substrateHeightfield}
+        />
+      ) : null}
+
+      {props.currentStep === "substrate" ? (
+        <SubstrateControlPoints
+          dims={props.dims}
+          heightfield={props.substrateHeightfield}
+          onHeightfieldChange={props.onSubstrateHeightfield}
+          onStrokeStart={props.onSubstrateStrokeStart}
+          onStrokeEnd={props.onSubstrateStrokeEnd}
         />
       ) : null}
 
@@ -3302,6 +3414,11 @@ function PlacementGhost(props: {
 
 function SceneRoot(props: VisualBuilderSceneProps) {
   const dims = useMemo(() => normalizeDims(props.tank, props.canvasState), [props.canvasState, props.tank]);
+  const lightSimulationSource = useMemo(
+    () => resolveLightSimulationSource(props.selectedLightAsset),
+    [props.selectedLightAsset],
+  );
+  const showLightingHeatmap = props.lightingSimulationEnabled && Boolean(lightSimulationSource);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<PlacementCandidate | null>(null);
   const [transformInteractionLocked, setTransformInteractionLocked] = useState(false);
@@ -3904,10 +4021,16 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         showAmbientParticles={props.ambientParticlesEnabled && props.qualityTier !== "low"}
         showDepthGuides={props.showDepthGuides}
         showSnapGrid={props.gridSnapEnabled}
+        showLightingHeatmap={showLightingHeatmap}
+        lightSimulationSource={lightSimulationSource}
+        lightMountHeightIn={props.lightMountHeightIn}
         currentStep={props.currentStep}
         onSurfacePointer={handleSurfacePointer}
         onSurfaceDown={handleSurfaceDown}
         onSurfaceUp={handleSurfaceUp}
+        onSubstrateHeightfield={props.onSubstrateHeightfield}
+        onSubstrateStrokeStart={onSubstrateStrokeStart ?? (() => {})}
+        onSubstrateStrokeEnd={onSubstrateStrokeEnd ?? (() => {})}
       />
 
       {props.showMeasurements ? (

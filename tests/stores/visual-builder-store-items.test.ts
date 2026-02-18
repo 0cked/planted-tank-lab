@@ -297,21 +297,29 @@ describe("visual-builder-store canvas item actions", () => {
     expect(store.canvasState.sceneSettings.gridSnapEnabled).toBe(false);
     expect(store.canvasState.sceneSettings.measurementsVisible).toBe(false);
     expect(store.canvasState.sceneSettings.measurementUnit).toBe("in");
+    expect(store.canvasState.sceneSettings.lightingSimulationEnabled).toBe(false);
+    expect(store.canvasState.sceneSettings.lightMountHeightIn).toBe(4);
 
     store.setSceneSettings({
       gridSnapEnabled: true,
       measurementsVisible: true,
       measurementUnit: "cm",
+      lightingSimulationEnabled: true,
+      lightMountHeightIn: 9.5,
     });
 
     const stateAfterToggle = useVisualBuilderStore.getState();
     expect(stateAfterToggle.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
     expect(stateAfterToggle.canvasState.sceneSettings.measurementsVisible).toBe(true);
     expect(stateAfterToggle.canvasState.sceneSettings.measurementUnit).toBe("cm");
+    expect(stateAfterToggle.canvasState.sceneSettings.lightingSimulationEnabled).toBe(true);
+    expect(stateAfterToggle.canvasState.sceneSettings.lightMountHeightIn).toBe(9.5);
 
     const payload = stateAfterToggle.toBuildPayload({ bomLineItems: [] });
     expect(payload.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
     expect(payload.canvasState.sceneSettings.measurementsVisible).toBe(true);
     expect(payload.canvasState.sceneSettings.measurementUnit).toBe("cm");
+    expect(payload.canvasState.sceneSettings.lightingSimulationEnabled).toBe(true);
+    expect(payload.canvasState.sceneSettings.lightMountHeightIn).toBe(9.5);
   });
 });

@@ -1,10 +1,18 @@
+import { useMemo } from "react";
+
+import {
+  clampLightMountHeightIn,
+  describeLightSimulationSource,
+  resolveLightSimulationSource,
+} from "@/components/builder/visual/light-simulation";
 import { resolveScenePostprocessingPipeline } from "@/components/builder/visual/postprocessing";
-import type { VisualSceneSettings } from "@/components/builder/visual/types";
+import type { VisualAsset, VisualSceneSettings } from "@/components/builder/visual/types";
 import type { BuilderSceneQualityTier } from "@/components/builder/visual/VisualBuilderScene";
 
 type QualitySettingsProps = {
   sceneSettings: VisualSceneSettings;
   autoQualityTier: BuilderSceneQualityTier;
+  selectedLightAsset: VisualAsset | null;
   onSceneSettingsChange: (patch: Partial<VisualSceneSettings>) => void;
   onReframe: () => void;
   onResetView: () => void;
@@ -32,6 +40,16 @@ export function QualitySettings(props: QualitySettingsProps) {
         : resolvedQualityTier === "low"
           ? "Unavailable on low tier"
           : "Off";
+
+  const lightSimulationSource = useMemo(
+    () => resolveLightSimulationSource(props.selectedLightAsset),
+    [props.selectedLightAsset],
+  );
+  const hasCompatibleLight = Boolean(lightSimulationSource);
+  const normalizedLightMountHeightIn = clampLightMountHeightIn(
+    props.sceneSettings.lightMountHeightIn,
+  );
+  const lightSimulationSummary = describeLightSimulationSource(lightSimulationSource);
 
   return (
     <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
@@ -117,6 +135,56 @@ export function QualitySettings(props: QualitySettingsProps) {
             }
           />
           Ambient particles {ambientParticlesDisabled ? "(low tier)" : ""}
+        </label>
+
+        <label
+          className={`flex items-center justify-between gap-2 ${!hasCompatibleLight ? "opacity-65" : ""}`}
+          title={
+            hasCompatibleLight
+              ? undefined
+              : "Select a compatible light product with wattage to run PAR simulation."
+          }
+        >
+          <span className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              aria-label="Enable light simulation heatmap"
+              checked={hasCompatibleLight ? props.sceneSettings.lightingSimulationEnabled : false}
+              disabled={!hasCompatibleLight}
+              onChange={(event) =>
+                props.onSceneSettingsChange({
+                  lightingSimulationEnabled: event.target.checked,
+                })
+              }
+            />
+            Light simulation
+          </span>
+          <span className="text-[10px] text-slate-300">{lightSimulationSummary}</span>
+        </label>
+
+        <label className={`block ${!hasCompatibleLight ? "opacity-65" : ""}`}>
+          <span className="mb-1 flex items-center justify-between text-[11px] text-slate-200">
+            <span>Mount height</span>
+            <span className="text-[10px] text-slate-300">
+              {normalizedLightMountHeightIn.toFixed(1)} in
+            </span>
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={24}
+            step={0.5}
+            value={normalizedLightMountHeightIn}
+            aria-label="Light fixture mounting height above water"
+            aria-valuetext={`${normalizedLightMountHeightIn.toFixed(1)} inches`}
+            disabled={!hasCompatibleLight}
+            onChange={(event) => {
+              props.onSceneSettingsChange({
+                lightMountHeightIn: clampLightMountHeightIn(Number(event.target.value)),
+              });
+            }}
+            className="w-full"
+          />
         </label>
       </div>
 
