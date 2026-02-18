@@ -474,7 +474,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 ### Phase 9 -- Performance & Polish
 
-- [ ] **P9-1: Code splitting for 3D builder**
+- [x] **P9-1: Code splitting for 3D builder**
   - The 3D builder (React Three Fiber, Three.js, drei) is a large JS bundle. Lazy-load it with `next/dynamic` and `{ ssr: false }`.
   - Create a loading skeleton for `/builder` that shows while the 3D code loads (tank outline placeholder, toolbar skeleton).
   - Ensure the non-builder pages (home, products, plants, builds, tools) don't load any Three.js code.

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { VisualBuilderPage } from "@/components/builder/VisualBuilderPage";
+import { BuilderPageClient } from "./BuilderPageClient";
 
 export const metadata: Metadata = {
   title: "3D Aquascape Builder",
@@ -12,5 +12,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <VisualBuilderPage />;
+  return <BuilderPageClient />;
 }
