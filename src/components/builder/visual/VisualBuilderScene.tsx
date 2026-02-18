@@ -35,6 +35,7 @@ import {
   getProceduralWoodModel,
   proceduralHardscapeSeedFromString,
 } from "@/components/builder/visual/ProceduralHardscape";
+import { EquipmentVisuals } from "@/components/builder/visual/EquipmentVisuals";
 import {
   applySubstrateBrush,
   applySubstrateMaterialBrush,
@@ -4236,17 +4237,11 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         />
       ) : null}
 
-      {props.equipmentAssets.map((asset, index) => {
-        const equipmentHeight = Math.max(0.8, asset.heightIn * 0.09);
-        const y = dims.heightIn * 0.26 + index * equipmentHeight * 1.5;
-        const z = -dims.depthIn * 0.44 + (index % 3) * (dims.depthIn * 0.18);
-        return (
-          <mesh key={`equipment-${asset.id}-${index}`} position={[dims.widthIn * 0.46, y, z]} castShadow>
-            <boxGeometry args={[0.45, equipmentHeight, 0.45]} />
-            <meshStandardMaterial color="#b7c6d8" roughness={0.56} metalness={0.32} />
-          </mesh>
-        );
-      })}
+      <EquipmentVisuals
+        dims={dims}
+        equipmentAssets={props.equipmentAssets}
+        lightMountHeightIn={props.lightMountHeightIn}
+      />
 
       {props.placementAsset && candidate ? (
         <PlacementGhost

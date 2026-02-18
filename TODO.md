@@ -558,7 +558,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Store custom dimensions in the canvas state.
   - **Verify:** Enter custom dimensions 40x20x16. Tank geometry updates. Select "20g Long" preset — dimensions change to 30x12x12. Save and reload — custom dimensions persist.
 
-- [ ] **P10-5: Equipment visualization**
+- [x] **P10-5: Equipment visualization**
   - Add simple 3D representations of equipment in the scene:
     - **Filter**: small box on the back wall with a subtle "flow" particle stream (10-20 particles animating in an arc).
     - **Light fixture**: flat rectangle hovering above the tank at configurable height.
