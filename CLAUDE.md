@@ -50,6 +50,20 @@ Always run `pnpm typecheck` before considering a task done. If you change the vi
 
 9. **When confused, default to action.** If you're unsure how to approach something, make your best attempt in code. A wrong implementation you can iterate on beats a perfect plan you never execute.
 
+## Builder design direction (updated 2026-02-18)
+
+The builder uses a **Scaper-style layout**: full-viewport 3D scene, thin icon rail on the left, floating contextual panels. No wide sidebars.
+
+**Substrate editing** uses preset shapes + draggable control-point dots. **Do NOT** add back:
+- Gaussian brush sculpting (raise/lower/smooth/erode modes)
+- Brush size/strength sliders
+- Multi-material zone painting
+- The "B" keyboard shortcut for brush toggle
+
+The `SubstrateToolbar` should only contain: terrain presets, helper text about dragging dots, and volume/bag estimate.
+
+**Glass-morphism UI** pattern: `border-white/8 bg-white/[0.03]` containers, `white/40` labels, `white/85-90` content, cyan accent for active/selected states.
+
 ## Architecture quick reference
 
 ```

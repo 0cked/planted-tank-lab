@@ -35,7 +35,7 @@ If you completed a task and #4 is false, you did not complete a task. Undo your 
 - **Immersive, game-like feel.** The builder should feel like a creative tool, not a SaaS dashboard. Think terrarium-building sim, not Stripe settings page.
 - **Viewport is hero.** The 3D scene dominates. Controls are minimal, contextual, and get out of the way.
 - **Camera agency is non-negotiable.** Users orbit, pan, zoom freely. No snap-back. No implicit resets. Explicit intents only.
-- **Substrate editing = tactile sculpting.** Users should paint terrain, not adjust sliders. Local precision, not global profiles.
+- **Substrate editing = preset + control-point dots.** Users pick a terrain preset (flat/island/slope/valley) then drag control-point dots to fine-tune. No Gaussian brush, no multi-material painting, no brush mode/size/strength sliders.
 - **Real assets matter.** Placeholder geometry (cones, dodecahedrons) must be replaced with recognizable plants and hardscape.
 - **`/inspiration-photos` in the workspace is the visual benchmark.** Compare against those, not against other web apps.
 
