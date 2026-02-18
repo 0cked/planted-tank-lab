@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 
 import { RetailerMark } from "@/components/RetailerMark";
 import { SmartImage } from "@/components/SmartImage";
-import { OfferFreshnessBadge } from "@/components/offers/OfferFreshnessBadge";
 import {
   deriveOfferSummaryState,
   formatOfferSummaryCheckedAt,
@@ -14,8 +13,6 @@ import { sanitizeCatalogImageUrls } from "@/lib/catalog-guardrails";
 import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-data";
 import { formatSpecs } from "@/lib/specs";
 import { getServerCaller } from "@/server/trpc/server-caller";
-
-const FRESHNESS_NOW_MS = Date.now();
 
 function formatMoney(cents: number | null | undefined): string {
   if (cents == null) return "—";
@@ -28,6 +25,36 @@ function isoDay(value: unknown): string | null {
   const d = value instanceof Date ? value : new Date(String(value));
   if (Number.isNaN(d.getTime())) return null;
   return d.toISOString().slice(0, 10);
+}
+
+function parseDate(value: unknown): Date | null {
+  if (value == null) return null;
+  const d = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function formatShortDate(value: unknown): string {
+  const date = parseDate(value);
+  if (!date) return "—";
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function shippingInfoLabel(retailerSlug: string): string {
+  switch (retailerSlug) {
+    case "amazon":
+      return "Varies by seller (Prime may apply)";
+    case "buceplant":
+      return "Rates calculated at checkout";
+    case "aquarium-co-op":
+      return "Rates calculated at checkout";
+    default:
+      return "Shipping shown at checkout";
+  }
 }
 
 function offerSummaryTopline(summary: OfferSummaryLike): { priceCents: number | null; note: string } {
@@ -156,6 +183,22 @@ export default async function ProductDetailPage(props: {
       .map(([day, cents]) => ({ day, cents }));
   })();
 
+  const sortedOffers = [...offers].sort((a, b) => {
+    const aInStock = a.inStock && a.priceCents != null;
+    const bInStock = b.inStock && b.priceCents != null;
+    if (aInStock !== bInStock) return aInStock ? -1 : 1;
+
+    const aPrice = a.priceCents ?? Number.POSITIVE_INFINITY;
+    const bPrice = b.priceCents ?? Number.POSITIVE_INFINITY;
+    if (aPrice !== bPrice) return aPrice - bPrice;
+
+    const aUpdated = parseDate(a.updatedAt)?.getTime() ?? 0;
+    const bUpdated = parseDate(b.updatedAt)?.getTime() ?? 0;
+    return bUpdated - aUpdated;
+  });
+
+  const bestOfferId = sortedOffers.find((o) => o.inStock && o.priceCents != null)?.id ?? null;
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -283,52 +326,79 @@ export default async function ProductDetailPage(props: {
               </div>
             </div>
           ) : null}
-          {offers.length === 0 ? (
+          {sortedOffers.length === 0 ? (
             <div className="mt-3 text-sm text-neutral-600">No offers available from tracked retailers.</div>
           ) : (
-            <ul className="mt-4 space-y-3">
-              {offers.map((o) => (
-                <li
-                  key={o.id}
-                  className="rounded-xl border bg-white/70 p-4"
-                  style={{ borderColor: "var(--ptl-border)" }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <RetailerMark
-                        name={o.retailer.name}
-                        logoAssetPath={
-                          (o.retailer as { logoAssetPath?: string | null }).logoAssetPath ?? null
-                        }
-                        logoUrl={o.retailer.logoUrl ?? null}
-                      />
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-neutral-600">
-                        <span>{o.inStock ? "In stock" : "Out of stock"}</span>
-                        <OfferFreshnessBadge
-                          lastCheckedAt={(o as { lastCheckedAt?: unknown }).lastCheckedAt}
-                          sourceLabel="retailer check"
-                          nowMs={FRESHNESS_NOW_MS}
-                        />
-                      </div>
-                    </div>
-                    <div className="text-right text-sm font-semibold text-neutral-900">
-                      {formatMoney(o.priceCents)}
-                    </div>
-                  </div>
+            <div
+              className="mt-4 overflow-x-auto rounded-2xl border bg-white/70"
+              style={{ borderColor: "var(--ptl-border)" }}
+            >
+              <table className="min-w-[680px] w-full text-left text-sm">
+                <thead className="bg-white/60 text-xs font-semibold uppercase tracking-wide text-neutral-600">
+                  <tr>
+                    <th className="px-4 py-2">Retailer</th>
+                    <th className="px-4 py-2">Price</th>
+                    <th className="px-4 py-2">Shipping</th>
+                    <th className="px-4 py-2">Last updated</th>
+                    <th className="px-4 py-2">Availability</th>
+                    <th className="px-4 py-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200">
+                  {sortedOffers.map((o) => {
+                    const inStock = o.inStock && o.priceCents != null;
+                    const isBestPrice = inStock && o.id === bestOfferId;
 
-                  <div className="mt-2">
-                    <a
-                      href={o.goUrl}
-                      target="_blank"
-                      rel="noreferrer nofollow"
-                      className="ptl-btn-primary"
-                    >
-                      Buy
-                    </a>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                    return (
+                      <tr key={o.id} className={isBestPrice ? "bg-emerald-50/40" : "hover:bg-white/40"}>
+                        <td className="px-4 py-3">
+                          <div className="space-y-1">
+                            <RetailerMark
+                              name={o.retailer.name}
+                              logoAssetPath={o.retailer.logoAssetPath ?? null}
+                              logoUrl={o.retailer.logoUrl ?? null}
+                            />
+                            {isBestPrice ? (
+                              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                                Best price
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-neutral-900">
+                          {formatMoney(o.priceCents)}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-neutral-700">
+                          {shippingInfoLabel(o.retailer.slug)}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-neutral-700">{formatShortDate(o.updatedAt)}</td>
+                        <td className="px-4 py-3">
+                          {inStock ? (
+                            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                              In stock
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+                              Out of stock
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <a
+                            href={o.goUrl}
+                            target="_blank"
+                            rel="noreferrer nofollow"
+                            className={inStock ? "ptl-btn-primary" : "ptl-btn-secondary"}
+                          >
+                            {inStock ? "Buy" : "View"}
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
 
           <div className="mt-4 text-xs text-neutral-500">

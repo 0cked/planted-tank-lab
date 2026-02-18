@@ -452,7 +452,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Include total estimated cost at the bottom.
   - **Verify:** Build a tank with 5 items. Click export. Clipboard contains formatted shopping list with prices and links.
 
-- [ ] **P8-2: Price comparison improvements**
+- [x] **P8-2: Price comparison improvements**
   - On product detail pages (`/products/[category]/[slug]`), show all available offers in a comparison table: retailer name, price, shipping info, last updated date.
   - Highlight the best price. Show price history spark chart using the `price_history` table data (small inline SVG, no charting library needed).
   - Add an "Out of stock" indicator when a retailer has no current offer.
