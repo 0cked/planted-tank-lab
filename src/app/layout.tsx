@@ -5,6 +5,8 @@ import { TRPCProvider } from "@/components/TRPCProvider";
 import { CookieBanner } from "@/components/CookieBanner";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { OfflineStatusBanner } from "@/components/pwa/OfflineStatusBanner";
+import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 
 const fontSans = Spline_Sans({
   variable: "--font-sans",
@@ -65,8 +67,10 @@ export default function RootLayout({
         className={`${fontSans.variable} ${geistMono.variable} ${fontDisplay.variable} antialiased`}
       >
         <TRPCProvider>
+          <ServiceWorkerRegistration />
           <div className="ptl-app text-neutral-900">
             <SiteHeader />
+            <OfflineStatusBanner />
             {children}
             <SiteFooter />
             <CookieBanner />

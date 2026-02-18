@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline | PlantedTankLab</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        font-family: "Spline Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: #0b1f16;
+        background: radial-gradient(1200px 700px at 10% -10%, rgba(27, 127, 90, 0.16), transparent 60%),
+          radial-gradient(900px 520px at 92% 12%, rgba(122, 163, 66, 0.14), transparent 55%),
+          linear-gradient(to bottom, #f6faf4, #fbfcfa 40%, #f3f7f0);
+      }
+
+      main {
+        width: min(90vw, 34rem);
+        border: 1px solid rgba(11, 31, 22, 0.16);
+        border-radius: 1rem;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 1px 0 rgba(11, 31, 22, 0.06), 0 16px 34px rgba(11, 31, 22, 0.12);
+      }
+
+      h1 {
+        margin: 0 0 0.75rem;
+        font-size: 1.5rem;
+      }
+
+      p {
+        margin: 0;
+        line-height: 1.55;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>You&rsquo;re offline</h1>
+      <p>
+        PlantedTankLab needs a connection for live data right now. Reconnect to refresh prices and catalog
+        updates.
+      </p>
+    </main>
+  </body>
+</html>

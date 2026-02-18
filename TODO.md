@@ -516,7 +516,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Ensure all images have `alt` text (plant images, product images).
   - **Verify:** Navigate the entire builder using only keyboard. Screen reader announces all controls meaningfully. No contrast failures on key UI.
 
-- [ ] **P9-6: PWA offline support**
+- [x] **P9-6: PWA offline support**
   - Add a service worker using `next-pwa` or manual Workbox configuration.
   - Cache strategy: network-first for API calls, cache-first for static assets (JS, CSS, images).
   - When offline, show cached pages with a subtle "You're offline — some data may be outdated" banner.
