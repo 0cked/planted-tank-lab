@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useRef } from "react";
 
 import { trpc } from "@/components/TRPCProvider";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 function formatMoney(cents: number): string {
   return (cents / 100).toLocaleString(undefined, {
@@ -33,9 +34,7 @@ function formatTimestamp(value: Date | string | null): string {
 
 const TRIGGERED_FILTER = { onlyTriggered: true } as const;
 
-export function PriceAlertsPanel() {
-  const { status } = useSession();
-  const isAuthenticated = status === "authenticated";
+function PriceAlertsPanelContent() {
   const hasCheckedRef = useRef(false);
 
   const utils = trpc.useUtils();
@@ -46,21 +45,20 @@ export function PriceAlertsPanel() {
   });
 
   const alertsQuery = trpc.priceAlerts.listMine.useQuery(TRIGGERED_FILTER, {
-    enabled: isAuthenticated,
     staleTime: 30_000,
   });
 
   useEffect(() => {
-    if (!isAuthenticated || hasCheckedRef.current) {
+    if (hasCheckedRef.current) {
       return;
     }
 
     hasCheckedRef.current = true;
     void checkMutation.mutateAsync().catch(() => undefined);
-  }, [checkMutation, isAuthenticated]);
+  }, [checkMutation]);
 
-  if (!isAuthenticated) {
-    return null;
+  if (alertsQuery.error && !alertsQuery.isFetching) {
+    throw alertsQuery.error;
   }
 
   const alerts = alertsQuery.data ?? [];
@@ -86,16 +84,14 @@ export function PriceAlertsPanel() {
       {alertsQuery.isLoading ? (
         <div className="mt-4 text-sm text-neutral-600">Checking your active alerts…</div>
       ) : alerts.length === 0 ? (
-        <div className="mt-4 rounded-2xl border bg-white/70 px-4 py-3 text-sm text-neutral-700"
+        <div
+          className="mt-4 rounded-2xl border bg-white/70 px-4 py-3 text-sm text-neutral-700"
           style={{ borderColor: "var(--ptl-border)" }}
         >
           No triggered alerts yet.
         </div>
       ) : (
-        <div
-          className="mt-4 overflow-hidden rounded-2xl border bg-white/70"
-          style={{ borderColor: "var(--ptl-border)" }}
-        >
+        <div className="mt-4 overflow-hidden rounded-2xl border bg-white/70" style={{ borderColor: "var(--ptl-border)" }}>
           <ul className="divide-y divide-neutral-200">
             {alerts.map((alert) => (
               <li key={alert.id} className="px-4 py-3">
@@ -114,9 +110,7 @@ export function PriceAlertsPanel() {
                         : " · Best offer unavailable"}
                     </div>
                   </div>
-                  <div className="text-xs text-neutral-500">
-                    Triggered {formatTimestamp(alert.lastNotifiedAt)}
-                  </div>
+                  <div className="text-xs text-neutral-500">Triggered {formatTimestamp(alert.lastNotifiedAt)}</div>
                 </div>
               </li>
             ))}
@@ -124,5 +118,36 @@ export function PriceAlertsPanel() {
         </div>
       )}
     </section>
+  );
+}
+
+export function PriceAlertsPanel() {
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
+  const utils = trpc.useUtils();
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  return (
+    <ErrorBoundary
+      onRetry={() => {
+        void utils.priceAlerts.listMine.invalidate(TRIGGERED_FILTER);
+      }}
+      fallback={({ retry }) => (
+        <section className="mt-10 ptl-surface p-6">
+          <h2 className="text-xl font-semibold text-neutral-900">Triggered price alerts</h2>
+          <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+            Failed to load alerts.
+          </div>
+          <button type="button" onClick={retry} className="mt-3 ptl-btn-secondary">
+            Retry
+          </button>
+        </section>
+      )}
+    >
+      <PriceAlertsPanelContent />
+    </ErrorBoundary>
   );
 }

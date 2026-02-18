@@ -181,6 +181,10 @@ export function useVisualBuilderPageController(
   });
   const rulesQuery = trpc.rules.listActive.useQuery();
 
+  const loadDataError =
+    (catalogQuery.error && !catalogQuery.isFetching ? catalogQuery.error : null) ??
+    (rulesQuery.error && !rulesQuery.isFetching ? rulesQuery.error : null);
+
   const saveMutation = trpc.visualBuilder.save.useMutation();
   const duplicateMutation = trpc.visualBuilder.duplicatePublic.useMutation();
 
@@ -1106,6 +1110,10 @@ export function useVisualBuilderPageController(
           onResetCameraChecks: cameraEvidence.resetCameraChecks,
         }
       : null;
+
+  if (loadDataError) {
+    throw loadDataError;
+  }
 
   return {
     metadataPanelProps,

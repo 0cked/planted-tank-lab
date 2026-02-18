@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useMemo, useState } from "react";
 
 import { trpc } from "@/components/TRPCProvider";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 function formatMoneyFromCents(cents: number): string {
   return (cents / 100).toLocaleString(undefined, {
@@ -21,20 +22,19 @@ function initialTargetPriceFromCents(suggestedPriceCents: number | null): string
   return (suggestedPriceCents / 100).toFixed(2);
 }
 
-export function PriceAlertCard(props: {
+type PriceAlertCardProps = {
   productId: string;
   loginHref: string;
   suggestedPriceCents: number | null;
-}) {
-  const { status } = useSession();
-  const isAuthenticated = status === "authenticated";
+};
+
+function PriceAlertCardContent(props: PriceAlertCardProps) {
   const utils = trpc.useUtils();
 
   const [draftTargetPriceInput, setDraftTargetPriceInput] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const alertsQuery = trpc.priceAlerts.listMine.useQuery(undefined, {
-    enabled: isAuthenticated,
     staleTime: 30_000,
   });
 
@@ -42,12 +42,6 @@ export function PriceAlertCard(props: {
     () => alertsQuery.data?.find((row) => row.productId === props.productId) ?? null,
     [alertsQuery.data, props.productId],
   );
-
-  const placeholder = initialTargetPriceFromCents(props.suggestedPriceCents);
-  const existingTargetInput = existingAlert
-    ? (existingAlert.targetPriceCents / 100).toFixed(2)
-    : null;
-  const targetPriceInput = draftTargetPriceInput ?? existingTargetInput ?? placeholder;
 
   const upsertMutation = trpc.priceAlerts.upsert.useMutation({
     onSuccess: async (result) => {
@@ -60,35 +54,17 @@ export function PriceAlertCard(props: {
     },
   });
 
-  if (!isAuthenticated) {
-    return (
-      <div
-        className="mt-5 rounded-2xl border bg-white/70 p-4"
-        style={{ borderColor: "var(--ptl-border)" }}
-      >
-        <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-          Price alert
-        </div>
-        <p className="mt-2 text-sm text-neutral-700">
-          Sign in to get notified when this product drops below your target price.
-        </p>
-        <div className="mt-3">
-          <Link href={props.loginHref} className="ptl-btn-secondary">
-            Sign in to set alert
-          </Link>
-        </div>
-      </div>
-    );
+  if (alertsQuery.error && !alertsQuery.isFetching) {
+    throw alertsQuery.error;
   }
 
+  const placeholder = initialTargetPriceFromCents(props.suggestedPriceCents);
+  const existingTargetInput = existingAlert ? (existingAlert.targetPriceCents / 100).toFixed(2) : null;
+  const targetPriceInput = draftTargetPriceInput ?? existingTargetInput ?? placeholder;
+
   return (
-    <div
-      className="mt-5 rounded-2xl border bg-white/70 p-4"
-      style={{ borderColor: "var(--ptl-border)" }}
-    >
-      <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-        Price alert
-      </div>
+    <div className="mt-5 rounded-2xl border bg-white/70 p-4" style={{ borderColor: "var(--ptl-border)" }}>
+      <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">Price alert</div>
 
       <p className="mt-2 text-sm text-neutral-700">
         Set a target and we&apos;ll flag this product in your profile when offers dip below it.
@@ -102,9 +78,7 @@ export function PriceAlertCard(props: {
 
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <label className="text-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-            Target price (USD)
-          </div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">Target price (USD)</div>
           <input
             type="number"
             inputMode="decimal"
@@ -144,5 +118,46 @@ export function PriceAlertCard(props: {
 
       {statusMessage ? <div className="mt-3 text-xs text-neutral-700">{statusMessage}</div> : null}
     </div>
+  );
+}
+
+export function PriceAlertCard(props: PriceAlertCardProps) {
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
+  const utils = trpc.useUtils();
+
+  if (!isAuthenticated) {
+    return (
+      <div className="mt-5 rounded-2xl border bg-white/70 p-4" style={{ borderColor: "var(--ptl-border)" }}>
+        <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">Price alert</div>
+        <p className="mt-2 text-sm text-neutral-700">
+          Sign in to get notified when this product drops below your target price.
+        </p>
+        <div className="mt-3">
+          <Link href={props.loginHref} className="ptl-btn-secondary">
+            Sign in to set alert
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary
+      onRetry={() => {
+        void utils.priceAlerts.listMine.invalidate();
+      }}
+      fallback={({ retry }) => (
+        <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-900">
+          <div className="text-xs font-semibold uppercase tracking-wide">Price alert</div>
+          <p className="mt-2 text-sm">Failed to load alert settings.</p>
+          <button type="button" onClick={retry} className="mt-3 ptl-btn-secondary">
+            Retry
+          </button>
+        </div>
+      )}
+    >
+      <PriceAlertCardContent {...props} />
+    </ErrorBoundary>
   );
 }

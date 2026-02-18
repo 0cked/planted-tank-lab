@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 
 import { trpc } from "@/components/TRPCProvider";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 type BuildCommentReply = {
   id: string;
@@ -21,6 +22,11 @@ type BuildCommentThread = BuildCommentReply & {
   replies: BuildCommentReply[];
 };
 
+type BuildCommentsSectionProps = {
+  shareSlug: string;
+  initialComments: BuildCommentThread[];
+};
+
 function formatCommentTimestamp(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Just now";
@@ -34,17 +40,12 @@ function formatCommentTimestamp(value: string): string {
   }).format(date);
 }
 
-export function BuildCommentsSection(props: {
-  shareSlug: string;
-  initialComments: BuildCommentThread[];
-}) {
+function BuildCommentsSectionContent(props: BuildCommentsSectionProps) {
   const { status } = useSession();
   const isAuthenticated = status === "authenticated";
 
   const [commentBody, setCommentBody] = useState("");
-  const [replyDraftByCommentId, setReplyDraftByCommentId] = useState<
-    Record<string, string>
-  >({});
+  const [replyDraftByCommentId, setReplyDraftByCommentId] = useState<Record<string, string>>({});
   const [activeReplyCommentId, setActiveReplyCommentId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -70,11 +71,12 @@ export function BuildCommentsSection(props: {
     [props.shareSlug],
   );
 
+  if (commentsQuery.error && !commentsQuery.isFetching) {
+    throw commentsQuery.error;
+  }
+
   const comments = commentsQuery.data?.comments ?? props.initialComments;
-  const totalCommentCount = comments.reduce(
-    (total, thread) => total + 1 + thread.replies.length,
-    0,
-  );
+  const totalCommentCount = comments.reduce((total, thread) => total + 1 + thread.replies.length, 0);
 
   async function submitComment(params: { body: string; parentId?: string }) {
     const trimmedBody = params.body.trim();
@@ -144,7 +146,10 @@ export function BuildCommentsSection(props: {
           </div>
         </form>
       ) : (
-        <div className="mt-4 rounded-2xl border bg-white/70 p-4 text-sm text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
+        <div
+          className="mt-4 rounded-2xl border bg-white/70 p-4 text-sm text-neutral-700"
+          style={{ borderColor: "var(--ptl-border)" }}
+        >
           <Link href={loginHref} className="font-semibold text-emerald-800 hover:underline">
             Sign in
           </Link>{" "}
@@ -152,18 +157,13 @@ export function BuildCommentsSection(props: {
         </div>
       )}
 
-      {submitError ? (
-        <div className="mt-3 text-sm text-rose-700">{submitError}</div>
-      ) : null}
-
-      {commentsQuery.error ? (
-        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-          Could not refresh comments right now.
-        </div>
-      ) : null}
+      {submitError ? <div className="mt-3 text-sm text-rose-700">{submitError}</div> : null}
 
       {comments.length === 0 ? (
-        <div className="mt-6 rounded-2xl border bg-white/65 p-5 text-sm text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
+        <div
+          className="mt-6 rounded-2xl border bg-white/65 p-5 text-sm text-neutral-700"
+          style={{ borderColor: "var(--ptl-border)" }}
+        >
           No comments yet. Be the first to share feedback on this aquascape.
         </div>
       ) : (
@@ -186,11 +186,7 @@ export function BuildCommentsSection(props: {
                   <button
                     type="button"
                     className="text-xs font-semibold text-emerald-800 hover:underline"
-                    onClick={() =>
-                      setActiveReplyCommentId((current) =>
-                        current === comment.id ? null : comment.id,
-                      )
-                    }
+                    onClick={() => setActiveReplyCommentId((current) => (current === comment.id ? null : comment.id))}
                   >
                     {activeReplyCommentId === comment.id ? "Cancel" : "Reply"}
                   </button>
@@ -240,12 +236,13 @@ export function BuildCommentsSection(props: {
               ) : null}
 
               {comment.replies.length > 0 ? (
-                <ol
-                  className="mt-4 space-y-3 border-l pl-4"
-                  style={{ borderColor: "var(--ptl-border)" }}
-                >
+                <ol className="mt-4 space-y-3 border-l pl-4" style={{ borderColor: "var(--ptl-border)" }}>
                   {comment.replies.map((reply) => (
-                    <li key={reply.id} className="rounded-xl border bg-white/75 p-3" style={{ borderColor: "var(--ptl-border)" }}>
+                    <li
+                      key={reply.id}
+                      className="rounded-xl border bg-white/75 p-3"
+                      style={{ borderColor: "var(--ptl-border)" }}
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="text-xs font-semibold text-neutral-900">{reply.author.name}</div>
                         <time className="text-[11px] text-neutral-600">
@@ -262,5 +259,32 @@ export function BuildCommentsSection(props: {
         </ol>
       )}
     </section>
+  );
+}
+
+export function BuildCommentsSection(props: BuildCommentsSectionProps) {
+  const utils = trpc.useUtils();
+
+  return (
+    <ErrorBoundary
+      onRetry={() => {
+        void utils.builds.listComments.invalidate({ shareSlug: props.shareSlug });
+      }}
+      fallback={({ retry }) => (
+        <section className="ptl-surface p-7 sm:p-10">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">Comments</h2>
+          </div>
+          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+            Failed to load comments.
+          </div>
+          <button type="button" onClick={retry} className="mt-3 ptl-btn-secondary">
+            Retry
+          </button>
+        </section>
+      )}
+    >
+      <BuildCommentsSectionContent {...props} />
+    </ErrorBoundary>
   );
 }

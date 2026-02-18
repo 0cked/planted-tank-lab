@@ -489,7 +489,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Use CSS `@keyframes` pulse animation, not a library. Match the existing card dimensions.
   - **Verify:** Throttle network to 3G in dev tools. Navigate to `/plants` — skeleton appears before data loads. No flash of empty content.
 
-- [ ] **P9-3: Error boundaries with recovery**
+- [x] **P9-3: Error boundaries with recovery**
   - Add React error boundaries to:
     - The 3D scene (catch Three.js/WebGL crashes — show "Scene failed to load" with a "Reload" button).
     - Each page's data-fetching section (catch tRPC errors — show "Failed to load" with retry).

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 
 import { trpc } from "@/components/TRPCProvider";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 const LOGIN_URL = "/login?callbackUrl=%2Fbuilds";
 
@@ -12,17 +13,16 @@ function formatVoteCount(voteCount: number): string {
   return `${voteCount.toLocaleString()} ${suffix}`;
 }
 
-export function BuildVoteButton(props: {
+type BuildVoteButtonContentProps = {
   buildId: string;
   initialVoteCount: number;
-}) {
-  const { status } = useSession();
-  const isAuthenticated = status === "authenticated";
+};
+
+function BuildVoteButtonContent(props: BuildVoteButtonContentProps) {
   const utils = trpc.useUtils();
   const queryInput = { buildIds: [props.buildId] };
 
   const votesQuery = trpc.builds.getVotes.useQuery(queryInput, {
-    enabled: isAuthenticated,
     initialData: {
       totalsByBuildId: {
         [props.buildId]: props.initialVoteCount,
@@ -49,22 +49,12 @@ export function BuildVoteButton(props: {
     },
   });
 
-  const voteCount =
-    votesQuery.data?.totalsByBuildId[props.buildId] ?? props.initialVoteCount;
-  const hasVoted =
-    votesQuery.data?.viewerVotedBuildIds.includes(props.buildId) ?? false;
-
-  if (!isAuthenticated) {
-    return (
-      <Link
-        href={LOGIN_URL}
-        className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-neutral-700 transition hover:bg-white"
-      >
-        <span aria-hidden>▲</span>
-        <span>{formatVoteCount(voteCount)}</span>
-      </Link>
-    );
+  if (votesQuery.error && !votesQuery.isFetching) {
+    throw votesQuery.error;
   }
+
+  const voteCount = votesQuery.data?.totalsByBuildId[props.buildId] ?? props.initialVoteCount;
+  const hasVoted = votesQuery.data?.viewerVotedBuildIds.includes(props.buildId) ?? false;
 
   return (
     <button
@@ -81,13 +71,51 @@ export function BuildVoteButton(props: {
           : `Upvote build (${formatVoteCount(voteCount)})`
       }
       onClick={() => {
-        void voteMutation
-          .mutateAsync({ buildId: props.buildId })
-          .catch(() => undefined);
+        void voteMutation.mutateAsync({ buildId: props.buildId }).catch(() => undefined);
       }}
     >
       <span aria-hidden>{hasVoted ? "♥" : "▲"}</span>
       <span>{formatVoteCount(voteCount)}</span>
     </button>
+  );
+}
+
+export function BuildVoteButton(props: BuildVoteButtonContentProps) {
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
+  const utils = trpc.useUtils();
+
+  if (!isAuthenticated) {
+    return (
+      <Link
+        href={LOGIN_URL}
+        className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-neutral-700 transition hover:bg-white"
+      >
+        <span aria-hidden>▲</span>
+        <span>{formatVoteCount(props.initialVoteCount)}</span>
+      </Link>
+    );
+  }
+
+  return (
+    <ErrorBoundary
+      onRetry={() => {
+        void utils.builds.getVotes.invalidate({ buildIds: [props.buildId] });
+      }}
+      fallback={({ retry }) => (
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-900">
+          <span>Failed to load</span>
+          <button
+            type="button"
+            onClick={retry}
+            className="rounded-full border border-rose-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-rose-900 transition hover:bg-rose-100"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+    >
+      <BuildVoteButtonContent {...props} />
+    </ErrorBoundary>
   );
 }
