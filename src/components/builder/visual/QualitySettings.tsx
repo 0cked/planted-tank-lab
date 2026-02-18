@@ -51,11 +51,16 @@ export function QualitySettings(props: QualitySettingsProps) {
   );
   const lightSimulationSummary = describeLightSimulationSource(lightSimulationSource);
 
+  const tierBtnBase =
+    "inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60";
+  const tierBtnActive = "border-cyan-300/50 bg-cyan-300/10 text-cyan-100";
+  const tierBtnInactive = "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]";
+
   return (
-    <div className="rounded-2xl border border-white/20 bg-slate-900/55 p-3">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">Scene quality</div>
-        <div className="text-[10px] text-slate-300">Auto picks {props.autoQualityTier}</div>
+        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">Scene quality</div>
+        <div className="text-[10px] text-white/35">Auto picks {props.autoQualityTier}</div>
       </div>
 
       <div role="toolbar" aria-label="Scene quality tier" className="grid grid-cols-4 gap-1.5">
@@ -66,18 +71,14 @@ export function QualitySettings(props: QualitySettingsProps) {
             aria-label={`Set quality to ${tier}`}
             aria-pressed={props.sceneSettings.qualityTier === tier}
             onClick={() => props.onSceneSettingsChange({ qualityTier: tier })}
-            className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
-              props.sceneSettings.qualityTier === tier
-                ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
-                : "border-white/20 bg-slate-950/60 text-slate-200"
-            }`}
+            className={`${tierBtnBase} ${props.sceneSettings.qualityTier === tier ? tierBtnActive : tierBtnInactive}`}
           >
             {tier}
           </button>
         ))}
       </div>
 
-      <div className="mt-2 grid gap-2 text-[11px] text-slate-200">
+      <div className="mt-2 grid gap-2 text-[11px] text-white/80">
         <label className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5">
             <input
@@ -90,7 +91,7 @@ export function QualitySettings(props: QualitySettingsProps) {
             />
             Post FX
           </span>
-          <span className="text-[10px] text-slate-300">{postprocessingHint}</span>
+          <span className="text-[10px] text-white/40">{postprocessingHint}</span>
         </label>
 
         <label className="flex items-center gap-1.5">
@@ -159,13 +160,13 @@ export function QualitySettings(props: QualitySettingsProps) {
             />
             Light simulation
           </span>
-          <span className="text-[10px] text-slate-300">{lightSimulationSummary}</span>
+          <span className="text-[10px] text-white/40">{lightSimulationSummary}</span>
         </label>
 
         <label className={`block ${!hasCompatibleLight ? "opacity-65" : ""}`}>
-          <span className="mb-1 flex items-center justify-between text-[11px] text-slate-200">
+          <span className="mb-1 flex items-center justify-between text-[11px] text-white/80">
             <span>Mount height</span>
-            <span className="text-[10px] text-slate-300">
+            <span className="text-[10px] tabular-nums text-white/40">
               {normalizedLightMountHeightIn.toFixed(1)} in
             </span>
           </span>
@@ -183,13 +184,13 @@ export function QualitySettings(props: QualitySettingsProps) {
                 lightMountHeightIn: clampLightMountHeightIn(Number(event.target.value)),
               });
             }}
-            className="w-full"
+            className="w-full accent-cyan-300"
           />
         </label>
       </div>
 
       <div className="mt-3">
-        <div className="mb-1 text-[10px] uppercase tracking-[0.16em] text-slate-300">Camera mode</div>
+        <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-white/40">Camera mode</div>
         <div role="toolbar" aria-label="Camera mode" className="grid grid-cols-2 gap-1.5">
           {CAMERA_MODES.map((mode) => (
             <button
@@ -198,11 +199,7 @@ export function QualitySettings(props: QualitySettingsProps) {
               aria-label={mode === "step" ? "Use step-owned camera mode" : "Use free camera mode"}
               aria-pressed={props.sceneSettings.cameraPreset === mode}
               onClick={() => props.onSceneSettingsChange({ cameraPreset: mode })}
-              className={`inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
-                props.sceneSettings.cameraPreset === mode
-                  ? "border-cyan-200 bg-cyan-200/20 text-cyan-100"
-                  : "border-white/20 bg-slate-950/60 text-slate-200"
-              }`}
+              className={`${tierBtnBase} ${props.sceneSettings.cameraPreset === mode ? tierBtnActive : tierBtnInactive}`}
             >
               {mode === "step" ? "Step-owned" : "Free"}
             </button>
@@ -214,7 +211,7 @@ export function QualitySettings(props: QualitySettingsProps) {
             type="button"
             onClick={props.onReframe}
             aria-label="Reframe camera to tank"
-            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            className={`${tierBtnBase} ${tierBtnInactive}`}
           >
             Reframe
           </button>
@@ -222,7 +219,7 @@ export function QualitySettings(props: QualitySettingsProps) {
             type="button"
             onClick={props.onResetView}
             aria-label="Reset camera view"
-            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 px-2 py-1 text-[11px] font-semibold text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            className={`${tierBtnBase} ${tierBtnInactive}`}
           >
             Reset view
           </button>
