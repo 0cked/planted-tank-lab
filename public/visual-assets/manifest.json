@@ -9,6 +9,13 @@
       "triangleCount": 12,
       "fallbackPlantType": "rosette"
     },
+    "plant:ludwigia-repens": {
+      "path": "/visual-assets/plants/ludwigia-repens.glb",
+      "category": "plant",
+      "defaultScale": 0.9,
+      "placementZone": "background",
+      "fallbackPlantType": "stem"
+    },
     "2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a": {
       "path": "/visual-assets/hardscape/seiryu-1.glb",
       "category": "rock",

@@ -73,6 +73,21 @@ describe("useAsset manifest resolution", () => {
     expect(resolved.proceduralPlantType).toBe("rosette");
   });
 
+  it("resolves a manifest stem plant variant by slug key", () => {
+    const asset = buildAsset({
+      id: "unknown-db-id",
+      slug: "ludwigia-repens",
+      name: "Ludwigia repens",
+    });
+
+    const resolved = useAsset(asset);
+
+    expect(resolved.manifestKey).toBe("plant:ludwigia-repens");
+    expect(resolved.glbPath).toBe("/visual-assets/plants/ludwigia-repens.glb");
+    expect(resolved.fallbackKind).toBe("plant");
+    expect(resolved.proceduralPlantType).toBe("stem");
+  });
+
   it("resolves a manifest rock variant for hardscape assets", () => {
     const asset = buildAsset({
       id: "2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a",
