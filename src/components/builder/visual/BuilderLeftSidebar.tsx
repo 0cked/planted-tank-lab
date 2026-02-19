@@ -43,6 +43,7 @@ type BuilderLeftSidebarProps = {
     sculptBrushSize: number;
     sculptStrength: number;
     sculptMaterial: SubstrateMaterialType;
+    controlPointGrid: { cols: number; rows: number };
     substrateVolumeLiters: number;
     hasSelectedSubstrate: boolean;
     substrateBagEstimate: {

@@ -37,8 +37,6 @@ import {
 } from "@/components/builder/visual/ProceduralHardscape";
 import { EquipmentVisuals } from "@/components/builder/visual/EquipmentVisuals";
 import {
-  applySubstrateBrush,
-  applySubstrateMaterialBrush,
   buildTransformFromNormalized,
   clamp01,
   depthZoneFromZ,
@@ -3264,6 +3262,7 @@ function TankShell(props: {
   onSubstrateHeightfield: (next: SubstrateHeightfield) => void;
   onSubstrateStrokeStart: () => void;
   onSubstrateStrokeEnd: () => void;
+  onSubstrateControlPointDragStateChange: (active: boolean) => void;
 }) {
   const substrateGeometryData = useMemo(
     () =>
@@ -3460,6 +3459,7 @@ function TankShell(props: {
           onHeightfieldChange={props.onSubstrateHeightfield}
           onStrokeStart={props.onSubstrateStrokeStart}
           onStrokeEnd={props.onSubstrateStrokeEnd}
+          onDragStateChange={props.onSubstrateControlPointDragStateChange}
         />
       ) : null}
 
@@ -3530,7 +3530,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<PlacementCandidate | null>(null);
   const [transformInteractionLocked, setTransformInteractionLocked] = useState(false);
-  const sculptingRef = useRef(false);
+  const [substrateNodeDragActive, setSubstrateNodeDragActive] = useState(false);
   const moveDragRef = useRef<MoveDragState | null>(null);
   const onSubstrateStrokeStart = props.onSubstrateStrokeStart;
   const onSubstrateStrokeEnd = props.onSubstrateStrokeEnd;
@@ -3666,19 +3666,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     props.onHoverItem?.(hoveredItemId);
   }, [hoveredItemId, props]);
 
-  const finishSculptStroke = () => {
-    if (!sculptingRef.current) return;
-    sculptingRef.current = false;
-    onSubstrateStrokeEnd?.();
-  };
-
   useEffect(() => {
     const handleGlobalPointerUp = () => {
       moveDragRef.current = null;
-
-      if (!sculptingRef.current) return;
-      sculptingRef.current = false;
-      onSubstrateStrokeEnd?.();
     };
 
     window.addEventListener("pointerup", handleGlobalPointerUp);
@@ -3687,17 +3677,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     return () => {
       window.removeEventListener("pointerup", handleGlobalPointerUp);
       window.removeEventListener("pointercancel", handleGlobalPointerUp);
-      handleGlobalPointerUp();
     };
-  }, [onSubstrateStrokeEnd]);
-
-  useEffect(() => {
-    if (props.toolMode === "sculpt" && props.currentStep === "substrate") {
-      return;
-    }
-
-    finishSculptStroke();
-  }, [props.currentStep, props.toolMode, onSubstrateStrokeEnd, finishSculptStroke]);
+  }, []);
 
   useEffect(() => {
     if (props.toolMode === "move") return;
@@ -3893,39 +3874,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     }
   };
 
-  const sculptAtPoint = (point: THREE.Vector3) => {
-    const normalized = worldToNormalized({
-      x: point.x,
-      y: point.y,
-      z: point.z,
-      dims,
-    });
-
-    if (props.sculptMode === "material") {
-      const nextMaterialGrid = applySubstrateMaterialBrush({
-        materialGrid: props.canvasState.substrateMaterialGrid,
-        xNorm: normalized.x,
-        zNorm: normalized.z,
-        brushSize: props.sculptBrushSize,
-        strength: props.sculptStrength,
-        materialType: props.sculptMaterial,
-      });
-      props.onSubstrateMaterialGrid(nextMaterialGrid);
-      return;
-    }
-
-    const nextHeightfield = applySubstrateBrush({
-      heightfield: props.canvasState.substrateHeightfield,
-      mode: props.sculptMode,
-      xNorm: normalized.x,
-      zNorm: normalized.z,
-      brushSize: props.sculptBrushSize,
-      strength: props.sculptStrength,
-      tankHeightIn: dims.heightIn,
-    });
-    props.onSubstrateHeightfield(nextHeightfield);
-  };
-
   const startMoveDrag = (event: ThreeEvent<PointerEvent>, anchorItemId: string | null) => {
     if (event.shiftKey) return;
 
@@ -4049,10 +3997,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       moveSelectedItems(event);
     }
 
-    if (props.toolMode === "sculpt" && sculptingRef.current && props.currentStep === "substrate") {
-      sculptAtPoint(event.point);
-    }
-
     const surfaceNormal = event.face?.normal
       ? event.face.normal.clone().transformDirection(event.object.matrixWorld)
       : WORLD_UP.clone();
@@ -4078,15 +4022,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     itemId: string | null,
   ) => {
     event.stopPropagation();
-
-    if (props.toolMode === "sculpt" && props.currentStep === "substrate") {
-      if (!sculptingRef.current) {
-        sculptingRef.current = true;
-        onSubstrateStrokeStart?.();
-      }
-      sculptAtPoint(event.point);
-      return;
-    }
 
     if (props.toolMode === "move" && (selectedItemIds.length > 0 || props.selectedItemId)) {
       startMoveDrag(event, itemId);
@@ -4118,7 +4053,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const handleSurfaceUp = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
     moveDragRef.current = null;
-    finishSculptStroke();
   };
 
   const shadowMapSize = props.qualityTier === "high" ? 2048 : props.qualityTier === "medium" ? 1536 : 1024;
@@ -4169,6 +4103,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         onSubstrateHeightfield={props.onSubstrateHeightfield}
         onSubstrateStrokeStart={onSubstrateStrokeStart ?? (() => {})}
         onSubstrateStrokeEnd={onSubstrateStrokeEnd ?? (() => {})}
+        onSubstrateControlPointDragStateChange={setSubstrateNodeDragActive}
       />
 
       {props.showMeasurements ? (
@@ -4278,7 +4213,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         dims={dims}
         idleOrbit={props.idleOrbit}
         cameraPresetMode={props.cameraPresetMode}
-        controlsEnabled={!transformInteractionLocked}
+        controlsEnabled={!transformInteractionLocked && !substrateNodeDragActive}
         onCameraPresetModeChange={props.onCameraPresetModeChange}
         onCameraDiagnostic={props.onCameraDiagnostic}
         cameraIntent={props.cameraIntent}

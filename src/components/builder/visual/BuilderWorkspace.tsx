@@ -118,6 +118,7 @@ export type BuilderWorkspaceProps = {
     sculptBrushSize: number;
     sculptStrength: number;
     sculptMaterial: SubstrateMaterialType;
+    controlPointGrid: { cols: number; rows: number };
     substrateVolumeLiters: number;
     hasSelectedSubstrate: boolean;
     substrateBagEstimate: { bagsRequired: number; bagVolumeLiters: number };

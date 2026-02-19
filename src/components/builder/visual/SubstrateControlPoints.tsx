@@ -16,17 +16,21 @@ type SubstrateControlPointsProps = {
   onHeightfieldChange: (next: SubstrateHeightfield) => void;
   onStrokeStart: () => void;
   onStrokeEnd: () => void;
+  onDragStateChange?: (active: boolean) => void;
 };
 
 type DragState = {
   index: number;
+  pointerId: number;
   startY: number;
   startHeight: number;
   plane: THREE.Plane;
   allHeights: number[];
 };
 
-const DOT_RADIUS = 0.35;
+const DOT_RADIUS = 0.42;
+const DOT_HIT_RADIUS = 0.78;
+const DOT_MAX_HEIGHT_RATIO = 0.45;
 const COLOR_DEFAULT = "#67b8d6";
 const COLOR_HOVER = "#a8e4f8";
 const COLOR_ACTIVE = "#ffffff";
@@ -35,14 +39,14 @@ function ControlDot(props: {
   position: [number, number, number];
   index: number;
   active: boolean;
-  onDragStart: (index: number, worldY: number) => void;
+  onDragStart: (index: number, worldY: number, pointerId: number) => void;
 }) {
   const [hovered, setHovered] = useState(false);
 
   const color = props.active ? COLOR_ACTIVE : hovered ? COLOR_HOVER : COLOR_DEFAULT;
 
   return (
-    <mesh
+    <group
       position={props.position}
       onPointerOver={(e) => {
         e.stopPropagation();
@@ -51,23 +55,37 @@ function ControlDot(props: {
       onPointerOut={() => setHovered(false)}
       onPointerDown={(e) => {
         e.stopPropagation();
-        props.onDragStart(props.index, e.point.y);
+        props.onDragStart(props.index, e.point.y, e.pointerId);
       }}
     >
-      <sphereGeometry args={[DOT_RADIUS, 12, 8]} />
-      <meshStandardMaterial
-        color={color}
-        emissive={color}
-        emissiveIntensity={props.active ? 0.6 : hovered ? 0.3 : 0.15}
-        roughness={0.4}
-        metalness={0.1}
-      />
-    </mesh>
+      <mesh>
+        <sphereGeometry args={[DOT_RADIUS, 14, 10]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={props.active ? 0.7 : hovered ? 0.4 : 0.2}
+          roughness={0.35}
+          metalness={0.1}
+        />
+      </mesh>
+
+      <mesh>
+        <sphereGeometry args={[DOT_HIT_RADIUS, 12, 8]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
 
 export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
-  const { dims, heightfield, onHeightfieldChange, onStrokeStart, onStrokeEnd } = props;
+  const {
+    dims,
+    heightfield,
+    onHeightfieldChange,
+    onStrokeStart,
+    onStrokeEnd,
+    onDragStateChange,
+  } = props;
   const { camera, gl } = useThree();
   const dragRef = useRef<DragState | null>(null);
   const [activeDotIndex, setActiveDotIndex] = useState<number | null>(null);
@@ -114,7 +132,7 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
   }, [cols, rows, dims.widthIn, dims.depthIn, controlHeights]);
 
   const handleDragStart = useCallback(
-    (index: number, worldY: number) => {
+    (index: number, worldY: number, pointerId: number) => {
       // Build a vertical plane through the dot position, facing the camera
       const dotPos = dotPositions[index];
       if (!dotPos) return;
@@ -133,6 +151,7 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
 
       dragRef.current = {
         index,
+        pointerId,
         startY: worldY,
         startHeight: controlHeights[index] ?? 0,
         plane,
@@ -140,9 +159,10 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
       };
 
       setActiveDotIndex(index);
+      onDragStateChange?.(true);
       onStrokeStart();
     },
-    [dotPositions, controlHeights, camera, onStrokeStart],
+    [dotPositions, controlHeights, camera, onStrokeStart, onDragStateChange],
   );
 
   useEffect(() => {
@@ -151,6 +171,7 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
     const handlePointerMove = (e: PointerEvent) => {
       const drag = dragRef.current;
       if (!drag) return;
+      if (e.pointerId !== drag.pointerId) return;
 
       // Project pointer to the drag plane
       const rect = canvas.getBoundingClientRect();
@@ -165,7 +186,7 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
       if (!hit) return;
 
       const deltaY = intersection.y - drag.startY;
-      const maxHeight = dims.heightIn * 0.35;
+      const maxHeight = dims.heightIn * DOT_MAX_HEIGHT_RATIO;
       const newHeight = Math.max(0, Math.min(maxHeight, drag.startHeight + deltaY));
 
       const nextHeights = [...drag.allHeights];
@@ -181,21 +202,30 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
       onHeightfieldChange(nextHeightfield);
     };
 
-    const handlePointerUp = () => {
+    const handlePointerUp = (e: PointerEvent) => {
       if (!dragRef.current) return;
+      if (e.pointerId !== dragRef.current.pointerId) return;
       dragRef.current = null;
       setActiveDotIndex(null);
+      onDragStateChange?.(false);
       onStrokeEnd();
     };
 
     canvas.addEventListener("pointermove", handlePointerMove);
     canvas.addEventListener("pointerup", handlePointerUp);
+    canvas.addEventListener("pointercancel", handlePointerUp);
 
     return () => {
       canvas.removeEventListener("pointermove", handlePointerMove);
       canvas.removeEventListener("pointerup", handlePointerUp);
+      canvas.removeEventListener("pointercancel", handlePointerUp);
+
+      if (dragRef.current) {
+        dragRef.current = null;
+        onDragStateChange?.(false);
+      }
     };
-  }, [gl, camera, cols, rows, dims.heightIn, onHeightfieldChange, onStrokeEnd]);
+  }, [gl, camera, cols, rows, dims.heightIn, onHeightfieldChange, onStrokeEnd, onDragStateChange]);
 
   return (
     <group>

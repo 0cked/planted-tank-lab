@@ -50,6 +50,7 @@ import {
   estimateSubstrateVolume,
   substrateContourPercentages,
 } from "@/lib/visual/substrate";
+import { computeControlGridDimensions } from "@/lib/visual/substrate-control-grid";
 import type { AppRouter } from "@/server/trpc/router";
 import { useVisualBuilderStore } from "@/stores/visual-builder-store";
 
@@ -829,6 +830,10 @@ export function useVisualBuilderPageController(
     heightfield: canvasState.substrateHeightfield,
     tankHeightIn: canvasState.heightIn,
   });
+  const substrateControlPointGrid = useMemo(
+    () => computeControlGridDimensions(canvasState.widthIn, canvasState.depthIn),
+    [canvasState.widthIn, canvasState.depthIn],
+  );
 
   const canSceneTools = currentStep === "substrate" || currentStep === "hardscape" || currentStep === "plants";
 
@@ -1056,13 +1061,13 @@ export function useVisualBuilderPageController(
       sculptBrushSize,
       sculptStrength,
       sculptMaterial,
+      controlPointGrid: substrateControlPointGrid,
       substrateVolumeLiters: substrateVolume.volumeLiters,
       hasSelectedSubstrate: Boolean(selectedSubstrateAsset),
       substrateBagEstimate: substrateBags,
       onPresetSelect: handleApplySubstratePreset,
       onSculptModeChange: (mode) => {
         setSculptMode(mode);
-        setToolMode("sculpt");
       },
       onSculptBrushSizeChange: setSculptBrushSize,
       onSculptStrengthChange: setSculptStrength,

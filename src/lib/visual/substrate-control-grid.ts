@@ -7,14 +7,14 @@ function clamp(value: number, min: number, max: number): number {
 
 /**
  * Compute the number of control-point columns and rows for a given tank footprint.
- * Targets ~12 dots for a small cube, up to ~24 for a large tank.
+ * Targets ~12 dots for small tanks, scaling up for larger footprints.
  */
 export function computeControlGridDimensions(
   widthIn: number,
   depthIn: number,
 ): { cols: number; rows: number } {
-  const cols = clamp(Math.ceil(widthIn / 6), 3, 6);
-  const rows = clamp(Math.ceil(depthIn / 5), 2, 4);
+  const cols = clamp(Math.ceil(widthIn / 7) + 1, 4, 9);
+  const rows = clamp(Math.ceil(depthIn / 9) + 1, 3, 6);
   return { cols, rows };
 }
 

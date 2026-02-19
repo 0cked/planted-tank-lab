@@ -10,6 +10,10 @@ type SubstrateToolbarProps = {
   sculptBrushSize: number;
   sculptStrength: number;
   sculptMaterial: SubstrateMaterialType;
+  controlPointGrid: {
+    cols: number;
+    rows: number;
+  };
   substrateVolumeLiters: number;
   hasSelectedSubstrate: boolean;
   substrateBagEstimate: {
@@ -35,6 +39,8 @@ const SUBSTRATE_PRESETS: Array<{
 ];
 
 export function SubstrateToolbar(props: SubstrateToolbarProps) {
+  const controlPointCount = props.controlPointGrid.cols * props.controlPointGrid.rows;
+
   return (
     <div
       role="region"
@@ -68,6 +74,14 @@ export function SubstrateToolbar(props: SubstrateToolbarProps) {
         Drag the dots on the substrate to fine-tune terrain height after
         choosing a preset.
       </p>
+
+      <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-2 text-[10px] text-[var(--ptl-ink-muted)]">
+        Node grid:{" "}
+        <span className="font-semibold text-[var(--ptl-ink)]">
+          {props.controlPointGrid.cols}×{props.controlPointGrid.rows}
+        </span>{" "}
+        ({controlPointCount} points)
+      </div>
 
       <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-2">
         <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
