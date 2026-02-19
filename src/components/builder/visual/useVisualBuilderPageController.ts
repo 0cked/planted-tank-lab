@@ -22,6 +22,7 @@ import { exportVisualLayoutPng } from "@/components/builder/visual/export";
 import {
   buildBomLines,
   CANVAS_CATEGORIES,
+  categoryLabel,
   clampRotationDeg,
   exportCanvasPng,
   STEP_META,
@@ -51,6 +52,7 @@ import {
   substrateContourPercentages,
 } from "@/lib/visual/substrate";
 import { computeControlGridDimensions } from "@/lib/visual/substrate-control-grid";
+import { createFlatSubstrateMaterialGrid } from "@/lib/visual/substrate-materials";
 import type { AppRouter } from "@/server/trpc/router";
 import { useVisualBuilderStore } from "@/stores/visual-builder-store";
 
@@ -77,9 +79,80 @@ export const TANK_DIMENSION_PRESETS: ReadonlyArray<TankDimensionPreset> = [
   { id: "75g", label: "75g", widthIn: 48, heightIn: 21, depthIn: 18 },
 ] as const;
 
+const SUBSTRATE_PROFILE_META: Record<
+  SubstrateMaterialType,
+  { label: string; bagVolumeLiters: number; keywords: string[] }
+> = {
+  soil: {
+    label: "Aquasoil",
+    bagVolumeLiters: 9,
+    keywords: ["soil", "aqua soil", "aquasoil", "active substrate", "nutrient"],
+  },
+  sand: {
+    label: "Sand",
+    bagVolumeLiters: 10,
+    keywords: ["sand"],
+  },
+  gravel: {
+    label: "Gravel",
+    bagVolumeLiters: 8,
+    keywords: ["gravel", "pebble"],
+  },
+};
+
 function clampTankDimension(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, value));
+}
+
+function inferSubstrateMaterial(asset: VisualAsset): SubstrateMaterialType | null {
+  if (asset.categorySlug !== "substrate") return null;
+  if (asset.materialType === "soil" || asset.materialType === "sand" || asset.materialType === "gravel") {
+    return asset.materialType;
+  }
+
+  const haystack = [
+    asset.name,
+    asset.slug,
+    asset.materialType,
+    ...(asset.tags ?? []),
+    typeof asset.specs?.material_type === "string" ? asset.specs.material_type : "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (SUBSTRATE_PROFILE_META.soil.keywords.some((keyword) => haystack.includes(keyword))) return "soil";
+  if (SUBSTRATE_PROFILE_META.sand.keywords.some((keyword) => haystack.includes(keyword))) return "sand";
+  if (SUBSTRATE_PROFILE_META.gravel.keywords.some((keyword) => haystack.includes(keyword))) return "gravel";
+  return null;
+}
+
+function recommendationScore(asset: VisualAsset): number {
+  const hasImage = asset.imageUrl ? 0 : 1;
+  const hasPrice = asset.priceCents != null || asset.estimatedUnitPriceCents != null ? 0 : 1;
+  const price = asset.priceCents ?? asset.estimatedUnitPriceCents ?? 100_000_000;
+  return hasImage * 100_000_000 + hasPrice * 10_000_000 + price;
+}
+
+function pickRecommendedAsset(params: {
+  assets: VisualAsset[];
+  categorySlug: string;
+  substrateMaterial?: SubstrateMaterialType;
+}): VisualAsset | null {
+  const candidates = params.assets.filter(
+    (asset) => asset.type === "product" && asset.categorySlug === params.categorySlug,
+  );
+  if (candidates.length === 0) return null;
+
+  if (params.categorySlug === "substrate" && params.substrateMaterial) {
+    const matched = candidates.filter((asset) => inferSubstrateMaterial(asset) === params.substrateMaterial);
+    if (matched.length > 0) {
+      return [...matched].sort((a, b) => recommendationScore(a) - recommendationScore(b))[0] ?? null;
+    }
+  }
+
+  return [...candidates].sort((a, b) => recommendationScore(a) - recommendationScore(b))[0] ?? null;
 }
 
 function captureSceneThumbnailDataUrl(canvas: HTMLCanvasElement | null): string | undefined {
@@ -317,6 +390,20 @@ export function useVisualBuilderPageController(
     ? equipmentCategoryFilter
     : (equipmentCategories[0] ?? "light");
 
+  const recommendedEquipmentByCategory = useMemo(() => {
+    const recommendations: Record<string, VisualAsset | null> = {};
+    const assets = catalogQuery.data?.assets ?? [];
+
+    for (const categorySlug of equipmentCategories) {
+      recommendations[categorySlug] = pickRecommendedAsset({
+        assets,
+        categorySlug,
+      });
+    }
+
+    return recommendations;
+  }, [catalogQuery.data?.assets, equipmentCategories]);
+
   const hardscapeCount = useMemo(() => {
     return canvasState.items.filter((item) => item.categorySlug === "hardscape").length;
   }, [canvasState.items]);
@@ -393,13 +480,22 @@ export function useVisualBuilderPageController(
   }, [assetsById, placementAssetId]);
 
   const selectedSubstrateAsset = useMemo(() => {
-    const substrateId = selectedProductByCategory.substrate;
-    if (!substrateId) return null;
+    return pickRecommendedAsset({
+      assets: catalogQuery.data?.assets ?? [],
+      categorySlug: "substrate",
+      substrateMaterial: sculptMaterial,
+    });
+  }, [catalogQuery.data?.assets, sculptMaterial]);
 
-    const asset = assetsById.get(substrateId);
-    if (!asset || asset.type !== "product" || asset.categorySlug !== "substrate") return null;
-    return asset;
-  }, [assetsById, selectedProductByCategory.substrate]);
+  useEffect(() => {
+    setSubstrateMaterialGrid(createFlatSubstrateMaterialGrid(sculptMaterial));
+  }, [sculptMaterial, setSubstrateMaterialGrid]);
+
+  useEffect(() => {
+    if (!selectedSubstrateAsset) return;
+    if (selectedProductByCategory.substrate === selectedSubstrateAsset.id) return;
+    setSelectedProduct("substrate", selectedSubstrateAsset.id);
+  }, [selectedProductByCategory.substrate, selectedSubstrateAsset, setSelectedProduct]);
 
   const substrateVolume = useMemo(() => {
     return estimateSubstrateVolume({
@@ -415,7 +511,8 @@ export function useVisualBuilderPageController(
     canvasState.widthIn,
   ]);
 
-  const substrateBagVolumeLiters = selectedSubstrateAsset?.bagVolumeLiters ?? 8;
+  const substrateBagVolumeLiters =
+    selectedSubstrateAsset?.bagVolumeLiters ?? SUBSTRATE_PROFILE_META[sculptMaterial].bagVolumeLiters;
   const substrateBags = useMemo(() => {
     return estimateSubstrateBags({
       volumeLiters: substrateVolume.volumeLiters,
@@ -585,7 +682,15 @@ export function useVisualBuilderPageController(
   };
 
   const handleChooseAsset = (asset: VisualAsset) => {
-    if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) {
+    const isGenericEquipmentAsset =
+      currentStep === "equipment" &&
+      asset.type === "product" &&
+      !CANVAS_CATEGORIES.has(asset.categorySlug) &&
+      asset.categorySlug !== "substrate" &&
+      asset.categorySlug !== "tank";
+    const isAllowed = isGenericEquipmentAsset || stepAllowsAsset(currentStep, asset, activeEquipmentCategory);
+
+    if (!isAllowed) {
       setSaveState({ type: "error", message: `You are currently on ${STEP_META[currentStep].title}.` });
       return;
     }
@@ -600,7 +705,20 @@ export function useVisualBuilderPageController(
 
     if (asset.type === "product") {
       setSelectedProduct(asset.categorySlug, asset.id);
-      setSaveState({ type: "ok", message: `${asset.name} selected.` });
+      if (asset.categorySlug === "substrate") {
+        const inferred = inferSubstrateMaterial(asset);
+        if (inferred && inferred !== sculptMaterial) {
+          setSculptMaterial(inferred);
+        }
+        const profileName = SUBSTRATE_PROFILE_META[inferred ?? sculptMaterial].label;
+        setSaveState({ type: "ok", message: `${profileName} profile selected.` });
+        return;
+      }
+
+      setSaveState({
+        type: "ok",
+        message: `${categoryLabel(asset.categorySlug)} recommendation enabled.`,
+      });
     }
   };
 
@@ -1047,15 +1165,14 @@ export function useVisualBuilderPageController(
     onApplyTemplate: handleApplyTemplate,
     equipmentCategories,
     activeEquipmentCategory,
+    recommendedEquipmentByCategory,
     onEquipmentCategoryChange: setEquipmentCategoryFilter,
     search,
     onSearchChange: setSearch,
     filteredAssets,
     selectedProductByCategory,
     onChooseAsset: handleChooseAsset,
-    substrateSelectionLabel: selectedProductByCategory.substrate
-      ? `${substrateBags.bagsRequired} bag(s)`
-      : "Not selected",
+    substrateSelectionLabel: `${SUBSTRATE_PROFILE_META[sculptMaterial].label} • ${substrateBags.bagsRequired} bag(s)`,
     substrateControls: {
       sculptMode,
       sculptBrushSize,

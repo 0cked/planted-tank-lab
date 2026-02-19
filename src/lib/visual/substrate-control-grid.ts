@@ -25,6 +25,30 @@ function normalizedPositionToControlIndex(valueNorm: number, count: number, edge
   return localNorm * (count - 1);
 }
 
+function controlHeightAt(params: {
+  heights: number[];
+  cols: number;
+  rows: number;
+  col: number;
+  row: number;
+}): number {
+  const safeCol = clamp(params.col, 0, params.cols - 1);
+  const safeRow = clamp(params.row, 0, params.rows - 1);
+  return params.heights[safeRow * params.cols + safeCol] ?? 0;
+}
+
+function catmullRom(p0: number, p1: number, p2: number, p3: number, t: number): number {
+  const tt = t * t;
+  const ttt = tt * t;
+  return (
+    0.5 *
+    ((2 * p1) +
+      (-p0 + p2) * t +
+      (2 * p0 - 5 * p1 + 4 * p2 - p3) * tt +
+      (-p0 + 3 * p1 - 3 * p2 + p3) * ttt)
+  );
+}
+
 /**
  * Compute the number of control-point columns and rows for a given tank footprint.
  * Targets ~12 dots for small tanks, scaling up for larger footprints.
@@ -116,28 +140,52 @@ export function interpolateHeightfieldFromControlPoints(params: {
     const nz = z / (res - 1);
     // Map to control grid row (supports optional edge insets)
     const fr = normalizedPositionToControlIndex(nz, rows, edgeInsetZNorm);
-    const r0 = Math.floor(fr);
-    const r1 = Math.min(r0 + 1, rows - 1);
-    const tr = fr - r0;
+    const r1 = Math.floor(fr);
+    const tr = fr - r1;
+    const r0 = r1 - 1;
+    const r2 = r1 + 1;
+    const r3 = r1 + 2;
 
     for (let x = 0; x < res; x++) {
       const nx = x / (res - 1);
       // Map to control grid column (supports optional edge insets)
       const fc = normalizedPositionToControlIndex(nx, cols, edgeInsetXNorm);
-      const c0 = Math.floor(fc);
-      const c1 = Math.min(c0 + 1, cols - 1);
-      const tc = fc - c0;
+      const c1 = Math.floor(fc);
+      const tc = fc - c1;
+      const c0 = c1 - 1;
+      const c2 = c1 + 1;
+      const c3 = c1 + 2;
 
-      const h00 = heights[r0 * cols + c0] ?? 0;
-      const h10 = heights[r0 * cols + c1] ?? 0;
-      const h01 = heights[r1 * cols + c0] ?? 0;
-      const h11 = heights[r1 * cols + c1] ?? 0;
+      const row0 = catmullRom(
+        controlHeightAt({ heights, cols, rows, col: c0, row: r0 }),
+        controlHeightAt({ heights, cols, rows, col: c1, row: r0 }),
+        controlHeightAt({ heights, cols, rows, col: c2, row: r0 }),
+        controlHeightAt({ heights, cols, rows, col: c3, row: r0 }),
+        tc,
+      );
+      const row1 = catmullRom(
+        controlHeightAt({ heights, cols, rows, col: c0, row: r1 }),
+        controlHeightAt({ heights, cols, rows, col: c1, row: r1 }),
+        controlHeightAt({ heights, cols, rows, col: c2, row: r1 }),
+        controlHeightAt({ heights, cols, rows, col: c3, row: r1 }),
+        tc,
+      );
+      const row2 = catmullRom(
+        controlHeightAt({ heights, cols, rows, col: c0, row: r2 }),
+        controlHeightAt({ heights, cols, rows, col: c1, row: r2 }),
+        controlHeightAt({ heights, cols, rows, col: c2, row: r2 }),
+        controlHeightAt({ heights, cols, rows, col: c3, row: r2 }),
+        tc,
+      );
+      const row3 = catmullRom(
+        controlHeightAt({ heights, cols, rows, col: c0, row: r3 }),
+        controlHeightAt({ heights, cols, rows, col: c1, row: r3 }),
+        controlHeightAt({ heights, cols, rows, col: c2, row: r3 }),
+        controlHeightAt({ heights, cols, rows, col: c3, row: r3 }),
+        tc,
+      );
 
-      const heightIn =
-        h00 * (1 - tc) * (1 - tr) +
-        h10 * tc * (1 - tr) +
-        h01 * (1 - tc) * tr +
-        h11 * tc * tr;
+      const heightIn = catmullRom(row0, row1, row2, row3, tr);
 
       result[z * res + x] = clamp(heightIn, minDepth, maxDepth);
     }

@@ -106,6 +106,7 @@ export type BuilderWorkspaceProps = {
   onApplyTemplate: (templateId: VisualBuildTemplateId) => void;
   equipmentCategories: string[];
   activeEquipmentCategory: string;
+  recommendedEquipmentByCategory: Record<string, VisualAsset | null>;
   onEquipmentCategoryChange: (categorySlug: string) => void;
   search: string;
   onSearchChange: (value: string) => void;
@@ -324,9 +325,7 @@ function AssetList(props: {
                 <div className="truncate text-[11px] font-medium text-[var(--ptl-ink)]">
                   {asset.name}
                 </div>
-                <div className="text-[10px] text-[var(--ptl-ink-muted)]">
-                  {formatMoney(lineUnitPrice(asset))}
-                </div>
+                <div className="text-[10px] text-[var(--ptl-ink-muted)]">{categoryLabel(asset.categorySlug)}</div>
               </div>
               {isArmed ? (
                 <span className="rounded-full border border-[var(--ptl-accent)]/30 bg-[var(--ptl-accent)]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--ptl-accent)]">
@@ -470,15 +469,6 @@ function StepPanel(props: BuilderWorkspaceProps) {
       <div className="space-y-3">
         <SectionLabel>Substrate</SectionLabel>
         <SubstrateToolbar {...props.substrateControls} />
-        <SectionLabel>Products</SectionLabel>
-        <AssetList
-          search={props.search}
-          onSearchChange={props.onSearchChange}
-          filteredAssets={props.filteredAssets}
-          selectedProductByCategory={props.selectedProductByCategory}
-          placementAssetId={props.placementAssetId}
-          onChooseAsset={props.onChooseAsset}
-        />
       </div>
     );
   }
@@ -503,14 +493,45 @@ function StepPanel(props: BuilderWorkspaceProps) {
             </button>
           ))}
         </div>
-        <AssetList
-          search={props.search}
-          onSearchChange={props.onSearchChange}
-          filteredAssets={props.filteredAssets}
-          selectedProductByCategory={props.selectedProductByCategory}
-          placementAssetId={props.placementAssetId}
-          onChooseAsset={props.onChooseAsset}
-        />
+        <div className="space-y-1.5">
+          {props.equipmentCategories.map((slug) => {
+            const recommended = props.recommendedEquipmentByCategory[slug] ?? null;
+            const selectedId = props.selectedProductByCategory[slug];
+            const isEnabled = Boolean(selectedId);
+
+            return (
+              <div
+                key={slug}
+                className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-2"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs font-semibold text-[var(--ptl-ink)]">
+                      {categoryLabel(slug)}
+                    </div>
+                    <div className="text-[10px] text-[var(--ptl-ink-muted)]">
+                      {isEnabled ? "Auto recommendation enabled" : "Not included yet"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!recommended}
+                    onClick={() => {
+                      if (!recommended) return;
+                      props.onChooseAsset(recommended);
+                    }}
+                    className="rounded-md border border-[var(--ptl-border)] px-2 py-1 text-[10px] font-semibold text-[var(--ptl-ink)] transition hover:bg-black/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {isEnabled ? "Refresh" : "Enable"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-2 text-[10px] leading-relaxed text-[var(--ptl-ink-muted)]">
+          Specific product picks are generated automatically from your build state and applied in Review.
+        </div>
       </div>
     );
   }

@@ -246,6 +246,8 @@ const SUBSTRATE_MAX_DEPTH_RATIO = 0.62;
 const SUBSTRATE_HEIGHT_EPSILON = 0.0001;
 const SUBSTRATE_HEATMAP_Y_OFFSET = 0.015;
 const SUBSTRATE_HEATMAP_OPACITY = 0.64;
+const SUBSTRATE_RENDER_SMOOTH_PASSES = 2;
+const SUBSTRATE_VOLUME_BASE_Y = -0.02;
 const SUBSTRATE_HEIGHTFIELD_CELL_COUNT =
   SUBSTRATE_HEIGHTFIELD_RESOLUTION * SUBSTRATE_HEIGHTFIELD_RESOLUTION;
 const ASSET_LOAD_RETRY_DELAY_MS = 3500;
@@ -378,6 +380,7 @@ type SubstrateSamplingMap = {
 
 type SubstrateGeometryData = {
   geometry: THREE.BufferGeometry;
+  volume: SubstrateVolumeData;
   heatmapGeometry: THREE.BufferGeometry;
   positionAttribute: THREE.BufferAttribute;
   materialColorAttribute: THREE.BufferAttribute;
@@ -387,7 +390,23 @@ type SubstrateGeometryData = {
   sampling: SubstrateSamplingMap;
   sampledHeights: Float32Array;
   sourceValues: Float32Array;
+  smoothedSourceValues: Float32Array;
+  smoothingScratch: Float32Array;
   sourceChanged: Uint8Array;
+};
+
+type SubstrateVolumeSegment = {
+  topAIndex: number;
+  topBIndex: number;
+  positionOffset: number;
+};
+
+type SubstrateVolumeData = {
+  geometry: THREE.BufferGeometry;
+  positionAttribute: THREE.BufferAttribute;
+  positions: Float32Array;
+  segments: SubstrateVolumeSegment[];
+  bottomOffsets: [number, number, number, number];
 };
 
 function clampPointToTankBounds(point: THREE.Vector3, dims: SceneDims): THREE.Vector3 {
@@ -1377,9 +1396,9 @@ function itemWorldPosition(params: {
 }
 
 function substrateGridResolution(qualityTier: BuilderSceneQualityTier): number {
-  if (qualityTier === "low") return 24;
-  if (qualityTier === "medium") return 32;
-  return 48;
+  if (qualityTier === "low") return 32;
+  if (qualityTier === "medium") return 48;
+  return 64;
 }
 
 function clampSubstrateDepth(depth: number, tankHeightIn: number): number {
@@ -1433,6 +1452,126 @@ function createSubstrateSamplingMap(resolution: number): SubstrateSamplingMap {
     sourceIndex11,
     tx,
     tz,
+  };
+}
+
+function createSubstrateVolumeData(params: {
+  resolution: number;
+  topPositions: Float32Array;
+}): SubstrateVolumeData {
+  const edgePath: number[] = [];
+  const maxIndex = params.resolution - 1;
+
+  for (let xIndex = 0; xIndex <= maxIndex; xIndex += 1) {
+    edgePath.push(xIndex);
+  }
+  for (let zIndex = 1; zIndex <= maxIndex; zIndex += 1) {
+    edgePath.push(zIndex * params.resolution + maxIndex);
+  }
+  for (let xIndex = maxIndex - 1; xIndex >= 0; xIndex -= 1) {
+    edgePath.push(maxIndex * params.resolution + xIndex);
+  }
+  for (let zIndex = maxIndex - 1; zIndex >= 1; zIndex -= 1) {
+    edgePath.push(zIndex * params.resolution);
+  }
+
+  const segmentCount = edgePath.length;
+  const sideVertexCount = segmentCount * 4;
+  const totalVertexCount = sideVertexCount + 4;
+  const positions = new Float32Array(totalVertexCount * 3);
+  const indices = new Uint16Array(segmentCount * 6 + 6);
+  const segments: SubstrateVolumeSegment[] = [];
+
+  let vertexCursor = 0;
+  let indexCursor = 0;
+
+  for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
+    const topAIndex = edgePath[segmentIndex] ?? 0;
+    const topBIndex = edgePath[(segmentIndex + 1) % segmentCount] ?? topAIndex;
+    const topAOffset = topAIndex * 3;
+    const topBOffset = topBIndex * 3;
+
+    const ax = params.topPositions[topAOffset] ?? 0;
+    const ay = params.topPositions[topAOffset + 1] ?? 0;
+    const az = params.topPositions[topAOffset + 2] ?? 0;
+    const bx = params.topPositions[topBOffset] ?? 0;
+    const by = params.topPositions[topBOffset + 1] ?? 0;
+    const bz = params.topPositions[topBOffset + 2] ?? 0;
+
+    const quadOffset = vertexCursor * 3;
+    positions[quadOffset] = ax;
+    positions[quadOffset + 1] = ay;
+    positions[quadOffset + 2] = az;
+    positions[quadOffset + 3] = bx;
+    positions[quadOffset + 4] = by;
+    positions[quadOffset + 5] = bz;
+    positions[quadOffset + 6] = bx;
+    positions[quadOffset + 7] = SUBSTRATE_VOLUME_BASE_Y;
+    positions[quadOffset + 8] = bz;
+    positions[quadOffset + 9] = ax;
+    positions[quadOffset + 10] = SUBSTRATE_VOLUME_BASE_Y;
+    positions[quadOffset + 11] = az;
+
+    indices[indexCursor] = vertexCursor;
+    indices[indexCursor + 1] = vertexCursor + 1;
+    indices[indexCursor + 2] = vertexCursor + 2;
+    indices[indexCursor + 3] = vertexCursor;
+    indices[indexCursor + 4] = vertexCursor + 2;
+    indices[indexCursor + 5] = vertexCursor + 3;
+
+    segments.push({
+      topAIndex,
+      topBIndex,
+      positionOffset: quadOffset,
+    });
+
+    vertexCursor += 4;
+    indexCursor += 6;
+  }
+
+  const frontLeft = 0;
+  const frontRight = maxIndex;
+  const backRight = maxIndex * params.resolution + maxIndex;
+  const backLeft = maxIndex * params.resolution;
+  const bottomIndices = [frontLeft, frontRight, backRight, backLeft] as const;
+  const bottomOffsets: [number, number, number, number] = [
+    vertexCursor * 3,
+    vertexCursor * 3 + 3,
+    vertexCursor * 3 + 6,
+    vertexCursor * 3 + 9,
+  ];
+
+  for (let cornerIndex = 0; cornerIndex < bottomIndices.length; cornerIndex += 1) {
+    const topIndex = bottomIndices[cornerIndex] ?? 0;
+    const topOffset = topIndex * 3;
+    const writeOffset = vertexCursor * 3;
+
+    positions[writeOffset] = params.topPositions[topOffset] ?? 0;
+    positions[writeOffset + 1] = SUBSTRATE_VOLUME_BASE_Y;
+    positions[writeOffset + 2] = params.topPositions[topOffset + 2] ?? 0;
+    vertexCursor += 1;
+  }
+
+  indices[indexCursor] = sideVertexCount;
+  indices[indexCursor + 1] = sideVertexCount + 2;
+  indices[indexCursor + 2] = sideVertexCount + 1;
+  indices[indexCursor + 3] = sideVertexCount;
+  indices[indexCursor + 4] = sideVertexCount + 3;
+  indices[indexCursor + 5] = sideVertexCount + 2;
+
+  const geometry = new THREE.BufferGeometry();
+  const positionAttribute = new THREE.BufferAttribute(positions, 3);
+  geometry.setAttribute("position", positionAttribute);
+  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+
+  return {
+    geometry,
+    positionAttribute,
+    positions,
+    segments,
+    bottomOffsets,
   };
 }
 
@@ -1522,9 +1661,18 @@ function createSubstrateGeometryData(params: {
 
   const sourceValues = new Float32Array(SUBSTRATE_HEIGHTFIELD_CELL_COUNT);
   sourceValues.fill(Number.NaN);
+  const smoothedSourceValues = new Float32Array(SUBSTRATE_HEIGHTFIELD_CELL_COUNT);
+  smoothedSourceValues.fill(Number.NaN);
+  const smoothingScratch = new Float32Array(SUBSTRATE_HEIGHTFIELD_CELL_COUNT);
+  smoothingScratch.fill(Number.NaN);
+  const volume = createSubstrateVolumeData({
+    resolution,
+    topPositions: positions,
+  });
 
   return {
     geometry,
+    volume,
     heatmapGeometry,
     positionAttribute,
     materialColorAttribute,
@@ -1534,6 +1682,8 @@ function createSubstrateGeometryData(params: {
     sampling: createSubstrateSamplingMap(resolution),
     sampledHeights,
     sourceValues,
+    smoothedSourceValues,
+    smoothingScratch,
     sourceChanged: new Uint8Array(SUBSTRATE_HEIGHTFIELD_CELL_COUNT),
   };
 }
@@ -1578,6 +1728,62 @@ function refreshChangedSourceValues(params: {
   return hasChanges;
 }
 
+function smoothSubstrateSourceValues(params: {
+  sourceValues: Float32Array;
+  target: Float32Array;
+  scratch: Float32Array;
+  tankHeightIn: number;
+}): void {
+  const resolution = SUBSTRATE_HEIGHTFIELD_RESOLUTION;
+  const maxIndex = resolution - 1;
+  params.target.set(params.sourceValues);
+
+  let read = params.target;
+  let write = params.scratch;
+
+  for (let pass = 0; pass < SUBSTRATE_RENDER_SMOOTH_PASSES; pass += 1) {
+    for (let zIndex = 0; zIndex < resolution; zIndex += 1) {
+      const zMinus = Math.max(0, zIndex - 1);
+      const zPlus = Math.min(maxIndex, zIndex + 1);
+
+      for (let xIndex = 0; xIndex < resolution; xIndex += 1) {
+        const xMinus = Math.max(0, xIndex - 1);
+        const xPlus = Math.min(maxIndex, xIndex + 1);
+
+        const centerIndex = zIndex * resolution + xIndex;
+        const center = read[centerIndex] ?? SUBSTRATE_DEFAULT_DEPTH_IN;
+        const left = read[zIndex * resolution + xMinus] ?? center;
+        const right = read[zIndex * resolution + xPlus] ?? center;
+        const up = read[zMinus * resolution + xIndex] ?? center;
+        const down = read[zPlus * resolution + xIndex] ?? center;
+        const upLeft = read[zMinus * resolution + xMinus] ?? center;
+        const upRight = read[zMinus * resolution + xPlus] ?? center;
+        const downLeft = read[zPlus * resolution + xMinus] ?? center;
+        const downRight = read[zPlus * resolution + xPlus] ?? center;
+
+        const weighted =
+          center * 0.34 +
+          (left + right + up + down) * 0.12 +
+          (upLeft + upRight + downLeft + downRight) * 0.045;
+        const smooth = weighted / 1.06;
+        const edgeDistance = Math.min(xIndex, maxIndex - xIndex, zIndex, maxIndex - zIndex);
+        const edgeBlend = THREE.MathUtils.clamp(edgeDistance / 3, 0, 1);
+        const blended = THREE.MathUtils.lerp(center, smooth, edgeBlend * 0.72);
+
+        write[centerIndex] = clampSubstrateDepth(blended, params.tankHeightIn);
+      }
+    }
+
+    const nextRead = write;
+    write = read;
+    read = nextRead;
+  }
+
+  if (read !== params.target) {
+    params.target.set(read);
+  }
+}
+
 function isVertexAffectedBySourceChange(params: {
   vertexIndex: number;
   sampling: SubstrateSamplingMap;
@@ -1619,6 +1825,47 @@ function sampleInterpolatedSubstrateHeight(params: {
   return clampSubstrateDepth(top * (1 - tz) + bottom * tz, params.tankHeightIn);
 }
 
+function updateSubstrateVolumeGeometry(params: { data: SubstrateGeometryData }) {
+  const topPositions = params.data.positionAttribute.array;
+  const volumePositions = params.data.volume.positions;
+
+  if (!(topPositions instanceof Float32Array)) return;
+
+  for (const segment of params.data.volume.segments) {
+    const topAOffset = segment.topAIndex * 3;
+    const topBOffset = segment.topBIndex * 3;
+    const positionOffset = segment.positionOffset;
+
+    volumePositions[positionOffset] = topPositions[topAOffset] ?? 0;
+    volumePositions[positionOffset + 1] = topPositions[topAOffset + 1] ?? 0;
+    volumePositions[positionOffset + 2] = topPositions[topAOffset + 2] ?? 0;
+
+    volumePositions[positionOffset + 3] = topPositions[topBOffset] ?? 0;
+    volumePositions[positionOffset + 4] = topPositions[topBOffset + 1] ?? 0;
+    volumePositions[positionOffset + 5] = topPositions[topBOffset + 2] ?? 0;
+
+    volumePositions[positionOffset + 6] = topPositions[topBOffset] ?? 0;
+    volumePositions[positionOffset + 7] = SUBSTRATE_VOLUME_BASE_Y;
+    volumePositions[positionOffset + 8] = topPositions[topBOffset + 2] ?? 0;
+
+    volumePositions[positionOffset + 9] = topPositions[topAOffset] ?? 0;
+    volumePositions[positionOffset + 10] = SUBSTRATE_VOLUME_BASE_Y;
+    volumePositions[positionOffset + 11] = topPositions[topAOffset + 2] ?? 0;
+  }
+
+  for (const bottomOffset of params.data.volume.bottomOffsets) {
+    volumePositions[bottomOffset + 1] = SUBSTRATE_VOLUME_BASE_Y;
+  }
+
+  params.data.volume.positionAttribute.needsUpdate = true;
+  params.data.volume.geometry.computeVertexNormals();
+  params.data.volume.geometry.computeBoundingSphere();
+  const normalAttribute = params.data.volume.geometry.getAttribute("normal");
+  if (normalAttribute instanceof THREE.BufferAttribute) {
+    normalAttribute.needsUpdate = true;
+  }
+}
+
 function applyHeightfieldToSubstrateGeometry(params: {
   data: SubstrateGeometryData;
   heightfield: SubstrateHeightfield;
@@ -1637,6 +1884,13 @@ function applyHeightfieldToSubstrateGeometry(params: {
   });
 
   if (!sourceDidChange) return false;
+
+  smoothSubstrateSourceValues({
+    sourceValues: params.data.sourceValues,
+    target: params.data.smoothedSourceValues,
+    scratch: params.data.smoothingScratch,
+    tankHeightIn: params.tankHeightIn,
+  });
 
   const positionBuffer = params.data.positionAttribute.array;
   if (!(positionBuffer instanceof Float32Array)) return false;
@@ -1657,7 +1911,7 @@ function applyHeightfieldToSubstrateGeometry(params: {
     const nextHeight = sampleInterpolatedSubstrateHeight({
       vertexIndex,
       sampling: params.data.sampling,
-      sourceValues: params.data.sourceValues,
+      sourceValues: params.data.smoothedSourceValues,
       tankHeightIn: params.tankHeightIn,
     });
 
@@ -1683,6 +1937,8 @@ function applyHeightfieldToSubstrateGeometry(params: {
   if (normalAttribute instanceof THREE.BufferAttribute) {
     normalAttribute.needsUpdate = true;
   }
+
+  updateSubstrateVolumeGeometry({ data: params.data });
 
   return true;
 }
@@ -3100,6 +3356,7 @@ function TankShell(props: {
     return () => {
       substrateGeometryData.geometry.dispose();
       substrateGeometryData.heatmapGeometry.dispose();
+      substrateGeometryData.volume.geometry.dispose();
     };
   }, [substrateGeometryData]);
 
@@ -3203,6 +3460,15 @@ function TankShell(props: {
           </mesh>
         </group>
       ) : null}
+
+      <mesh
+        geometry={substrateGeometryData.volume.geometry}
+        receiveShadow
+        castShadow
+        raycast={DISABLED_RAYCAST}
+      >
+        <meshStandardMaterial color="#34281f" roughness={0.92} metalness={0.03} />
+      </mesh>
 
       <mesh
         geometry={substrateGeometryData.geometry}
