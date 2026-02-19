@@ -52,15 +52,15 @@ export function QualitySettings(props: QualitySettingsProps) {
   const lightSimulationSummary = describeLightSimulationSource(lightSimulationSource);
 
   const tierBtnBase =
-    "inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60";
-  const tierBtnActive = "border-cyan-300/50 bg-cyan-300/10 text-cyan-100";
-  const tierBtnInactive = "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]";
+    "inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ptl-accent)]/50";
+  const tierBtnActive = "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]";
+  const tierBtnInactive = "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]";
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-3">
+    <div className="rounded-2xl border border-[var(--ptl-border)] bg-black/[0.03] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">Scene quality</div>
-        <div className="text-[10px] text-white/35">Auto picks {props.autoQualityTier}</div>
+        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ptl-ink-muted)]">Scene quality</div>
+        <div className="text-[10px] text-[var(--ptl-ink-muted)]">Auto picks {props.autoQualityTier}</div>
       </div>
 
       <div role="toolbar" aria-label="Scene quality tier" className="grid grid-cols-4 gap-1.5">
@@ -78,7 +78,7 @@ export function QualitySettings(props: QualitySettingsProps) {
         ))}
       </div>
 
-      <div className="mt-2 grid gap-2 text-[11px] text-white/80">
+      <div className="mt-2 grid gap-2 text-[11px] text-[var(--ptl-ink)]">
         <label className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5">
             <input
@@ -91,7 +91,7 @@ export function QualitySettings(props: QualitySettingsProps) {
             />
             Post FX
           </span>
-          <span className="text-[10px] text-white/40">{postprocessingHint}</span>
+          <span className="text-[10px] text-[var(--ptl-ink-muted)]">{postprocessingHint}</span>
         </label>
 
         <label className="flex items-center gap-1.5">
@@ -160,13 +160,13 @@ export function QualitySettings(props: QualitySettingsProps) {
             />
             Light simulation
           </span>
-          <span className="text-[10px] text-white/40">{lightSimulationSummary}</span>
+          <span className="text-[10px] text-[var(--ptl-ink-muted)]">{lightSimulationSummary}</span>
         </label>
 
         <label className={`block ${!hasCompatibleLight ? "opacity-65" : ""}`}>
-          <span className="mb-1 flex items-center justify-between text-[11px] text-white/80">
+          <span className="mb-1 flex items-center justify-between text-[11px] text-[var(--ptl-ink)]">
             <span>Mount height</span>
-            <span className="text-[10px] tabular-nums text-white/40">
+            <span className="text-[10px] tabular-nums text-[var(--ptl-ink-muted)]">
               {normalizedLightMountHeightIn.toFixed(1)} in
             </span>
           </span>
@@ -184,13 +184,13 @@ export function QualitySettings(props: QualitySettingsProps) {
                 lightMountHeightIn: clampLightMountHeightIn(Number(event.target.value)),
               });
             }}
-            className="w-full accent-cyan-300"
+            className="w-full accent-[var(--ptl-accent)]"
           />
         </label>
       </div>
 
       <div className="mt-3">
-        <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-white/40">Camera mode</div>
+        <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--ptl-ink-muted)]">Camera mode</div>
         <div role="toolbar" aria-label="Camera mode" className="grid grid-cols-2 gap-1.5">
           {CAMERA_MODES.map((mode) => (
             <button

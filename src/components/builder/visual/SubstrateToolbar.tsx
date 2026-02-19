@@ -41,7 +41,7 @@ export function SubstrateToolbar(props: SubstrateToolbarProps) {
       aria-label="Substrate controls"
       className="space-y-3"
     >
-      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ptl-ink-muted)]">
         Terrain shape
       </div>
 
@@ -52,38 +52,38 @@ export function SubstrateToolbar(props: SubstrateToolbarProps) {
             type="button"
             aria-label={`Apply ${preset.label.toLowerCase()} terrain preset`}
             onClick={() => props.onPresetSelect(preset.value)}
-            className="group flex min-h-11 touch-manipulation flex-col items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 text-center transition hover:border-white/20 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
+            className="group flex min-h-11 touch-manipulation flex-col items-center justify-center rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-2 text-center transition hover:border-[var(--ptl-accent)]/30 hover:bg-black/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ptl-accent)]/50"
           >
-            <span className="text-[11px] font-semibold text-white/90">
+            <span className="text-[11px] font-semibold text-[var(--ptl-ink)]">
               {preset.label}
             </span>
-            <span className="text-[9px] text-white/40">
+            <span className="text-[9px] text-[var(--ptl-ink-muted)]">
               {preset.desc}
             </span>
           </button>
         ))}
       </div>
 
-      <p className="text-[10px] leading-relaxed text-white/35">
+      <p className="text-[10px] leading-relaxed text-[var(--ptl-ink-muted)]">
         Drag the dots on the substrate to fine-tune terrain height after
         choosing a preset.
       </p>
 
-      <div className="rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-2">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+      <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
           Volume estimate
         </div>
-        <div className="mt-1 text-sm font-semibold tabular-nums text-white/90">
+        <div className="mt-1 text-sm font-semibold tabular-nums text-[var(--ptl-ink)]">
           {props.substrateVolumeLiters.toFixed(1)} L
         </div>
         {props.hasSelectedSubstrate ? (
-          <div className="mt-0.5 text-[10px] text-white/50">
+          <div className="mt-0.5 text-[10px] text-neutral-500">
             {props.substrateBagEstimate.bagsRequired} bag
             {props.substrateBagEstimate.bagsRequired !== 1 ? "s" : ""} @{" "}
             {props.substrateBagEstimate.bagVolumeLiters.toFixed(1)} L each
           </div>
         ) : (
-          <div className="mt-0.5 text-[10px] text-white/35">
+          <div className="mt-0.5 text-[10px] text-[var(--ptl-ink-muted)]">
             Select a substrate product below for bag estimate.
           </div>
         )}

@@ -206,12 +206,12 @@ function RailBtn(props: {
 }) {
   const size = props.compact ? "h-7 w-7 text-xs" : "h-8 w-8 text-sm";
   const variant = props.disabled
-    ? "text-white/20 cursor-not-allowed"
+    ? "text-neutral-300 cursor-not-allowed"
     : props.active
-      ? "bg-cyan-400/15 text-cyan-200 shadow-[0_0_12px_rgba(140,230,255,0.2)]"
+      ? "bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)] shadow-[0_0_12px_rgba(27,127,90,0.15)]"
       : props.done
-        ? "text-emerald-300/70 hover:bg-white/10 hover:text-emerald-200"
-        : "text-white/50 hover:bg-white/10 hover:text-white/80";
+        ? "text-emerald-600 hover:bg-black/[0.06] hover:text-emerald-700"
+        : "text-neutral-500 hover:bg-black/[0.06] hover:text-[var(--ptl-ink)]";
   return (
     <button
       type="button"
@@ -219,7 +219,7 @@ function RailBtn(props: {
       disabled={props.disabled}
       title={props.title}
       aria-label={props.title}
-      className={`flex ${size} items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 ${variant}`}
+      className={`flex ${size} items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ptl-accent)]/50 ${variant}`}
     >
       {props.label}
     </button>
@@ -261,13 +261,13 @@ function isTankPresetActive(
 function severityChip(severity: Severity): string {
   switch (severity) {
     case "error":
-      return "border-red-400/40 bg-red-400/10 text-red-200";
+      return "border-red-400/40 bg-red-400/10 text-red-700";
     case "warning":
-      return "border-amber-400/40 bg-amber-400/10 text-amber-200";
+      return "border-amber-400/40 bg-amber-400/10 text-amber-700";
     case "recommendation":
-      return "border-sky-400/40 bg-sky-400/10 text-sky-200";
+      return "border-sky-400/40 bg-sky-400/10 text-sky-700";
     case "completeness":
-      return "border-white/10 bg-white/5 text-white/60";
+      return "border-[var(--ptl-border)] bg-black/5 text-neutral-500";
   }
 }
 
@@ -285,7 +285,7 @@ function AssetList(props: {
         value={props.search}
         onChange={(e) => props.onSearchChange(e.target.value)}
         placeholder="Search\u2026"
-        className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-white/25 focus:border-white/20"
+        className="w-full rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-1.5 text-xs text-[var(--ptl-ink)] outline-none placeholder:text-neutral-400 focus:border-[var(--ptl-border)]"
       />
       <div className="max-h-[50vh] space-y-1 overflow-auto">
         {props.filteredAssets.map((asset) => {
@@ -301,11 +301,11 @@ function AssetList(props: {
               onClick={() => props.onChooseAsset(asset)}
               className={`flex w-full items-center gap-2 rounded-lg border p-1.5 text-left transition ${
                 isArmed || isSel
-                  ? "border-cyan-300/40 bg-cyan-300/10"
-                  : "border-white/8 bg-white/[0.03] hover:bg-white/[0.06]"
+                  ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8"
+                  : "border-[var(--ptl-border)] bg-black/[0.03] hover:bg-black/[0.06]"
               }`}
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-black/40">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[var(--ptl-border)] bg-black/5">
                 {asset.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -316,19 +316,19 @@ function AssetList(props: {
                     draggable={false}
                   />
                 ) : (
-                  <span className="text-[8px] text-white/30">{"\u2014"}</span>
+                  <span className="text-[8px] text-neutral-400">{"\u2014"}</span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[11px] font-medium text-white/90">
+                <div className="truncate text-[11px] font-medium text-[var(--ptl-ink)]">
                   {asset.name}
                 </div>
-                <div className="text-[10px] text-white/40">
+                <div className="text-[10px] text-[var(--ptl-ink-muted)]">
                   {formatMoney(lineUnitPrice(asset))}
                 </div>
               </div>
               {isArmed ? (
-                <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-300">
+                <span className="rounded-full border border-[var(--ptl-accent)]/30 bg-[var(--ptl-accent)]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--ptl-accent)]">
                   Armed
                 </span>
               ) : null}
@@ -336,7 +336,7 @@ function AssetList(props: {
           );
         })}
         {props.filteredAssets.length === 0 ? (
-          <div className="py-4 text-center text-[11px] text-white/30">
+          <div className="py-4 text-center text-[11px] text-neutral-400">
             No assets match
           </div>
         ) : null}
@@ -347,7 +347,7 @@ function AssetList(props: {
 
 function SectionLabel(props: { children: React.ReactNode }) {
   return (
-    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ptl-ink-muted)]">
       {props.children}
     </div>
   );
@@ -372,17 +372,17 @@ function StepPanel(props: BuilderWorkspaceProps) {
     return (
       <div className="space-y-3">
         <SectionLabel>Tank</SectionLabel>
-        <div className="space-y-2 rounded-lg border border-white/8 bg-white/[0.03] p-2.5">
+        <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
           <div className="flex items-center justify-between">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
               Dimensions
             </div>
-            <div className="inline-flex rounded-md border border-white/10 bg-black/25 p-0.5 text-[10px]">
+            <div className="inline-flex rounded-md border border-[var(--ptl-border)] bg-black/5 p-0.5 text-[10px]">
               <button
                 type="button"
                 aria-pressed={unit === "in"}
                 onClick={() => { if (unit === "cm") props.onToggleMeasurementUnit(); }}
-                className={`rounded px-1.5 py-0.5 transition ${unit === "in" ? "bg-white/15 text-white" : "text-white/50"}`}
+                className={`rounded px-1.5 py-0.5 transition ${unit === "in" ? "bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]" : "text-neutral-500"}`}
               >
                 in
               </button>
@@ -390,7 +390,7 @@ function StepPanel(props: BuilderWorkspaceProps) {
                 type="button"
                 aria-pressed={unit === "cm"}
                 onClick={() => { if (unit === "in") props.onToggleMeasurementUnit(); }}
-                className={`rounded px-1.5 py-0.5 transition ${unit === "cm" ? "bg-white/15 text-white" : "text-white/50"}`}
+                className={`rounded px-1.5 py-0.5 transition ${unit === "cm" ? "bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]" : "text-neutral-500"}`}
               >
                 cm
               </button>
@@ -402,7 +402,7 @@ function StepPanel(props: BuilderWorkspaceProps) {
               { key: "depthIn" as const, short: "D", maxCm: 92, maxIn: 36 },
               { key: "heightIn" as const, short: "H", maxCm: 102, maxIn: 40 },
             ] as const).map(({ key, short, maxCm, maxIn }) => (
-              <label key={key} className="space-y-1 text-[10px] text-white/50">
+              <label key={key} className="space-y-1 text-[10px] text-neutral-500">
                 <span>{short}</span>
                 <input
                   type="number"
@@ -411,7 +411,7 @@ function StepPanel(props: BuilderWorkspaceProps) {
                   step={0.5}
                   value={toDisplayDimension(tankDims[key], unit)}
                   onChange={(e) => handleDimInput(key, e.target.value)}
-                  className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs tabular-nums text-white outline-none focus:border-white/25"
+                  className="w-full rounded-md border border-[var(--ptl-border)] bg-black/5 px-2 py-1 text-xs tabular-nums text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
                 />
               </label>
             ))}
@@ -428,12 +428,12 @@ function StepPanel(props: BuilderWorkspaceProps) {
                 onClick={() => props.onApplyTankDimensionPreset(preset.id)}
                 className={`rounded-lg border px-2 py-1.5 text-left text-[10px] transition ${
                   isTankPresetActive(preset, tankDims)
-                    ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-100"
-                    : "border-white/8 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
+                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
+                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
                 }`}
               >
                 <div className="font-semibold">{preset.label}</div>
-                <div className="text-[9px] text-white/40">
+                <div className="text-[9px] text-[var(--ptl-ink-muted)]">
                   {formatTankPresetDimensions(preset, unit)}
                 </div>
               </button>
@@ -451,10 +451,10 @@ function StepPanel(props: BuilderWorkspaceProps) {
                   type="button"
                   onClick={() => props.onApplyTemplate(t.id)}
                   disabled={!t.available}
-                  className="w-full rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-2 text-left text-xs text-white/80 transition hover:bg-white/[0.06] disabled:opacity-40"
+                  className="w-full rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-2 text-left text-xs text-[var(--ptl-ink)] transition hover:bg-black/[0.06] disabled:opacity-40"
                 >
                   <div className="font-semibold">{t.name}</div>
-                  <div className="mt-0.5 text-[10px] text-white/45">{t.description}</div>
+                  <div className="mt-0.5 text-[10px] text-neutral-500">{t.description}</div>
                 </button>
               ))}
             </div>
@@ -494,8 +494,8 @@ function StepPanel(props: BuilderWorkspaceProps) {
               onClick={() => props.onEquipmentCategoryChange(slug)}
               className={`rounded-full border px-2 py-1 text-[10px] font-semibold transition ${
                 props.activeEquipmentCategory === slug
-                  ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-200"
-                  : "border-white/10 text-white/50 hover:text-white/80"
+                  ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
+                  : "border-[var(--ptl-border)] text-neutral-500 hover:text-[var(--ptl-ink)]"
               }`}
             >
               {categoryLabel(slug)}
@@ -534,31 +534,31 @@ function StepPanel(props: BuilderWorkspaceProps) {
     <div className="space-y-3">
       <SectionLabel>Review</SectionLabel>
 
-      <div className="rounded-lg border border-white/8 bg-white/[0.03] p-2.5">
+      <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
         <div className="space-y-1.5 text-xs">
           <div className="flex justify-between">
-            <span className="text-white/45">Tank</span>
-            <span className="tabular-nums text-white/85">
+            <span className="text-neutral-500">Tank</span>
+            <span className="tabular-nums text-[var(--ptl-ink)]">
               {Math.round(props.canvasState.widthIn * 10) / 10}{"\u00D7"}
               {Math.round(props.canvasState.depthIn * 10) / 10}{"\u00D7"}
               {Math.round(props.canvasState.heightIn * 10) / 10} in
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-white/45">Substrate</span>
-            <span className="text-white/70">{props.substrateSelectionLabel}</span>
+            <span className="text-neutral-500">Substrate</span>
+            <span className="text-[var(--ptl-ink)]">{props.substrateSelectionLabel}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-white/45">Hardscape</span>
-            <span className="tabular-nums text-white/70">{props.hardscapeCount}</span>
+            <span className="text-neutral-500">Hardscape</span>
+            <span className="tabular-nums text-[var(--ptl-ink)]">{props.hardscapeCount}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-white/45">Plants</span>
-            <span className="tabular-nums text-white/70">{props.plantCount}</span>
+            <span className="text-neutral-500">Plants</span>
+            <span className="tabular-nums text-[var(--ptl-ink)]">{props.plantCount}</span>
           </div>
-          <div className="flex justify-between border-t border-white/8 pt-1.5">
-            <span className="font-semibold text-white/60">Total</span>
-            <span className="font-semibold tabular-nums text-white">
+          <div className="flex justify-between border-t border-[var(--ptl-border)] pt-1.5">
+            <span className="font-semibold text-neutral-500">Total</span>
+            <span className="font-semibold tabular-nums text-[var(--ptl-ink)]">
               {formatMoney(props.totalCents)}
             </span>
           </div>
@@ -588,15 +588,15 @@ function StepPanel(props: BuilderWorkspaceProps) {
           {props.bomLines.map((line) => (
             <div
               key={line.key}
-              className="flex items-center justify-between rounded-md border border-white/6 bg-white/[0.02] px-2 py-1.5 text-[11px]"
+              className="flex items-center justify-between rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[11px]"
             >
-              <span className="truncate pr-2 text-white/70">
+              <span className="truncate pr-2 text-[var(--ptl-ink)]">
                 {line.asset.name}
                 {line.quantity > 1 ? (
-                  <span className="ml-1 text-white/40">{"\u00D7"}{line.quantity}</span>
+                  <span className="ml-1 text-[var(--ptl-ink-muted)]">{"\u00D7"}{line.quantity}</span>
                 ) : null}
               </span>
-              <span className="shrink-0 tabular-nums text-white/85">
+              <span className="shrink-0 tabular-nums text-[var(--ptl-ink)]">
                 {formatMoney(lineUnitPrice(line.asset) * line.quantity)}
               </span>
             </div>
@@ -625,44 +625,44 @@ function RightPanel(props: BuilderWorkspaceProps) {
           { label: "H", value: dims.heightIn },
         ] as const).map((d) => (
           <div key={d.label} className="flex items-center justify-between text-xs">
-            <span className="text-white/35">{d.label}</span>
-            <span className="tabular-nums text-white/85">
+            <span className="text-[var(--ptl-ink-muted)]">{d.label}</span>
+            <span className="tabular-nums text-[var(--ptl-ink)]">
               {Math.round(d.value * 10) / 10}{" "}
-              <span className="text-white/35">in</span>
+              <span className="text-[var(--ptl-ink-muted)]">in</span>
             </span>
           </div>
         ))}
       </div>
 
-      <div className="rounded-lg border border-white/8 bg-white/[0.03] px-2 py-2 text-center">
-        <div className="text-2xl font-bold tabular-nums tracking-tight text-white">
+      <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-2 text-center">
+        <div className="text-2xl font-bold tabular-nums tracking-tight text-[var(--ptl-ink)]">
           {volumeL}
         </div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ptl-ink-muted)]">
           Liters
         </div>
       </div>
 
       {props.selectedItem && props.selectedAsset ? (
-        <div className="rounded-lg border border-cyan-300/25 bg-cyan-300/[0.04] p-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+        <div className="rounded-lg border border-[var(--ptl-accent)]/25 bg-[var(--ptl-accent)]/[0.04] p-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
             Selected
           </div>
-          <div className="mt-1 text-xs font-medium text-white/90">
+          <div className="mt-1 text-xs font-medium text-[var(--ptl-ink)]">
             {props.selectedAsset.name}
           </div>
           <div className="mt-2 flex flex-wrap gap-1">
             <button
               type="button"
               onClick={() => props.onDuplicateCanvasItem(props.selectedItem!.id)}
-              className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-white/60 transition hover:bg-white/10 hover:text-white"
+              className="rounded border border-[var(--ptl-border)] px-1.5 py-0.5 text-[10px] text-neutral-500 transition hover:bg-black/[0.06] hover:text-[var(--ptl-ink)]"
             >
               Dup
             </button>
             <button
               type="button"
               onClick={() => props.onRemoveCanvasItem(props.selectedItem!.id)}
-              className="rounded border border-red-400/25 px-1.5 py-0.5 text-[10px] text-red-300/70 transition hover:bg-red-400/10 hover:text-red-200"
+              className="rounded border border-red-400/25 px-1.5 py-0.5 text-[10px] text-red-600/70 transition hover:bg-red-400/10 hover:text-red-700"
             >
               Del
             </button>
@@ -679,8 +679,8 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
   const scene = (
     <ErrorBoundary
       fallback={({ retry }) => (
-        <div className="flex h-full w-full items-center justify-center bg-[#06101c]/95 px-4 text-white">
-          <div className="w-full max-w-md rounded-2xl border border-rose-200/45 bg-slate-950/88 p-5 text-center shadow-2xl">
+        <div className="flex h-full w-full items-center justify-center bg-white/80 px-4 text-[var(--ptl-ink)]">
+          <div className="w-full max-w-md rounded-2xl border border-rose-200/45 bg-white/90 p-5 text-center shadow-2xl">
             <h3 className="text-lg font-semibold">Scene failed to load</h3>
             <button
               type="button"
@@ -755,7 +755,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         />
       ))}
 
-      <div className="my-1 h-px w-5 bg-white/10" />
+      <div className="my-1 h-px w-5 bg-black/8" />
 
       <RailBtn
         label={"\u2630"}
@@ -804,9 +804,9 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
     <div
       role="toolbar"
       aria-label="Plant growth timeline"
-      className="flex min-w-[250px] items-center gap-2.5 rounded-xl border border-white/8 bg-black/50 px-3 py-2 backdrop-blur-xl"
+      className="flex min-w-[250px] items-center gap-2.5 rounded-xl border border-[var(--ptl-border)] bg-white/60 px-3 py-2 backdrop-blur-xl"
     >
-      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ptl-ink-muted)]">
         Growth
       </span>
       <input
@@ -822,7 +822,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
             growthTimelineFromSliderIndex(Number.parseInt(e.target.value, 10)),
           );
         }}
-        className="h-1 flex-1 accent-cyan-300"
+        className="h-1 flex-1 accent-[var(--ptl-accent)]"
       />
       <div className="flex min-w-[76px] items-center justify-between text-[10px]">
         {GROWTH_TIMELINE_MONTH_OPTIONS.map((m) => (
@@ -832,8 +832,8 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
             onClick={() => props.onGrowthTimelineMonthsChange(m)}
             className={`rounded px-1 transition ${
               props.growthTimelineMonths === m
-                ? "bg-cyan-300/15 text-cyan-200"
-                : "text-white/45 hover:text-white/75"
+                ? "bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]"
+                : "text-neutral-500 hover:text-[var(--ptl-ink)]"
             }`}
             aria-pressed={props.growthTimelineMonths === m}
           >
