@@ -227,11 +227,6 @@ function sanitizePreviewImagePath(path: string | null | undefined): string | nul
   return trimmed;
 }
 
-function inferPreviewImagePathFromModelPath(modelPath: string | null): string | null {
-  if (!modelPath) return null;
-  return modelPath.replace(/\.glb$/i, ".png");
-}
-
 function includesAny(text: string, terms: string[]): boolean {
   for (const term of terms) {
     if (text.includes(term)) return true;
@@ -358,9 +353,7 @@ export function resolveVisualAsset(
   const declaredGlbPath = sanitizeModelPath(entry?.path);
   const shouldFallback = failedPath != null && failedPath === declaredGlbPath;
   const glbPath = shouldFallback ? null : declaredGlbPath;
-  const previewImagePath =
-    sanitizePreviewImagePath(entry?.previewImagePath) ??
-    inferPreviewImagePathFromModelPath(declaredGlbPath);
+  const previewImagePath = sanitizePreviewImagePath(entry?.previewImagePath);
 
   return {
     manifestKey,
