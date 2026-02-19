@@ -1978,12 +1978,18 @@ function CinematicCameraRig(props: {
       ref={controlsRef}
       enabled={props.controlsEnabled}
       enablePan={true}
+      enableZoom={true}
       minPolarAngle={0.2}
       maxPolarAngle={Math.PI * 0.55}
       minDistance={Math.max(10, props.dims.widthIn * 0.6)}
       maxDistance={Math.max(36, props.dims.widthIn * 3)}
       dampingFactor={0.18}
       enableDamping
+      mouseButtons={{
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.PAN,
+        RIGHT: THREE.MOUSE.PAN,
+      }}
       touches={{
         ONE: THREE.TOUCH.ROTATE,
         TWO: THREE.TOUCH.DOLLY_PAN,
