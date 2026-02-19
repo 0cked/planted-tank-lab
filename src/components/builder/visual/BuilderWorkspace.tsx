@@ -678,6 +678,10 @@ function RightPanel(props: BuilderWorkspaceProps) {
     Math.round(dims.widthIn * dims.depthIn * dims.heightIn * 0.004329 * 10) / 10;
   const selectedScale = props.selectedItem ? Math.round(props.selectedItem.scale * 100) / 100 : 1;
   const selectedRotation = props.selectedItem ? Math.round(props.selectedItem.rotation) : 0;
+  const selectedDepth = props.selectedItem ? Math.round(props.selectedItem.z * 100) : 50;
+  const selectedHeightIn = props.selectedItem
+    ? (Math.round(props.selectedItem.y * dims.heightIn * 10) / 10).toFixed(1)
+    : "0.0";
 
   return (
     <div className="w-[190px] space-y-3">
@@ -749,6 +753,46 @@ function RightPanel(props: BuilderWorkspaceProps) {
                 onChange={(event) =>
                   props.onUpdateCanvasItem(props.selectedItem!.id, {
                     rotation: Number.parseFloat(event.target.value),
+                  })
+                }
+                className="h-1.5 w-full accent-[var(--ptl-accent)]"
+              />
+            </label>
+
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+                <span>Depth</span>
+                <span className="tabular-nums text-[var(--ptl-ink)]">{selectedDepth}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.001}
+                value={props.selectedItem.z}
+                onChange={(event) =>
+                  props.onUpdateCanvasItem(props.selectedItem!.id, {
+                    z: Number.parseFloat(event.target.value),
+                  })
+                }
+                className="h-1.5 w-full accent-[var(--ptl-accent)]"
+              />
+            </label>
+
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+                <span>Height</span>
+                <span className="tabular-nums text-[var(--ptl-ink)]">{selectedHeightIn} in</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.001}
+                value={props.selectedItem.y}
+                onChange={(event) =>
+                  props.onUpdateCanvasItem(props.selectedItem!.id, {
+                    y: Number.parseFloat(event.target.value),
                   })
                 }
                 className="h-1.5 w-full accent-[var(--ptl-accent)]"

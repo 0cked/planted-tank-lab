@@ -223,7 +223,10 @@ type MoveDragState = {
   items: Array<{
     id: string;
     x: number;
+    y: number;
     z: number;
+    anchorType: VisualAnchorType;
+    yOffsetNorm: number;
     scale: number;
     rotation: number;
   }>;
@@ -3610,6 +3613,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<PlacementCandidate | null>(null);
   const [substrateNodeDragActive, setSubstrateNodeDragActive] = useState(false);
+  const [moveDragActive, setMoveDragActive] = useState(false);
   const itemInteractionsEnabled = props.currentStep !== "substrate";
   const moveDragRef = useRef<MoveDragState | null>(null);
   const moveDragPlaneRef = useRef<THREE.Plane>(new THREE.Plane(WORLD_UP, 0));
@@ -3745,6 +3749,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   useEffect(() => {
     const handleGlobalPointerUp = () => {
       moveDragRef.current = null;
+      setMoveDragActive(false);
     };
 
     window.addEventListener("pointerup", handleGlobalPointerUp);
@@ -3757,7 +3762,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   }, []);
 
   useEffect(() => {
-    if (props.toolMode === "move") return;
     moveDragRef.current = null;
   }, [props.toolMode]);
 
@@ -4089,23 +4093,32 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     if (event.shiftKey) return false;
     if (!anchorItemId) return false;
 
-    // Require a direct drag on the selected item to avoid accidental moves while orbiting/panning.
+    const candidateSelectionIds = selectedItemIdSet.has(anchorItemId)
+      ? Array.from(selectedItemIdSet)
+      : [anchorItemId];
     if (!selectedItemIdSet.has(anchorItemId)) {
-      props.onSelectItem(anchorItemId, event.shiftKey ? "toggle" : "replace");
-      return false;
+      props.onSelectItem(anchorItemId, "replace");
     }
-
-    const candidateSelectionIds = Array.from(selectedItemIdSet);
 
     const selectedDragItems: MoveDragState["items"] = [];
     for (const selectedId of candidateSelectionIds) {
       const selectedItem = props.canvasState.items.find((item) => item.id === selectedId);
       if (!selectedItem) continue;
+      const substrateY = sampleSubstrateDepth({
+        xNorm: selectedItem.x,
+        zNorm: selectedItem.z,
+        heightfield: props.canvasState.substrateHeightfield,
+        tankHeightIn: dims.heightIn,
+      });
+      const substrateYNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
 
       selectedDragItems.push({
         id: selectedItem.id,
         x: selectedItem.x,
+        y: selectedItem.y,
         z: selectedItem.z,
+        anchorType: selectedItem.anchorType,
+        yOffsetNorm: selectedItem.y - substrateYNorm,
         scale: selectedItem.scale,
         rotation: selectedItem.rotation,
       });
@@ -4142,6 +4155,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       releasePointerCaptureTarget: pointerTarget,
       items: selectedDragItems,
     };
+    setMoveDragActive(true);
     return true;
   };
 
@@ -4172,13 +4186,17 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         heightfield: props.canvasState.substrateHeightfield,
         tankHeightIn: dims.heightIn,
       });
-      const nextY = clamp01(substrateY / Math.max(1, dims.heightIn));
+      const substrateYNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
+      const nextY =
+        selectedDragItem.anchorType === "glass"
+          ? selectedDragItem.y
+          : clamp01(substrateYNorm + selectedDragItem.yOffsetNorm);
 
       props.onMoveItem(selectedDragItem.id, {
         x: nextX,
         y: nextY,
         z: nextZ,
-        anchorType: "substrate",
+        anchorType: selectedDragItem.anchorType,
         depthZone: depthZoneFromZ(nextZ),
         transform: buildTransformFromNormalized({
           x: nextX,
@@ -4202,8 +4220,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const isMoveDragGesture =
       event.buttons === 1 || (event.pointerType === "touch" && event.isPrimary);
 
-    if (props.toolMode === "move" && isMoveDragGesture) {
+    if (isMoveDragGesture && moveDragRef.current) {
       moveSelectedItems(event);
+      return;
     }
 
     const surfaceNormal = event.face?.normal
@@ -4230,18 +4249,23 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     anchorType: VisualAnchorType,
     itemId: string | null,
   ) => {
-    if (props.toolMode === "move" && (selectedItemIds.length > 0 || props.selectedItemId)) {
+    if (itemId && itemInteractionsEnabled) {
+      event.stopPropagation();
+      if (props.toolMode === "delete" || props.toolMode === "rotate") {
+        return;
+      }
+
       const moveDragStarted = startMoveDrag(event, itemId);
       if (moveDragStarted) {
-        event.stopPropagation();
         handleSurfacePointer(event, anchorType, itemId);
+      } else {
+        props.onSelectItem(itemId, event.shiftKey ? "toggle" : "replace");
       }
       return;
     }
 
-    event.stopPropagation();
-
     if (props.toolMode === "place" && props.placementAsset) {
+      event.stopPropagation();
       const surfaceNormal = event.face?.normal
         ? event.face.normal.clone().transformDirection(event.object.matrixWorld)
         : WORLD_UP.clone();
@@ -4263,9 +4287,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   };
 
   const handleSurfaceUp = (event: ThreeEvent<PointerEvent>) => {
-    event.stopPropagation();
     if (moveDragRef.current && moveDragRef.current.pointerId === event.pointerId) {
+      event.stopPropagation();
       moveDragRef.current.releasePointerCaptureTarget?.releasePointerCapture?.(event.pointerId);
+      setMoveDragActive(false);
     }
     moveDragRef.current = null;
   };
@@ -4425,7 +4450,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         dims={dims}
         idleOrbit={props.idleOrbit}
         cameraPresetMode={props.cameraPresetMode}
-        controlsEnabled={!substrateNodeDragActive}
+        controlsEnabled={!substrateNodeDragActive && !moveDragActive}
         onCameraPresetModeChange={props.onCameraPresetModeChange}
         onCameraDiagnostic={props.onCameraDiagnostic}
         cameraIntent={props.cameraIntent}
