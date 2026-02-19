@@ -10,14 +10,36 @@
       "fallbackPlantType": "rosette"
     },
     "2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a": {
-      "path": "/visual-assets/hardscape/test-seiryu.glb",
+      "path": "/visual-assets/hardscape/seiryu-1.glb",
       "category": "rock",
       "defaultScale": 0.95,
       "placementZone": "midground",
       "triangleCount": 12,
       "fallbackRockType": "jagged"
     },
+    "85d4cf8f-f421-4cc1-a5e5-61ecf22a85ec": {
+      "path": "/visual-assets/hardscape/seiryu-1.glb",
+      "category": "rock",
+      "defaultScale": 1,
+      "placementZone": "midground",
+      "fallbackRockType": "jagged"
+    },
+    "9f7fd6f9-74aa-4b3a-a6f2-ebbe7af11d60": {
+      "path": "/visual-assets/hardscape/spiderwood-1.glb",
+      "category": "wood",
+      "defaultScale": 0.88,
+      "placementZone": "hardscape",
+      "fallbackWoodType": "spider"
+    },
+    "a9d0f802-81f5-4ef9-9ebf-aad2e3264a2d": {
+      "path": "/visual-assets/hardscape/spiderwood-1.glb",
+      "category": "wood",
+      "defaultScale": 0.96,
+      "placementZone": "hardscape",
+      "fallbackWoodType": "spider"
+    },
     "product:spiderwood-branch": {
+      "path": "/visual-assets/hardscape/spiderwood-1.glb",
       "category": "wood",
       "defaultScale": 1,
       "placementZone": "hardscape",

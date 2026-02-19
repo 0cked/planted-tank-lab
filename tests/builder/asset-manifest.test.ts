@@ -96,10 +96,40 @@ describe("useAsset manifest resolution", () => {
     const resolved = useAsset(asset);
 
     expect(resolved.manifestKey).toBe("2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a");
-    expect(resolved.glbPath).toBe("/visual-assets/hardscape/test-seiryu.glb");
+    expect(resolved.glbPath).toBe("/visual-assets/hardscape/seiryu-1.glb");
     expect(resolved.fallbackKind).toBe("rock");
     expect(resolved.proceduralRockType).toBe("jagged");
     expect(resolved.proceduralWoodType).toBeNull();
+  });
+
+  it("resolves a manifest wood variant for spiderwood hardscape assets", () => {
+    const asset = buildAsset({
+      id: "9f7fd6f9-74aa-4b3a-a6f2-ebbe7af11d60",
+      type: "product",
+      sourceMode: "catalog_product",
+      name: "Spider Wood Branch",
+      slug: "spider-wood-branch",
+      categorySlug: "hardscape",
+      categoryName: "Hardscape",
+      materialType: "spider_wood",
+      plantProfile: null,
+      widthIn: 10,
+      heightIn: 7,
+      depthIn: 4,
+      defaultScale: 0.88,
+      priceCents: 2800,
+      sku: "HW-SPIDER",
+      offerId: "offer-2",
+      goUrl: "/go/offer-2",
+      purchaseUrl: "/go/offer-2",
+    });
+
+    const resolved = useAsset(asset);
+
+    expect(resolved.manifestKey).toBe("9f7fd6f9-74aa-4b3a-a6f2-ebbe7af11d60");
+    expect(resolved.glbPath).toBe("/visual-assets/hardscape/spiderwood-1.glb");
+    expect(resolved.fallbackKind).toBe("wood");
+    expect(resolved.proceduralWoodType).toBe("spider");
   });
 
   it("infers wood fallback for hardscape assets without manifest entries", () => {
