@@ -71,7 +71,7 @@ export default function RootLayout({
           <div className="ptl-app text-neutral-900">
             <SiteHeader />
             <OfflineStatusBanner />
-            {children}
+            <main className="ptl-main">{children}</main>
             <SiteFooter />
             <CookieBanner />
           </div>

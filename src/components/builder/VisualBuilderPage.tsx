@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { trpc } from "@/components/TRPCProvider";
 import { BuilderWorkspace } from "@/components/builder/visual/BuilderWorkspace";
 import {
@@ -21,6 +23,17 @@ export function VisualBuilderPage(props: {
 }) {
   const utils = trpc.useUtils();
 
+  useEffect(() => {
+    const appRoot = document.querySelector(".ptl-app");
+    appRoot?.classList.add("ptl-builder-active");
+    document.body.classList.add("ptl-builder-active");
+
+    return () => {
+      appRoot?.classList.remove("ptl-builder-active");
+      document.body.classList.remove("ptl-builder-active");
+    };
+  }, []);
+
   return (
     <ErrorBoundary
       onRetry={() => {
@@ -30,7 +43,7 @@ export function VisualBuilderPage(props: {
         ]);
       }}
       fallback={({ retry }) => (
-        <div className="flex h-dvh w-full items-center justify-center bg-[#060d16] text-white">
+        <div className="flex h-full w-full items-center justify-center bg-[#060d16] text-white">
           <div className="w-full max-w-md rounded-2xl border border-rose-200/45 bg-slate-950/88 p-8 text-center shadow-2xl">
             <h1 className="text-lg font-semibold">Failed to load</h1>
             <p className="mt-2 text-sm text-white/60">

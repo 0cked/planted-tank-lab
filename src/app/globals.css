@@ -98,6 +98,32 @@ label:has(input) {
   min-height: 100dvh;
 }
 
+.ptl-main {
+  min-height: 0;
+}
+
+.ptl-app.ptl-builder-active {
+  display: flex;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ptl-app.ptl-builder-active .ptl-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ptl-app.ptl-builder-active .ptl-site-footer {
+  display: none;
+}
+
+body.ptl-builder-active {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .ptl-app::before {
   content: "";
   position: fixed;

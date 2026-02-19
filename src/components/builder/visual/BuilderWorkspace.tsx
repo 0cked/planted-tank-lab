@@ -616,9 +616,11 @@ function RightPanel(props: BuilderWorkspaceProps) {
   };
   const volumeL =
     Math.round(dims.widthIn * dims.depthIn * dims.heightIn * 0.004329 * 10) / 10;
+  const selectedScale = props.selectedItem ? Math.round(props.selectedItem.scale * 100) / 100 : 1;
+  const selectedRotation = props.selectedItem ? Math.round(props.selectedItem.rotation) : 0;
 
   return (
-    <div className="w-[160px] space-y-3">
+    <div className="w-[190px] space-y-3">
       <div className="space-y-1.5">
         {([
           { label: "W", value: dims.widthIn },
@@ -652,7 +654,57 @@ function RightPanel(props: BuilderWorkspaceProps) {
           <div className="mt-1 text-xs font-medium text-[var(--ptl-ink)]">
             {props.selectedAsset.name}
           </div>
+          <div className="mt-2 space-y-2.5">
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+                <span>Scale</span>
+                <span className="tabular-nums text-[var(--ptl-ink)]">{selectedScale.toFixed(2)}x</span>
+              </div>
+              <input
+                type="range"
+                min={0.1}
+                max={6}
+                step={0.01}
+                value={props.selectedItem.scale}
+                onChange={(event) =>
+                  props.onUpdateCanvasItem(props.selectedItem!.id, {
+                    scale: Number.parseFloat(event.target.value),
+                  })
+                }
+                className="h-1.5 w-full accent-[var(--ptl-accent)]"
+              />
+            </label>
+
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+                <span>Rotate</span>
+                <span className="tabular-nums text-[var(--ptl-ink)]">{selectedRotation}°</span>
+              </div>
+              <input
+                type="range"
+                min={-180}
+                max={180}
+                step={1}
+                value={props.selectedItem.rotation}
+                onChange={(event) =>
+                  props.onUpdateCanvasItem(props.selectedItem!.id, {
+                    rotation: Number.parseFloat(event.target.value),
+                  })
+                }
+                className="h-1.5 w-full accent-[var(--ptl-accent)]"
+              />
+            </label>
+          </div>
           <div className="mt-2 flex flex-wrap gap-1">
+            <button
+              type="button"
+              onClick={() =>
+                props.onUpdateCanvasItem(props.selectedItem!.id, { scale: 1, rotation: 0 })
+              }
+              className="rounded border border-[var(--ptl-border)] px-1.5 py-0.5 text-[10px] text-neutral-500 transition hover:bg-black/[0.06] hover:text-[var(--ptl-ink)]"
+            >
+              Reset
+            </button>
             <button
               type="button"
               onClick={() => props.onDuplicateCanvasItem(props.selectedItem!.id)}

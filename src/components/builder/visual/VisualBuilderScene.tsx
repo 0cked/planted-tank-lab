@@ -200,22 +200,6 @@ type PlacementCandidate = {
   anchorItemId: string | null;
 };
 
-type TransformHandleDragState =
-  | {
-      mode: "rotate";
-      pointerId: number;
-      startAngle: number;
-      startRotationDeg: number;
-    }
-  | {
-      mode: "scale";
-      pointerId: number;
-      startScale: number;
-      startDistance: number;
-      direction: THREE.Vector3;
-      directionSign: 1 | -1;
-    };
-
 type MoveDragState = {
   pointerId: number;
   startPointer: { x: number; z: number };
@@ -290,12 +274,6 @@ const SIMPLEX_GRADIENTS_2D: ReadonlyArray<[number, number]> = [
 const DISABLED_RAYCAST: THREE.Mesh["raycast"] = () => undefined;
 const DISABLED_POINTS_RAYCAST: THREE.Points["raycast"] = () => undefined;
 const DISABLED_LINE_SEGMENTS_RAYCAST: THREE.LineSegments["raycast"] = () => undefined;
-const TRANSFORM_HANDLE_RING_COLOR = "#8fd3ff";
-const TRANSFORM_HANDLE_SCALE_COLOR = "#9ceec5";
-const TRANSFORM_HANDLE_RING_EMISSIVE = "#2f6f96";
-const TRANSFORM_HANDLE_SCALE_EMISSIVE = "#2f7b56";
-const TRANSFORM_HANDLE_MIN_SCALE = 0.1;
-const TRANSFORM_HANDLE_MAX_SCALE = 6;
 
 const WATER_SURFACE_VERTEX_SHADER = `
   varying vec2 vUv;
@@ -519,30 +497,6 @@ function clampRotation(rotation: number): number {
   if (rotation < -180) return -180;
   if (rotation > 180) return 180;
   return rotation;
-}
-
-function clampScale(scale: number): number {
-  if (!Number.isFinite(scale)) return 1;
-  return THREE.MathUtils.clamp(scale, TRANSFORM_HANDLE_MIN_SCALE, TRANSFORM_HANDLE_MAX_SCALE);
-}
-
-function normalizeSignedRadians(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-
-  let next = value;
-  while (next > Math.PI) {
-    next -= Math.PI * 2;
-  }
-  while (next < -Math.PI) {
-    next += Math.PI * 2;
-  }
-
-  return next;
-}
-
-function transformHandleRadius(renderItem: SceneRenderItem): number {
-  const footprint = Math.max(renderItem.size.width, renderItem.size.depth);
-  return THREE.MathUtils.clamp(footprint * 0.72, 0.65, 7);
 }
 
 function normalizeDims(tank: VisualTank | null, canvasState: VisualCanvasState): SceneDims {
@@ -2261,314 +2215,6 @@ function ItemMesh(props: {
   );
 }
 
-function ItemTransformHandles(props: {
-  renderItem: SceneRenderItem;
-  onUpdateItem: (itemId: string, patch: Partial<VisualCanvasItem>) => void;
-  onInteractionStateChange?: (active: boolean) => void;
-}) {
-  const ringRadius = useMemo(() => transformHandleRadius(props.renderItem), [props.renderItem]);
-  const ringTubeRadius = useMemo(
-    () => THREE.MathUtils.clamp(ringRadius * 0.12, 0.08, 0.32),
-    [ringRadius],
-  );
-  const handleRadius = useMemo(
-    () => THREE.MathUtils.clamp(ringRadius * 0.24, 0.16, 0.5),
-    [ringRadius],
-  );
-  const ringHitTubeRadius = useMemo(
-    () => THREE.MathUtils.clamp(ringTubeRadius * 2.2, 0.2, 0.62),
-    [ringTubeRadius],
-  );
-  const scaleHitRadius = useMemo(
-    () => THREE.MathUtils.clamp(handleRadius * 2.1, 0.34, 1.15),
-    [handleRadius],
-  );
-  const scaleLaneYOffset = useMemo(
-    () => Math.max(0.65, props.renderItem.size.height * 0.34, ringRadius * 0.72),
-    [props.renderItem.size.height, ringRadius],
-  );
-  const scaleLaneRadius = useMemo(
-    () => THREE.MathUtils.clamp(ringRadius * 0.82, 0.55, 2.8),
-    [ringRadius],
-  );
-  const centerY = useMemo(
-    () => props.renderItem.position.y + Math.max(0.12, props.renderItem.size.height * 0.06),
-    [props.renderItem.position.y, props.renderItem.size.height],
-  );
-  const center = useMemo(
-    () => new THREE.Vector3(props.renderItem.position.x, centerY, props.renderItem.position.z),
-    [centerY, props.renderItem.position.x, props.renderItem.position.z],
-  );
-  const rotationRad = useMemo(
-    () => (props.renderItem.item.rotation * Math.PI) / 180,
-    [props.renderItem.item.rotation],
-  );
-  const handleDirection = useMemo(
-    () => new THREE.Vector3(Math.cos(rotationRad), 0, Math.sin(rotationRad)).normalize(),
-    [rotationRad],
-  );
-  const positiveHandlePosition = useMemo<[number, number, number]>(
-    () => [
-      center.x + handleDirection.x * scaleLaneRadius,
-      center.y + scaleLaneYOffset,
-      center.z + handleDirection.z * scaleLaneRadius,
-    ],
-    [
-      center.x,
-      center.y,
-      center.z,
-      handleDirection.x,
-      handleDirection.z,
-      scaleLaneRadius,
-      scaleLaneYOffset,
-    ],
-  );
-  const negativeHandlePosition = useMemo<[number, number, number]>(
-    () => [
-      center.x - handleDirection.x * scaleLaneRadius,
-      center.y + scaleLaneYOffset,
-      center.z - handleDirection.z * scaleLaneRadius,
-    ],
-    [
-      center.x,
-      center.y,
-      center.z,
-      handleDirection.x,
-      handleDirection.z,
-      scaleLaneRadius,
-      scaleLaneYOffset,
-    ],
-  );
-
-  const dragStateRef = useRef<TransformHandleDragState | null>(null);
-  const interactionPlaneRef = useRef<THREE.Plane>(new THREE.Plane(WORLD_UP, -centerY));
-
-  useEffect(() => {
-    return () => {
-      dragStateRef.current = null;
-      props.onInteractionStateChange?.(false);
-    };
-  }, [props.onInteractionStateChange]);
-
-  const projectPointerToInteractionPlane = (event: ThreeEvent<PointerEvent>): THREE.Vector3 | null => {
-    const projectedPoint = new THREE.Vector3();
-    if (!event.ray.intersectPlane(interactionPlaneRef.current, projectedPoint)) {
-      return null;
-    }
-    return projectedPoint;
-  };
-
-  const endDrag = (event?: ThreeEvent<PointerEvent>) => {
-    const activeDrag = dragStateRef.current;
-    if (!activeDrag) return;
-    if (event && activeDrag.pointerId !== event.pointerId) return;
-
-    if (event) {
-      event.stopPropagation();
-      const pointerTarget = event.target as {
-        releasePointerCapture?: (pointerId: number) => void;
-      };
-      pointerTarget.releasePointerCapture?.(event.pointerId);
-    }
-
-    dragStateRef.current = null;
-    props.onInteractionStateChange?.(false);
-  };
-
-  const beginRotateDrag = (event: ThreeEvent<PointerEvent>) => {
-    event.stopPropagation();
-    interactionPlaneRef.current.set(WORLD_UP, -centerY);
-
-    const projectedPoint = projectPointerToInteractionPlane(event);
-    if (!projectedPoint) return;
-
-    dragStateRef.current = {
-      mode: "rotate",
-      pointerId: event.pointerId,
-      startAngle: Math.atan2(projectedPoint.z - center.z, projectedPoint.x - center.x),
-      startRotationDeg: props.renderItem.item.rotation,
-    };
-
-    const pointerTarget = event.target as {
-      setPointerCapture?: (pointerId: number) => void;
-    };
-    pointerTarget.setPointerCapture?.(event.pointerId);
-    props.onInteractionStateChange?.(true);
-  };
-
-  const beginScaleDrag = (event: ThreeEvent<PointerEvent>, directionSign: 1 | -1) => {
-    event.stopPropagation();
-    interactionPlaneRef.current.set(WORLD_UP, -(centerY + scaleLaneYOffset));
-
-    const projectedPoint = projectPointerToInteractionPlane(event);
-    if (!projectedPoint) return;
-
-    const signedDistance =
-      projectedPoint.clone().sub(center).dot(handleDirection) * directionSign;
-
-    dragStateRef.current = {
-      mode: "scale",
-      pointerId: event.pointerId,
-      startScale: props.renderItem.item.scale,
-      startDistance: Math.max(0.08, signedDistance),
-      direction: handleDirection.clone(),
-      directionSign,
-    };
-
-    const pointerTarget = event.target as {
-      setPointerCapture?: (pointerId: number) => void;
-    };
-    pointerTarget.setPointerCapture?.(event.pointerId);
-    props.onInteractionStateChange?.(true);
-  };
-
-  const handleDragMove = (event: ThreeEvent<PointerEvent>) => {
-    const activeDrag = dragStateRef.current;
-    if (!activeDrag) return;
-    if (activeDrag.pointerId !== event.pointerId) return;
-
-    event.stopPropagation();
-
-    const projectedPoint = projectPointerToInteractionPlane(event);
-    if (!projectedPoint) return;
-
-    if (activeDrag.mode === "rotate") {
-      const nextAngle = Math.atan2(projectedPoint.z - center.z, projectedPoint.x - center.x);
-      const deltaRadians = normalizeSignedRadians(nextAngle - activeDrag.startAngle);
-      const nextRotation = clampRotation(
-        activeDrag.startRotationDeg + THREE.MathUtils.radToDeg(deltaRadians),
-      );
-      props.onUpdateItem(props.renderItem.item.id, { rotation: nextRotation });
-      return;
-    }
-
-    const signedDistance =
-      projectedPoint.clone().sub(center).dot(activeDrag.direction) * activeDrag.directionSign;
-    const deltaDistance = signedDistance - activeDrag.startDistance;
-    const nextScale = clampScale(activeDrag.startScale + deltaDistance * 0.22);
-
-    props.onUpdateItem(props.renderItem.item.id, { scale: nextScale });
-  };
-
-  return (
-    <group>
-      <mesh
-        raycast={DISABLED_RAYCAST}
-        position={[center.x, center.y + scaleLaneYOffset * 0.5, center.z]}
-        renderOrder={90}
-      >
-        <cylinderGeometry args={[0.03, 0.03, scaleLaneYOffset, 10]} />
-        <meshStandardMaterial
-          color={TRANSFORM_HANDLE_SCALE_COLOR}
-          emissive={TRANSFORM_HANDLE_SCALE_EMISSIVE}
-          emissiveIntensity={0.2}
-          roughness={0.34}
-          metalness={0.08}
-          transparent
-          opacity={0.45}
-          depthWrite={false}
-          depthTest={false}
-        />
-      </mesh>
-
-      <mesh
-        raycast={DISABLED_RAYCAST}
-        position={[center.x, center.y, center.z]}
-        rotation={[Math.PI / 2, 0, 0]}
-        renderOrder={90}
-      >
-        <torusGeometry args={[ringRadius, ringTubeRadius, 24, 84]} />
-        <meshStandardMaterial
-          color={TRANSFORM_HANDLE_RING_COLOR}
-          emissive={TRANSFORM_HANDLE_RING_EMISSIVE}
-          emissiveIntensity={0.32}
-          roughness={0.42}
-          metalness={0.08}
-          transparent
-          opacity={0.88}
-          depthWrite={false}
-          depthTest={false}
-        />
-      </mesh>
-
-      <mesh
-        position={[center.x, center.y, center.z]}
-        rotation={[Math.PI / 2, 0, 0]}
-        renderOrder={91}
-        onPointerDown={beginRotateDrag}
-        onPointerMove={handleDragMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-      >
-        <torusGeometry args={[ringRadius, ringHitTubeRadius, 16, 64]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
-      </mesh>
-
-      <mesh
-        raycast={DISABLED_RAYCAST}
-        position={positiveHandlePosition}
-        renderOrder={90}
-      >
-        <sphereGeometry args={[handleRadius, 20, 20]} />
-        <meshStandardMaterial
-          color={TRANSFORM_HANDLE_SCALE_COLOR}
-          emissive={TRANSFORM_HANDLE_SCALE_EMISSIVE}
-          emissiveIntensity={0.3}
-          roughness={0.26}
-          metalness={0.18}
-          transparent
-          opacity={0.94}
-          depthWrite={false}
-          depthTest={false}
-        />
-      </mesh>
-
-      <mesh
-        position={positiveHandlePosition}
-        renderOrder={91}
-        onPointerDown={(event) => beginScaleDrag(event, 1)}
-        onPointerMove={handleDragMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-      >
-        <sphereGeometry args={[scaleHitRadius, 14, 14]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
-      </mesh>
-
-      <mesh
-        raycast={DISABLED_RAYCAST}
-        position={negativeHandlePosition}
-        renderOrder={90}
-      >
-        <sphereGeometry args={[handleRadius, 20, 20]} />
-        <meshStandardMaterial
-          color={TRANSFORM_HANDLE_SCALE_COLOR}
-          emissive={TRANSFORM_HANDLE_SCALE_EMISSIVE}
-          emissiveIntensity={0.3}
-          roughness={0.26}
-          metalness={0.18}
-          transparent
-          opacity={0.94}
-          depthWrite={false}
-          depthTest={false}
-        />
-      </mesh>
-
-      <mesh
-        position={negativeHandlePosition}
-        renderOrder={91}
-        onPointerDown={(event) => beginScaleDrag(event, -1)}
-        onPointerMove={handleDragMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-      >
-        <sphereGeometry args={[scaleHitRadius, 14, 14]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
-      </mesh>
-    </group>
-  );
-}
-
 function anchorTypeForRenderItem(renderItem: SceneRenderItem): VisualAnchorType {
   if (renderItem.item.categorySlug === "hardscape") return "hardscape";
   return renderItem.item.anchorType;
@@ -3671,7 +3317,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const showLightingHeatmap = props.lightingSimulationEnabled && Boolean(lightSimulationSource);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<PlacementCandidate | null>(null);
-  const [transformInteractionLocked, setTransformInteractionLocked] = useState(false);
   const [substrateNodeDragActive, setSubstrateNodeDragActive] = useState(false);
   const itemInteractionsEnabled = props.currentStep !== "substrate";
   const moveDragRef = useRef<MoveDragState | null>(null);
@@ -3733,11 +3378,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     props.canvasState.substrateHeightfield,
     props.growthTimelineMonths,
   ]);
-
-  const selectedRenderItem = useMemo(() => {
-    if (!props.selectedItemId || selectedItemIdSet.size !== 1) return null;
-    return renderItems.find((renderItem) => renderItem.item.id === props.selectedItemId) ?? null;
-  }, [props.selectedItemId, renderItems, selectedItemIdSet]);
 
   const cameraFocusTarget = useMemo<CameraFocusTarget | null>(() => {
     const intent = props.cameraIntent;
@@ -4347,14 +3987,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         />
       ))}
 
-      {selectedRenderItem && itemInteractionsEnabled ? (
-        <ItemTransformHandles
-          renderItem={selectedRenderItem}
-          onUpdateItem={props.onMoveItem}
-          onInteractionStateChange={setTransformInteractionLocked}
-        />
-      ) : null}
-
       <EquipmentVisuals
         dims={dims}
         equipmentAssets={props.equipmentAssets}
@@ -4398,7 +4030,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         dims={dims}
         idleOrbit={props.idleOrbit}
         cameraPresetMode={props.cameraPresetMode}
-        controlsEnabled={!transformInteractionLocked && !substrateNodeDragActive}
+        controlsEnabled={!substrateNodeDragActive}
         onCameraPresetModeChange={props.onCameraPresetModeChange}
         onCameraDiagnostic={props.onCameraDiagnostic}
         cameraIntent={props.cameraIntent}

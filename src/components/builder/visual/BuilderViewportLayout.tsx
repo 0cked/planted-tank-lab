@@ -10,7 +10,7 @@ type BuilderViewportLayoutProps = {
 
 export function BuilderViewportLayout(props: BuilderViewportLayoutProps) {
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-[var(--ptl-bg)]">
+    <div className="relative h-full w-full overflow-hidden bg-[var(--ptl-bg)]">
       {/* 3D scene fills the entire viewport */}
       <div className="absolute inset-0">{props.scene}</div>
 
