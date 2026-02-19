@@ -84,7 +84,7 @@ export const metadata: Metadata = {
 
 export default function ToolsIndexPage() {
   return (
-    <main className="mx-auto max-w-6xl px-6 py-14">
+    <main className="ptl-page">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -95,7 +95,7 @@ export default function ToolsIndexPage() {
       <section className="ptl-surface-strong p-7 sm:p-10">
         <p className="ptl-kicker">Tools</p>
         <h1 className="mt-3 ptl-page-title">Aquarium calculators for planted tank planning</h1>
-        <p className="mt-3 ptl-lede text-neutral-700">
+        <p className="mt-3 ptl-lede">
           Fast planning tools for substrate, CO2, lighting, fertilizer dosing, and fish stocking.
           Use them as quick checks before you buy or make layout changes.
         </p>
@@ -107,9 +107,9 @@ export default function ToolsIndexPage() {
                 <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border bg-white/70 text-xl" style={{ borderColor: "var(--ptl-border)" }}>
                   <span aria-hidden="true">{tool.icon}</span>
                 </div>
-                <h2 className="mt-4 ptl-card-title text-neutral-900">{tool.title}</h2>
-                <p className="mt-2 text-sm text-neutral-700">{tool.description}</p>
-                <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                <h2 className="mt-4 ptl-card-title text-[color:var(--ptl-ink-strong)]">{tool.title}</h2>
+                <p className="mt-2 text-sm text-[color:var(--ptl-ink-muted)]">{tool.description}</p>
+                <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-[color:var(--ptl-accent-ink)]">
                   Open tool
                 </div>
               </Link>

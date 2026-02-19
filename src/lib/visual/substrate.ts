@@ -1,7 +1,7 @@
 import type {
   SubstrateHeightfield,
   VisualSubstrateProfile,
-} from "@/components/builder/visual/types";
+} from "@/lib/visual/types";
 
 const CUBIC_IN_PER_LITER = 61.0237;
 const MIN_SUBSTRATE_DEPTH_IN = 0.2;

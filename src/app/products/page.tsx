@@ -16,13 +16,9 @@ export default async function ProductsPage() {
   const categories = await caller.products.categoriesList();
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-14">
-      <h1
-        className="ptl-page-title"
-      >
-        Products
-      </h1>
-      <p className="mt-3 ptl-lede text-neutral-700">
+    <main className="ptl-page">
+      <h1 className="ptl-page-title">Products</h1>
+      <p className="mt-3 ptl-lede">
         Browse equipment categories and compare compatible options.
       </p>
 
@@ -34,34 +30,33 @@ export default async function ProductsPage() {
               <Link
                 key={c.id}
                 href={`/products/${c.slug}`}
-                className="group overflow-hidden rounded-3xl border bg-white/60 shadow-sm backdrop-blur-sm transition hover:bg-white/75 ptl-hover-lift"
-                style={{ borderColor: "var(--ptl-border)" }}
+                className="group ptl-surface block overflow-hidden ptl-hover-lift"
               >
                 <div
-                  className="ptl-image-ph flex aspect-[16/10] items-center justify-center border-b bg-white/25 px-6 text-center"
+                  className="ptl-image-ph flex aspect-[16/10] items-center justify-center border-b px-6 text-center"
                   style={{ borderColor: "var(--ptl-border)" }}
                 >
                   <div className="max-w-[28ch]">
-                    <div className="text-sm font-semibold text-neutral-900">
+                    <div className="text-sm font-semibold text-[color:var(--ptl-ink-strong)]">
                       No source image
                     </div>
-                    <div className="mt-1 text-xs text-neutral-700">
+                    <div className="mt-1 text-xs text-[color:var(--ptl-ink-muted)]">
                       Category media appears when source-linked imagery is available.
                     </div>
                   </div>
                 </div>
 
                 <div className="p-6">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ptl-ink-muted)]">
                     Category
                   </div>
-                  <div className="mt-2 text-lg font-semibold tracking-tight text-neutral-900">
+                  <div className="mt-2 text-lg font-semibold tracking-tight text-[color:var(--ptl-ink-strong)]">
                     {c.name}
                   </div>
-                  <div className="mt-2 text-sm text-neutral-700">
+                  <div className="mt-2 text-sm text-[color:var(--ptl-ink-muted)]">
                     Browse {c.name.toLowerCase()} and compare key specs and prices.
                   </div>
-                  <div className="mt-4 text-xs font-semibold text-emerald-800">
+                  <div className="mt-4 text-xs font-semibold text-[color:var(--ptl-accent-ink)]">
                     Browse {c.name.toLowerCase()}
                   </div>
                 </div>

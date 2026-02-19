@@ -134,15 +134,11 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
     .catch(() => []);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-14">
+    <main className="ptl-page">
       <div className="flex items-end justify-between gap-6">
         <div>
-          <h1
-            className="ptl-page-title"
-          >
-            Builds
-          </h1>
-          <p className="mt-3 ptl-lede text-neutral-700">
+          <h1 className="ptl-page-title">Builds</h1>
+          <p className="mt-3 ptl-lede">
             Public build snapshots from the community. Use them as inspiration, then
             open in the builder to tweak.
           </p>
@@ -154,8 +150,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
 
       <form
         method="get"
-        className="mt-6 grid gap-3 rounded-3xl border bg-white/70 p-4 sm:grid-cols-[minmax(0,1fr)_13rem_auto] sm:items-center"
-        style={{ borderColor: "var(--ptl-border)" }}
+        className="ptl-surface mt-6 grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_13rem_auto] sm:items-center"
       >
         {activeTag ? <input type="hidden" name="tag" value={activeTag} /> : null}
 
@@ -167,7 +162,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
           name="q"
           defaultValue={searchQuery}
           placeholder="Search by build name, notes, or equipment"
-          className="h-11 rounded-2xl border border-neutral-300 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+          className="ptl-control h-11 px-4"
         />
 
         <label htmlFor="builds-sort" className="sr-only">
@@ -177,7 +172,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
           id="builds-sort"
           name="sort"
           defaultValue={activeSort}
-          className="h-11 rounded-2xl border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-800 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+          className="ptl-control h-11 px-3 text-sm font-medium"
         >
           {BUILD_SORT_OPTIONS.map((sort) => (
             <option key={sort} value={sort}>
@@ -192,7 +187,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
       </form>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-neutral-600">
+        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-[color:var(--ptl-ink-muted)]">
           Filter
         </span>
         <Link
@@ -204,7 +199,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
           className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
             activeTag === null
               ? "border-emerald-300/80 bg-emerald-100 text-emerald-900"
-              : "border-neutral-300 bg-white/80 text-neutral-700 hover:border-neutral-400"
+              : "border-[color:var(--ptl-border)] bg-white/70 text-[color:var(--ptl-ink-muted)] hover:border-[color:var(--ptl-border-strong)]"
           }`}
         >
           All
@@ -222,7 +217,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
               className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                 selected
                   ? "border-emerald-300/80 bg-emerald-100 text-emerald-900"
-                  : "border-neutral-300 bg-white/80 text-neutral-700 hover:border-neutral-400"
+                  : "border-[color:var(--ptl-border)] bg-white/70 text-[color:var(--ptl-ink-muted)] hover:border-[color:var(--ptl-border-strong)]"
               }`}
             >
               {buildTagLabel(tag)}
@@ -237,7 +232,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
               query: "",
               sort: activeSort,
             })}
-            className="rounded-full border border-neutral-300 bg-white/80 px-3 py-1.5 text-xs font-semibold text-neutral-700 transition hover:border-neutral-400"
+            className="rounded-full border border-[color:var(--ptl-border)] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[color:var(--ptl-ink-muted)] transition hover:border-[color:var(--ptl-border-strong)]"
           >
             Clear search
           </Link>
@@ -247,7 +242,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
       {rows.length === 0 ? (
         <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="ptl-surface p-7 sm:p-9">
-            <div className="ptl-section-title text-neutral-900">
+            <div className="ptl-section-title text-[color:var(--ptl-ink-strong)]">
               {searchQuery
                 ? activeTag
                   ? `No ${buildTagLabel(activeTag)} builds matching “${searchQuery}”`
@@ -256,7 +251,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
                   ? `No ${buildTagLabel(activeTag)} builds yet`
                   : "No public builds yet"}
             </div>
-            <p className="mt-3 ptl-lede text-neutral-700">
+            <p className="mt-3 ptl-lede">
               {searchQuery
                 ? "Try a broader search term or clear the search field to browse all public builds."
                 : activeTag
@@ -264,8 +259,8 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
                   : "When someone shares a build, it shows up here. If you want to help kick things off, build a setup and share the link."}
             </p>
 
-            <div className="mt-6 rounded-3xl border bg-white/70 p-5 text-sm text-neutral-700" style={{ borderColor: "var(--ptl-border)" }}>
-              <div className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+            <div className="mt-6 rounded-3xl border bg-white/70 p-5 text-sm text-[color:var(--ptl-ink-muted)]" style={{ borderColor: "var(--ptl-border)" }}>
+              <div className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ptl-ink-muted)]">
                 How to share
               </div>
               <ol className="mt-3 list-decimal space-y-2 pl-5">
@@ -286,20 +281,20 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
           </div>
 
           <div className="ptl-surface-stone p-7 sm:p-9">
-            <div className="text-sm font-semibold text-neutral-900">What builds include</div>
-            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-neutral-700">
+            <div className="text-sm font-semibold text-[color:var(--ptl-ink-strong)]">What builds include</div>
+            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-[color:var(--ptl-ink-muted)]">
               <li>Gear and plant lists you can tweak and re-share</li>
               <li>Compatibility warnings as you pick parts</li>
               <li>Price estimates from available offers</li>
             </ul>
-            <div className="mt-6 text-xs text-neutral-600">
+            <div className="mt-6 text-xs text-[color:var(--ptl-ink-soft)]">
               Tip: You can share without signing in. If you want to save builds to your profile, sign in when it&apos;s available.
             </div>
           </div>
         </div>
       ) : (
         <>
-          <div className="mt-6 text-sm text-neutral-600">
+          <div className="mt-6 text-sm text-[color:var(--ptl-ink-soft)]">
             Showing {rows.length} build{rows.length === 1 ? "" : "s"}
             {searchQuery ? ` matching “${searchQuery}”` : ""} · Sorted by {buildSortLabel(activeSort)}
           </div>
@@ -313,7 +308,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
 
               return (
                 <article key={b.id} className="ptl-surface overflow-hidden">
-                  <Link href={buildHref} className="block ptl-hover-lift transition hover:bg-white/70">
+                  <Link href={buildHref} className="block ptl-hover-lift transition hover:bg-white/35">
                     <div className="aspect-[16/10] w-full border-b" style={{ borderColor: "var(--ptl-border)" }}>
                       {thumbnailSrc ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -332,7 +327,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
 
                     <div className="p-6">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="text-sm font-semibold text-neutral-900">{b.name}</div>
+                        <div className="text-sm font-semibold text-[color:var(--ptl-ink-strong)]">{b.name}</div>
                         {tier ? (
                           <div
                             className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${tier.className}`}
@@ -341,10 +336,10 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
                           </div>
                         ) : null}
                       </div>
-                      <div className="mt-2 text-xs text-neutral-600">
+                      <div className="mt-2 text-xs text-[color:var(--ptl-ink-soft)]">
                         {b.itemCount} item(s) · {formatMoney(b.totalPriceCents)}
                       </div>
-                      <div className="mt-3 line-clamp-3 text-sm text-neutral-700">
+                      <div className="mt-3 line-clamp-3 text-sm text-[color:var(--ptl-ink-muted)]">
                         {b.description ?? "Build snapshot"}
                       </div>
                       {b.tags.length > 0 ? (
@@ -352,14 +347,14 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
                           {b.tags.map((tag) => (
                             <span
                               key={`${b.id}-${tag}`}
-                              className="rounded-full border border-neutral-300 bg-white/75 px-2 py-0.5 text-[11px] font-medium text-neutral-700"
+                              className="rounded-full border border-[color:var(--ptl-border)] bg-white/75 px-2 py-0.5 text-[11px] font-medium text-[color:var(--ptl-ink-muted)]"
                             >
                               {buildTagLabel(tag)}
                             </span>
                           ))}
                         </div>
                       ) : null}
-                      <div className="mt-4 text-xs font-semibold text-emerald-800">
+                      <div className="mt-4 text-xs font-semibold text-[color:var(--ptl-accent-ink)]">
                         View build
                       </div>
                     </div>
@@ -369,7 +364,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
                     className="flex items-center justify-between border-t px-6 py-4"
                     style={{ borderColor: "var(--ptl-border)" }}
                   >
-                    <span className="text-xs text-neutral-600">Community votes</span>
+                    <span className="text-xs text-[color:var(--ptl-ink-soft)]">Community votes</span>
                     <BuildVoteButton buildId={b.id} initialVoteCount={b.voteCount ?? 0} />
                   </div>
                 </article>

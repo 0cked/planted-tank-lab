@@ -7,7 +7,7 @@ import { firstCatalogImageUrl, missingSourceImageCopy } from "@/lib/catalog-no-d
 import { getServerCaller } from "@/server/trpc/server-caller";
 
 export const metadata: Metadata = {
-  title: "Plants | PlantedTankLab",
+  title: "Plants",
   description: "Browse planted aquarium species by difficulty, light demand, CO2 demand, and placement.",
 };
 
@@ -53,23 +53,16 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
   const missingPlantImage = missingSourceImageCopy("plant");
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-14">
+    <main className="ptl-page">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1
-            className="ptl-page-title"
-          >
-            Plants
-          </h1>
-          <p className="mt-3 max-w-[70ch] ptl-lede text-neutral-700">
+          <h1 className="ptl-page-title">Plants</h1>
+          <p className="mt-3 max-w-[70ch] ptl-lede">
             Image-forward browsing with fast filters. Start with curated beginner picks, then
             widen as you refine your scape.
           </p>
           <div className="mt-4">
-            <Link
-              href="/plants/compare"
-              className="inline-flex items-center rounded-xl border border-neutral-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-neutral-900 transition hover:border-neutral-300 hover:bg-white"
-            >
+            <Link href="/plants/compare" className="ptl-btn-secondary rounded-xl !px-3 !py-1.5 text-xs">
               Compare plants side by side
             </Link>
           </div>
@@ -98,7 +91,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
 
         <section>
           {plants.length === 0 ? (
-            <div className="ptl-surface p-7 text-sm text-neutral-700">No results.</div>
+            <div className="ptl-surface p-7 text-sm text-[color:var(--ptl-ink-muted)]">No results.</div>
           ) : (
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {plants.map((p) => {
@@ -111,8 +104,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                   <li key={p.id}>
                     <Link
                       href={`/plants/${p.slug}`}
-                      className="group block overflow-hidden rounded-3xl border bg-white/60 shadow-sm backdrop-blur-sm transition hover:bg-white/75 ptl-hover-lift"
-                      style={{ borderColor: "var(--ptl-border)" }}
+                      className="group block overflow-hidden ptl-surface ptl-hover-lift"
                     >
                       <div className="relative aspect-[4/3] overflow-hidden">
                         {hasImg ? (
@@ -125,7 +117,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                           />
                         ) : (
                           <div className="ptl-image-ph absolute inset-0 p-3">
-                            <span className="inline-flex rounded-full border border-neutral-300/60 bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-700">
+                            <span className="inline-flex rounded-full border border-neutral-300/60 bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--ptl-ink-muted)]">
                               {missingPlantImage.title}
                             </span>
                           </div>
@@ -144,7 +136,7 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                       </div>
 
                       <div className="p-4">
-                        <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-neutral-800">
+                        <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-[color:var(--ptl-ink-strong)]">
                           <span className="rounded-full border bg-white/70 px-2 py-1" style={{ borderColor: "var(--ptl-border)" }}>
                             {p.difficulty}
                           </span>
@@ -169,11 +161,11 @@ export default async function PlantsPage(props: { searchParams: Promise<SearchPa
                           ) : null}
                         </div>
 
-                        <div className="mt-3 line-clamp-2 text-sm text-neutral-700">
+                        <div className="mt-3 line-clamp-2 text-sm text-[color:var(--ptl-ink-muted)]">
                           {p.description ?? "Care details are unavailable from current sources."}
                         </div>
 
-                        <div className="mt-4 text-xs font-semibold text-emerald-800">
+                        <div className="mt-4 text-xs font-semibold text-[color:var(--ptl-accent-ink)]">
                           View care
                         </div>
                       </div>

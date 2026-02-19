@@ -5,8 +5,8 @@ import {
   estimateParAtSubstratePoint,
   resolveLightSimulationSource,
   writeParHeatmapColor,
-} from "@/components/builder/visual/light-simulation";
-import type { VisualAsset } from "@/components/builder/visual/types";
+} from "@/lib/visual/light-simulation";
+import type { VisualAsset } from "@/lib/visual/types";
 
 const BASE_LIGHT_ASSET: VisualAsset = {
   id: "light-1",

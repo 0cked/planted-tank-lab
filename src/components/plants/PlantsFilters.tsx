@@ -23,12 +23,11 @@ function PlantsFiltersForm(props: { defaults: PlantsFiltersDefaults; onSubmit?: 
       onSubmit={() => props.onSubmit?.()}
     >
       <div>
-        <label className="text-xs font-medium text-neutral-700">Browse mode</label>
+        <label className="text-xs font-medium text-[color:var(--ptl-ink-muted)]">Browse mode</label>
         <select
           name="curated"
           defaultValue={props.defaults.curatedOnly ? "1" : "0"}
-          className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm font-semibold text-neutral-900 outline-none focus:border-[color:var(--ptl-accent)]"
-          style={{ borderColor: "var(--ptl-border)" }}
+          className="ptl-control mt-1 w-full font-semibold"
         >
           <option value="1">Curated picks</option>
           <option value="0">All plants</option>
@@ -36,23 +35,21 @@ function PlantsFiltersForm(props: { defaults: PlantsFiltersDefaults; onSubmit?: 
       </div>
 
       <div>
-        <label className="text-xs font-medium text-neutral-700">Search</label>
+        <label className="text-xs font-medium text-[color:var(--ptl-ink-muted)]">Search</label>
         <input
           name="q"
           defaultValue={props.defaults.q}
           placeholder="Common or scientific name..."
-          className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-          style={{ borderColor: "var(--ptl-border)" }}
+          className="ptl-control mt-1 w-full"
         />
       </div>
 
       <div>
-        <label className="text-xs font-medium text-neutral-700">Difficulty</label>
+        <label className="text-xs font-medium text-[color:var(--ptl-ink-muted)]">Difficulty</label>
         <select
           name="difficulty"
           defaultValue={props.defaults.difficulty}
-          className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-          style={{ borderColor: "var(--ptl-border)" }}
+          className="ptl-control mt-1 w-full"
         >
           <option value="">Any</option>
           <option value="easy">Easy</option>
@@ -62,12 +59,11 @@ function PlantsFiltersForm(props: { defaults: PlantsFiltersDefaults; onSubmit?: 
       </div>
 
       <div>
-        <label className="text-xs font-medium text-neutral-700">Light demand</label>
+        <label className="text-xs font-medium text-[color:var(--ptl-ink-muted)]">Light demand</label>
         <select
           name="light"
           defaultValue={props.defaults.lightDemand}
-          className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-          style={{ borderColor: "var(--ptl-border)" }}
+          className="ptl-control mt-1 w-full"
         >
           <option value="">Any</option>
           <option value="low">Low</option>
@@ -77,12 +73,11 @@ function PlantsFiltersForm(props: { defaults: PlantsFiltersDefaults; onSubmit?: 
       </div>
 
       <div>
-        <label className="text-xs font-medium text-neutral-700">CO2 demand</label>
+        <label className="text-xs font-medium text-[color:var(--ptl-ink-muted)]">CO2 demand</label>
         <select
           name="co2"
           defaultValue={props.defaults.co2Demand}
-          className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-          style={{ borderColor: "var(--ptl-border)" }}
+          className="ptl-control mt-1 w-full"
         >
           <option value="">Any</option>
           <option value="none">None</option>
@@ -92,12 +87,11 @@ function PlantsFiltersForm(props: { defaults: PlantsFiltersDefaults; onSubmit?: 
       </div>
 
       <div>
-        <label className="text-xs font-medium text-neutral-700">Placement</label>
+        <label className="text-xs font-medium text-[color:var(--ptl-ink-muted)]">Placement</label>
         <select
           name="placement"
           defaultValue={props.defaults.placement}
-          className="mt-1 w-full rounded-xl border bg-white/70 px-3 py-2 text-sm outline-none focus:border-[color:var(--ptl-accent)]"
-          style={{ borderColor: "var(--ptl-border)" }}
+          className="ptl-control mt-1 w-full"
         >
           <option value="">Any</option>
           <option value="foreground">Foreground</option>
@@ -108,7 +102,7 @@ function PlantsFiltersForm(props: { defaults: PlantsFiltersDefaults; onSubmit?: 
         </select>
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-neutral-700">
+      <label className="flex items-center gap-2 text-sm text-[color:var(--ptl-ink-muted)]">
         <input
           type="checkbox"
           name="shrimpSafe"
@@ -160,7 +154,7 @@ export function PlantsFilters(props: { defaults: PlantsFiltersDefaults; resultsC
                 activeTags.map((t) => (
                   <span
                     key={t}
-                    className="truncate rounded-full border bg-white/70 px-2 py-1 text-[11px] font-semibold text-neutral-800"
+                    className="truncate rounded-full border bg-white/70 px-2 py-1 text-[11px] font-semibold text-[color:var(--ptl-ink-strong)]"
                     style={{ borderColor: "var(--ptl-border)", maxWidth: 160 }}
                   >
                     {t}
@@ -179,12 +173,12 @@ export function PlantsFilters(props: { defaults: PlantsFiltersDefaults; resultsC
               </button>
             </Dialog.Trigger>
             <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px]" />
-              <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-hidden rounded-t-3xl border bg-white/92 shadow-2xl backdrop-blur-md">
-                <div className="flex items-center justify-between gap-3 border-b px-5 py-4" style={{ borderColor: "var(--ptl-border)" }}>
+              <Dialog.Overlay className="ptl-modal-overlay" />
+              <Dialog.Content className="ptl-modal-surface fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-hidden rounded-t-3xl">
+                <div className="flex items-center justify-between gap-3 border-b border-white/15 px-5 py-4">
                   <div>
-                    <div className="text-sm font-semibold text-neutral-900">Plant filters</div>
-                    <div className="mt-1 text-xs text-neutral-600">
+                    <div className="text-sm font-semibold text-white/92">Plant filters</div>
+                    <div className="mt-1 text-xs text-white/62">
                       Showing {props.resultsCount}
                     </div>
                   </div>

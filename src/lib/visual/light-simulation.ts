@@ -1,4 +1,4 @@
-import type { VisualAsset } from "@/components/builder/visual/types";
+import type { VisualAsset } from "@/lib/visual/types";
 
 export type LightFixtureType = "led" | "t5" | "t8";
 
