@@ -223,6 +223,10 @@ type MoveDragState = {
   maxDeltaX: number;
   minDeltaZ: number;
   maxDeltaZ: number;
+  releasePointerCaptureTarget?: {
+    setPointerCapture?: (pointerId: number) => void;
+    releasePointerCapture?: (pointerId: number) => void;
+  };
   items: Array<{
     id: string;
     x: number;
@@ -2273,6 +2277,14 @@ function ItemTransformHandles(props: {
     () => THREE.MathUtils.clamp(handleRadius * 2.1, 0.34, 1.15),
     [handleRadius],
   );
+  const scaleLaneYOffset = useMemo(
+    () => Math.max(0.65, props.renderItem.size.height * 0.34, ringRadius * 0.72),
+    [props.renderItem.size.height, ringRadius],
+  );
+  const scaleLaneRadius = useMemo(
+    () => THREE.MathUtils.clamp(ringRadius * 0.82, 0.55, 2.8),
+    [ringRadius],
+  );
   const centerY = useMemo(
     () => props.renderItem.position.y + Math.max(0.12, props.renderItem.size.height * 0.06),
     [props.renderItem.position.y, props.renderItem.size.height],
@@ -2291,27 +2303,39 @@ function ItemTransformHandles(props: {
   );
   const positiveHandlePosition = useMemo<[number, number, number]>(
     () => [
-      center.x + handleDirection.x * ringRadius,
-      center.y,
-      center.z + handleDirection.z * ringRadius,
+      center.x + handleDirection.x * scaleLaneRadius,
+      center.y + scaleLaneYOffset,
+      center.z + handleDirection.z * scaleLaneRadius,
     ],
-    [center.x, center.y, center.z, handleDirection.x, handleDirection.z, ringRadius],
+    [
+      center.x,
+      center.y,
+      center.z,
+      handleDirection.x,
+      handleDirection.z,
+      scaleLaneRadius,
+      scaleLaneYOffset,
+    ],
   );
   const negativeHandlePosition = useMemo<[number, number, number]>(
     () => [
-      center.x - handleDirection.x * ringRadius,
-      center.y,
-      center.z - handleDirection.z * ringRadius,
+      center.x - handleDirection.x * scaleLaneRadius,
+      center.y + scaleLaneYOffset,
+      center.z - handleDirection.z * scaleLaneRadius,
     ],
-    [center.x, center.y, center.z, handleDirection.x, handleDirection.z, ringRadius],
+    [
+      center.x,
+      center.y,
+      center.z,
+      handleDirection.x,
+      handleDirection.z,
+      scaleLaneRadius,
+      scaleLaneYOffset,
+    ],
   );
 
   const dragStateRef = useRef<TransformHandleDragState | null>(null);
   const interactionPlaneRef = useRef<THREE.Plane>(new THREE.Plane(WORLD_UP, -centerY));
-
-  useEffect(() => {
-    interactionPlaneRef.current.set(WORLD_UP, -centerY);
-  }, [centerY]);
 
   useEffect(() => {
     return () => {
@@ -2347,6 +2371,7 @@ function ItemTransformHandles(props: {
 
   const beginRotateDrag = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
+    interactionPlaneRef.current.set(WORLD_UP, -centerY);
 
     const projectedPoint = projectPointerToInteractionPlane(event);
     if (!projectedPoint) return;
@@ -2367,6 +2392,7 @@ function ItemTransformHandles(props: {
 
   const beginScaleDrag = (event: ThreeEvent<PointerEvent>, directionSign: 1 | -1) => {
     event.stopPropagation();
+    interactionPlaneRef.current.set(WORLD_UP, -(centerY + scaleLaneYOffset));
 
     const projectedPoint = projectPointerToInteractionPlane(event);
     if (!projectedPoint) return;
@@ -2420,6 +2446,24 @@ function ItemTransformHandles(props: {
 
   return (
     <group>
+      <mesh
+        raycast={DISABLED_RAYCAST}
+        position={[center.x, center.y + scaleLaneYOffset * 0.5, center.z]}
+        renderOrder={49}
+      >
+        <cylinderGeometry args={[0.03, 0.03, scaleLaneYOffset, 10]} />
+        <meshStandardMaterial
+          color={TRANSFORM_HANDLE_SCALE_COLOR}
+          emissive={TRANSFORM_HANDLE_SCALE_EMISSIVE}
+          emissiveIntensity={0.2}
+          roughness={0.34}
+          metalness={0.08}
+          transparent
+          opacity={0.45}
+          depthWrite={false}
+        />
+      </mesh>
+
       <mesh
         raycast={DISABLED_RAYCAST}
         position={[center.x, center.y, center.z]}
@@ -3621,6 +3665,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const [substrateNodeDragActive, setSubstrateNodeDragActive] = useState(false);
   const itemInteractionsEnabled = props.currentStep !== "substrate";
   const moveDragRef = useRef<MoveDragState | null>(null);
+  const moveDragPlaneRef = useRef<THREE.Plane>(new THREE.Plane(WORLD_UP, 0));
   const onSubstrateStrokeStart = props.onSubstrateStrokeStart;
   const onSubstrateStrokeEnd = props.onSubstrateStrokeEnd;
   const selectedItemIds = props.selectedItemIds;
@@ -3963,6 +4008,32 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     }
   };
 
+  const pointerToMoveSurface = (
+    event: ThreeEvent<PointerEvent>,
+  ): {
+    x: number;
+    z: number;
+  } => {
+    const intersection = new THREE.Vector3();
+    if (!event.ray.intersectPlane(moveDragPlaneRef.current, intersection)) {
+      const fallback = worldToNormalized({
+        x: event.point.x,
+        y: event.point.y,
+        z: event.point.z,
+        dims,
+      });
+      return { x: clamp01(fallback.x), z: clamp01(fallback.z) };
+    }
+
+    const normalized = worldToNormalized({
+      x: intersection.x,
+      y: 0,
+      z: intersection.z,
+      dims,
+    });
+    return { x: clamp01(normalized.x), z: clamp01(normalized.z) };
+  };
+
   const startMoveDrag = (event: ThreeEvent<PointerEvent>, anchorItemId: string | null) => {
     if (event.shiftKey) return;
 
@@ -3987,13 +4058,11 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     }
 
     if (selectedDragItems.length === 0) return;
-
-    const pointerNorm = worldToNormalized({
-      x: event.point.x,
-      y: event.point.y,
-      z: event.point.z,
-      dims,
-    });
+    const pointerNorm = pointerToMoveSurface(event);
+    const pointerTarget = event.target as {
+      setPointerCapture?: (pointerId: number) => void;
+    };
+    pointerTarget.setPointerCapture?.(event.pointerId);
 
     let minX = 1;
     let maxX = 0;
@@ -4016,6 +4085,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       maxDeltaX: 1 - maxX,
       minDeltaZ: -minZ,
       maxDeltaZ: 1 - maxZ,
+      releasePointerCaptureTarget: pointerTarget,
       items: selectedDragItems,
     };
   };
@@ -4025,12 +4095,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     if (!activeMoveDrag) return;
     if (activeMoveDrag.pointerId !== event.pointerId) return;
 
-    const pointerNorm = worldToNormalized({
-      x: event.point.x,
-      y: event.point.y,
-      z: event.point.z,
-      dims,
-    });
+    const pointerNorm = pointerToMoveSurface(event);
 
     const deltaX = THREE.MathUtils.clamp(
       pointerNorm.x - activeMoveDrag.startPointer.x,
@@ -4141,6 +4206,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
   const handleSurfaceUp = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
+    if (moveDragRef.current && moveDragRef.current.pointerId === event.pointerId) {
+      moveDragRef.current.releasePointerCaptureTarget?.releasePointerCapture?.(event.pointerId);
+    }
     moveDragRef.current = null;
   };
 
