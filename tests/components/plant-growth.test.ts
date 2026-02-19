@@ -5,8 +5,8 @@ import {
   growthTimelineSliderIndex,
   normalizeGrowthTimelineMonths,
   resolvePlantGrowthScale,
-} from "@/lib/visual/plant-growth";
-import type { VisualAsset } from "@/lib/visual/types";
+} from "@/components/builder/visual/plant-growth";
+import type { VisualAsset } from "@/components/builder/visual/types";
 
 const FAST_STEM_PLANT: VisualAsset = {
   id: "plant-fast-stem",

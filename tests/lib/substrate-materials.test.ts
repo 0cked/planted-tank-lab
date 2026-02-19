@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { applySubstrateMaterialBrush } from "@/components/builder/visual/scene-utils";
 import {
-  applySubstrateMaterialBrush,
   createFlatSubstrateMaterialGrid,
   normalizeSubstrateMaterialGrid,
   substrateMaterialGridToArray,

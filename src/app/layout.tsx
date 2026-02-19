@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { Fraunces, Geist_Mono, Spline_Sans } from "next/font/google";
 import "./globals.css";
 import { TRPCProvider } from "@/components/TRPCProvider";
-import { AppChrome } from "@/components/layout/AppChrome";
+import { CookieBanner } from "@/components/CookieBanner";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+import { OfflineStatusBanner } from "@/components/pwa/OfflineStatusBanner";
 import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 
 const fontSans = Spline_Sans({
@@ -65,7 +68,13 @@ export default function RootLayout({
       >
         <TRPCProvider>
           <ServiceWorkerRegistration />
-          <AppChrome>{children}</AppChrome>
+          <div className="ptl-app text-neutral-900">
+            <SiteHeader />
+            <OfflineStatusBanner />
+            {children}
+            <SiteFooter />
+            <CookieBanner />
+          </div>
         </TRPCProvider>
       </body>
     </html>

@@ -20,11 +20,11 @@ import { getDesignLibraryAssets } from "@/server/visual/design-asset-library";
 import {
   clampLightMountHeightIn,
   DEFAULT_LIGHT_MOUNT_HEIGHT_IN,
-} from "@/lib/visual/light-simulation";
+} from "@/components/builder/visual/light-simulation";
 import {
   DEFAULT_GROWTH_TIMELINE_MONTHS,
   normalizeGrowthTimelineMonths,
-} from "@/lib/visual/plant-growth";
+} from "@/components/builder/visual/plant-growth";
 import { buildTagSlugSchema, normalizeBuildTagSlugs } from "@/lib/build-tags";
 import {
   createFlatSubstrateHeightfield,
@@ -44,7 +44,7 @@ import type {
   VisualItemConstraintMetadata,
   VisualItemTransform,
   VisualSceneSettings,
-} from "@/lib/visual/types";
+} from "@/components/builder/visual/types";
 
 type ProductRow = {
   id: string;

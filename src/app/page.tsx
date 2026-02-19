@@ -78,7 +78,10 @@ export default async function HomePage() {
 
   return (
     <main>
-      <section className="relative min-h-[calc(100vh-8rem)] overflow-hidden border-b border-white/10">
+      <section
+        className="relative min-h-[calc(100vh-8rem)] overflow-hidden"
+        style={{ borderColor: "var(--ptl-border)" }}
+      >
         <div className="absolute inset-0">
           <Image
             src="/images/home-hero-2560.jpg"
@@ -89,63 +92,40 @@ export default async function HomePage() {
             sizes="100vw"
             className="object-cover object-center"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(105deg,rgba(12,19,22,0.86),rgba(18,30,33,0.72)_45%,rgba(18,30,33,0.36))]" />
-          <div className="absolute inset-0 bg-[radial-gradient(1200px_680px_at_70%_8%,rgba(95,137,145,0.26),transparent_62%),radial-gradient(800px_500px_at_12%_88%,rgba(111,158,131,0.22),transparent_58%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(246,250,244,0.88),rgba(246,250,244,0.68)_42%,rgba(246,250,244,0.22))]" />
         </div>
 
-        <div className="relative z-10 mx-auto grid min-h-[calc(100vh-8rem)] max-w-6xl items-center gap-8 px-6 py-16 sm:py-24 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] max-w-6xl items-center px-6 py-16 sm:py-24">
           <div className="max-w-2xl">
-            <p className="ptl-kicker text-white/70">Aquascape Builder</p>
-            <h1 className="ptl-hero-title mt-4 text-white">
-              Design planted tanks with calm precision.
-            </h1>
+            <div>
+              <h1 className="ptl-hero-title">Build a planted tank setup that actually makes sense.</h1>
 
-            <p className="mt-6 max-w-xl text-base text-white/82 sm:text-lg">
-              Compose layouts, test compatibility, and plan a full setup in one flow built for
-              aquascaping. Premium tools without the noise.
-            </p>
+              <p className="mt-6 max-w-xl ptl-hero-lede">
+                Pick your tank, light, filter, CO2, substrate, and plants, then get instant
+                compatibility feedback. Build low-tech jungle tanks or go full high-tech.
+              </p>
+            </div>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link href="/builder" className="ptl-btn-primary">
                 Start building
               </Link>
-              <Link href="/products" className="ptl-btn-secondary !bg-white/85">
+              <Link href="/products" className="ptl-btn-secondary">
                 Browse products
               </Link>
-              <Link href="/plants" className="ptl-btn-secondary !bg-white/85">
+              <Link href="/plants" className="ptl-btn-secondary">
                 Explore plants
               </Link>
-            </div>
-          </div>
-
-          <div className="ptl-surface-glass hidden p-4 text-[color:var(--ptl-ink-strong)] lg:block">
-            <div className="rounded-2xl border border-[color:var(--ptl-border)] bg-[rgba(237,244,240,0.8)] p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ptl-ink-muted)]">
-                Preview Scene
-              </div>
-              <div className="mt-3 overflow-hidden rounded-xl border border-[color:var(--ptl-border)]">
-                <Image
-                  src="/images/home-hero-2560.jpg"
-                  alt="Planted tank preview"
-                  width={760}
-                  height={520}
-                  className="h-auto w-full object-cover"
-                />
-              </div>
-              <div className="mt-3 flex items-center justify-between text-xs text-[color:var(--ptl-ink-muted)]">
-                <span>Compatibility checks</span>
-                <span className="ptl-chip !text-[10px]">Live</span>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="ptl-page py-20">
+      <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="max-w-3xl">
           <p className="ptl-kicker">How it works</p>
-          <h2 className="mt-3 ptl-section-title text-[color:var(--ptl-ink-strong)]">From first idea to shared aquascape</h2>
-          <p className="mt-4 ptl-lede">
+          <h2 className="mt-3 ptl-section-title text-neutral-900">From first idea to shared aquascape</h2>
+          <p className="mt-4 ptl-lede text-neutral-700">
             Three steps: dial in your setup, validate it quickly, then publish and iterate with the
             community.
           </p>
@@ -157,21 +137,21 @@ export default async function HomePage() {
               <div className="flex items-center justify-between gap-3">
                 <span
                   aria-hidden="true"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border bg-[rgba(236,243,240,0.72)] text-xl"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border bg-white/70 text-xl"
                   style={{ borderColor: "var(--ptl-border)" }}
                 >
                   {step.icon}
                 </span>
-                <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ptl-ink-muted)]">
+                <span className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
                   Step {index + 1}
                 </span>
               </div>
 
-              <h3 className="mt-5 ptl-card-title text-[color:var(--ptl-ink-strong)]">{step.title}</h3>
-              <p className="mt-2 text-sm text-[color:var(--ptl-ink-muted)]">{step.description}</p>
+              <h3 className="mt-5 ptl-card-title text-neutral-900">{step.title}</h3>
+              <p className="mt-2 text-sm text-neutral-700">{step.description}</p>
               <Link
                 href={step.href}
-                className="mt-4 inline-flex text-xs font-semibold uppercase tracking-wide text-[color:var(--ptl-accent-ink)] hover:text-[color:var(--ptl-ink-strong)]"
+                className="mt-4 inline-flex text-xs font-semibold uppercase tracking-wide text-emerald-800 hover:text-emerald-900"
               >
                 {step.cta}
               </Link>
@@ -180,12 +160,12 @@ export default async function HomePage() {
         </ol>
       </section>
 
-      <section className="ptl-page pb-20">
+      <section className="mx-auto max-w-6xl px-6 pb-20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="ptl-kicker">Featured builds</p>
-            <h2 className="mt-3 ptl-section-title text-[color:var(--ptl-ink-strong)]">Most-loved community layouts</h2>
-            <p className="mt-4 max-w-2xl ptl-lede">
+            <h2 className="mt-3 ptl-section-title text-neutral-900">Most-loved community layouts</h2>
+            <p className="mt-4 max-w-2xl ptl-lede text-neutral-700">
               Top voted public builds, straight from the gallery. Open one and remix it into your own
               tank.
             </p>
@@ -249,12 +229,12 @@ export default async function HomePage() {
         )}
       </section>
 
-      <section className="ptl-page pb-20">
+      <section className="mx-auto max-w-6xl px-6 pb-20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="ptl-kicker">Browse plants</p>
-            <h2 className="mt-3 ptl-section-title text-[color:var(--ptl-ink-strong)]">Popular species to start with</h2>
-            <p className="mt-4 max-w-2xl ptl-lede">
+            <h2 className="mt-3 ptl-section-title text-neutral-900">Popular species to start with</h2>
+            <p className="mt-4 max-w-2xl ptl-lede text-neutral-700">
               Beginner-friendly picks from the live catalog. Tap any card for care details and
               placement tips.
             </p>
@@ -348,7 +328,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      <section className="ptl-page pb-24">
+      <section className="mx-auto max-w-6xl px-6 pb-24">
         <div className="ptl-surface-slate p-8 sm:p-10 lg:p-12">
           <p className="ptl-kicker text-white/75">Ready to build?</p>
           <h2 className="mt-3 ptl-section-title text-white">Start building your planted tank now</h2>
@@ -362,7 +342,7 @@ export default async function HomePage() {
             </Link>
             <Link
               href="/builds"
-              className="ptl-btn-ghost"
+              className="inline-flex items-center justify-center rounded-full border border-white/45 bg-white/12 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/18"
             >
               See community builds
             </Link>

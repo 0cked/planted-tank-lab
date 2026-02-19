@@ -13,7 +13,8 @@ export function UserMenu() {
         type="button"
         disabled
         aria-busy="true"
-        className="ptl-btn-secondary !px-3 !py-1.5 disabled:cursor-wait disabled:opacity-60"
+        className="rounded-full border bg-white/60 px-3 py-1.5 text-sm font-semibold text-neutral-800 disabled:cursor-wait disabled:opacity-60"
+        style={{ borderColor: "var(--ptl-border)" }}
       >
         Account
       </button>
@@ -43,7 +44,8 @@ export function UserMenu() {
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          className="ptl-btn-secondary !px-3 !py-1.5"
+          className="rounded-full border bg-white/60 px-3 py-1.5 text-sm font-semibold text-neutral-800 transition hover:bg-white/80"
+          style={{ borderColor: "var(--ptl-border)" }}
         >
           {email}
         </button>
@@ -51,12 +53,13 @@ export function UserMenu() {
       <DropdownMenu.Portal>
         <DropdownMenu.Content
           align="end"
-          className="z-50 min-w-[220px] rounded-2xl border border-[rgba(172,196,185,0.3)] bg-[rgba(33,47,43,0.88)] p-1 text-white shadow-2xl backdrop-blur-md"
+          className="z-50 min-w-[220px] rounded-2xl border bg-white/90 p-1 shadow-lg backdrop-blur-md"
+          style={{ borderColor: "var(--ptl-border)" }}
         >
           <DropdownMenu.Item asChild>
             <Link
               href="/profile"
-              className="block cursor-pointer rounded-xl px-3 py-2 text-sm font-semibold text-white/90 outline-none hover:bg-white/10"
+              className="block cursor-pointer rounded-xl px-3 py-2 text-sm font-semibold text-neutral-800 outline-none hover:bg-neutral-100/70"
             >
               Profile
             </Link>
@@ -65,16 +68,16 @@ export function UserMenu() {
             <DropdownMenu.Item asChild>
               <Link
                 href="/admin"
-                className="block cursor-pointer rounded-xl px-3 py-2 text-sm font-semibold text-white/90 outline-none hover:bg-white/10"
+                className="block cursor-pointer rounded-xl px-3 py-2 text-sm font-semibold text-neutral-800 outline-none hover:bg-neutral-100/70"
               >
                 Admin
               </Link>
             </DropdownMenu.Item>
           ) : null}
-          <DropdownMenu.Separator className="my-1 h-px bg-white/15" />
+          <DropdownMenu.Separator className="my-1 h-px bg-neutral-200/70" />
           <DropdownMenu.Item
             onSelect={() => void signOut({ callbackUrl: "/" })}
-            className="cursor-pointer rounded-xl px-3 py-2 text-sm font-semibold text-white/90 outline-none hover:bg-white/10"
+            className="cursor-pointer rounded-xl px-3 py-2 text-sm font-semibold text-neutral-800 outline-none hover:bg-neutral-100/70"
           >
             Sign out
           </DropdownMenu.Item>

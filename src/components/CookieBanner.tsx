@@ -53,11 +53,12 @@ export function CookieBanner() {
       className="fixed inset-x-0 bottom-4 z-50 px-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:px-0"
     >
       <div
-        className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-[rgba(172,196,185,0.28)] bg-[rgba(29,43,38,0.86)] p-4 text-white shadow-2xl backdrop-blur-md sm:mx-0 sm:max-w-[540px] sm:flex-row sm:items-center sm:justify-between"
+        className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border bg-white/85 p-4 shadow-lg backdrop-blur-md sm:mx-0 sm:max-w-[520px] sm:flex-row sm:items-center sm:justify-between"
+        style={{ borderColor: "var(--ptl-border)" }}
         role="dialog"
         aria-live="polite"
       >
-        <div className="text-sm text-white/88">
+        <div className="text-sm text-neutral-800">
           <span className="font-semibold">Cookies:</span> we use essential cookies for
           sign-in and saved builds. Optional analytics cookies are off by default.
         </div>

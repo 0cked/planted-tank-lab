@@ -1,4 +1,4 @@
-import type { VisualAsset } from "@/lib/visual/types";
+import type { VisualAsset } from "@/components/builder/visual/types";
 
 export type GrowthTimelineMonths = 1 | 3 | 6;
 

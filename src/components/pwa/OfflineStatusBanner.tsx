@@ -4,20 +4,27 @@ import { useEffect, useState } from "react";
 
 const OFFLINE_MESSAGE = "You're offline — some data may be outdated.";
 
+function getInitialOnlineState(): boolean {
+  if (typeof navigator === "undefined") {
+    return true;
+  }
+
+  return navigator.onLine;
+}
+
 export function OfflineStatusBanner() {
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState<boolean>(getInitialOnlineState);
 
   useEffect(() => {
     const syncOnlineStatus = () => {
       setIsOnline(navigator.onLine);
     };
 
-    const syncTimer = window.setTimeout(syncOnlineStatus, 0);
+    syncOnlineStatus();
     window.addEventListener("online", syncOnlineStatus);
     window.addEventListener("offline", syncOnlineStatus);
 
     return () => {
-      window.clearTimeout(syncTimer);
       window.removeEventListener("online", syncOnlineStatus);
       window.removeEventListener("offline", syncOnlineStatus);
     };
@@ -33,9 +40,9 @@ export function OfflineStatusBanner() {
       aria-live="polite"
       className="border-b px-4 py-2 text-center text-xs font-medium sm:px-6"
       style={{
-        borderColor: "rgba(205, 189, 165, 0.32)",
-        backgroundColor: "rgba(59, 48, 35, 0.82)",
-        color: "rgb(239, 226, 203)",
+        borderColor: "rgba(146, 64, 14, 0.28)",
+        backgroundColor: "rgba(254, 243, 199, 0.9)",
+        color: "rgb(120, 53, 15)",
       }}
     >
       {OFFLINE_MESSAGE}

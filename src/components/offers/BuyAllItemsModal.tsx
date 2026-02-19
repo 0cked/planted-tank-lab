@@ -142,7 +142,7 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
       </button>
 
       {isOpen ? (
-        <div className="ptl-modal-overlay z-[80] flex items-center justify-center p-4" role="presentation">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4" role="presentation">
           <div
             ref={dialogRef}
             role="dialog"
@@ -153,16 +153,16 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
             className={
               dark
                 ? "max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-white/20 bg-slate-950 text-slate-100"
-                : "ptl-modal-surface max-h-[88vh] w-full max-w-3xl overflow-hidden text-[color:var(--ptl-ink-strong)]"
+                : "max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-neutral-200 bg-white text-neutral-900"
             }
           >
-            <div className={dark ? "border-b border-white/15 p-5" : "border-b border-white/15 p-5"}>
+            <div className={dark ? "border-b border-white/15 p-5" : "border-b border-neutral-200 p-5"}>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 id={titleId} className="text-lg font-semibold">
                     {props.title}
                   </h3>
-                  <p id={descriptionId} className={dark ? "mt-1 text-sm text-slate-200" : "mt-1 text-sm text-white/72"}>
+                  <p id={descriptionId} className={dark ? "mt-1 text-sm text-slate-200" : "mt-1 text-sm text-neutral-700"}>
                     {props.description ??
                       "Pick a retailer for each line item and open all purchase links in one action."}
                   </p>
@@ -174,7 +174,7 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
                   className={
                     dark
                       ? "rounded-md border border-white/20 px-2 py-1 text-xs font-semibold text-slate-200"
-                      : "rounded-md border border-white/20 bg-white/5 px-2 py-1 text-xs font-semibold text-white/80"
+                      : "rounded-md border border-neutral-300 px-2 py-1 text-xs font-semibold text-neutral-700"
                   }
                 >
                   Close
@@ -194,7 +194,7 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
                       className={
                         dark
                           ? "rounded-xl border border-white/15 bg-slate-900/60 p-3"
-                          : "rounded-xl border border-white/15 bg-white/5 p-3"
+                          : "rounded-xl border border-neutral-200 bg-neutral-50/80 p-3"
                       }
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -204,14 +204,14 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
                               className={
                                 dark
                                   ? "text-[10px] uppercase tracking-[0.12em] text-slate-300"
-                                  : "text-[10px] uppercase tracking-[0.12em] text-white/52"
+                                  : "text-[10px] uppercase tracking-[0.12em] text-neutral-600"
                               }
                             >
                               {item.subtitle}
                             </div>
                           ) : null}
                           <div className="text-sm font-semibold">{item.title}</div>
-                          <div className={dark ? "text-xs text-slate-200" : "text-xs text-white/70"}>
+                          <div className={dark ? "text-xs text-slate-200" : "text-xs text-neutral-700"}>
                             Qty {item.quantity}
                           </div>
                         </div>
@@ -224,7 +224,7 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
                         <div className="mt-2">
                           <label
                             htmlFor={`buy-all-retailer-${item.id}`}
-                            className={dark ? "mb-1 block text-[11px] text-slate-200" : "mb-1 block text-[11px] text-white/70"}
+                            className={dark ? "mb-1 block text-[11px] text-slate-200" : "mb-1 block text-[11px] text-neutral-700"}
                           >
                             Retailer
                           </label>
@@ -241,7 +241,7 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
                             className={
                               dark
                                 ? "w-full rounded-md border border-white/20 bg-slate-950 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-emerald-300"
-                                : "w-full rounded-md border border-white/20 bg-white/10 px-2 py-1.5 text-sm text-white/90 outline-none focus:border-emerald-300"
+                                : "w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900 outline-none focus:border-emerald-500"
                             }
                           >
                             {item.options.map((option) => (
@@ -264,10 +264,10 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
               </div>
             </div>
 
-            <div className={dark ? "border-t border-white/15 p-5" : "border-t border-white/15 p-5"}>
+            <div className={dark ? "border-t border-white/15 p-5" : "border-t border-neutral-200 p-5"}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className={dark ? "text-xs text-slate-200" : "text-xs text-white/70"}>Estimated total</div>
+                  <div className={dark ? "text-xs text-slate-200" : "text-xs text-neutral-700"}>Estimated total</div>
                   <div className="text-lg font-semibold">{formatMoney(estimatedTotalCents)}</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -277,7 +277,7 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
                     className={
                       dark
                         ? "rounded-md border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-200"
-                        : "rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/84"
+                        : "rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700"
                     }
                   >
                     Cancel
@@ -288,7 +288,7 @@ export function BuyAllItemsModal(props: BuyAllItemsModalProps) {
                     className={
                       dark
                         ? "rounded-md border border-emerald-300/70 bg-emerald-400/20 px-3 py-1.5 text-xs font-semibold text-emerald-100"
-                        : "rounded-md border border-emerald-300/60 bg-emerald-400/20 px-3 py-1.5 text-xs font-semibold text-emerald-100"
+                        : "rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800"
                     }
                   >
                     Open all links

@@ -26,7 +26,7 @@ export function SiteNav() {
   const pathname = usePathname() ?? "/";
 
   return (
-    <nav className="hidden items-center gap-1 rounded-full border border-[color:var(--ptl-border)] bg-[rgba(226,235,231,0.55)] p-1 shadow-sm sm:flex">
+    <nav className="hidden items-center gap-1 sm:flex">
       {items.map((item) => {
         const active = item.isActive(pathname);
         return (
@@ -35,10 +35,8 @@ export function SiteNav() {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={
-              "group relative rounded-full px-3 py-1.5 text-sm font-semibold transition " +
-              (active
-                ? "bg-[rgba(230,239,234,0.9)] text-[color:var(--ptl-ink-strong)] shadow-sm"
-                : "text-[color:var(--ptl-ink-muted)] hover:bg-[rgba(231,239,235,0.68)] hover:text-[color:var(--ptl-ink-strong)]")
+              "group relative px-3 py-1.5 text-sm font-semibold transition " +
+              (active ? "text-neutral-950" : "text-neutral-800/80 hover:text-neutral-950")
             }
           >
             <span className="relative">
@@ -57,3 +55,4 @@ export function SiteNav() {
     </nav>
   );
 }
+

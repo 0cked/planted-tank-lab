@@ -1,4 +1,4 @@
-import type { SubstrateHeightfield } from "@/lib/visual/types";
+import type { SubstrateHeightfield } from "@/components/builder/visual/types";
 import { SUBSTRATE_HEIGHTFIELD_RESOLUTION } from "@/lib/visual/substrate";
 
 function clamp(value: number, min: number, max: number): number {
