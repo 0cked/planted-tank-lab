@@ -28,12 +28,21 @@ type DragState = {
   allHeights: number[];
 };
 
-const DOT_RADIUS = 0.42;
-const DOT_HIT_RADIUS = 0.78;
+const DOT_RADIUS = 0.48;
+const DOT_HIT_RADIUS = 1.05;
 const DOT_MAX_HEIGHT_RATIO = 0.45;
+const DOT_MIN_HEIGHT_IN = 0.2;
+const DOT_EDGE_INSET_X_NORM = 0.1;
+const DOT_EDGE_INSET_Z_NORM = 0.1;
 const COLOR_DEFAULT = "#67b8d6";
 const COLOR_HOVER = "#a8e4f8";
 const COLOR_ACTIVE = "#ffffff";
+
+function controlIndexToNormalizedPosition(index: number, count: number, edgeInsetNorm: number): number {
+  if (count <= 1) return 0.5;
+  const t = index / (count - 1);
+  return edgeInsetNorm + t * (1 - edgeInsetNorm * 2);
+}
 
 function ControlDot(props: {
   position: [number, number, number];
@@ -66,6 +75,8 @@ function ControlDot(props: {
           emissiveIntensity={props.active ? 0.7 : hovered ? 0.4 : 0.2}
           roughness={0.35}
           metalness={0.1}
+          depthWrite={false}
+          depthTest={false}
         />
       </mesh>
 
@@ -102,6 +113,8 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
         cols,
         rows,
         tankHeightIn: dims.heightIn,
+        edgeInsetXNorm: DOT_EDGE_INSET_X_NORM,
+        edgeInsetZNorm: DOT_EDGE_INSET_Z_NORM,
       }),
     [heightfield, cols, rows, dims.heightIn],
   );
@@ -111,18 +124,12 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
     const halfW = dims.widthIn * 0.5;
     const halfD = dims.depthIn * 0.5;
 
-    // Inset dots slightly from edges (10% padding)
-    const padX = dims.widthIn * 0.1;
-    const padZ = dims.depthIn * 0.1;
-    const usableW = dims.widthIn - padX * 2;
-    const usableD = dims.depthIn - padZ * 2;
-
     for (let r = 0; r < rows; r++) {
-      const nz = rows > 1 ? r / (rows - 1) : 0.5;
+      const nz = controlIndexToNormalizedPosition(r, rows, DOT_EDGE_INSET_Z_NORM);
       for (let c = 0; c < cols; c++) {
-        const nx = cols > 1 ? c / (cols - 1) : 0.5;
-        const x = -halfW + padX + nx * usableW;
-        const z = -halfD + padZ + nz * usableD;
+        const nx = controlIndexToNormalizedPosition(c, cols, DOT_EDGE_INSET_X_NORM);
+        const x = -halfW + nx * dims.widthIn;
+        const z = -halfD + nz * dims.depthIn;
         const y = controlHeights[r * cols + c] ?? 0;
         positions.push([x, y, z]);
       }
@@ -187,7 +194,7 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
 
       const deltaY = intersection.y - drag.startY;
       const maxHeight = dims.heightIn * DOT_MAX_HEIGHT_RATIO;
-      const newHeight = Math.max(0, Math.min(maxHeight, drag.startHeight + deltaY));
+      const newHeight = Math.max(DOT_MIN_HEIGHT_IN, Math.min(maxHeight, drag.startHeight + deltaY));
 
       const nextHeights = [...drag.allHeights];
       nextHeights[drag.index] = newHeight;
@@ -197,6 +204,8 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
         cols,
         rows,
         tankHeightIn: dims.heightIn,
+        edgeInsetXNorm: DOT_EDGE_INSET_X_NORM,
+        edgeInsetZNorm: DOT_EDGE_INSET_Z_NORM,
       });
 
       onHeightfieldChange(nextHeightfield);

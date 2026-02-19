@@ -1,8 +1,28 @@
 import type { SubstrateHeightfield } from "@/components/builder/visual/types";
-import { SUBSTRATE_HEIGHTFIELD_RESOLUTION } from "@/lib/visual/substrate";
+import {
+  normalizeSubstrateHeightfield,
+  SUBSTRATE_HEIGHTFIELD_RESOLUTION,
+} from "@/lib/visual/substrate";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function normalizeEdgeInset(value: number | undefined): number {
+  return clamp(Number.isFinite(value) ? (value as number) : 0, 0, 0.45);
+}
+
+function controlIndexToNormalizedPosition(index: number, count: number, edgeInsetNorm: number): number {
+  if (count <= 1) return 0.5;
+  const t = index / (count - 1);
+  return edgeInsetNorm + t * (1 - edgeInsetNorm * 2);
+}
+
+function normalizedPositionToControlIndex(valueNorm: number, count: number, edgeInsetNorm: number): number {
+  if (count <= 1) return 0;
+  const usableNorm = Math.max(1e-4, 1 - edgeInsetNorm * 2);
+  const localNorm = clamp((valueNorm - edgeInsetNorm) / usableNorm, 0, 1);
+  return localNorm * (count - 1);
 }
 
 /**
@@ -28,16 +48,21 @@ export function sampleControlPointHeights(params: {
   cols: number;
   rows: number;
   tankHeightIn: number;
+  edgeInsetXNorm?: number;
+  edgeInsetZNorm?: number;
 }): number[] {
-  const { heightfield, cols, rows, tankHeightIn } = params;
+  const { cols, rows, tankHeightIn } = params;
+  const heightfield = normalizeSubstrateHeightfield(params.heightfield, tankHeightIn);
+  const edgeInsetXNorm = normalizeEdgeInset(params.edgeInsetXNorm);
+  const edgeInsetZNorm = normalizeEdgeInset(params.edgeInsetZNorm);
   const res = SUBSTRATE_HEIGHTFIELD_RESOLUTION;
   const maxIdx = res - 1;
   const heights: number[] = [];
 
   for (let r = 0; r < rows; r++) {
-    const nz = rows > 1 ? r / (rows - 1) : 0.5;
+    const nz = controlIndexToNormalizedPosition(r, rows, edgeInsetZNorm);
     for (let c = 0; c < cols; c++) {
-      const nx = cols > 1 ? c / (cols - 1) : 0.5;
+      const nx = controlIndexToNormalizedPosition(c, cols, edgeInsetXNorm);
 
       // Bilinear sample from the heightfield
       const fx = nx * maxIdx;
@@ -54,14 +79,13 @@ export function sampleControlPointHeights(params: {
       const v01 = heightfield[z1 * res + x0] ?? 0;
       const v11 = heightfield[z1 * res + x1] ?? 0;
 
-      const normalized =
+      const depthIn =
         v00 * (1 - tx) * (1 - tz) +
         v10 * tx * (1 - tz) +
         v01 * (1 - tx) * tz +
         v11 * tx * tz;
 
-      // Convert normalized [0..1] to inches (0 = no substrate, tankHeightIn * fraction)
-      heights.push(normalized * tankHeightIn * 0.35);
+      heights.push(depthIn);
     }
   }
 
@@ -76,25 +100,30 @@ export function interpolateHeightfieldFromControlPoints(params: {
   cols: number;
   rows: number;
   tankHeightIn: number;
+  edgeInsetXNorm?: number;
+  edgeInsetZNorm?: number;
 }): SubstrateHeightfield {
   const { heights, cols, rows, tankHeightIn } = params;
+  const edgeInsetXNorm = normalizeEdgeInset(params.edgeInsetXNorm);
+  const edgeInsetZNorm = normalizeEdgeInset(params.edgeInsetZNorm);
   const res = SUBSTRATE_HEIGHTFIELD_RESOLUTION;
   const total = res * res;
   const result = new Float32Array(total);
-  const maxScale = tankHeightIn * 0.35;
+  const minDepth = 0.2;
+  const maxDepth = Math.max(minDepth, tankHeightIn * 0.62);
 
   for (let z = 0; z < res; z++) {
     const nz = z / (res - 1);
-    // Map to control grid row
-    const fr = nz * (rows - 1);
+    // Map to control grid row (supports optional edge insets)
+    const fr = normalizedPositionToControlIndex(nz, rows, edgeInsetZNorm);
     const r0 = Math.floor(fr);
     const r1 = Math.min(r0 + 1, rows - 1);
     const tr = fr - r0;
 
     for (let x = 0; x < res; x++) {
       const nx = x / (res - 1);
-      // Map to control grid col
-      const fc = nx * (cols - 1);
+      // Map to control grid column (supports optional edge insets)
+      const fc = normalizedPositionToControlIndex(nx, cols, edgeInsetXNorm);
       const c0 = Math.floor(fc);
       const c1 = Math.min(c0 + 1, cols - 1);
       const tc = fc - c0;
@@ -110,8 +139,7 @@ export function interpolateHeightfieldFromControlPoints(params: {
         h01 * (1 - tc) * tr +
         h11 * tc * tr;
 
-      // Convert back to normalized [0..1]
-      result[z * res + x] = maxScale > 0 ? clamp(heightIn / maxScale, 0, 1) : 0;
+      result[z * res + x] = clamp(heightIn, minDepth, maxDepth);
     }
   }
 

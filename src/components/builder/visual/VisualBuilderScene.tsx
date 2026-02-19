@@ -1992,6 +1992,7 @@ function ProceduralPlantMesh(props: {
   renderItem: SceneRenderItem;
   resolvedAsset: ResolvedVisualAsset;
   highlightColor: string | null;
+  interactive: boolean;
 }) {
   const seed = useMemo(
     () => proceduralPlantSeedFromString(props.renderItem.asset.id),
@@ -2030,7 +2031,14 @@ function ProceduralPlantMesh(props: {
   ];
 
   return (
-    <mesh castShadow receiveShadow geometry={model.geometry} material={material} scale={scale}>
+    <mesh
+      castShadow
+      receiveShadow
+      geometry={model.geometry}
+      material={material}
+      scale={scale}
+      raycast={props.interactive ? undefined : DISABLED_RAYCAST}
+    >
       {props.highlightColor ? <Edges color={props.highlightColor} threshold={22} /> : null}
     </mesh>
   );
@@ -2040,6 +2048,7 @@ function ProceduralHardscapeMesh(props: {
   renderItem: SceneRenderItem;
   resolvedAsset: ResolvedVisualAsset;
   highlightColor: string | null;
+  interactive: boolean;
 }) {
   const seed = useMemo(
     () => proceduralHardscapeSeedFromString(props.renderItem.asset.id),
@@ -2085,7 +2094,14 @@ function ProceduralHardscapeMesh(props: {
   ];
 
   return (
-    <mesh castShadow receiveShadow geometry={model.geometry} material={material} scale={scale}>
+    <mesh
+      castShadow
+      receiveShadow
+      geometry={model.geometry}
+      material={material}
+      scale={scale}
+      raycast={props.interactive ? undefined : DISABLED_RAYCAST}
+    >
       {props.highlightColor ? (
         <Edges color={props.highlightColor} threshold={isWood ? 26 : 20} />
       ) : null}
@@ -2097,6 +2113,7 @@ function ProceduralItemMesh(props: {
   renderItem: SceneRenderItem;
   resolvedAsset: ResolvedVisualAsset;
   highlightColor: string | null;
+  interactive: boolean;
 }) {
   if (props.renderItem.asset.categorySlug === "plants") {
     return (
@@ -2104,6 +2121,7 @@ function ProceduralItemMesh(props: {
         renderItem={props.renderItem}
         resolvedAsset={props.resolvedAsset}
         highlightColor={props.highlightColor}
+        interactive={props.interactive}
       />
     );
   }
@@ -2113,6 +2131,7 @@ function ProceduralItemMesh(props: {
       renderItem={props.renderItem}
       resolvedAsset={props.resolvedAsset}
       highlightColor={props.highlightColor}
+      interactive={props.interactive}
     />
   );
 }
@@ -2122,6 +2141,7 @@ function ItemMesh(props: {
   selected: boolean;
   hovered: boolean;
   toolMode: BuilderSceneToolMode;
+  interactive: boolean;
   onSelect: (id: string | null, selectionMode?: "replace" | "toggle") => void;
   onHover: (id: string | null) => void;
   onRotate: (itemId: string, deltaDeg: number) => void;
@@ -2151,6 +2171,7 @@ function ItemMesh(props: {
   });
 
   const onClick = (event: ThreeEvent<MouseEvent>) => {
+    if (!props.interactive) return;
     event.stopPropagation();
     if (props.toolMode === "delete") {
       props.onDelete(props.renderItem.item.id);
@@ -2168,6 +2189,7 @@ function ItemMesh(props: {
       renderItem={props.renderItem}
       resolvedAsset={resolvedAsset}
       highlightColor={highlightColor}
+      interactive={props.interactive}
     />
   );
 
@@ -2175,15 +2197,23 @@ function ItemMesh(props: {
     <group
       ref={groupRef}
       position={props.renderItem.position}
-      onClick={onClick}
-      onPointerOver={(event) => {
-        event.stopPropagation();
-        props.onHover(props.renderItem.item.id);
-      }}
-      onPointerOut={(event) => {
-        event.stopPropagation();
-        props.onHover(null);
-      }}
+      onClick={props.interactive ? onClick : undefined}
+      onPointerOver={
+        props.interactive
+          ? (event) => {
+              event.stopPropagation();
+              props.onHover(props.renderItem.item.id);
+            }
+          : undefined
+      }
+      onPointerOut={
+        props.interactive
+          ? (event) => {
+              event.stopPropagation();
+              props.onHover(null);
+            }
+          : undefined
+      }
     >
       {!resolvedAsset.glbPath ? (
         proceduralMesh
@@ -2207,6 +2237,7 @@ function ItemMesh(props: {
                     geometry={model.geometry}
                     material={model.material}
                     scale={scale}
+                    raycast={props.interactive ? undefined : DISABLED_RAYCAST}
                   >
                     {highlightColor ? <Edges color={highlightColor} threshold={22} /> : null}
                   </mesh>
@@ -2227,12 +2258,20 @@ function ItemTransformHandles(props: {
 }) {
   const ringRadius = useMemo(() => transformHandleRadius(props.renderItem), [props.renderItem]);
   const ringTubeRadius = useMemo(
-    () => THREE.MathUtils.clamp(ringRadius * 0.11, 0.07, 0.28),
+    () => THREE.MathUtils.clamp(ringRadius * 0.12, 0.08, 0.32),
     [ringRadius],
   );
   const handleRadius = useMemo(
-    () => THREE.MathUtils.clamp(ringRadius * 0.2, 0.12, 0.4),
+    () => THREE.MathUtils.clamp(ringRadius * 0.24, 0.16, 0.5),
     [ringRadius],
+  );
+  const ringHitTubeRadius = useMemo(
+    () => THREE.MathUtils.clamp(ringTubeRadius * 2.2, 0.2, 0.62),
+    [ringTubeRadius],
+  );
+  const scaleHitRadius = useMemo(
+    () => THREE.MathUtils.clamp(handleRadius * 2.1, 0.34, 1.15),
+    [handleRadius],
   );
   const centerY = useMemo(
     () => props.renderItem.position.y + Math.max(0.12, props.renderItem.size.height * 0.06),
@@ -2373,8 +2412,8 @@ function ItemTransformHandles(props: {
 
     const signedDistance =
       projectedPoint.clone().sub(center).dot(activeDrag.direction) * activeDrag.directionSign;
-    const safeDistance = Math.max(0.08, signedDistance);
-    const nextScale = clampScale((safeDistance / activeDrag.startDistance) * activeDrag.startScale);
+    const deltaDistance = signedDistance - activeDrag.startDistance;
+    const nextScale = clampScale(activeDrag.startScale + deltaDistance * 0.22);
 
     props.onUpdateItem(props.renderItem.item.id, { scale: nextScale });
   };
@@ -2382,13 +2421,10 @@ function ItemTransformHandles(props: {
   return (
     <group>
       <mesh
+        raycast={DISABLED_RAYCAST}
         position={[center.x, center.y, center.z]}
         rotation={[Math.PI / 2, 0, 0]}
         renderOrder={50}
-        onPointerDown={beginRotateDrag}
-        onPointerMove={handleDragMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
       >
         <torusGeometry args={[ringRadius, ringTubeRadius, 24, 84]} />
         <meshStandardMaterial
@@ -2404,12 +2440,52 @@ function ItemTransformHandles(props: {
       </mesh>
 
       <mesh
+        position={[center.x, center.y, center.z]}
+        rotation={[Math.PI / 2, 0, 0]}
+        renderOrder={51}
+        onPointerDown={beginRotateDrag}
+        onPointerMove={handleDragMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <torusGeometry args={[ringRadius, ringHitTubeRadius, 16, 64]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      <mesh
+        raycast={DISABLED_RAYCAST}
         position={positiveHandlePosition}
         renderOrder={50}
+      >
+        <sphereGeometry args={[handleRadius, 20, 20]} />
+        <meshStandardMaterial
+          color={TRANSFORM_HANDLE_SCALE_COLOR}
+          emissive={TRANSFORM_HANDLE_SCALE_EMISSIVE}
+          emissiveIntensity={0.3}
+          roughness={0.26}
+          metalness={0.18}
+          transparent
+          opacity={0.94}
+          depthWrite={false}
+        />
+      </mesh>
+
+      <mesh
+        position={positiveHandlePosition}
+        renderOrder={51}
         onPointerDown={(event) => beginScaleDrag(event, 1)}
         onPointerMove={handleDragMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+      >
+        <sphereGeometry args={[scaleHitRadius, 14, 14]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      <mesh
+        raycast={DISABLED_RAYCAST}
+        position={negativeHandlePosition}
+        renderOrder={50}
       >
         <sphereGeometry args={[handleRadius, 20, 20]} />
         <meshStandardMaterial
@@ -2426,23 +2502,14 @@ function ItemTransformHandles(props: {
 
       <mesh
         position={negativeHandlePosition}
-        renderOrder={50}
+        renderOrder={51}
         onPointerDown={(event) => beginScaleDrag(event, -1)}
         onPointerMove={handleDragMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        <sphereGeometry args={[handleRadius, 20, 20]} />
-        <meshStandardMaterial
-          color={TRANSFORM_HANDLE_SCALE_COLOR}
-          emissive={TRANSFORM_HANDLE_SCALE_EMISSIVE}
-          emissiveIntensity={0.3}
-          roughness={0.26}
-          metalness={0.18}
-          transparent
-          opacity={0.94}
-          depthWrite={false}
-        />
+        <sphereGeometry args={[scaleHitRadius, 14, 14]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -2459,6 +2526,7 @@ function InstancedPlantRenderer(props: {
   material: THREE.Material;
   bounds: THREE.Vector3;
   loadedModel: boolean;
+  interactive: boolean;
   selectedItemIds: ReadonlySet<string>;
   hoveredItemId: string | null;
   toolMode: BuilderSceneToolMode;
@@ -2558,30 +2626,47 @@ function InstancedPlantRenderer(props: {
       args={[props.geometry, props.material, props.group.items.length]}
       castShadow
       receiveShadow
-      onClick={onClick}
-      onPointerMove={(event) => {
-        event.stopPropagation();
-        const renderItem = renderItemFromInstanceId(event.instanceId);
-        if (!renderItem) return;
+      raycast={props.interactive ? undefined : DISABLED_RAYCAST}
+      onClick={props.interactive ? onClick : undefined}
+      onPointerMove={
+        props.interactive
+          ? (event) => {
+              event.stopPropagation();
+              const renderItem = renderItemFromInstanceId(event.instanceId);
+              if (!renderItem) return;
 
-        props.onHover(renderItem.item.id);
-        props.onSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
-      }}
-      onPointerDown={(event) => {
-        event.stopPropagation();
-        const renderItem = renderItemFromInstanceId(event.instanceId);
-        if (!renderItem) return;
+              props.onHover(renderItem.item.id);
+              props.onSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
+            }
+          : undefined
+      }
+      onPointerDown={
+        props.interactive
+          ? (event) => {
+              event.stopPropagation();
+              const renderItem = renderItemFromInstanceId(event.instanceId);
+              if (!renderItem) return;
 
-        props.onSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
-      }}
-      onPointerOut={(event) => {
-        event.stopPropagation();
-        props.onHover(null);
-      }}
-      onPointerUp={(event) => {
-        event.stopPropagation();
-        props.onSurfaceUp(event);
-      }}
+              props.onSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
+            }
+          : undefined
+      }
+      onPointerOut={
+        props.interactive
+          ? (event) => {
+              event.stopPropagation();
+              props.onHover(null);
+            }
+          : undefined
+      }
+      onPointerUp={
+        props.interactive
+          ? (event) => {
+              event.stopPropagation();
+              props.onSurfaceUp(event);
+            }
+          : undefined
+      }
     />
   );
 }
@@ -2589,6 +2674,7 @@ function InstancedPlantRenderer(props: {
 function LoadedPlantInstancedRenderer(props: {
   group: PlantInstancedGroup;
   model: LoadedAssetModel;
+  interactive: boolean;
   selectedItemIds: ReadonlySet<string>;
   hoveredItemId: string | null;
   toolMode: BuilderSceneToolMode;
@@ -2627,6 +2713,7 @@ function LoadedPlantInstancedRenderer(props: {
       material={material}
       bounds={props.model.bounds}
       loadedModel
+      interactive={props.interactive}
       selectedItemIds={props.selectedItemIds}
       hoveredItemId={props.hoveredItemId}
       toolMode={props.toolMode}
@@ -2643,6 +2730,7 @@ function LoadedPlantInstancedRenderer(props: {
 
 function PlantInstancedGroupMesh(props: {
   group: PlantInstancedGroup;
+  interactive: boolean;
   selectedItemIds: ReadonlySet<string>;
   hoveredItemId: string | null;
   toolMode: BuilderSceneToolMode;
@@ -2702,6 +2790,7 @@ function PlantInstancedGroupMesh(props: {
       material={fallbackMaterial}
       bounds={fallbackModel.bounds}
       loadedModel={false}
+      interactive={props.interactive}
       selectedItemIds={props.selectedItemIds}
       hoveredItemId={props.hoveredItemId}
       toolMode={props.toolMode}
@@ -2734,6 +2823,7 @@ function PlantInstancedGroupMesh(props: {
             <LoadedPlantInstancedRenderer
               group={props.group}
               model={model}
+              interactive={props.interactive}
               selectedItemIds={props.selectedItemIds}
               hoveredItemId={props.hoveredItemId}
               toolMode={props.toolMode}
@@ -3328,9 +3418,7 @@ function TankShell(props: {
       <mesh
         position={[0, waterHeight * 0.5, 0]}
         receiveShadow
-        onPointerMove={(event) => props.onSurfacePointer(event, "substrate", null)}
-        onPointerDown={(event) => props.onSurfaceDown(event, "substrate", null)}
-        onPointerUp={props.onSurfaceUp}
+        raycast={DISABLED_RAYCAST}
       >
         <boxGeometry args={[props.dims.widthIn * 0.95, waterHeight, props.dims.depthIn * 0.95]} />
         <meshPhysicalMaterial
@@ -3531,6 +3619,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const [candidate, setCandidate] = useState<PlacementCandidate | null>(null);
   const [transformInteractionLocked, setTransformInteractionLocked] = useState(false);
   const [substrateNodeDragActive, setSubstrateNodeDragActive] = useState(false);
+  const itemInteractionsEnabled = props.currentStep !== "substrate";
   const moveDragRef = useRef<MoveDragState | null>(null);
   const onSubstrateStrokeStart = props.onSubstrateStrokeStart;
   const onSubstrateStrokeEnd = props.onSubstrateStrokeEnd;
@@ -3809,8 +3898,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       valid = false;
     }
 
-    const insideX = Math.abs(snappedPoint.x) <= dims.widthIn * 0.49;
-    const insideZ = Math.abs(snappedPoint.z) <= dims.depthIn * 0.49;
+    const insideX = Math.abs(snappedPoint.x) <= dims.widthIn * 0.495;
+    const insideZ = Math.abs(snappedPoint.z) <= dims.depthIn * 0.495;
     const insideY = snappedPoint.y >= 0 && snappedPoint.y <= dims.heightIn;
     valid = valid && insideX && insideZ && insideY;
 
@@ -4124,19 +4213,26 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       {singleRenderItems.map((renderItem) => (
         <group
           key={renderItem.item.id}
-          onPointerMove={(event) =>
-            handleSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
+          onPointerMove={
+            itemInteractionsEnabled
+              ? (event) =>
+                  handleSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
+              : undefined
           }
-          onPointerDown={(event) =>
-            handleSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
+          onPointerDown={
+            itemInteractionsEnabled
+              ? (event) =>
+                  handleSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
+              : undefined
           }
-          onPointerUp={handleSurfaceUp}
+          onPointerUp={itemInteractionsEnabled ? handleSurfaceUp : undefined}
         >
           <ItemMesh
             renderItem={renderItem}
             selected={selectedItemIdSet.has(renderItem.item.id)}
             hovered={renderItem.item.id === hoveredItemId}
             toolMode={props.toolMode}
+            interactive={itemInteractionsEnabled}
             onSelect={props.onSelectItem}
             onHover={setHoveredItemId}
             onRotate={props.onRotateItem}
@@ -4149,6 +4245,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         <PlantInstancedGroupMesh
           key={`${group.asset.id}:${group.items.length}`}
           group={group}
+          interactive={itemInteractionsEnabled}
           selectedItemIds={selectedItemIdSet}
           hoveredItemId={hoveredItemId}
           toolMode={props.toolMode}
@@ -4162,7 +4259,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         />
       ))}
 
-      {selectedRenderItem ? (
+      {selectedRenderItem && itemInteractionsEnabled ? (
         <ItemTransformHandles
           renderItem={selectedRenderItem}
           onUpdateItem={props.onMoveItem}
