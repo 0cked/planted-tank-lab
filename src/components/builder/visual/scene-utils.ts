@@ -365,8 +365,9 @@ export function estimateCollisionRadius(params: {
   assetWidthIn: number;
   assetDepthIn: number;
 }): number {
-  const base = Math.max(params.assetWidthIn, params.assetDepthIn) * 0.5;
+  // Scene meshes are rendered at ~18% of catalog dimensions; match collision radius to rendered footprint.
+  const renderedFootprint = Math.max(params.assetWidthIn, params.assetDepthIn) * 0.18;
   const scale = clamp(params.item.scale, 0.1, 6);
   const hint = params.item.constraints.collisionRadiusIn;
-  return Math.max(0.3, base * scale * 0.36, hint * 0.6);
+  return Math.max(0.18, renderedFootprint * scale * 0.48, hint * 0.28);
 }

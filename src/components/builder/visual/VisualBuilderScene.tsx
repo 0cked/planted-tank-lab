@@ -200,6 +200,15 @@ type PlacementCandidate = {
   anchorItemId: string | null;
 };
 
+type PlacementEvaluation = {
+  valid: boolean;
+  xNorm: number;
+  yNorm: number;
+  zNorm: number;
+  point: THREE.Vector3;
+  previewRadius: number;
+};
+
 type MoveDragState = {
   pointerId: number;
   startPointer: { x: number; z: number };
@@ -2360,6 +2369,7 @@ function ItemMesh(props: {
   renderItem: SceneRenderItem;
   selected: boolean;
   hovered: boolean;
+  highlightColorOverride?: string | null;
   toolMode: BuilderSceneToolMode;
   interactive: boolean;
   onSelect: (id: string | null, selectionMode?: "replace" | "toggle") => void;
@@ -2372,7 +2382,9 @@ function ItemMesh(props: {
     () => (props.renderItem.item.rotation * Math.PI) / 180,
     [props.renderItem.item.rotation],
   );
-  const highlightColor = props.selected ? "#cbf2dd" : props.hovered ? "#d6e9ff" : null;
+  const highlightColor =
+    props.highlightColorOverride ??
+    (props.selected ? "#cbf2dd" : props.hovered ? "#d6e9ff" : null);
   const { failedPath, markPathFailed } = useRetryableFailedAssetPath(props.renderItem.asset.id);
   const resolvedAsset = useAsset(props.renderItem.asset, { failedPath });
 
@@ -3540,37 +3552,51 @@ function TankShell(props: {
   );
 }
 
-function PlacementGhost(props: {
-  candidate: PlacementCandidate;
-  asset: VisualAsset;
+function PlacementPreview(props: {
+  renderItem: SceneRenderItem;
   valid: boolean;
-  rotationDeg: number;
-  scale: number;
 }) {
   const color = props.valid ? "#8ee8c5" : "#ef7f7f";
-  const width = Math.max(0.3, props.asset.widthIn * props.scale * 0.18);
-  const depth = Math.max(0.3, props.asset.depthIn * props.scale * 0.18);
-  const height = Math.max(0.4, props.asset.heightIn * props.scale * 0.18);
+  const ringRadius = Math.max(
+    0.18,
+    Math.max(props.renderItem.size.width, props.renderItem.size.depth) * 0.34,
+  );
 
   return (
-    <group
-      position={props.candidate.point}
-      rotation={[0, (props.rotationDeg * Math.PI) / 180, 0]}
-    >
-      {props.asset.categorySlug === "plants" ? (
-        <mesh position={[0, height * 0.5, 0]}>
-          <coneGeometry args={[width * 0.36, height, 6]} />
-          <meshStandardMaterial color={color} transparent opacity={0.42} />
-          <Edges color={color} threshold={18} />
-        </mesh>
-      ) : (
-        <mesh position={[0, height * 0.5, 0]}>
-          <boxGeometry args={[width, height, depth]} />
-          <meshStandardMaterial color={color} transparent opacity={0.34} />
-          <Edges color={color} threshold={16} />
-        </mesh>
-      )}
-    </group>
+    <>
+      <ItemMesh
+        renderItem={props.renderItem}
+        selected={false}
+        hovered={false}
+        highlightColorOverride={color}
+        toolMode="place"
+        interactive={false}
+        onSelect={() => {}}
+        onHover={() => {}}
+        onRotate={() => {}}
+        onDelete={() => {}}
+      />
+
+      <mesh
+        position={[
+          props.renderItem.position.x,
+          props.renderItem.position.y + 0.03,
+          props.renderItem.position.z,
+        ]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        raycast={DISABLED_RAYCAST}
+        renderOrder={98}
+      >
+        <ringGeometry args={[ringRadius, ringRadius + 0.07, 28]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={props.valid ? 0.45 : 0.75}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </>
   );
 }
 
@@ -3796,8 +3822,17 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const evaluatePlacement = (
     nextCandidate: PlacementCandidate | null,
     asset: VisualAsset | null,
-  ): { valid: boolean; yNorm: number; xNorm: number; zNorm: number } => {
-    if (!nextCandidate || !asset) return { valid: false, yNorm: 0, xNorm: 0, zNorm: 0 };
+  ): PlacementEvaluation => {
+    if (!nextCandidate || !asset) {
+      return {
+        valid: false,
+        yNorm: 0,
+        xNorm: 0,
+        zNorm: 0,
+        point: new THREE.Vector3(),
+        previewRadius: 0,
+      };
+    }
 
     const resolvedPlacement = resolvePlacementCoordinates({
       point: nextCandidate.point,
@@ -3807,6 +3842,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const snappedPoint = resolvedPlacement.point;
     const yNorm = resolvedPlacement.yNorm;
     const scale = Math.max(0.1, asset.defaultScale);
+    const previewWidth = Math.max(0.35, asset.widthIn * scale * 0.18);
+    const previewDepth = Math.max(0.35, asset.depthIn * scale * 0.18);
 
     const mockItem: VisualCanvasItem = {
       id: "preview",
@@ -3848,8 +3885,29 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
     let valid = true;
     for (const placed of renderItems) {
-      const distance = placed.position.distanceTo(snappedPoint);
-      if (distance < previewRadius + placed.collisionRadius * 0.88) {
+      if (
+        nextCandidate.anchorType === "hardscape" &&
+        asset.categorySlug === "plants" &&
+        hasHardscapeAttach(asset) &&
+        nextCandidate.anchorItemId === placed.item.id
+      ) {
+        continue;
+      }
+
+      const distanceXZ = Math.hypot(
+        placed.position.x - snappedPoint.x,
+        placed.position.z - snappedPoint.z,
+      );
+      const placedRadius = Math.max(
+        0.16,
+        Math.max(placed.size.width, placed.size.depth) * 0.5,
+        placed.collisionRadius,
+      );
+      const spacingFactor =
+        asset.categorySlug === "plants" && placed.asset.categorySlug === "plants" ? 0.45 : 0.62;
+      const minDistance = previewRadius * spacingFactor + placedRadius * spacingFactor;
+
+      if (distanceXZ < minDistance) {
         valid = false;
         break;
       }
@@ -3869,10 +3927,84 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       xNorm: resolvedPlacement.xNorm,
       yNorm,
       zNorm: resolvedPlacement.zNorm,
+      point: snappedPoint,
+      previewRadius: Math.max(previewRadius, Math.max(previewWidth, previewDepth) * 0.48),
     };
   };
 
   const placementValidity = evaluatePlacement(candidate, props.placementAsset);
+
+  const placementPreviewRenderItem = useMemo<SceneRenderItem | null>(() => {
+    if (!props.placementAsset || !candidate) return null;
+
+    const scale = Math.max(0.1, props.placementAsset.defaultScale);
+    const rotation = clampRotation(props.placementRotationDeg);
+    const placementZone = depthZoneFromZ(placementValidity.zNorm);
+    const resolvedPlacementAsset = resolveVisualAsset(props.placementAsset);
+    const plantGrowthScale =
+      props.placementAsset.categorySlug === "plants"
+        ? resolvePlantGrowthScale({
+            asset: props.placementAsset,
+            timelineMonths: props.growthTimelineMonths,
+            plantTypeHint: resolvedPlacementAsset.proceduralPlantType,
+          })
+        : { x: 1, y: 1, z: 1 };
+
+    const previewItem: VisualCanvasItem = {
+      id: "__placement-preview__",
+      assetId: props.placementAsset.id,
+      assetType: props.placementAsset.type,
+      categorySlug: props.placementAsset.categorySlug,
+      sku: props.placementAsset.sku,
+      variant: props.placementAsset.slug,
+      x: placementValidity.xNorm,
+      y: placementValidity.yNorm,
+      z: placementValidity.zNorm,
+      scale,
+      rotation,
+      layer: 0,
+      anchorType: candidate.anchorType,
+      depthZone: placementZone,
+      constraints: {
+        snapToSurface: true,
+        canAttachToHardscape: hasHardscapeAttach(props.placementAsset),
+        requiresSubstrate: props.placementAsset.categorySlug === "plants",
+        rotationSnapDeg: props.placementAsset.categorySlug === "plants" ? 5 : 15,
+        collisionRadiusIn: 1.5,
+      },
+      transform: buildTransformFromNormalized({
+        x: placementValidity.xNorm,
+        y: placementValidity.yNorm,
+        z: placementValidity.zNorm,
+        scale,
+        rotation,
+        dims,
+      }),
+    };
+
+    return {
+      item: previewItem,
+      asset: props.placementAsset,
+      position: placementValidity.point.clone(),
+      size: {
+        width: Math.max(0.35, props.placementAsset.widthIn * scale * 0.18 * plantGrowthScale.x),
+        height: Math.max(0.35, props.placementAsset.heightIn * scale * 0.18 * plantGrowthScale.y),
+        depth: Math.max(0.35, props.placementAsset.depthIn * scale * 0.18 * plantGrowthScale.z),
+      },
+      collisionRadius: placementValidity.previewRadius,
+    };
+  }, [
+    candidate,
+    dims,
+    placementValidity.point,
+    placementValidity.previewRadius,
+    placementValidity.xNorm,
+    placementValidity.yNorm,
+    placementValidity.zNorm,
+    props.growthTimelineMonths,
+    props.placementAsset,
+    props.placementRotationDeg,
+  ]);
 
   const performPlacement = (nextCandidate?: PlacementCandidate) => {
     const activeCandidate = nextCandidate ?? candidate;
@@ -4259,13 +4391,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         lightMountHeightIn={props.lightMountHeightIn}
       />
 
-      {props.placementAsset && candidate ? (
-        <PlacementGhost
-          candidate={candidate}
-          asset={props.placementAsset}
+      {placementPreviewRenderItem ? (
+        <PlacementPreview
+          renderItem={placementPreviewRenderItem}
           valid={placementValidity.valid}
-          rotationDeg={props.placementRotationDeg}
-          scale={Math.max(0.1, props.placementAsset.defaultScale)}
         />
       ) : null}
 
