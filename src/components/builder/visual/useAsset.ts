@@ -27,6 +27,7 @@ export type ProceduralPlantFallbackType =
 
 type ManifestEntry = {
   path?: string | null;
+  previewImagePath?: string | null;
   category?: ManifestCategory;
   defaultScale?: number;
   placementZone?: ManifestPlacementZone;
@@ -46,6 +47,7 @@ export type AssetFallbackKind = ManifestCategory;
 export type ResolvedVisualAsset = {
   manifestKey: string | null;
   glbPath: string | null;
+  previewImagePath: string | null;
   category: ManifestCategory;
   defaultScale: number;
   placementZone: ManifestPlacementZone;
@@ -97,6 +99,14 @@ function normalizeManifest(input: unknown): AssetManifest {
 
     normalizedAssets[key] = {
       path: typeof row.path === "string" ? row.path : null,
+      previewImagePath:
+        typeof row.previewImagePath === "string"
+          ? row.previewImagePath
+          : typeof row.previewPath === "string"
+            ? row.previewPath
+            : typeof row.thumbnailPath === "string"
+              ? row.thumbnailPath
+              : null,
       category:
         category === "plant" || category === "rock" || category === "wood"
           ? category
@@ -200,6 +210,26 @@ function sanitizeModelPath(path: string | null | undefined): string | null {
   if (!trimmed.startsWith("/")) return null;
   if (!trimmed.toLowerCase().endsWith(".glb")) return null;
   return trimmed;
+}
+
+function sanitizePreviewImagePath(path: string | null | undefined): string | null {
+  if (!path) return null;
+  const trimmed = path.trim();
+  if (!trimmed) return null;
+  if (!trimmed.startsWith("/")) return null;
+  if (
+    !trimmed.match(
+      /\.(png|jpe?g|webp|avif)$/i,
+    )
+  ) {
+    return null;
+  }
+  return trimmed;
+}
+
+function inferPreviewImagePathFromModelPath(modelPath: string | null): string | null {
+  if (!modelPath) return null;
+  return modelPath.replace(/\.glb$/i, ".png");
 }
 
 function includesAny(text: string, terms: string[]): boolean {
@@ -325,12 +355,17 @@ export function resolveVisualAsset(
   const inferredFallbackKind = inferFallbackKind(asset);
   const { manifestKey, entry } = resolveManifestEntry(asset);
   const fallbackKind = entry?.category ?? inferredFallbackKind;
-  const glbPath = sanitizeModelPath(entry?.path);
-  const shouldFallback = failedPath != null && failedPath === glbPath;
+  const declaredGlbPath = sanitizeModelPath(entry?.path);
+  const shouldFallback = failedPath != null && failedPath === declaredGlbPath;
+  const glbPath = shouldFallback ? null : declaredGlbPath;
+  const previewImagePath =
+    sanitizePreviewImagePath(entry?.previewImagePath) ??
+    inferPreviewImagePathFromModelPath(declaredGlbPath);
 
   return {
     manifestKey,
-    glbPath: shouldFallback ? null : glbPath,
+    glbPath,
+    previewImagePath,
     category: fallbackKind,
     defaultScale: entry?.defaultScale ?? asset.defaultScale,
     placementZone: entry?.placementZone ?? inferPlacementZone(asset),

@@ -55,6 +55,7 @@ describe("useAsset manifest resolution", () => {
 
     expect(resolved.manifestKey).toBe("plant:java-fern");
     expect(resolved.glbPath).toBe("/visual-assets/plants/test-fern.glb");
+    expect(resolved.previewImagePath).toBe("/visual-assets/plants/test-fern.png");
     expect(resolved.category).toBe("plant");
     expect(resolved.fallbackKind).toBe("plant");
     expect(resolved.proceduralPlantType).toBe("rosette");
@@ -67,6 +68,7 @@ describe("useAsset manifest resolution", () => {
     const resolved = useAsset(asset, { failedPath: "/visual-assets/plants/test-fern.glb" });
 
     expect(resolved.glbPath).toBeNull();
+    expect(resolved.previewImagePath).toBe("/visual-assets/plants/test-fern.png");
     expect(resolved.fallbackKind).toBe("plant");
     expect(resolved.proceduralPlantType).toBe("rosette");
   });
@@ -190,6 +192,7 @@ describe("useAsset manifest resolution", () => {
 
     expect(resolved.manifestKey).toBe("product:manzanita-branch");
     expect(resolved.glbPath).toBeNull();
+    expect(resolved.previewImagePath).toBeNull();
     expect(resolved.fallbackKind).toBe("wood");
     expect(resolved.proceduralWoodType).toBe("flowing");
   });

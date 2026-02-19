@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { BuilderShortcutsOverlay } from "@/components/builder/visual/BuilderShortcutsOverlay";
 import { BuilderViewportLayout } from "@/components/builder/visual/BuilderViewportLayout";
@@ -33,6 +33,7 @@ import type {
   VisualSceneSettings,
   VisualTank,
 } from "@/components/builder/visual/types";
+import { resolveVisualAsset } from "@/components/builder/visual/useAsset";
 import {
   VisualBuilderScene,
   type BuilderSceneQualityTier,
@@ -273,6 +274,55 @@ function severityChip(severity: Severity): string {
   }
 }
 
+function normalizePreviewCandidate(candidate: string | null | undefined): string | null {
+  if (!candidate) return null;
+  const trimmed = candidate.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function resolveDrawerPreviewCandidates(asset: VisualAsset): string[] {
+  const resolvedAsset = resolveVisualAsset(asset);
+  const orderedCandidates = [resolvedAsset.previewImagePath, asset.imageUrl];
+  const seen = new Set<string>();
+  const next: string[] = [];
+
+  for (const candidate of orderedCandidates) {
+    const normalized = normalizePreviewCandidate(candidate);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    next.push(normalized);
+  }
+
+  return next;
+}
+
+function AssetThumbnail(props: { asset: VisualAsset }) {
+  const previewCandidates = useMemo(
+    () => resolveDrawerPreviewCandidates(props.asset),
+    [props.asset],
+  );
+  const [candidateIndex, setCandidateIndex] = useState(0);
+
+  if (candidateIndex >= previewCandidates.length) {
+    return <span className="text-[8px] text-neutral-400">{"\u2014"}</span>;
+  }
+
+  const src = previewCandidates[candidateIndex];
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={props.asset.name}
+      className="h-full w-full object-cover"
+      loading="lazy"
+      draggable={false}
+      onError={() => {
+        setCandidateIndex((current) => Math.min(current + 1, previewCandidates.length));
+      }}
+    />
+  );
+}
+
 function AssetList(props: {
   search: string;
   onSearchChange: (v: string) => void;
@@ -308,18 +358,7 @@ function AssetList(props: {
               }`}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[var(--ptl-border)] bg-black/5">
-                {asset.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={asset.imageUrl}
-                    alt={asset.name}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                    draggable={false}
-                  />
-                ) : (
-                  <span className="text-[8px] text-neutral-400">{"\u2014"}</span>
-                )}
+                <AssetThumbnail asset={asset} />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[11px] font-medium text-[var(--ptl-ink)]">
