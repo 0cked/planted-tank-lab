@@ -2455,7 +2455,7 @@ function ItemTransformHandles(props: {
       <mesh
         raycast={DISABLED_RAYCAST}
         position={[center.x, center.y + scaleLaneYOffset * 0.5, center.z]}
-        renderOrder={49}
+        renderOrder={90}
       >
         <cylinderGeometry args={[0.03, 0.03, scaleLaneYOffset, 10]} />
         <meshStandardMaterial
@@ -2467,6 +2467,7 @@ function ItemTransformHandles(props: {
           transparent
           opacity={0.45}
           depthWrite={false}
+          depthTest={false}
         />
       </mesh>
 
@@ -2474,7 +2475,7 @@ function ItemTransformHandles(props: {
         raycast={DISABLED_RAYCAST}
         position={[center.x, center.y, center.z]}
         rotation={[Math.PI / 2, 0, 0]}
-        renderOrder={50}
+        renderOrder={90}
       >
         <torusGeometry args={[ringRadius, ringTubeRadius, 24, 84]} />
         <meshStandardMaterial
@@ -2486,26 +2487,27 @@ function ItemTransformHandles(props: {
           transparent
           opacity={0.88}
           depthWrite={false}
+          depthTest={false}
         />
       </mesh>
 
       <mesh
         position={[center.x, center.y, center.z]}
         rotation={[Math.PI / 2, 0, 0]}
-        renderOrder={51}
+        renderOrder={91}
         onPointerDown={beginRotateDrag}
         onPointerMove={handleDragMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
         <torusGeometry args={[ringRadius, ringHitTubeRadius, 16, 64]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
       </mesh>
 
       <mesh
         raycast={DISABLED_RAYCAST}
         position={positiveHandlePosition}
-        renderOrder={50}
+        renderOrder={90}
       >
         <sphereGeometry args={[handleRadius, 20, 20]} />
         <meshStandardMaterial
@@ -2517,25 +2519,26 @@ function ItemTransformHandles(props: {
           transparent
           opacity={0.94}
           depthWrite={false}
+          depthTest={false}
         />
       </mesh>
 
       <mesh
         position={positiveHandlePosition}
-        renderOrder={51}
+        renderOrder={91}
         onPointerDown={(event) => beginScaleDrag(event, 1)}
         onPointerMove={handleDragMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
         <sphereGeometry args={[scaleHitRadius, 14, 14]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
       </mesh>
 
       <mesh
         raycast={DISABLED_RAYCAST}
         position={negativeHandlePosition}
-        renderOrder={50}
+        renderOrder={90}
       >
         <sphereGeometry args={[handleRadius, 20, 20]} />
         <meshStandardMaterial
@@ -2547,19 +2550,20 @@ function ItemTransformHandles(props: {
           transparent
           opacity={0.94}
           depthWrite={false}
+          depthTest={false}
         />
       </mesh>
 
       <mesh
         position={negativeHandlePosition}
-        renderOrder={51}
+        renderOrder={91}
         onPointerDown={(event) => beginScaleDrag(event, -1)}
         onPointerMove={handleDragMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
         <sphereGeometry args={[scaleHitRadius, 14, 14]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
       </mesh>
     </group>
   );
@@ -4040,14 +4044,20 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     return { x: clamp01(normalized.x), z: clamp01(normalized.z) };
   };
 
-  const startMoveDrag = (event: ThreeEvent<PointerEvent>, anchorItemId: string | null) => {
-    if (event.shiftKey) return;
+  const startMoveDrag = (
+    event: ThreeEvent<PointerEvent>,
+    anchorItemId: string | null,
+  ): boolean => {
+    if (event.shiftKey) return false;
+    if (!anchorItemId) return false;
 
-    const fallbackSelectionId = props.selectedItemId;
-    if (!fallbackSelectionId) return;
+    // Require a direct drag on the selected item to avoid accidental moves while orbiting/panning.
+    if (!selectedItemIdSet.has(anchorItemId)) {
+      props.onSelectItem(anchorItemId, event.shiftKey ? "toggle" : "replace");
+      return false;
+    }
 
-    const candidateSelectionIds =
-      anchorItemId && selectedItemIdSet.has(anchorItemId) ? selectedItemIds : [fallbackSelectionId];
+    const candidateSelectionIds = Array.from(selectedItemIdSet);
 
     const selectedDragItems: MoveDragState["items"] = [];
     for (const selectedId of candidateSelectionIds) {
@@ -4063,7 +4073,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       });
     }
 
-    if (selectedDragItems.length === 0) return;
+    if (selectedDragItems.length === 0) return false;
     const pointerNorm = pointerToMoveSurface(event);
     const pointerTarget = event.target as {
       setPointerCapture?: (pointerId: number) => void;
@@ -4094,6 +4104,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       releasePointerCaptureTarget: pointerTarget,
       items: selectedDragItems,
     };
+    return true;
   };
 
   const moveSelectedItems = (event: ThreeEvent<PointerEvent>) => {
@@ -4181,13 +4192,16 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     anchorType: VisualAnchorType,
     itemId: string | null,
   ) => {
-    event.stopPropagation();
-
     if (props.toolMode === "move" && (selectedItemIds.length > 0 || props.selectedItemId)) {
-      startMoveDrag(event, itemId);
-      handleSurfacePointer(event, anchorType, itemId);
+      const moveDragStarted = startMoveDrag(event, itemId);
+      if (moveDragStarted) {
+        event.stopPropagation();
+        handleSurfacePointer(event, anchorType, itemId);
+      }
       return;
     }
+
+    event.stopPropagation();
 
     if (props.toolMode === "place" && props.placementAsset) {
       const surfaceNormal = event.face?.normal
