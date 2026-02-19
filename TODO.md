@@ -593,7 +593,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Add SEO metadata: "Planted Aquarium Layout Guide - Where to Place Your Plants."
   - **Verify:** Page shows tank diagram with labeled zones. Each zone lists appropriate plants. Links work.
 
-- [ ] **P11-4: Beginner's planted tank guide**
+- [x] **P11-4: Beginner's planted tank guide**
   - Create `/guides/beginners-guide` page.
   - Sections: What is a planted tank?, Essential equipment (with links to /products categories), Choosing your first plants (link to /plants filtered by difficulty=easy), Setting up the tank (step by step), The nitrogen cycle, First month care schedule.
   - Use the project's existing design system. No external images needed — use CSS illustrations or emoji for visual breaks.
