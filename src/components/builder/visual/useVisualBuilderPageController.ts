@@ -222,7 +222,6 @@ export function useVisualBuilderPageController(
   const [toolMode, setToolMode] = useState<BuilderSceneToolMode>("move");
   const [placementAssetId, setPlacementAssetId] = useState<string | null>(null);
   const [placementRotationDeg, setPlacementRotationDeg] = useState(0);
-  const [clusterBrushCount, setClusterBrushCount] = useState(4);
   const [sculptMode, setSculptMode] = useState<SubstrateBrushMode>("raise");
   const [sculptBrushSize, setSculptBrushSize] = useState(0.25);
   const [sculptStrength, setSculptStrength] = useState(0.42);
@@ -1211,7 +1210,6 @@ export function useVisualBuilderPageController(
     placementAsset,
     placementAssetId,
     placementRotationDeg,
-    clusterBrushCount,
     qualityTier,
     sculptMode,
     sculptBrushSize,
@@ -1281,7 +1279,6 @@ export function useVisualBuilderPageController(
     onHasShrimpChange: setHasShrimp,
     onToolModeChange: setToolMode,
     onPlacementRotationChange: setPlacementRotationDeg,
-    onClusterBrushCountChange: setClusterBrushCount,
     onToggleGuides: () => {
       setSceneSettings({ guidesVisible: !canvasState.sceneSettings.guidesVisible });
     },

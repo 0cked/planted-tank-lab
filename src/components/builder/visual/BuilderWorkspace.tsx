@@ -75,7 +75,6 @@ export type BuilderWorkspaceProps = {
   placementAsset: VisualAsset | null;
   placementAssetId: string | null;
   placementRotationDeg: number;
-  clusterBrushCount: number;
   qualityTier: BuilderSceneQualityTier;
   sculptMode: SubstrateBrushMode;
   sculptBrushSize: number;
@@ -163,7 +162,6 @@ export type BuilderWorkspaceProps = {
   onHasShrimpChange: (value: boolean) => void;
   onToolModeChange: (mode: BuilderSceneToolMode) => void;
   onPlacementRotationChange: (value: number) => void;
-  onClusterBrushCountChange: (value: number) => void;
   onToggleGuides: () => void;
   onToggleGridSnap: () => void;
   onToggleMeasurements: () => void;
@@ -1277,7 +1275,6 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         toolMode={props.toolMode}
         placementAsset={props.placementAsset}
         placementRotationDeg={props.placementRotationDeg}
-        placementClusterCount={props.clusterBrushCount}
         showDepthGuides={props.canvasState.sceneSettings.guidesVisible}
         gridSnapEnabled={props.canvasState.sceneSettings.gridSnapEnabled}
         showMeasurements={props.canvasState.sceneSettings.measurementsVisible}

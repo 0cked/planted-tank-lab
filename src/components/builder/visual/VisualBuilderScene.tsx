@@ -39,6 +39,7 @@ import {
 } from "@/components/builder/visual/ProceduralHardscape";
 import { EquipmentVisuals } from "@/components/builder/visual/EquipmentVisuals";
 import {
+  ASSET_RENDER_DIMENSION_SCALE,
   buildTransformFromNormalized,
   clamp01,
   depthZoneFromZ,
@@ -155,7 +156,6 @@ type VisualBuilderSceneProps = {
   toolMode: BuilderSceneToolMode;
   placementAsset: VisualAsset | null;
   placementRotationDeg: number;
-  placementClusterCount: number;
   showDepthGuides: boolean;
   gridSnapEnabled: boolean;
   showMeasurements: boolean;
@@ -245,27 +245,17 @@ const PLANT_COLORS = ["#356f42", "#4f9f5f", "#2f6f3f", "#77ba65"];
 const ROCK_COLORS = ["#6b767e", "#737f87", "#5b666d", "#87939c"];
 const WOOD_COLORS = ["#6d4f35", "#7f5e3f", "#8a6441", "#5f462f"];
 
-const CLUSTER_OFFSETS: ReadonlyArray<[number, number]> = [
-  [0, 0],
-  [0.03, 0.01],
-  [-0.028, 0.016],
-  [0.02, -0.03],
-  [-0.018, -0.026],
-  [0.034, -0.012],
-  [-0.035, -0.007],
-  [0.012, 0.033],
-];
 const ITEM_OUTLINE_SCALE = 1.045;
 
-const SUBSTRATE_SURFACE_SCALE = 0.96;
+const SUBSTRATE_SURFACE_SCALE = 0.992;
 const SUBSTRATE_DEFAULT_DEPTH_IN = 1.6;
 const SUBSTRATE_MIN_DEPTH_IN = 0.2;
 const SUBSTRATE_MAX_DEPTH_RATIO = 0.62;
 const SUBSTRATE_HEIGHT_EPSILON = 0.0001;
 const SUBSTRATE_AQUASOIL_TEXTURE_PATH = "/visual-assets/materials/aquasoil-texture.png";
-const SUBSTRATE_SURFACE_TEXTURE_TILE_IN = 2.4;
-const SUBSTRATE_SIDE_TEXTURE_TILE_IN = 2.1;
-const SUBSTRATE_SIDE_TEXTURE_VERTICAL_TILE_IN = 1.5;
+const SUBSTRATE_SURFACE_TEXTURE_TILE_IN = 1.6;
+const SUBSTRATE_SIDE_TEXTURE_TILE_IN = 1.6;
+const SUBSTRATE_SIDE_TEXTURE_VERTICAL_TILE_IN = 1.25;
 const SUBSTRATE_HEATMAP_Y_OFFSET = 0.015;
 const SUBSTRATE_HEATMAP_OPACITY = 0.64;
 const SUBSTRATE_RENDER_SMOOTH_PASSES = 2;
@@ -358,14 +348,20 @@ const WATER_SURFACE_FRAGMENT_SHADER = `
     vec3 normal = normalize(vWorldNormal + detailNormal * 0.42);
     vec3 viewDir = normalize(cameraPosition - vWorldPosition);
 
-    float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 2.35);
+    float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.15);
     float shimmer = 0.5 + 0.5 * sin((vUv.x * 21.0 + vUv.y * 17.0) + uTime * 1.9);
-    float glint = pow(max(dot(normal, normalize(vec3(0.22, 0.95, 0.31))), 0.0), 16.0);
+    vec3 lightDir = normalize(vec3(0.22, 0.95, 0.31));
+    vec3 halfVector = normalize(lightDir + viewDir);
+    float specularCore = pow(max(dot(normal, halfVector), 0.0), 112.0);
+    float specularSoft = pow(max(dot(normal, halfVector), 0.0), 34.0) * (0.4 + shimmer * 0.6);
 
-    vec3 tint = mix(uTintColor * 0.82, uTintColor * 1.12, shimmer * 0.28);
-    vec3 color = tint + vec3(0.12, 0.18, 0.22) * fresnel + vec3(0.18, 0.26, 0.34) * glint;
+    vec3 deepTint = mix(uTintColor * 0.88, uTintColor * 1.02, shimmer * 0.16);
+    vec3 skyReflection = vec3(0.67, 0.79, 0.88);
+    vec3 color = mix(deepTint, skyReflection, fresnel * 0.92);
+    color += vec3(0.93, 0.97, 1.0) * specularCore * 0.72;
+    color += vec3(0.62, 0.72, 0.82) * specularSoft * 0.1;
 
-    float alpha = clamp(uOpacity + fresnel * 0.22, 0.0, 0.72);
+    float alpha = clamp(uOpacity + fresnel * 0.15 + specularCore * 0.14, 0.02, 0.26);
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -436,6 +432,32 @@ type SubstrateVolumeData = {
   uvs: Float32Array;
   segments: SubstrateVolumeSegment[];
   bottomOffsets: [number, number, number, number];
+};
+
+type AquariumLightRigEmitter = {
+  position: [number, number, number];
+  target: [number, number, number];
+  intensity: number;
+  castShadow: boolean;
+};
+
+type AquariumLightRigProfile = {
+  emitters: AquariumLightRigEmitter[];
+  emitterColor: string;
+  ambientColor: string;
+  ambientIntensity: number;
+  hemisphereSkyColor: string;
+  hemisphereGroundColor: string;
+  hemisphereIntensity: number;
+  bounceColor: string;
+  bounceIntensity: number;
+  angle: number;
+  penumbra: number;
+  decay: number;
+  distance: number;
+  shadowRadius: number;
+  shadowBias: number;
+  shadowMapSize: number;
 };
 
 function clampPointToTankBounds(point: THREE.Vector3, dims: SceneDims): THREE.Vector3 {
@@ -1218,42 +1240,42 @@ function cameraPreset(step: BuilderSceneStep, dims: SceneDims): {
 } {
   if (step === "tank") {
     return {
-      position: [dims.widthIn * 0.95, dims.heightIn * 0.72, dims.depthIn * 1.24],
-      target: [0, dims.heightIn * 0.35, 0],
+      position: [0, dims.heightIn * 0.68, dims.depthIn * 1.34],
+      target: [0, dims.heightIn * 0.34, 0],
       fov: 42,
     };
   }
   if (step === "substrate") {
     return {
-      position: [dims.widthIn * 0.58, dims.heightIn * 0.98, dims.depthIn * 0.9],
+      position: [0, dims.heightIn * 0.98, dims.depthIn * 0.9],
       target: [0, dims.heightIn * 0.2, 0],
       fov: 38,
     };
   }
   if (step === "hardscape") {
     return {
-      position: [dims.widthIn * 0.78, dims.heightIn * 0.66, dims.depthIn * 1.02],
+      position: [0, dims.heightIn * 0.66, dims.depthIn * 1.02],
       target: [0, dims.heightIn * 0.3, 0],
       fov: 40,
     };
   }
   if (step === "plants") {
     return {
-      position: [dims.widthIn * 0.66, dims.heightIn * 0.54, dims.depthIn * 0.84],
+      position: [0, dims.heightIn * 0.54, dims.depthIn * 0.84],
       target: [0, dims.heightIn * 0.3, 0],
       fov: 37,
     };
   }
   if (step === "equipment") {
     return {
-      position: [dims.widthIn * 0.92, dims.heightIn * 0.6, dims.depthIn * 1.08],
+      position: [0, dims.heightIn * 0.6, dims.depthIn * 1.08],
       target: [0, dims.heightIn * 0.42, 0],
       fov: 42,
     };
   }
   return {
-    position: [dims.widthIn * 1.1, dims.heightIn * 0.78, dims.depthIn * 1.38],
-    target: [0, dims.heightIn * 0.35, 0],
+    position: [0, dims.heightIn * 0.74, dims.depthIn * 1.46],
+    target: [0, dims.heightIn * 0.34, 0],
     fov: 44,
   };
 }
@@ -1284,13 +1306,13 @@ function focusItemCameraPreset(params: {
   const maxY = params.dims.heightIn * 1.28;
   const maxZ = params.dims.depthIn * 1.2;
 
-  const positionX = THREE.MathUtils.clamp(targetX + distance * 0.74, -maxX, maxX);
+  const positionX = THREE.MathUtils.clamp(targetX, -maxX, maxX);
   const positionY = THREE.MathUtils.clamp(
     targetY + Math.max(framingRadius * 2.1, params.dims.heightIn * 0.1),
     1,
     maxY,
   );
-  const positionZ = THREE.MathUtils.clamp(targetZ + distance * 0.92, -maxZ, maxZ);
+  const positionZ = THREE.MathUtils.clamp(targetZ + distance * 1.02, -maxZ, maxZ);
 
   return {
     position: [positionX, positionY, positionZ],
@@ -3003,12 +3025,12 @@ function WaterSurfacePlane(props: {
     () => ({
       uTime: { value: 0 },
       uNormalMap: { value: null as THREE.Texture | null },
-      uTintColor: { value: new THREE.Color("#5da7b5") },
-      uOpacity: { value: 0.3 },
-      uNormalStrength: { value: 0.58 },
-      uFlowScale: { value: 4.4 },
-      uWaveScale: { value: 3.2 },
-      uWaveAmplitude: { value: 0.06 },
+      uTintColor: { value: new THREE.Color("#365865") },
+      uOpacity: { value: 0.08 },
+      uNormalStrength: { value: 0.36 },
+      uFlowScale: { value: 6.1 },
+      uWaveScale: { value: 4.7 },
+      uWaveAmplitude: { value: 0.028 },
     }),
     [],
   );
@@ -3039,14 +3061,14 @@ function WaterSurfacePlane(props: {
     if (!material) return;
 
     material.uniforms.uFlowScale.value =
-      props.qualityTier === "high" ? 4.8 : props.qualityTier === "medium" ? 4.35 : 4;
+      props.qualityTier === "high" ? 6.4 : props.qualityTier === "medium" ? 5.9 : 5.45;
     material.uniforms.uWaveScale.value =
-      props.qualityTier === "high" ? 3.4 : props.qualityTier === "medium" ? 3.1 : 2.8;
+      props.qualityTier === "high" ? 5.05 : props.qualityTier === "medium" ? 4.65 : 4.2;
     material.uniforms.uNormalStrength.value =
-      props.qualityTier === "low" ? 0.52 : 0.58;
+      props.qualityTier === "low" ? 0.3 : 0.36;
     material.uniforms.uWaveAmplitude.value = Math.max(
-      0.045,
-      Math.min(0.1, Math.min(props.widthIn, props.depthIn) * 0.0019),
+      0.016,
+      Math.min(0.036, Math.min(props.widthIn, props.depthIn) * 0.0011),
     );
   }, [props.depthIn, props.qualityTier, props.widthIn]);
 
@@ -3232,6 +3254,172 @@ function SceneGroundPlane(props: { dims: SceneDims }) {
   );
 }
 
+function resolveAquariumLightRigProfile(params: {
+  dims: SceneDims;
+  qualityTier: BuilderSceneQualityTier;
+  source: LightSimulationSource | null;
+  lightMountHeightIn: number;
+}): AquariumLightRigProfile {
+  const fixtureType = params.source?.fixtureType ?? "led";
+  const sourceWattage = params.source?.wattage ?? 42;
+  const sourceEfficiency = params.source?.efficiency ?? 1.2;
+  const fixtureY = params.dims.heightIn * 0.94 + clampLightMountHeightIn(params.lightMountHeightIn);
+  const emitterCount =
+    params.qualityTier === "high" ? 5 : params.qualityTier === "medium" ? 4 : 3;
+  const halfSpan = THREE.MathUtils.clamp(params.dims.widthIn * 0.36, 5.4, 19.5);
+  const targetY = Math.max(0.28, params.dims.heightIn * 0.22);
+  const targetZCenter = -params.dims.depthIn * 0.02;
+  const qualityScale =
+    params.qualityTier === "high" ? 1.06 : params.qualityTier === "medium" ? 1 : 0.9;
+  const wattageScale = THREE.MathUtils.clamp(sourceWattage / 45, 0.55, 1.82);
+  const efficiencyScale = THREE.MathUtils.clamp(sourceEfficiency / 1.2, 0.72, 1.2);
+  const baseIntensity = THREE.MathUtils.clamp(
+    2.3 * wattageScale * efficiencyScale * qualityScale,
+    1.35,
+    6.1,
+  );
+
+  const fixtureColor =
+    fixtureType === "t5" ? "#fff5e6" : fixtureType === "t8" ? "#fff2de" : "#f6fbff";
+  const angle = fixtureType === "t5" ? 0.84 : fixtureType === "t8" ? 0.9 : 0.7;
+  const penumbra = fixtureType === "t5" ? 0.8 : fixtureType === "t8" ? 0.84 : 0.72;
+  const decay = fixtureType === "led" ? 1.85 : 1.58;
+  const maxSpan = Math.max(params.dims.widthIn, params.dims.depthIn);
+  const lightDistance = maxSpan * 2.8 + params.dims.heightIn * 1.9;
+  const shadowMapSize =
+    params.qualityTier === "high" ? 2048 : params.qualityTier === "medium" ? 1536 : 1024;
+  const shadowRadius =
+    params.qualityTier === "high" ? 3.8 : params.qualityTier === "medium" ? 2.8 : 1.8;
+  const shadowBias = fixtureType === "led" ? -0.00016 : -0.00012;
+  const centerIndex = Math.floor((emitterCount - 1) * 0.5);
+  const secondaryShadowIndex = emitterCount >= 5 ? centerIndex + 1 : -1;
+  const emitters: AquariumLightRigEmitter[] = [];
+
+  for (let index = 0; index < emitterCount; index += 1) {
+    const t = index / (emitterCount - 1);
+    const normalized = t * 2 - 1;
+    const x = normalized * halfSpan;
+    const centerWeight = Math.exp(-Math.pow(normalized * 1.2, 2));
+    const edgeDamp = 1 - Math.min(1, Math.abs(normalized));
+    const intensity = baseIntensity * (0.62 + centerWeight * 0.56 + edgeDamp * 0.08);
+    const targetX = x * 0.34;
+    const targetZ = targetZCenter + normalized * params.dims.depthIn * 0.012;
+
+    emitters.push({
+      position: [x, fixtureY, 0],
+      target: [targetX, targetY, targetZ],
+      intensity,
+      castShadow:
+        params.qualityTier !== "low" &&
+        (index === centerIndex || index === secondaryShadowIndex),
+    });
+  }
+
+  return {
+    emitters,
+    emitterColor: fixtureColor,
+    ambientColor: fixtureType === "led" ? "#9cb6cb" : "#a8b7c4",
+    ambientIntensity: params.source ? 0.2 : 0.23,
+    hemisphereSkyColor: fixtureType === "led" ? "#cde6ff" : "#d8e3ef",
+    hemisphereGroundColor: "#0a1520",
+    hemisphereIntensity: params.source ? 0.3 : 0.34,
+    bounceColor: fixtureType === "led" ? "#79c1da" : "#8cbfd2",
+    bounceIntensity: baseIntensity * 0.32,
+    angle,
+    penumbra,
+    decay,
+    distance: lightDistance,
+    shadowRadius,
+    shadowBias,
+    shadowMapSize,
+  };
+}
+
+function AquariumSpotEmitter(props: {
+  emitter: AquariumLightRigEmitter;
+  profile: AquariumLightRigProfile;
+}) {
+  const lightRef = useRef<THREE.SpotLight>(null);
+  const targetRef = useRef<THREE.Object3D>(null);
+
+  useLayoutEffect(() => {
+    const light = lightRef.current;
+    const target = targetRef.current;
+    if (!light || !target) return;
+    light.target = target;
+    target.updateMatrixWorld();
+  }, [props.emitter.target]);
+
+  return (
+    <>
+      <spotLight
+        ref={lightRef}
+        color={props.profile.emitterColor}
+        position={props.emitter.position}
+        intensity={props.emitter.intensity}
+        angle={props.profile.angle}
+        penumbra={props.profile.penumbra}
+        decay={props.profile.decay}
+        distance={props.profile.distance}
+        castShadow={props.emitter.castShadow}
+        shadow-mapSize-width={props.profile.shadowMapSize}
+        shadow-mapSize-height={props.profile.shadowMapSize}
+        shadow-camera-near={0.5}
+        shadow-camera-far={props.profile.distance}
+        shadow-radius={props.profile.shadowRadius}
+        shadow-bias={props.profile.shadowBias}
+      />
+      <object3D ref={targetRef} position={props.emitter.target} />
+    </>
+  );
+}
+
+function AquariumOverheadLighting(props: {
+  dims: SceneDims;
+  qualityTier: BuilderSceneQualityTier;
+  source: LightSimulationSource | null;
+  lightMountHeightIn: number;
+}) {
+  const profile = useMemo(
+    () =>
+      resolveAquariumLightRigProfile({
+        dims: props.dims,
+        qualityTier: props.qualityTier,
+        source: props.source,
+        lightMountHeightIn: props.lightMountHeightIn,
+      }),
+    [props.dims, props.lightMountHeightIn, props.qualityTier, props.source],
+  );
+  const bounceDistance = Math.max(props.dims.widthIn, props.dims.depthIn) * 1.9;
+
+  return (
+    <group>
+      <ambientLight color={profile.ambientColor} intensity={profile.ambientIntensity} />
+      <hemisphereLight
+        args={[
+          profile.hemisphereSkyColor,
+          profile.hemisphereGroundColor,
+          profile.hemisphereIntensity,
+        ]}
+      />
+      {profile.emitters.map((emitter, index) => (
+        <AquariumSpotEmitter
+          key={`aquarium-overhead-emitter-${index}`}
+          emitter={emitter}
+          profile={profile}
+        />
+      ))}
+      <pointLight
+        color={profile.bounceColor}
+        intensity={profile.bounceIntensity}
+        position={[0, Math.max(0.4, props.dims.heightIn * 0.58), -props.dims.depthIn * 0.03]}
+        distance={bounceDistance}
+        decay={1.9}
+      />
+    </group>
+  );
+}
+
 function TankBackgroundPanel(props: {
   dims: SceneDims;
   style: TankBackgroundStyle;
@@ -3239,7 +3427,7 @@ function TankBackgroundPanel(props: {
 }) {
   const halfDepth = props.dims.depthIn * 0.5;
   const panelY = props.dims.heightIn * 0.5;
-  const panelZ = halfDepth - Math.max(0.04, props.dims.depthIn * 0.01);
+  const panelZ = halfDepth - Math.max(0.02, props.dims.depthIn * 0.004);
   const panelWidth = props.dims.widthIn * 0.95;
   const panelHeight = props.dims.heightIn * 0.97;
   const solidColor =
@@ -3266,9 +3454,15 @@ function TankBackgroundPanel(props: {
           ior={1.2}
           clearcoat={0.1}
           clearcoatRoughness={0.74}
+          side={THREE.DoubleSide}
         />
       ) : (
-        <meshStandardMaterial color={solidColor} roughness={0.92} metalness={0.03} />
+        <meshStandardMaterial
+          color={solidColor}
+          roughness={0.92}
+          metalness={0.03}
+          side={THREE.DoubleSide}
+        />
       )}
     </mesh>
   );
@@ -3388,35 +3582,22 @@ function CabinetStand(props: {
 
   const cabinetWidth = props.dims.widthIn + Math.max(1, props.dims.widthIn * 0.03);
   const cabinetDepth = props.dims.depthIn + Math.max(0.8, props.dims.depthIn * 0.05);
-  const topThickness = Math.max(0.22, Math.min(0.45, props.dims.heightIn * 0.022));
   const cabinetHeight = Math.max(10, Math.min(30, props.dims.heightIn * 1.12));
   const plinthHeight = Math.max(0.48, Math.min(1, cabinetHeight * 0.06));
-  const bodyHeight = Math.max(4, cabinetHeight - topThickness - plinthHeight);
-  const topY = -topThickness * 0.5 - 0.02;
-  const bodyY = -topThickness - bodyHeight * 0.5 - 0.02;
-  const plinthY = -topThickness - bodyHeight - plinthHeight * 0.5 - 0.02;
+  const bodyHeight = Math.max(4, cabinetHeight - plinthHeight);
+  const bodyY = -bodyHeight * 0.5 - 0.02;
+  const plinthY = -bodyHeight - plinthHeight * 0.5 - 0.02;
   const panelInset = Math.max(0.18, Math.min(0.36, cabinetDepth * 0.03));
   const panelWidth = cabinetWidth * 0.47;
   const panelGap = Math.max(0.06, cabinetWidth * 0.01);
 
   const bodyColor = woodTexture ? "#ffffff" : finishColor;
-  const topColor = woodTexture ? "#f4eee8" : new THREE.Color(finishColor).offsetHSL(0, 0, 0.06).getStyle();
   const plinthColor = woodTexture
     ? "#2a211b"
     : new THREE.Color(finishColor).multiplyScalar(0.56).getStyle();
 
   return (
     <group>
-      <mesh receiveShadow castShadow position={[0, topY, 0]} raycast={DISABLED_RAYCAST}>
-        <boxGeometry args={[cabinetWidth, topThickness, cabinetDepth]} />
-        <meshStandardMaterial
-          color={topColor}
-          map={woodTexture ?? undefined}
-          roughness={0.66}
-          metalness={0.03}
-        />
-      </mesh>
-
       <mesh receiveShadow castShadow position={[0, bodyY, 0]} raycast={DISABLED_RAYCAST}>
         <boxGeometry args={[cabinetWidth, bodyHeight, cabinetDepth]} />
         <meshStandardMaterial
@@ -3462,31 +3643,36 @@ function CabinetStand(props: {
 
 function RimlessGlassEdgeHighlights(props: {
   dims: SceneDims;
+  glassThickness: number;
 }) {
   const halfWidth = props.dims.widthIn * 0.5;
   const halfDepth = props.dims.depthIn * 0.5;
   const thickness = Math.max(
-    0.02,
-    Math.min(0.065, Math.min(props.dims.widthIn, props.dims.depthIn) * 0.0021),
+    0.01,
+    Math.min(0.028, props.glassThickness * 0.55),
   );
+  const edgeX = Math.max(0, halfWidth - thickness * 0.5);
+  const edgeZ = Math.max(0, halfDepth - thickness * 0.5);
   const bottomEdgeY = thickness * 0.5;
   const topEdgeY = Math.max(bottomEdgeY + thickness, props.dims.heightIn - thickness * 0.5);
   const verticalHeight = Math.max(thickness, topEdgeY - bottomEdgeY);
   const verticalCenterY = bottomEdgeY + verticalHeight * 0.5;
+  const horizontalWidth = Math.max(thickness, props.dims.widthIn - thickness);
+  const horizontalDepth = Math.max(thickness, props.dims.depthIn - thickness);
 
   return (
     <group raycast={DISABLED_RAYCAST} renderOrder={34}>
-      {[halfDepth, -halfDepth].map((z) => (
+      {[edgeZ, -edgeZ].map((z) => (
         <mesh key={`top-width-${z}`} position={[0, topEdgeY, z]}>
-          <boxGeometry args={[props.dims.widthIn, thickness, thickness]} />
+          <boxGeometry args={[horizontalWidth, thickness, thickness]} />
           <meshPhysicalMaterial
             color="#9fdfeb"
             transparent
-            opacity={0.92}
+            opacity={0.88}
             transmission={0.7}
             roughness={0.1}
             metalness={0}
-            thickness={0.16}
+            thickness={0.08}
             ior={1.5}
             clearcoat={0.48}
             clearcoatRoughness={0.22}
@@ -3494,17 +3680,17 @@ function RimlessGlassEdgeHighlights(props: {
         </mesh>
       ))}
 
-      {[halfWidth, -halfWidth].map((x) => (
+      {[edgeX, -edgeX].map((x) => (
         <mesh key={`top-depth-${x}`} position={[x, topEdgeY, 0]}>
-          <boxGeometry args={[thickness, thickness, props.dims.depthIn]} />
+          <boxGeometry args={[thickness, thickness, horizontalDepth]} />
           <meshPhysicalMaterial
             color="#9fdfeb"
             transparent
-            opacity={0.92}
+            opacity={0.88}
             transmission={0.7}
             roughness={0.1}
             metalness={0}
-            thickness={0.16}
+            thickness={0.08}
             ior={1.5}
             clearcoat={0.48}
             clearcoatRoughness={0.22}
@@ -3512,17 +3698,17 @@ function RimlessGlassEdgeHighlights(props: {
         </mesh>
       ))}
 
-      {[halfDepth, -halfDepth].map((z) => (
+      {[edgeZ, -edgeZ].map((z) => (
         <mesh key={`bottom-width-${z}`} position={[0, bottomEdgeY, z]}>
-          <boxGeometry args={[props.dims.widthIn, thickness, thickness]} />
+          <boxGeometry args={[horizontalWidth, thickness, thickness]} />
           <meshPhysicalMaterial
             color="#8ad7e8"
             transparent
-            opacity={0.86}
+            opacity={0.8}
             transmission={0.66}
             roughness={0.12}
             metalness={0}
-            thickness={0.12}
+            thickness={0.06}
             ior={1.5}
             clearcoat={0.42}
             clearcoatRoughness={0.24}
@@ -3530,17 +3716,17 @@ function RimlessGlassEdgeHighlights(props: {
         </mesh>
       ))}
 
-      {[halfWidth, -halfWidth].map((x) => (
+      {[edgeX, -edgeX].map((x) => (
         <mesh key={`bottom-depth-${x}`} position={[x, bottomEdgeY, 0]}>
-          <boxGeometry args={[thickness, thickness, props.dims.depthIn]} />
+          <boxGeometry args={[thickness, thickness, horizontalDepth]} />
           <meshPhysicalMaterial
             color="#8ad7e8"
             transparent
-            opacity={0.86}
+            opacity={0.8}
             transmission={0.66}
             roughness={0.12}
             metalness={0}
-            thickness={0.12}
+            thickness={0.06}
             ior={1.5}
             clearcoat={0.42}
             clearcoatRoughness={0.24}
@@ -3549,21 +3735,21 @@ function RimlessGlassEdgeHighlights(props: {
       ))}
 
       {[
-        [-halfWidth, -halfDepth],
-        [-halfWidth, halfDepth],
-        [halfWidth, -halfDepth],
-        [halfWidth, halfDepth],
+        [-edgeX, -edgeZ],
+        [-edgeX, edgeZ],
+        [edgeX, -edgeZ],
+        [edgeX, edgeZ],
       ].map(([x, z]) => (
         <mesh key={`vertical-${x}-${z}`} position={[x, verticalCenterY, z]}>
           <boxGeometry args={[thickness, verticalHeight, thickness]} />
           <meshPhysicalMaterial
             color="#9fdfeb"
             transparent
-            opacity={0.9}
+            opacity={0.86}
             transmission={0.68}
             roughness={0.1}
             metalness={0}
-            thickness={0.16}
+            thickness={0.08}
             ior={1.5}
             clearcoat={0.48}
             clearcoatRoughness={0.22}
@@ -3574,12 +3760,18 @@ function RimlessGlassEdgeHighlights(props: {
   );
 }
 
-function configureSubstrateTexture(texture: THREE.Texture): void {
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.magFilter = THREE.LinearFilter;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
+function configureSubstrateTexture(params: {
+  texture: THREE.Texture;
+  colorSpace: THREE.ColorSpace;
+  anisotropy: number;
+}): void {
+  params.texture.wrapS = THREE.RepeatWrapping;
+  params.texture.wrapT = THREE.RepeatWrapping;
+  params.texture.colorSpace = params.colorSpace;
+  params.texture.magFilter = THREE.LinearFilter;
+  params.texture.minFilter = THREE.LinearMipmapLinearFilter;
+  params.texture.anisotropy = Math.max(1, Math.floor(params.anisotropy));
+  params.texture.needsUpdate = true;
 }
 
 function useSubstrateTextureMaps(params: {
@@ -3588,7 +3780,10 @@ function useSubstrateTextureMaps(params: {
 }): {
   surfaceTexture: THREE.Texture;
   sideTexture: THREE.Texture;
+  surfaceReliefTexture: THREE.Texture;
+  sideReliefTexture: THREE.Texture;
 } {
+  const maxTextureAnisotropy = useThree((state) => state.gl.capabilities.getMaxAnisotropy());
   const surfaceTexture = useMemo(
     () => new THREE.TextureLoader().load(SUBSTRATE_AQUASOIL_TEXTURE_PATH),
     [],
@@ -3597,34 +3792,75 @@ function useSubstrateTextureMaps(params: {
     () => new THREE.TextureLoader().load(SUBSTRATE_AQUASOIL_TEXTURE_PATH),
     [],
   );
+  const surfaceReliefTexture = useMemo(
+    () => new THREE.TextureLoader().load(SUBSTRATE_AQUASOIL_TEXTURE_PATH),
+    [],
+  );
+  const sideReliefTexture = useMemo(
+    () => new THREE.TextureLoader().load(SUBSTRATE_AQUASOIL_TEXTURE_PATH),
+    [],
+  );
 
   useEffect(() => {
-    configureSubstrateTexture(surfaceTexture);
-    configureSubstrateTexture(sideTexture);
+    configureSubstrateTexture({
+      texture: surfaceTexture,
+      colorSpace: THREE.SRGBColorSpace,
+      anisotropy: maxTextureAnisotropy,
+    });
+    configureSubstrateTexture({
+      texture: sideTexture,
+      colorSpace: THREE.SRGBColorSpace,
+      anisotropy: maxTextureAnisotropy,
+    });
+    configureSubstrateTexture({
+      texture: surfaceReliefTexture,
+      colorSpace: THREE.NoColorSpace,
+      anisotropy: maxTextureAnisotropy,
+    });
+    configureSubstrateTexture({
+      texture: sideReliefTexture,
+      colorSpace: THREE.NoColorSpace,
+      anisotropy: maxTextureAnisotropy,
+    });
 
     surfaceTexture.repeat.set(
       Math.max(1, params.widthIn / SUBSTRATE_SURFACE_TEXTURE_TILE_IN),
       Math.max(1, params.depthIn / SUBSTRATE_SURFACE_TEXTURE_TILE_IN),
     );
+    surfaceReliefTexture.repeat.copy(surfaceTexture.repeat);
     sideTexture.repeat.set(1, 1);
-  }, [params.depthIn, params.widthIn, sideTexture, surfaceTexture]);
+    sideReliefTexture.repeat.set(1, 1);
+  }, [
+    maxTextureAnisotropy,
+    params.depthIn,
+    params.widthIn,
+    sideReliefTexture,
+    sideTexture,
+    surfaceReliefTexture,
+    surfaceTexture,
+  ]);
 
   useEffect(() => {
     return () => {
       surfaceTexture.dispose();
       sideTexture.dispose();
+      surfaceReliefTexture.dispose();
+      sideReliefTexture.dispose();
     };
-  }, [sideTexture, surfaceTexture]);
+  }, [sideReliefTexture, sideTexture, surfaceReliefTexture, surfaceTexture]);
 
   return {
     surfaceTexture,
     sideTexture,
+    surfaceReliefTexture,
+    sideReliefTexture,
   };
 }
 
 function SubstrateCausticMaterial(props: {
   qualityTier: BuilderSceneQualityTier;
   surfaceTexture: THREE.Texture;
+  surfaceReliefTexture: THREE.Texture;
 }) {
   const caustics = useMemo(
     () => createAnimatedCausticTexture(props.qualityTier),
@@ -3654,13 +3890,15 @@ function SubstrateCausticMaterial(props: {
   return (
     <meshStandardMaterial
       color="#ffffff"
-      vertexColors
       map={props.surfaceTexture}
-      roughness={0.93}
-      metalness={0.03}
-      emissive="#8fbfca"
+      bumpMap={props.surfaceReliefTexture}
+      bumpScale={0.1}
+      roughness={0.86}
+      metalness={0.02}
+      emissive="#6f8089"
       emissiveMap={caustics.texture}
-      emissiveIntensity={causticEmissiveIntensity(props.qualityTier)}
+      emissiveIntensity={causticEmissiveIntensity(props.qualityTier) * 0.7}
+      side={THREE.DoubleSide}
     />
   );
 }
@@ -3947,6 +4185,26 @@ function TankShell(props: {
   const wallCenterY = props.dims.heightIn * 0.5;
   const halfWidth = props.dims.widthIn * 0.5;
   const halfDepth = props.dims.depthIn * 0.5;
+  const glassThickness = Math.max(
+    0.04,
+    Math.min(0.095, Math.min(props.dims.widthIn, props.dims.depthIn) * 0.0032),
+  );
+  const interiorWidth = Math.max(0.4, props.dims.widthIn - glassThickness * 2);
+  const interiorDepth = Math.max(0.4, props.dims.depthIn - glassThickness * 2);
+  const backFrontPaneWidth = Math.max(0.35, props.dims.widthIn - glassThickness * 2);
+  const sidePaneDepth = Math.max(0.35, props.dims.depthIn - glassThickness * 2);
+  const paneMaterial = {
+    color: "#d6f3ff",
+    transparent: true,
+    opacity: 0.14,
+    transmission: 0.92,
+    roughness: 0.04,
+    thickness: 0.3,
+    ior: 1.48,
+    clearcoat: 1,
+    clearcoatRoughness: 0.03,
+    envMapIntensity: 1.15,
+  } as const;
 
   return (
     <group>
@@ -3963,11 +4221,11 @@ function TankShell(props: {
       />
 
       <mesh
-        position={[0, waterHeight * 0.5, 0]}
+        position={[0, glassThickness + waterHeight * 0.5, 0]}
         receiveShadow
         raycast={DISABLED_RAYCAST}
       >
-        <boxGeometry args={[props.dims.widthIn * 0.95, waterHeight, props.dims.depthIn * 0.95]} />
+        <boxGeometry args={[interiorWidth, waterHeight, interiorDepth]} />
         <meshPhysicalMaterial
           color="#8ec9da"
           transparent
@@ -3998,60 +4256,56 @@ function TankShell(props: {
 
       {props.showGlassWalls ? (
         <group>
-          <mesh position={[0, wallCenterY, halfDepth]} receiveShadow>
-            <planeGeometry args={[props.dims.widthIn, props.dims.heightIn]} />
-            <meshPhysicalMaterial
-              color="#cfefff"
-              transparent
-              opacity={0.18}
-              transmission={0.9}
-              roughness={0.05}
-              thickness={0.3}
-              ior={1.48}
-              clearcoat={1}
-              clearcoatRoughness={0.03}
-              envMapIntensity={1.15}
-              side={THREE.BackSide}
-            />
+          <mesh
+            position={[0, wallCenterY, halfDepth - glassThickness * 0.5]}
+            receiveShadow
+            raycast={DISABLED_RAYCAST}
+          >
+            <boxGeometry args={[backFrontPaneWidth, props.dims.heightIn, glassThickness]} />
+            <meshPhysicalMaterial {...paneMaterial} side={THREE.DoubleSide} />
           </mesh>
 
-          <mesh position={[-halfWidth, wallCenterY, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-            <planeGeometry args={[props.dims.depthIn, props.dims.heightIn]} />
-            <meshPhysicalMaterial
-              color="#cfefff"
-              transparent
-              opacity={0.18}
-              transmission={0.9}
-              roughness={0.05}
-              thickness={0.3}
-              ior={1.48}
-              clearcoat={1}
-              clearcoatRoughness={0.03}
-              envMapIntensity={1.15}
-              side={THREE.BackSide}
-            />
+          <mesh
+            position={[0, wallCenterY, -halfDepth + glassThickness * 0.5]}
+            receiveShadow
+            raycast={DISABLED_RAYCAST}
+          >
+            <boxGeometry args={[backFrontPaneWidth, props.dims.heightIn, glassThickness]} />
+            <meshPhysicalMaterial {...paneMaterial} side={THREE.DoubleSide} />
           </mesh>
 
-          <mesh position={[halfWidth, wallCenterY, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
-            <planeGeometry args={[props.dims.depthIn, props.dims.heightIn]} />
-            <meshPhysicalMaterial
-              color="#cfefff"
-              transparent
-              opacity={0.18}
-              transmission={0.9}
-              roughness={0.05}
-              thickness={0.3}
-              ior={1.48}
-              clearcoat={1}
-              clearcoatRoughness={0.03}
-              envMapIntensity={1.15}
-              side={THREE.BackSide}
-            />
+          <mesh
+            position={[-halfWidth + glassThickness * 0.5, wallCenterY, 0]}
+            receiveShadow
+            raycast={DISABLED_RAYCAST}
+          >
+            <boxGeometry args={[glassThickness, props.dims.heightIn, sidePaneDepth]} />
+            <meshPhysicalMaterial {...paneMaterial} side={THREE.DoubleSide} />
+          </mesh>
+
+          <mesh
+            position={[halfWidth - glassThickness * 0.5, wallCenterY, 0]}
+            receiveShadow
+            raycast={DISABLED_RAYCAST}
+          >
+            <boxGeometry args={[glassThickness, props.dims.heightIn, sidePaneDepth]} />
+            <meshPhysicalMaterial {...paneMaterial} side={THREE.DoubleSide} />
+          </mesh>
+
+          <mesh
+            position={[0, glassThickness * 0.5, 0]}
+            receiveShadow
+            raycast={DISABLED_RAYCAST}
+          >
+            <boxGeometry args={[interiorWidth, glassThickness, interiorDepth]} />
+            <meshPhysicalMaterial {...paneMaterial} side={THREE.DoubleSide} />
           </mesh>
         </group>
       ) : null}
 
-      {props.showGlassWalls ? <RimlessGlassEdgeHighlights dims={props.dims} /> : null}
+      {props.showGlassWalls ? (
+        <RimlessGlassEdgeHighlights dims={props.dims} glassThickness={glassThickness} />
+      ) : null}
 
       <mesh
         geometry={substrateGeometryData.volume.geometry}
@@ -4060,10 +4314,13 @@ function TankShell(props: {
         raycast={DISABLED_RAYCAST}
       >
         <meshStandardMaterial
-          color="#f5f2ec"
+          color="#ffffff"
           map={substrateTextures.sideTexture}
-          roughness={0.9}
+          bumpMap={substrateTextures.sideReliefTexture}
+          bumpScale={0.08}
+          roughness={0.88}
           metalness={0.02}
+          side={THREE.DoubleSide}
         />
       </mesh>
 
@@ -4079,6 +4336,7 @@ function TankShell(props: {
         <SubstrateCausticMaterial
           qualityTier={props.qualityTier}
           surfaceTexture={substrateTextures.surfaceTexture}
+          surfaceReliefTexture={substrateTextures.surfaceReliefTexture}
         />
       </mesh>
 
@@ -4226,9 +4484,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       });
 
       const size = {
-        width: Math.max(0.35, asset.widthIn * item.scale * 0.18),
-        height: Math.max(0.35, asset.heightIn * item.scale * 0.18),
-        depth: Math.max(0.35, asset.depthIn * item.scale * 0.18),
+        width: Math.max(0.35, asset.widthIn * item.scale * ASSET_RENDER_DIMENSION_SCALE),
+        height: Math.max(0.35, asset.heightIn * item.scale * ASSET_RENDER_DIMENSION_SCALE),
+        depth: Math.max(0.35, asset.depthIn * item.scale * ASSET_RENDER_DIMENSION_SCALE),
       };
 
       resolved.push({
@@ -4426,8 +4684,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const provisionalYNorm = resolvedPlacement.yNorm;
 
     const scale = Math.max(0.1, asset.defaultScale);
-    const previewWidth = Math.max(0.35, asset.widthIn * scale * 0.18);
-    const previewDepth = Math.max(0.35, asset.depthIn * scale * 0.18);
+    const previewWidth = Math.max(0.35, asset.widthIn * scale * ASSET_RENDER_DIMENSION_SCALE);
+    const previewDepth = Math.max(0.35, asset.depthIn * scale * ASSET_RENDER_DIMENSION_SCALE);
 
     const mockItem: VisualCanvasItem = {
       id: "preview",
@@ -4591,9 +4849,18 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       asset: props.placementAsset,
       position: placementValidity.point.clone(),
       size: {
-        width: Math.max(0.35, props.placementAsset.widthIn * scale * 0.18),
-        height: Math.max(0.35, props.placementAsset.heightIn * scale * 0.18),
-        depth: Math.max(0.35, props.placementAsset.depthIn * scale * 0.18),
+        width: Math.max(
+          0.35,
+          props.placementAsset.widthIn * scale * ASSET_RENDER_DIMENSION_SCALE,
+        ),
+        height: Math.max(
+          0.35,
+          props.placementAsset.heightIn * scale * ASSET_RENDER_DIMENSION_SCALE,
+        ),
+        depth: Math.max(
+          0.35,
+          props.placementAsset.depthIn * scale * ASSET_RENDER_DIMENSION_SCALE,
+        ),
       },
       collisionRadius: placementValidity.previewRadius,
     };
@@ -4615,62 +4882,48 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const validity = evaluatePlacement(activeCandidate, props.placementAsset);
     if (!validity.valid) return;
 
-    const count = Math.max(1, props.placementClusterCount);
     const anchorType = activeCandidate.anchorType;
     const shouldSnapToGrid = props.gridSnapEnabled && anchorType === "substrate";
     const placementBounds = resolveFootprintBounds({
       dims,
       footprintRadiusIn: validity.previewRadius,
     });
+    let xNorm = validity.xNorm;
+    let zNorm = validity.zNorm;
+    if (shouldSnapToGrid) {
+      xNorm = snapNormalizedToInchGrid(xNorm, dims.widthIn);
+      zNorm = snapNormalizedToInchGrid(zNorm, dims.depthIn);
+    }
+    xNorm = clampNormalizedToFootprintBounds(xNorm, placementBounds.minXNorm, placementBounds.maxXNorm);
+    zNorm = clampNormalizedToFootprintBounds(zNorm, placementBounds.minZNorm, placementBounds.maxZNorm);
 
-    for (let i = 0; i < count; i += 1) {
-      const offset = CLUSTER_OFFSETS[i % CLUSTER_OFFSETS.length] ?? [0, 0];
-      let xNorm = clamp01(validity.xNorm + offset[0] * Math.min(1, props.sculptBrushSize + 0.25));
-      let zNorm = clamp01(validity.zNorm + offset[1] * Math.min(1, props.sculptBrushSize + 0.25));
+    const substrateY = sampleSubstrateDepth({
+      xNorm,
+      zNorm,
+      heightfield: props.canvasState.substrateHeightfield,
+      tankHeightIn: dims.heightIn,
+    });
+    const yNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
+    const scale = Math.max(0.1, props.placementAsset.defaultScale);
 
-      if (shouldSnapToGrid) {
-        xNorm = snapNormalizedToInchGrid(xNorm, dims.widthIn);
-        zNorm = snapNormalizedToInchGrid(zNorm, dims.depthIn);
-      }
-      xNorm = clampNormalizedToFootprintBounds(
-        xNorm,
-        placementBounds.minXNorm,
-        placementBounds.maxXNorm,
-      );
-      zNorm = clampNormalizedToFootprintBounds(
-        zNorm,
-        placementBounds.minZNorm,
-        placementBounds.maxZNorm,
-      );
-
-      const substrateY = sampleSubstrateDepth({
-        xNorm,
-        zNorm,
-        heightfield: props.canvasState.substrateHeightfield,
-        tankHeightIn: dims.heightIn,
-      });
-      const yNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
-      const scale = Math.max(0.1, props.placementAsset.defaultScale);
-
-      props.onPlaceItem({
-        asset: props.placementAsset,
+    props.onPlaceItem({
+      asset: props.placementAsset,
+      x: xNorm,
+      y: yNorm,
+      z: zNorm,
+      scale,
+      rotation: clampRotation(props.placementRotationDeg),
+      anchorType,
+      depthZone: depthZoneFromZ(zNorm),
+      transform: buildTransformFromNormalized({
         x: xNorm,
         y: yNorm,
         z: zNorm,
         scale,
         rotation: clampRotation(props.placementRotationDeg),
-        anchorType,
-        depthZone: depthZoneFromZ(zNorm),
-        transform: buildTransformFromNormalized({
-          x: xNorm,
-          y: yNorm,
-          z: zNorm,
-          scale,
-          rotation: clampRotation(props.placementRotationDeg),
-          dims,
-        }),
-      });
-    }
+        dims,
+      }),
+    });
   };
 
   const pointerToMoveSurface = (
@@ -4944,29 +5197,16 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     moveDragRef.current = null;
   };
 
-  const shadowMapSize = props.qualityTier === "high" ? 2048 : props.qualityTier === "medium" ? 1536 : 1024;
-
   return (
     <>
       <color attach="background" args={["#071019"]} />
       <SceneBackdrop />
-      <fogExp2 attach="fog" args={["#0b1723", props.qualityTier === "low" ? 0.027 : 0.019]} />
 
-      <ambientLight intensity={0.46} color="#a4c0d3" />
-      <directionalLight
-        castShadow
-        intensity={1.25}
-        color="#ffe9cc"
-        position={[dims.widthIn * 0.72, dims.heightIn * 1.55, dims.depthIn * 1.05]}
-        shadow-mapSize-width={shadowMapSize}
-        shadow-mapSize-height={shadowMapSize}
-        shadow-camera-left={-dims.widthIn * 1.1}
-        shadow-camera-right={dims.widthIn * 1.1}
-        shadow-camera-top={dims.heightIn * 1.35}
-        shadow-camera-bottom={-dims.heightIn * 0.8}
-        shadow-camera-near={0.4}
-        shadow-camera-far={dims.widthIn * 4.4}
-        shadow-bias={-0.0002}
+      <AquariumOverheadLighting
+        dims={dims}
+        qualityTier={props.qualityTier}
+        source={lightSimulationSource}
+        lightMountHeightIn={props.lightMountHeightIn}
       />
       <Environment preset="city" background={false} blur={0.66} />
 

@@ -29,6 +29,8 @@ export type SubstrateBrushMode = "raise" | "lower" | "smooth" | "erode" | "mater
 
 export type SubstratePreset = "flat" | "island" | "slope" | "valley";
 
+export const ASSET_RENDER_DIMENSION_SCALE = 0.72;
+
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
   if (value < min) return min;
@@ -365,8 +367,9 @@ export function estimateCollisionRadius(params: {
   assetWidthIn: number;
   assetDepthIn: number;
 }): number {
-  // Scene meshes are rendered at ~18% of catalog dimensions; match collision radius to rendered footprint.
-  const renderedFootprint = Math.max(params.assetWidthIn, params.assetDepthIn) * 0.18;
+  // Match collision radius to the rendered world footprint.
+  const renderedFootprint =
+    Math.max(params.assetWidthIn, params.assetDepthIn) * ASSET_RENDER_DIMENSION_SCALE;
   const scale = clamp(params.item.scale, 0.1, 6);
   const hint = params.item.constraints.collisionRadiusIn;
   return Math.max(0.18, renderedFootprint * scale * 0.48, hint * 0.28);
