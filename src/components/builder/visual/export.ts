@@ -13,11 +13,18 @@ type SceneCanvasExportParams = {
   fileName?: string;
 };
 
+export type SceneGalleryDataUrls = {
+  front: string;
+  top: string;
+  threeQuarter: string;
+};
+
 const DEPTH_SIDE_INSET = 0.18;
 const DEPTH_TOP_LIFT = 0.2;
 const DEPTH_SCALE_DECAY = 0.28;
 const SCENE_EXPORT_SCALE = 2;
 const WATERMARK_TEXT = "PlantedTankLab.com";
+const MAX_CAPTURE_WIDTH = 960;
 
 function projectCanvasPoint(point: { x: number; y: number; z: number }): {
   x: number;
@@ -69,6 +76,105 @@ function sanitizeBuildNameForFileName(value: string | null | undefined): string 
 
 export function buildImageExportFileName(buildName: string | null | undefined): string {
   return `${sanitizeBuildNameForFileName(buildName)}-plantedtanklab.png`;
+}
+
+function downscaledSize(width: number, height: number): { width: number; height: number } {
+  if (width <= 0 || height <= 0) {
+    return { width: 0, height: 0 };
+  }
+  const scale = Math.min(1, MAX_CAPTURE_WIDTH / width);
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+function createCanvas(width: number, height: number): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+function drawVariant(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement | HTMLCanvasElement,
+  variant: "front" | "top" | "threeQuarter",
+): void {
+  const width = context.canvas.width;
+  const height = context.canvas.height;
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+
+  if (variant === "front") {
+    context.drawImage(image, 0, 0, width, height);
+    return;
+  }
+
+  if (variant === "top") {
+    context.save();
+    context.translate(width * 0.5, height * 0.08);
+    context.transform(1, -0.32, 0, 0.74, 0, 0);
+    context.drawImage(image, -width / 2, 0, width, height);
+    context.restore();
+    return;
+  }
+
+  context.save();
+  context.translate(width * 0.03, height * 0.02);
+  context.transform(0.96, 0, -0.2, 0.96, width * 0.06, 0);
+  context.drawImage(image, 0, 0, width, height);
+  context.restore();
+}
+
+async function captureSceneVariantDataUrl(
+  sourceCanvas: HTMLCanvasElement,
+  sourceImage: HTMLImageElement | null,
+  variant: "front" | "top" | "threeQuarter",
+): Promise<string | null> {
+  const { width, height } = downscaledSize(sourceCanvas.width, sourceCanvas.height);
+  if (width <= 0 || height <= 0) return null;
+
+  const output = createCanvas(width, height);
+  const context = output.getContext("2d");
+  if (!context) return null;
+
+  drawVariant(context, sourceImage ?? sourceCanvas, variant);
+
+  try {
+    return output.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
+export async function captureSceneGalleryDataUrls(
+  canvas: HTMLCanvasElement | null,
+): Promise<SceneGalleryDataUrls | null> {
+  if (!canvas || canvas.width <= 0 || canvas.height <= 0) return null;
+  let sourceDataUrl: string;
+  try {
+    sourceDataUrl = canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+
+  const sourceImage = await loadImage(sourceDataUrl);
+  const [front, top, threeQuarter] = await Promise.all([
+    captureSceneVariantDataUrl(canvas, sourceImage, "front"),
+    captureSceneVariantDataUrl(canvas, sourceImage, "top"),
+    captureSceneVariantDataUrl(canvas, sourceImage, "threeQuarter"),
+  ]);
+
+  if (!front || !top || !threeQuarter) return null;
+  return { front, top, threeQuarter };
+}
+
+export async function captureSceneThumbnailDataUrl(
+  canvas: HTMLCanvasElement | null,
+): Promise<string | undefined> {
+  const gallery = await captureSceneGalleryDataUrls(canvas);
+  return gallery?.front;
 }
 
 function drawWatermark(ctx: CanvasRenderingContext2D, width: number, height: number): void {

@@ -11,16 +11,17 @@ import {
   type BuyAllItem,
   type BuyAllItemOption,
 } from "@/components/offers/BuyAllItemsModal";
+import { BuildImageCarousel } from "@/components/builds/BuildImageCarousel";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
 const BASE_URL = "https://plantedtanklab.com";
 
-function versionedThumbnailUrl(
-  coverImageUrl: string | null | undefined,
+function versionedImageUrl(
+  imageUrl: string | null | undefined,
   updatedAt: Date | string | null | undefined,
 ): string | undefined {
-  if (!coverImageUrl) return undefined;
+  if (!imageUrl) return undefined;
 
   const timestamp =
     updatedAt instanceof Date
@@ -29,10 +30,29 @@ function versionedThumbnailUrl(
         ? Date.parse(updatedAt)
         : Number.NaN;
 
-  if (!Number.isFinite(timestamp)) return coverImageUrl;
+  if (!Number.isFinite(timestamp)) return imageUrl;
 
-  const separator = coverImageUrl.includes("?") ? "&" : "?";
-  return `${coverImageUrl}${separator}v=${timestamp}`;
+  const separator = imageUrl.includes("?") ? "&" : "?";
+  return `${imageUrl}${separator}v=${timestamp}`;
+}
+
+function versionedGalleryImages(
+  gallery:
+    | {
+        front: string | null;
+        top: string | null;
+        threeQuarter: string | null;
+      }
+    | null
+    | undefined,
+  updatedAt: Date | string | null | undefined,
+) {
+  if (!gallery) return null;
+  return {
+    front: versionedImageUrl(gallery.front, updatedAt) ?? null,
+    top: versionedImageUrl(gallery.top, updatedAt) ?? null,
+    threeQuarter: versionedImageUrl(gallery.threeQuarter, updatedAt) ?? null,
+  };
 }
 
 export async function generateMetadata(props: {
@@ -45,8 +65,8 @@ export async function generateMetadata(props: {
   const data = await caller.builds.getByShareSlug({ shareSlug }).catch(() => null);
   if (!data) return { title: "Build" };
 
-  const thumbnailUrl = versionedThumbnailUrl(
-    data.build.coverImageUrl,
+  const socialImage = versionedImageUrl(
+    data.build.galleryImageUrls?.front ?? data.build.coverImageUrl,
     data.build.updatedAt,
   );
 
@@ -57,11 +77,11 @@ export async function generateMetadata(props: {
       `A planted tank build snapshot with ${data.build.itemCount} items.`,
     openGraph: {
       url: `/builds/${shareSlug}`,
-      images: thumbnailUrl ? [{ url: thumbnailUrl, alt: `${data.build.name} thumbnail` }] : undefined,
+      images: socialImage ? [{ url: socialImage, alt: `${data.build.name} thumbnail` }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
-      images: thumbnailUrl ? [thumbnailUrl] : undefined,
+      images: socialImage ? [socialImage] : undefined,
     },
   };
 }
@@ -249,8 +269,12 @@ export default async function BuildSharePage(props: {
     .filter((item) => item.options.length > 0);
 
   const buildUrl = `${BASE_URL}/builds/${shareSlug}`;
-  const buildThumbnailUrl = versionedThumbnailUrl(
+  const buildThumbnailUrl = versionedImageUrl(
     data.build.coverImageUrl,
+    data.build.updatedAt,
+  );
+  const buildGalleryImages = versionedGalleryImages(
+    data.build.galleryImageUrls,
     data.build.updatedAt,
   );
   const updatedAt =
@@ -342,6 +366,16 @@ export default async function BuildSharePage(props: {
           </div>
         </div>
       </div>
+
+      <section className="mt-8 overflow-hidden rounded-3xl border bg-white/55 shadow-sm" style={{ borderColor: "var(--ptl-border)" }}>
+        <div className="aspect-[16/9] w-full">
+          <BuildImageCarousel
+            altBase={data.build.name}
+            images={buildGalleryImages}
+            fallbackSrc={buildThumbnailUrl ?? null}
+          />
+        </div>
+      </section>
 
       <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="ptl-surface p-7 sm:p-10">
