@@ -643,14 +643,14 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - On the builds gallery page and shared build page, show a small image carousel (3 images, click/swipe to rotate).
   - **Verify:** Save a build. View it on /builds — 3 images in carousel. Click through — different angles shown.
 
-- [ ] **P12-5: Drag items from catalog to scene**
+- [x] **P12-5: Drag items from catalog to scene**
   - In the product/plant selection step, allow drag-and-drop directly into the 3D scene.
   - Drag a plant card from the sidebar → drop on the substrate → item placed at drop position.
   - Use HTML5 drag events on the catalog cards and a drop zone over the R3F canvas.
   - Convert the 2D drop coordinates to 3D world position using raycasting.
   - **Verify:** Drag a plant card from the sidebar. Drop on the substrate. Plant appears at the drop position.
 
-- [ ] **P12-6: Depth zone indicators**
+- [x] **P12-6: Depth zone indicators**
   - Add subtle zone markers on the substrate showing foreground, midground, and background areas.
   - Render as semi-transparent colored strips or dashed lines on the substrate surface.
   - When placing a plant, highlight the zone that matches the plant's preferred placement (e.g., foreground plants highlight the front zone in green).

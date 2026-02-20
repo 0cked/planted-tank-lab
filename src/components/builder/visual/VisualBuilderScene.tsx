@@ -45,6 +45,7 @@ import {
   ASSET_RENDER_DIMENSION_SCALE,
   buildTransformFromNormalized,
   clamp01,
+  depthZoneFromPlacementPreference,
   depthZoneFromZ,
   estimateCollisionRadius,
   normalizedToWorld,
@@ -251,6 +252,7 @@ type MoveDragState = {
 const TEMP_VEC3 = new THREE.Vector3();
 const TEMP_VEC3_B = new THREE.Vector3();
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
+const BUILDER_DRAG_ASSET_MIME = "application/x-ptl-asset-id";
 
 const PLANT_COLORS = ["#356f42", "#4f9f5f", "#2f6f3f", "#77ba65"];
 const ROCK_COLORS = ["#6b767e", "#737f87", "#5b666d", "#87939c"];
@@ -301,6 +303,18 @@ const SIMPLEX_GRADIENTS_2D: ReadonlyArray<[number, number]> = [
 const DISABLED_RAYCAST: THREE.Mesh["raycast"] = () => undefined;
 const DISABLED_POINTS_RAYCAST: THREE.Points["raycast"] = () => undefined;
 const DISABLED_LINE_SEGMENTS_RAYCAST: THREE.LineSegments["raycast"] = () => undefined;
+
+function readDraggedAssetId(dataTransfer: DataTransfer | null): string | null {
+  if (!dataTransfer) return null;
+  const custom = dataTransfer.getData(BUILDER_DRAG_ASSET_MIME).trim();
+  if (custom) return custom;
+  const plain = dataTransfer.getData("text/plain").trim();
+  return plain || null;
+}
+
+function isDragPlaceableAsset(asset: VisualAsset): boolean {
+  return asset.categorySlug === "hardscape" || asset.categorySlug === "plants";
+}
 
 const WATER_SURFACE_VERTEX_SHADER = `
   varying vec2 vUv;
@@ -1784,11 +1798,16 @@ function createSubstrateGeometryData(params: {
   geometry.setAttribute("uv", uvAttribute);
   geometry.setAttribute("color", materialColorAttribute);
   geometry.setIndex(indexAttribute);
+  geometry.computeVertexNormals();
 
   heatmapGeometry.setAttribute("position", positionAttribute);
   heatmapGeometry.setAttribute("uv", uvAttribute);
   heatmapGeometry.setAttribute("color", heatmapColorAttribute);
   heatmapGeometry.setIndex(indexAttribute);
+  const normalAttribute = geometry.getAttribute("normal");
+  if (normalAttribute instanceof THREE.BufferAttribute) {
+    heatmapGeometry.setAttribute("normal", normalAttribute);
+  }
 
   const sampledHeights = new Float32Array(vertexCount);
   sampledHeights.fill(Number.NaN);
@@ -2186,12 +2205,13 @@ function applyParHeatmapToSubstrateGeometry(params: {
 
 function SceneCaptureBridge(props: { onCaptureCanvas?: (canvas: HTMLCanvasElement | null) => void }) {
   const gl = useThree((state) => state.gl);
+  const onCaptureCanvas = props.onCaptureCanvas;
   useEffect(() => {
-    props.onCaptureCanvas?.(gl.domElement);
+    onCaptureCanvas?.(gl.domElement);
     return () => {
-      props.onCaptureCanvas?.(null);
+      onCaptureCanvas?.(null);
     };
-  }, [gl.domElement, props]);
+  }, [gl.domElement, onCaptureCanvas]);
   return null;
 }
 
@@ -2206,10 +2226,21 @@ function CinematicCameraRig(props: {
   cameraIntent?: CameraIntent | null;
   focusTarget?: CameraFocusTarget | null;
 }) {
+  const {
+    step,
+    dims,
+    idleOrbit,
+    cameraPresetMode,
+    controlsEnabled,
+    onCameraPresetModeChange,
+    onCameraDiagnostic,
+    cameraIntent,
+    focusTarget,
+  } = props;
   const camera = useThree((state) => state.camera as THREE.PerspectiveCamera);
   const controlsRef = useRef<OrbitControlsImpl>(null);
-  const preset = useMemo(() => cameraPreset(props.step, props.dims), [props.dims, props.step]);
-  const prevStepRef = useRef<BuilderSceneStep>(props.step);
+  const preset = useMemo(() => cameraPreset(step, dims), [dims, step]);
+  const prevStepRef = useRef<BuilderSceneStep>(step);
   const shouldAutoFrameRef = useRef(true);
   const transitionProbeRef = useRef<{
     step: BuilderSceneStep;
@@ -2228,18 +2259,18 @@ function CinematicCameraRig(props: {
 
     shouldAutoFrameRef.current = true;
     forcedPresetRef.current = preset;
-    if (props.cameraPresetMode !== "step") {
-      props.onCameraPresetModeChange?.("step");
+    if (cameraPresetMode !== "step") {
+      onCameraPresetModeChange?.("step");
     }
-  }, [preset, props.cameraPresetMode, props.onCameraPresetModeChange]);
+  }, [cameraPresetMode, onCameraPresetModeChange, preset]);
 
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
 
     const handleStart = () => {
-      if (props.cameraPresetMode === "step") {
-        props.onCameraPresetModeChange?.("free");
+      if (cameraPresetMode === "step") {
+        onCameraPresetModeChange?.("free");
       }
     };
 
@@ -2247,68 +2278,61 @@ function CinematicCameraRig(props: {
     return () => {
       controls.removeEventListener("start", handleStart);
     };
-  }, [props.cameraPresetMode, props.onCameraPresetModeChange]);
+  }, [cameraPresetMode, onCameraPresetModeChange]);
 
   useEffect(() => {
-    if (prevStepRef.current === props.step) return;
-    prevStepRef.current = props.step;
+    if (prevStepRef.current === step) return;
+    prevStepRef.current = step;
 
     const controls = controlsRef.current;
     if (!controls) return;
 
     transitionProbeRef.current = {
-      step: props.step,
+      step,
       startTime: performance.now(),
       startPosition: camera.position.clone(),
       startTarget: controls.target.clone(),
       fired: false,
     };
 
-    if (props.cameraPresetMode === "step") {
+    if (cameraPresetMode === "step") {
       shouldAutoFrameRef.current = true;
     }
-  }, [camera.position, props.cameraPresetMode, props.step]);
+  }, [camera.position, cameraPresetMode, step]);
 
   useEffect(() => {
-    if (!props.cameraIntent) return;
-    if (props.cameraIntent.seq <= lastIntentSeqRef.current) return;
+    if (!cameraIntent) return;
+    if (cameraIntent.seq <= lastIntentSeqRef.current) return;
 
-    lastIntentSeqRef.current = props.cameraIntent.seq;
+    lastIntentSeqRef.current = cameraIntent.seq;
     shouldAutoFrameRef.current = true;
 
-    if (props.cameraIntent.type === "reset") {
-      forcedPresetRef.current = cameraPreset("review", props.dims);
-    } else if (props.cameraIntent.type === "focus-item") {
-      if (props.focusTarget && props.focusTarget.itemId === props.cameraIntent.itemId) {
+    if (cameraIntent.type === "reset") {
+      forcedPresetRef.current = cameraPreset("review", dims);
+    } else if (cameraIntent.type === "focus-item") {
+      if (focusTarget && focusTarget.itemId === cameraIntent.itemId) {
         forcedPresetRef.current = focusItemCameraPreset({
-          target: props.focusTarget.target,
-          radius: props.focusTarget.radius,
-          dims: props.dims,
+          target: focusTarget.target,
+          radius: focusTarget.radius,
+          dims,
         });
       } else {
-        forcedPresetRef.current = cameraPreset(props.step, props.dims);
+        forcedPresetRef.current = cameraPreset(step, dims);
       }
     } else {
-      forcedPresetRef.current = cameraPreset(props.step, props.dims);
+      forcedPresetRef.current = cameraPreset(step, dims);
     }
 
-    if (props.cameraPresetMode !== "step") {
-      props.onCameraPresetModeChange?.("step");
+    if (cameraPresetMode !== "step") {
+      onCameraPresetModeChange?.("step");
     }
-  }, [
-    props.cameraIntent,
-    props.cameraPresetMode,
-    props.dims,
-    props.focusTarget,
-    props.onCameraPresetModeChange,
-    props.step,
-  ]);
+  }, [cameraIntent, cameraPresetMode, dims, focusTarget, onCameraPresetModeChange, step]);
 
   useFrame((_, delta) => {
     const controls = controlsRef.current;
     if (!controls) return;
 
-    const isStepOwned = props.cameraPresetMode === "step";
+    const isStepOwned = cameraPresetMode === "step";
 
     if (isStepOwned && shouldAutoFrameRef.current) {
       const blend = 1 - Math.exp(-delta * 3.8);
@@ -2324,7 +2348,7 @@ function CinematicCameraRig(props: {
       }
     }
 
-    if (props.idleOrbit && props.step === "review" && isStepOwned) {
+    if (idleOrbit && step === "review" && isStepOwned) {
       controls.setAzimuthalAngle(controls.getAzimuthalAngle() + delta * 0.12);
     }
 
@@ -2333,7 +2357,7 @@ function CinematicCameraRig(props: {
       const positionDelta = camera.position.distanceTo(probe.startPosition);
       const targetDelta = controls.target.distanceTo(probe.startTarget);
       if (positionDelta > 0.45 || targetDelta > 0.45) {
-        props.onCameraDiagnostic?.({
+        onCameraDiagnostic?.({
           type: "unexpected_pose_delta_detected",
           step: probe.step,
           positionDelta,
@@ -2349,13 +2373,13 @@ function CinematicCameraRig(props: {
   return (
     <OrbitControls
       ref={controlsRef}
-      enabled={props.controlsEnabled}
+      enabled={controlsEnabled}
       enablePan={true}
       enableZoom={true}
       minPolarAngle={0.2}
       maxPolarAngle={Math.PI * 0.55}
-      minDistance={Math.max(10, props.dims.widthIn * 0.6)}
-      maxDistance={Math.max(36, props.dims.widthIn * 3)}
+      minDistance={Math.max(10, dims.widthIn * 0.6)}
+      maxDistance={Math.max(36, dims.widthIn * 3)}
       dampingFactor={0.18}
       enableDamping
       mouseButtons={{
@@ -3021,8 +3045,9 @@ function WaterSurfacePlane(props: {
   qualityTier: BuilderSceneQualityTier;
   shaderEffectsEnabled: boolean;
 }) {
-  const textureSize = waterSurfaceTextureSize(props.qualityTier);
-  const segmentCount = waterSurfaceGridResolution(props.qualityTier);
+  const { widthIn, depthIn, waterLineY, qualityTier, shaderEffectsEnabled } = props;
+  const textureSize = waterSurfaceTextureSize(qualityTier);
+  const segmentCount = waterSurfaceGridResolution(qualityTier);
   const normalTexture = useMemo(
     () =>
       createWaterSurfaceNormalTexture({
@@ -3033,6 +3058,8 @@ function WaterSurfacePlane(props: {
   );
 
   const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const fallbackMaterialRef = useRef<THREE.MeshPhysicalMaterial>(null);
+  const fallbackNormalScale = useMemo(() => new THREE.Vector2(0.24, 0.24), []);
   const initialUniforms = useMemo(
     () => ({
       uTime: { value: 0 },
@@ -3048,64 +3075,99 @@ function WaterSurfacePlane(props: {
   );
 
   useFrame((state) => {
-    if (!props.shaderEffectsEnabled) return;
-    const material = materialRef.current;
-    if (!material) return;
-    material.uniforms.uTime.value = state.clock.elapsedTime;
+    if (shaderEffectsEnabled) {
+      const material = materialRef.current;
+      if (!material) return;
+      material.uniforms.uTime.value = state.clock.elapsedTime;
+      return;
+    }
+
+    const fallbackMaterial = fallbackMaterialRef.current;
+    if (!fallbackMaterial || !fallbackMaterial.normalMap) return;
+
+    const elapsedTime = state.clock.elapsedTime;
+    fallbackMaterial.normalMap.offset.set(
+      THREE.MathUtils.euclideanModulo(elapsedTime * 0.011, 1),
+      THREE.MathUtils.euclideanModulo(-elapsedTime * 0.007, 1),
+    );
   });
 
   useEffect(() => {
-    if (!props.shaderEffectsEnabled) return;
+    const shaderMaterial = materialRef.current;
+    const fallbackMaterial = fallbackMaterialRef.current;
 
-    const material = materialRef.current;
-    if (material) {
-      material.uniforms.uNormalMap.value = normalTexture;
+    if (shaderEffectsEnabled) {
+      if (shaderMaterial) {
+        shaderMaterial.uniforms.uNormalMap.value = normalTexture;
+      }
+    } else if (fallbackMaterial) {
+      fallbackMaterial.normalMap = normalTexture;
+      fallbackMaterial.needsUpdate = true;
     }
 
     return () => {
-      const currentMaterial = materialRef.current;
-      if (currentMaterial && currentMaterial.uniforms.uNormalMap.value === normalTexture) {
-        currentMaterial.uniforms.uNormalMap.value = null;
+      if (shaderMaterial && shaderMaterial.uniforms.uNormalMap.value === normalTexture) {
+        shaderMaterial.uniforms.uNormalMap.value = null;
+      }
+      if (fallbackMaterial && fallbackMaterial.normalMap === normalTexture) {
+        fallbackMaterial.normalMap = null;
+        fallbackMaterial.needsUpdate = true;
       }
       normalTexture.dispose();
     };
-  }, [normalTexture]);
+  }, [normalTexture, shaderEffectsEnabled]);
 
   useEffect(() => {
-    if (!props.shaderEffectsEnabled) return;
+    const repeatX = qualityTier === "high" ? 8.8 : qualityTier === "medium" ? 7.8 : 6.6;
+    const repeatY = repeatX * THREE.MathUtils.clamp(depthIn / Math.max(1, widthIn), 0.7, 1.5);
+    normalTexture.repeat.set(repeatX, repeatY);
 
-    const material = materialRef.current;
-    if (!material) return;
+    if (shaderEffectsEnabled) {
+      const material = materialRef.current;
+      if (!material) return;
 
-    material.uniforms.uFlowScale.value =
-      props.qualityTier === "high" ? 6.4 : props.qualityTier === "medium" ? 5.9 : 5.45;
-    material.uniforms.uWaveScale.value =
-      props.qualityTier === "high" ? 5.05 : props.qualityTier === "medium" ? 4.65 : 4.2;
-    material.uniforms.uNormalStrength.value =
-      props.qualityTier === "low" ? 0.3 : 0.36;
-    material.uniforms.uWaveAmplitude.value = Math.max(
-      0.016,
-      Math.min(0.036, Math.min(props.widthIn, props.depthIn) * 0.0011),
-    );
-  }, [props.depthIn, props.qualityTier, props.widthIn]);
+      material.uniforms.uFlowScale.value =
+        qualityTier === "high" ? 6.4 : qualityTier === "medium" ? 5.9 : 5.45;
+      material.uniforms.uWaveScale.value =
+        qualityTier === "high" ? 5.05 : qualityTier === "medium" ? 4.65 : 4.2;
+      material.uniforms.uNormalStrength.value =
+        qualityTier === "low" ? 0.3 : 0.36;
+      material.uniforms.uWaveAmplitude.value = Math.max(
+        0.016,
+        Math.min(0.036, Math.min(widthIn, depthIn) * 0.0011),
+      );
+    } else {
+      const fallbackMaterial = fallbackMaterialRef.current;
+      fallbackNormalScale.setScalar(qualityTier === "low" ? 0.18 : qualityTier === "medium" ? 0.22 : 0.26);
+      if (fallbackMaterial) {
+        fallbackMaterial.needsUpdate = true;
+      }
+    }
+  }, [depthIn, fallbackNormalScale, normalTexture, qualityTier, shaderEffectsEnabled, widthIn]);
 
-  if (!props.shaderEffectsEnabled) {
+  if (!shaderEffectsEnabled) {
     return (
       <mesh
-        position={[0, props.waterLineY + 0.02, 0]}
+        position={[0, waterLineY + 0.02, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         raycast={DISABLED_RAYCAST}
         renderOrder={24}
       >
-        <planeGeometry args={[props.widthIn * 0.95, props.depthIn * 0.95, 2, 2]} />
+        <planeGeometry args={[widthIn * 0.95, depthIn * 0.95, 2, 2]} />
         <meshPhysicalMaterial
+          ref={fallbackMaterialRef}
           color="#b7d3de"
           transparent
-          opacity={0.08}
-          roughness={0.16}
+          opacity={0.2}
+          roughness={0.12}
           metalness={0}
-          clearcoat={0.8}
-          clearcoatRoughness={0.22}
+          transmission={0.94}
+          thickness={0.22}
+          ior={1.333}
+          clearcoat={1}
+          clearcoatRoughness={0.16}
+          normalMap={normalTexture}
+          normalScale={fallbackNormalScale}
           depthWrite={false}
           side={THREE.DoubleSide}
         />
@@ -3115,14 +3177,12 @@ function WaterSurfacePlane(props: {
 
   return (
     <mesh
-      position={[0, props.waterLineY + 0.02, 0]}
+      position={[0, waterLineY + 0.02, 0]}
       rotation={[-Math.PI / 2, 0, 0]}
       raycast={DISABLED_RAYCAST}
       renderOrder={24}
     >
-      <planeGeometry
-        args={[props.widthIn * 0.95, props.depthIn * 0.95, segmentCount, segmentCount]}
-      />
+      <planeGeometry args={[widthIn * 0.95, depthIn * 0.95, segmentCount, segmentCount]} />
       <shaderMaterial
         ref={materialRef}
         uniforms={initialUniforms}
@@ -4116,6 +4176,8 @@ function TankShell(props: {
   showGlassWalls: boolean;
   showAmbientParticles: boolean;
   showDepthGuides: boolean;
+  preferredDepthZone: VisualDepthZone | null;
+  activeDepthZone: VisualDepthZone | null;
   showSnapGrid: boolean;
   showLightingHeatmap: boolean;
   lightSimulationSource: LightSimulationSource | null;
@@ -4374,25 +4436,77 @@ function TankShell(props: {
         />
       ) : null}
 
-      {props.showDepthGuides && (props.currentStep === "plants" || props.currentStep === "hardscape") ? (
-        <group>
-          {[0.2, 0.5, 0.8].map((zone, index) => (
-            <mesh
-              key={zone}
-              position={[0, 0.3, (zone - 0.5) * props.dims.depthIn]}
-              rotation={[-Math.PI / 2, 0, 0]}
-              receiveShadow={false}
-            >
-              <planeGeometry args={[props.dims.widthIn * 0.96, props.dims.depthIn * 0.24]} />
-              <meshBasicMaterial
-                color={index === 0 ? "#8cb6c6" : index === 1 ? "#7daea1" : "#8a9fcf"}
-                transparent
-                opacity={0.08}
-              />
-            </mesh>
-          ))}
-        </group>
+      {props.showDepthGuides ? (
+        <DepthZoneIndicators
+          dims={props.dims}
+          preferredDepthZone={props.preferredDepthZone}
+          activeDepthZone={props.activeDepthZone}
+        />
       ) : null}
+    </group>
+  );
+}
+
+function DepthZoneIndicators(props: {
+  dims: SceneDims;
+  preferredDepthZone: VisualDepthZone | null;
+  activeDepthZone: VisualDepthZone | null;
+}) {
+  const zoneBands: ReadonlyArray<{
+    zone: VisualDepthZone;
+    color: string;
+    zCenterRatio: number;
+  }> = [
+    { zone: "foreground", color: "#8ec3a9", zCenterRatio: 1 / 6 },
+    { zone: "midground", color: "#8daecc", zCenterRatio: 0.5 },
+    { zone: "background", color: "#9a9fcd", zCenterRatio: 5 / 6 },
+  ];
+
+  const boundaryRatios: ReadonlyArray<number> = [1 / 3, 2 / 3];
+  const zoneWidth = props.dims.widthIn * 0.965;
+  const zoneDepth = props.dims.depthIn / 3;
+
+  return (
+    <group position={[0, 0.06, 0]} renderOrder={33}>
+      {zoneBands.map((band) => {
+        const preferred = props.preferredDepthZone === band.zone;
+        const active = props.activeDepthZone === band.zone;
+        return (
+          <mesh
+            key={band.zone}
+            position={[0, 0, (band.zCenterRatio - 0.5) * props.dims.depthIn]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            raycast={DISABLED_RAYCAST}
+          >
+            <planeGeometry args={[zoneWidth, zoneDepth * 0.96]} />
+            <meshBasicMaterial
+              color={preferred ? "#80d7a7" : active ? "#f1c88b" : band.color}
+              transparent
+              opacity={preferred ? (active ? 0.26 : 0.22) : active ? 0.19 : 0.09}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+        );
+      })}
+
+      {boundaryRatios.map((ratio) => (
+        <mesh
+          key={`boundary-${ratio}`}
+          position={[0, 0.004, (ratio - 0.5) * props.dims.depthIn]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          raycast={DISABLED_RAYCAST}
+        >
+          <planeGeometry args={[zoneWidth, Math.max(0.04, props.dims.depthIn * 0.01)]} />
+          <meshBasicMaterial
+            color="#c6d7e8"
+            transparent
+            opacity={0.2}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -4450,6 +4564,8 @@ function SceneRoot(
     rendererMode: "webgpu" | "webgl";
   },
 ) {
+  const camera = useThree((state) => state.camera as THREE.PerspectiveCamera);
+  const renderer = useThree((state) => state.gl);
   const dims = useMemo(() => normalizeDims(props.tank, props.canvasState), [props.canvasState, props.tank]);
   const lightSimulationSource = useMemo(
     () => resolveLightSimulationSource(props.selectedLightAsset),
@@ -4803,6 +4919,20 @@ function SceneRoot(
   };
 
   const placementValidity = evaluatePlacement(candidate, props.placementAsset);
+  const preferredPlacementDepthZone = useMemo<VisualDepthZone | null>(() => {
+    if (!props.placementAsset || props.placementAsset.categorySlug !== "plants") {
+      return null;
+    }
+    const resolvedAsset = resolveVisualAsset(props.placementAsset);
+    return depthZoneFromPlacementPreference(resolvedAsset.placementZone);
+  }, [props.placementAsset]);
+  const activePlacementDepthZone =
+    props.toolMode === "place" &&
+    props.placementAsset?.categorySlug === "plants" &&
+    candidate &&
+    placementValidity.valid
+      ? depthZoneFromZ(placementValidity.zNorm)
+      : null;
 
   const placementPreviewRenderItem = useMemo<SceneRenderItem | null>(() => {
     if (!props.placementAsset || !candidate) return null;
@@ -4874,11 +5004,14 @@ function SceneRoot(
     props.placementRotationDeg,
   ]);
 
-  const performPlacement = (nextCandidate?: PlacementCandidate) => {
-    const activeCandidate = nextCandidate ?? candidate;
-    if (!props.placementAsset || !activeCandidate) return;
-    const validity = evaluatePlacement(activeCandidate, props.placementAsset);
-    if (!validity.valid) return;
+  const placeAssetAtCandidate = (params: {
+    asset: VisualAsset;
+    candidate: PlacementCandidate;
+    rotationDeg: number;
+  }): boolean => {
+    const { asset, candidate: activeCandidate, rotationDeg } = params;
+    const validity = evaluatePlacement(activeCandidate, asset);
+    if (!validity.valid) return false;
 
     const anchorType = activeCandidate.anchorType;
     const shouldSnapToGrid = props.gridSnapEnabled && anchorType === "substrate";
@@ -4902,15 +5035,16 @@ function SceneRoot(
       tankHeightIn: dims.heightIn,
     });
     const yNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
-    const scale = Math.max(0.1, props.placementAsset.defaultScale);
+    const scale = Math.max(0.1, asset.defaultScale);
+    const rotation = clampRotation(rotationDeg);
 
     props.onPlaceItem({
-      asset: props.placementAsset,
+      asset,
       x: xNorm,
       y: yNorm,
       z: zNorm,
       scale,
-      rotation: clampRotation(props.placementRotationDeg),
+      rotation,
       anchorType,
       depthZone: depthZoneFromZ(zNorm),
       transform: buildTransformFromNormalized({
@@ -4918,11 +5052,110 @@ function SceneRoot(
         y: yNorm,
         z: zNorm,
         scale,
-        rotation: clampRotation(props.placementRotationDeg),
+        rotation,
         dims,
       }),
     });
+    return true;
   };
+  const placeAssetAtCandidateRef = useRef(placeAssetAtCandidate);
+  useEffect(() => {
+    placeAssetAtCandidateRef.current = placeAssetAtCandidate;
+  });
+
+  const performPlacement = (nextCandidate?: PlacementCandidate) => {
+    const activeCandidate = nextCandidate ?? candidate;
+    if (!props.placementAsset || !activeCandidate) return;
+    placeAssetAtCandidate({
+      asset: props.placementAsset,
+      candidate: activeCandidate,
+      rotationDeg: props.placementRotationDeg,
+    });
+  };
+
+  useEffect(() => {
+    const domElement = renderer.domElement as HTMLCanvasElement;
+    const handleDragOver = (event: DragEvent) => {
+      const assetId = readDraggedAssetId(event.dataTransfer);
+      if (!assetId) return;
+      const asset = props.assetsById.get(assetId);
+      if (!asset || !isDragPlaceableAsset(asset)) return;
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "copy";
+      }
+    };
+
+    const handleDrop = (event: DragEvent) => {
+      const assetId = readDraggedAssetId(event.dataTransfer);
+      if (!assetId) return;
+      const asset = props.assetsById.get(assetId);
+      if (!asset || !isDragPlaceableAsset(asset)) return;
+      event.preventDefault();
+
+      const bounds = domElement.getBoundingClientRect();
+      if (bounds.width <= 0 || bounds.height <= 0) return;
+
+      const pointer = new THREE.Vector2(
+        ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+        -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
+      );
+      if (!Number.isFinite(pointer.x) || !Number.isFinite(pointer.y)) return;
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(pointer, camera);
+
+      const floorPlane = new THREE.Plane(WORLD_UP, 0);
+      const intersection = new THREE.Vector3();
+      if (!raycaster.ray.intersectPlane(floorPlane, intersection)) return;
+
+      const normalized = worldToNormalized({
+        x: intersection.x,
+        y: 0,
+        z: intersection.z,
+        dims,
+      });
+
+      const xNorm = clamp01(normalized.x);
+      const zNorm = clamp01(normalized.z);
+      const substrateY = sampleSubstrateDepth({
+        xNorm,
+        zNorm,
+        heightfield: props.canvasState.substrateHeightfield,
+        tankHeightIn: dims.heightIn,
+      });
+      const worldPoint = normalizedToWorld({
+        x: xNorm,
+        y: clamp01(substrateY / Math.max(1, dims.heightIn)),
+        z: zNorm,
+        dims,
+      });
+
+      placeAssetAtCandidateRef.current({
+        asset,
+        candidate: {
+          point: new THREE.Vector3(worldPoint.x, substrateY, worldPoint.z),
+          normal: WORLD_UP.clone(),
+          anchorType: "substrate",
+          anchorItemId: null,
+        },
+        rotationDeg: 0,
+      });
+    };
+
+    domElement.addEventListener("dragover", handleDragOver);
+    domElement.addEventListener("drop", handleDrop);
+    return () => {
+      domElement.removeEventListener("dragover", handleDragOver);
+      domElement.removeEventListener("drop", handleDrop);
+    };
+  }, [
+    camera,
+    dims,
+    props.assetsById,
+    props.canvasState.substrateHeightfield,
+    renderer.domElement,
+  ]);
 
   const pointerToMoveSurface = (
     event: ThreeEvent<PointerEvent>,
@@ -5220,6 +5453,8 @@ function SceneRoot(
         showGlassWalls={props.glassWallsEnabled && props.qualityTier !== "low"}
         showAmbientParticles={false}
         showDepthGuides={props.showDepthGuides}
+        preferredDepthZone={preferredPlacementDepthZone}
+        activeDepthZone={activePlacementDepthZone}
         showSnapGrid={props.gridSnapEnabled}
         showLightingHeatmap={showLightingHeatmap}
         lightSimulationSource={lightSimulationSource}
@@ -5340,9 +5575,12 @@ function SceneRoot(
 export function VisualBuilderScene(props: VisualBuilderSceneProps) {
   const dims = useMemo(() => normalizeDims(props.tank, props.canvasState), [props.canvasState, props.tank]);
   const camera = useMemo(() => cameraPreset(props.currentStep, dims), [dims, props.currentStep]);
-  const [rendererRuntimeState, setRendererRuntimeState] = useState<VisualRendererRuntimeState>(() =>
-    defaultRendererRuntimeState(props.rendererPreference),
+  const forcedWebGlRuntimeState = useMemo(() => defaultRendererRuntimeState("webgl"), []);
+  const [rendererRuntimeState, setRendererRuntimeState] = useState<VisualRendererRuntimeState | null>(() =>
+    props.rendererPreference === "webgl" ? defaultRendererRuntimeState(props.rendererPreference) : null,
   );
+  const effectiveRendererRuntimeState =
+    props.rendererPreference === "webgl" ? forcedWebGlRuntimeState : rendererRuntimeState;
   const buildAssetGlbPaths = useMemo(
     () =>
       collectBuildAssetGlbPaths({
@@ -5367,6 +5605,12 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
   useEffect(() => {
     let cancelled = false;
 
+    if (props.rendererPreference === "webgl") {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     void resolveRendererRuntimeState(props.rendererPreference).then((nextState) => {
       if (cancelled) return;
       setRendererRuntimeState(nextState);
@@ -5378,37 +5622,40 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
   }, [props.rendererPreference]);
 
   useEffect(() => {
-    onRendererRuntimeStateChange?.(rendererRuntimeState);
-  }, [onRendererRuntimeStateChange, rendererRuntimeState]);
+    if (!effectiveRendererRuntimeState) return;
+    onRendererRuntimeStateChange?.(effectiveRendererRuntimeState);
+  }, [effectiveRendererRuntimeState, onRendererRuntimeStateChange]);
 
   const previousRendererRuntimeStateRef = useRef<VisualRendererRuntimeState | null>(null);
 
   useEffect(() => {
+    if (!effectiveRendererRuntimeState) return;
+
     const previous = previousRendererRuntimeStateRef.current;
-    const requestedWebGpu = rendererRuntimeState.requestedMode === "webgpu";
-    const webGpuActive = rendererRuntimeState.activeMode === "webgpu";
-    const reason = rendererRuntimeState.fallbackReason;
+    const requestedWebGpu = effectiveRendererRuntimeState.requestedMode === "webgpu";
+    const webGpuActive = effectiveRendererRuntimeState.activeMode === "webgpu";
+    const reason = effectiveRendererRuntimeState.fallbackReason;
 
     if (webGpuActive && requestedWebGpu && reason === "none") {
       if (previous && previous.activeMode === "webgl" && previous.requestedMode === "webgpu") {
         void trackEvent("renderer_recovery", {
           meta: {
             from: previous.activeMode,
-            to: rendererRuntimeState.activeMode,
-            preference: rendererRuntimeState.preference,
+            to: effectiveRendererRuntimeState.activeMode,
+            preference: effectiveRendererRuntimeState.preference,
             previousReason: previous.fallbackReason,
           },
         });
       } else if (
         !previous ||
-        previous.activeMode !== rendererRuntimeState.activeMode ||
-        previous.preference !== rendererRuntimeState.preference ||
-        previous.fallbackReason !== rendererRuntimeState.fallbackReason
+        previous.activeMode !== effectiveRendererRuntimeState.activeMode ||
+        previous.preference !== effectiveRendererRuntimeState.preference ||
+        previous.fallbackReason !== effectiveRendererRuntimeState.fallbackReason
       ) {
         void trackEvent("renderer_init_success", {
           meta: {
-            activeMode: rendererRuntimeState.activeMode,
-            preference: rendererRuntimeState.preference,
+            activeMode: effectiveRendererRuntimeState.activeMode,
+            preference: effectiveRendererRuntimeState.preference,
           },
         });
       }
@@ -5416,28 +5663,31 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
 
     if (
       requestedWebGpu &&
-      rendererRuntimeState.activeMode === "webgl" &&
+      effectiveRendererRuntimeState.activeMode === "webgl" &&
       (!previous ||
-        previous.activeMode !== rendererRuntimeState.activeMode ||
-        previous.fallbackReason !== rendererRuntimeState.fallbackReason ||
-        previous.preference !== rendererRuntimeState.preference)
+        previous.activeMode !== effectiveRendererRuntimeState.activeMode ||
+        previous.fallbackReason !== effectiveRendererRuntimeState.fallbackReason ||
+        previous.preference !== effectiveRendererRuntimeState.preference)
     ) {
       void trackEvent("renderer_fallback", {
         meta: {
-          activeMode: rendererRuntimeState.activeMode,
-          preference: rendererRuntimeState.preference,
-          fallbackReason: rendererRuntimeState.fallbackReason,
-          detail: rendererRuntimeState.detail,
+          activeMode: effectiveRendererRuntimeState.activeMode,
+          preference: effectiveRendererRuntimeState.preference,
+          fallbackReason: effectiveRendererRuntimeState.fallbackReason,
+          detail: effectiveRendererRuntimeState.detail,
         },
       });
     }
 
-    previousRendererRuntimeStateRef.current = rendererRuntimeState;
-  }, [rendererRuntimeState]);
+    previousRendererRuntimeStateRef.current = effectiveRendererRuntimeState;
+  }, [effectiveRendererRuntimeState]);
 
   const handleWebGpuInitError = useCallback(
     (error: unknown) => {
       setRendererRuntimeState((current) => {
+        if (!current) {
+          return toRendererInitFailureState(props.rendererPreference, defaultRendererRuntimeState("webgl"), error);
+        }
         if (current.activeMode === "webgl" && current.fallbackReason === "webgpu_renderer_init_failed") {
           return current;
         }
@@ -5446,6 +5696,7 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
     },
     [props.rendererPreference],
   );
+  const activeRendererMode = effectiveRendererRuntimeState?.activeMode ?? "webgl";
 
   const createRenderer = useCallback(
     async (canvasProps: unknown) => {
@@ -5460,7 +5711,7 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
         preserveDrawingBuffer: true,
       };
 
-      if (rendererRuntimeState.activeMode === "webgpu") {
+      if (activeRendererMode === "webgpu") {
         try {
           const webgpuRenderer = new WebGPURenderer(baseParams as ConstructorParameters<typeof WebGPURenderer>[0]);
           await webgpuRenderer.init();
@@ -5474,12 +5725,20 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
 
       return new THREE.WebGLRenderer(baseParams);
     },
-    [handleWebGpuInitError, rendererRuntimeState.activeMode],
+    [activeRendererMode, handleWebGpuInitError],
   );
+
+  if (!effectiveRendererRuntimeState) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-white/70 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+        Initializing renderer
+      </div>
+    );
+  }
 
   return (
     <Canvas
-      key={`renderer:${rendererRuntimeState.activeMode}:${rendererRuntimeState.fallbackReason}`}
+      key={`renderer:${effectiveRendererRuntimeState.activeMode}`}
       shadows={props.qualityTier !== "low"}
       dpr={props.qualityTier === "high" ? [1, 2] : props.qualityTier === "medium" ? [1, 1.6] : [1, 1.25]}
       gl={createRenderer}
@@ -5494,7 +5753,7 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
       }}
       style={{ touchAction: "none" }}
     >
-      <SceneRoot {...props} rendererMode={rendererRuntimeState.activeMode} />
+      <SceneRoot {...props} rendererMode={effectiveRendererRuntimeState.activeMode} />
     </Canvas>
   );
 }
