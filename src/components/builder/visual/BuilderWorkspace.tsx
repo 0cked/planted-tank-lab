@@ -130,6 +130,7 @@ export type BuilderWorkspaceProps = {
   filteredAssets: VisualAsset[];
   selectedProductByCategory: Record<string, string | undefined>;
   onChooseAsset: (asset: VisualAsset) => void;
+  onClearPlacementMode: () => void;
   substrateSelectionLabel: string;
   substrateControls: {
     sculptMode: SubstrateBrushMode;
@@ -203,15 +204,17 @@ export type BuilderWorkspaceProps = {
 };
 
 type HardscapeSplitMode = "rocks" | "wood";
+type TankPanelMode = "tank" | "cabinet";
 
 type WorkflowRailItem = {
-  id: "tank" | "substrate" | "rocks" | "wood" | "plants" | "review";
+  id: "tank" | "cabinet" | "substrate" | "rocks" | "wood" | "plants" | "review";
   step: BuilderStepId;
   title: string;
   iconSrc?: string;
   iconAlt?: string;
   label?: string;
   hardscapeMode?: HardscapeSplitMode;
+  tankPanelMode?: TankPanelMode;
   doneStep: BuilderStepId;
 };
 
@@ -219,9 +222,19 @@ const WORKFLOW_RAIL_ITEMS: ReadonlyArray<WorkflowRailItem> = [
   {
     id: "tank",
     step: "tank",
-    title: "Choose tank",
-    iconSrc: "/visual-assets/icons/tank-select-icon.svg",
+    title: "Tank setup",
+    iconSrc: "/visual-assets/icons/tankicon.svg",
     iconAlt: "Tank",
+    tankPanelMode: "tank",
+    doneStep: "tank",
+  },
+  {
+    id: "cabinet",
+    step: "tank",
+    title: "Cabinet finish",
+    iconSrc: "/visual-assets/icons/cabinet-select.svg",
+    iconAlt: "Cabinet",
+    tankPanelMode: "cabinet",
     doneStep: "tank",
   },
   {
@@ -571,6 +584,7 @@ function AssetList(props: {
   selectedProductByCategory: Record<string, string | undefined>;
   placementAssetId: string | null;
   onChooseAsset: (asset: VisualAsset) => void;
+  onClearPlacementMode: () => void;
 }) {
   return (
     <>
@@ -591,7 +605,13 @@ function AssetList(props: {
             <button
               key={`${asset.type}:${asset.id}:${asset.categorySlug}`}
               type="button"
-              onClick={() => props.onChooseAsset(asset)}
+              onClick={() => {
+                if (isArmed) {
+                  props.onClearPlacementMode();
+                  return;
+                }
+                props.onChooseAsset(asset);
+              }}
               className={`flex w-full items-center gap-2 rounded-lg border p-1.5 text-left transition ${
                 isArmed || isSel
                   ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8"
@@ -609,7 +629,7 @@ function AssetList(props: {
               </div>
               {isArmed ? (
                 <span className="rounded-full border border-[var(--ptl-accent)]/30 bg-[var(--ptl-accent)]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--ptl-accent)]">
-                  Armed
+                  Stop
                 </span>
               ) : null}
             </button>
@@ -633,8 +653,71 @@ function SectionLabel(props: { children: React.ReactNode }) {
   );
 }
 
+function CabinetSettingsCard(props: {
+  cabinetFinishStyle: CabinetFinishStyle;
+  cabinetColor: string;
+  onSceneSettingsChange: (patch: Partial<VisualSceneSettings>) => void;
+}) {
+  return (
+    <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+        Cabinet
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {CABINET_FINISH_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => props.onSceneSettingsChange({ cabinetFinishStyle: option.value })}
+            className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${
+              props.cabinetFinishStyle === option.value
+                ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
+                : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {props.cabinetFinishStyle === "custom" ? (
+        <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5">
+          <label className="flex items-center justify-between gap-2 text-[10px] text-[var(--ptl-ink-muted)]">
+            <span>Color</span>
+            <span className="tabular-nums text-[var(--ptl-ink)]">{props.cabinetColor}</span>
+          </label>
+          <div className="mt-1.5 flex items-center gap-2">
+            <input
+              type="color"
+              value={props.cabinetColor}
+              aria-label="Cabinet color"
+              onChange={(event) => {
+                props.onSceneSettingsChange({
+                  cabinetColor: normalizeHexColor(event.target.value, props.cabinetColor),
+                });
+              }}
+              className="h-8 w-10 cursor-pointer rounded border border-[var(--ptl-border)] bg-transparent p-0.5"
+            />
+            <input
+              type="text"
+              value={props.cabinetColor}
+              onChange={(event) => {
+                props.onSceneSettingsChange({
+                  cabinetColor: normalizeHexColor(event.target.value, props.cabinetColor),
+                });
+              }}
+              className="h-8 w-full rounded-md border border-[var(--ptl-border)] bg-black/5 px-2 py-1 text-xs font-medium uppercase tracking-[0.04em] text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 type StepPanelProps = BuilderWorkspaceProps & {
   hardscapeMode: HardscapeSplitMode;
+  tankPanelMode: TankPanelMode;
   onHardscapeModeChange: (mode: HardscapeSplitMode) => void;
   filteredAssetsForStep: VisualAsset[];
 };
@@ -659,6 +742,20 @@ function StepPanel(props: StepPanelProps) {
     const tankBackgroundColor = props.canvasState.sceneSettings.tankBackgroundColor;
     const cabinetFinishStyle = props.canvasState.sceneSettings.cabinetFinishStyle;
     const cabinetColor = props.canvasState.sceneSettings.cabinetColor;
+
+    if (props.tankPanelMode === "cabinet") {
+      return (
+        <div className="space-y-3">
+          <BuildActionsCard {...props} />
+          <SectionLabel>Cabinet</SectionLabel>
+          <CabinetSettingsCard
+            cabinetFinishStyle={cabinetFinishStyle}
+            cabinetColor={cabinetColor}
+            onSceneSettingsChange={props.onSceneSettingsChange}
+          />
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-3">
@@ -755,60 +852,6 @@ function StepPanel(props: StepPanelProps) {
                   onChange={(event) => {
                     props.onSceneSettingsChange({
                       tankBackgroundColor: normalizeHexColor(event.target.value, tankBackgroundColor),
-                    });
-                  }}
-                  className="h-8 w-full rounded-md border border-[var(--ptl-border)] bg-black/5 px-2 py-1 text-xs font-medium uppercase tracking-[0.04em] text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
-            Cabinet
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {CABINET_FINISH_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => props.onSceneSettingsChange({ cabinetFinishStyle: option.value })}
-                className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${
-                  cabinetFinishStyle === option.value
-                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
-                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          {cabinetFinishStyle === "custom" ? (
-            <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5">
-              <label className="flex items-center justify-between gap-2 text-[10px] text-[var(--ptl-ink-muted)]">
-                <span>Color</span>
-                <span className="tabular-nums text-[var(--ptl-ink)]">{cabinetColor}</span>
-              </label>
-              <div className="mt-1.5 flex items-center gap-2">
-                <input
-                  type="color"
-                  value={cabinetColor}
-                  aria-label="Cabinet color"
-                  onChange={(event) => {
-                    props.onSceneSettingsChange({
-                      cabinetColor: normalizeHexColor(event.target.value, cabinetColor),
-                    });
-                  }}
-                  className="h-8 w-10 cursor-pointer rounded border border-[var(--ptl-border)] bg-transparent p-0.5"
-                />
-                <input
-                  type="text"
-                  value={cabinetColor}
-                  onChange={(event) => {
-                    props.onSceneSettingsChange({
-                      cabinetColor: normalizeHexColor(event.target.value, cabinetColor),
                     });
                   }}
                   className="h-8 w-full rounded-md border border-[var(--ptl-border)] bg-black/5 px-2 py-1 text-xs font-medium uppercase tracking-[0.04em] text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
@@ -966,6 +1009,23 @@ function StepPanel(props: StepPanelProps) {
             ))}
           </div>
         ) : null}
+        {props.placementAsset && (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--ptl-accent)]/25 bg-[var(--ptl-accent)]/[0.05] px-2.5 py-2">
+            <div className="min-w-0">
+              <div className="truncate text-[11px] font-semibold text-[var(--ptl-accent)]">
+                Placing: {props.placementAsset.name}
+              </div>
+              <div className="text-[10px] text-[var(--ptl-ink-muted)]">Press Esc or stop to select/move items.</div>
+            </div>
+            <button
+              type="button"
+              onClick={props.onClearPlacementMode}
+              className="rounded-md border border-[var(--ptl-border)] bg-white/70 px-2 py-1 text-[10px] font-semibold text-[var(--ptl-ink)] transition hover:bg-white"
+            >
+              Stop
+            </button>
+          </div>
+        )}
         <AssetList
           search={props.search}
           onSearchChange={props.onSearchChange}
@@ -973,6 +1033,7 @@ function StepPanel(props: StepPanelProps) {
           selectedProductByCategory={props.selectedProductByCategory}
           placementAssetId={props.placementAssetId}
           onChooseAsset={props.onChooseAsset}
+          onClearPlacementMode={props.onClearPlacementMode}
         />
       </div>
     );
@@ -1235,6 +1296,7 @@ function RightPanel(props: BuilderWorkspaceProps) {
 export function BuilderWorkspace(props: BuilderWorkspaceProps) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [hardscapeMode, setHardscapeMode] = useState<HardscapeSplitMode>("rocks");
+  const [tankPanelMode, setTankPanelMode] = useState<TankPanelMode>("tank");
 
   const filteredAssetsForStep = useMemo(() => {
     if (props.currentStep !== "hardscape") {
@@ -1326,13 +1388,19 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
           title={item.title}
           active={
             props.currentStep === item.step &&
-            (item.step !== "hardscape" || item.hardscapeMode === hardscapeMode)
+            (item.step !== "hardscape" || item.hardscapeMode === hardscapeMode) &&
+            (item.step !== "tank" || item.tankPanelMode === tankPanelMode)
           }
           done={props.stepCompletion[item.doneStep]}
           disabled={!props.canNavigateToStep(item.step)}
           onClick={() => {
             if (item.hardscapeMode) {
               setHardscapeMode(item.hardscapeMode);
+            }
+            if (item.tankPanelMode) {
+              setTankPanelMode(item.tankPanelMode);
+            } else if (item.step !== "tank") {
+              setTankPanelMode("tank");
             }
             props.onStepChange(item.step);
             setPanelOpen(true);
@@ -1341,6 +1409,16 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
       ))}
 
       <div className="my-1 h-px w-8 bg-black/10" />
+
+      {props.placementAsset ? (
+        <RailBtn
+          label="\u2715"
+          title={`Stop placing ${props.placementAsset.name}`}
+          active
+          compact
+          onClick={props.onClearPlacementMode}
+        />
+      ) : null}
 
       <RailBtn
         label={"\u2630"}
@@ -1393,6 +1471,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
             <StepPanel
               {...props}
               hardscapeMode={hardscapeMode}
+              tankPanelMode={tankPanelMode}
               onHardscapeModeChange={setHardscapeMode}
               filteredAssetsForStep={filteredAssetsForStep}
             />

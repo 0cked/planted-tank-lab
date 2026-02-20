@@ -20,7 +20,7 @@ const SHORTCUT_ROWS: ShortcutRow[] = [
   { keys: "Delete / Backspace", description: "Remove selected item(s)" },
   { keys: "D", description: "Duplicate selected item(s) (offset by 1 inch)" },
   { keys: "R", description: "Rotate selected item by 45°" },
-  { keys: "Escape", description: "Deselect all" },
+  { keys: "Escape", description: "Exit placement mode (or deselect all)" },
   { keys: "1-5", description: "Jump to workflow step" },
   { keys: "Cmd/Ctrl + Z", description: "Undo last substrate stroke" },
   { keys: "Cmd/Ctrl + Shift + Z", description: "Redo substrate stroke" },

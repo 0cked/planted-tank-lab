@@ -711,6 +711,15 @@ export function useVisualBuilderPageController(
     triggerCameraIntent({ type: "focus-item", itemId });
   };
 
+  const clearPlacementMode = useCallback(
+    (message = "Placement mode exited.") => {
+      setPlacementAssetId(null);
+      setToolMode("move");
+      setSaveState({ type: "ok", message });
+    },
+    [],
+  );
+
   const handleChooseAsset = (asset: VisualAsset) => {
     const isGenericEquipmentAsset =
       currentStep === "equipment" &&
@@ -726,6 +735,11 @@ export function useVisualBuilderPageController(
     }
 
     if (CANVAS_CATEGORIES.has(asset.categorySlug)) {
+      if (placementAssetId === asset.id && toolMode === "place") {
+        clearPlacementMode("Placement mode exited.");
+        return;
+      }
+
       setPlacementAssetId(asset.id);
       setToolMode("place");
       setSelectedItem(null);
@@ -909,12 +923,32 @@ export function useVisualBuilderPageController(
 
   useEffect(() => {
     const handleKeyboardShortcut = (event: KeyboardEvent) => {
-      if (isEditableShortcutTarget(event.target)) return;
-
+      const isEditableTarget = isEditableShortcutTarget(event.target);
       const hasCommandModifier = event.metaKey || event.ctrlKey;
       const hasBlockedModifier = event.altKey;
       const keyLower = event.key.toLowerCase();
       const isHelpKey = event.key === "?" || (event.key === "/" && event.shiftKey);
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+
+        if (showShortcutsOverlay) {
+          setShowShortcutsOverlay(false);
+          return;
+        }
+
+        if (placementAssetId || toolMode === "place") {
+          clearPlacementMode("Placement mode exited.");
+          return;
+        }
+
+        if (selectedItemIds.length > 0) {
+          clearSelectedItems();
+        }
+        return;
+      }
+
+      if (isEditableTarget) return;
 
       if (hasCommandModifier && !hasBlockedModifier && keyLower === "z") {
         event.preventDefault();
@@ -936,15 +970,6 @@ export function useVisualBuilderPageController(
       if (!hasCommandModifier && !hasBlockedModifier && isHelpKey) {
         event.preventDefault();
         setShowShortcutsOverlay(true);
-        return;
-      }
-
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setShowShortcutsOverlay(false);
-        if (selectedItemIds.length > 0) {
-          clearSelectedItems();
-        }
         return;
       }
 
@@ -1002,15 +1027,18 @@ export function useVisualBuilderPageController(
     applyStepChange,
     canNavigateToStep,
     canvasState.items,
+    clearPlacementMode,
     clearSelectedItems,
     currentStep,
     duplicateCanvasItem,
+    placementAssetId,
     redoSubstrateStroke,
     removeCanvasItem,
     selectAllCanvasItems,
     selectedItemId,
     selectedItemIds,
     showShortcutsOverlay,
+    toolMode,
     undoSubstrateStroke,
     updateCanvasItem,
   ]);
@@ -1248,6 +1276,7 @@ export function useVisualBuilderPageController(
     filteredAssets,
     selectedProductByCategory,
     onChooseAsset: handleChooseAsset,
+    onClearPlacementMode: clearPlacementMode,
     substrateSelectionLabel: `${SUBSTRATE_PROFILE_META[sculptMaterial].label} • ${substrateBags.bagsRequired} bag(s)`,
     substrateControls: {
       sculptMode,

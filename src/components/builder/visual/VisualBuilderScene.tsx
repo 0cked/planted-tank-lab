@@ -1,6 +1,6 @@
 "use client";
 
-import { Environment, Html, OrbitControls, useProgress } from "@react-three/drei";
+import { Html, OrbitControls, useProgress } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
@@ -1238,45 +1238,47 @@ function cameraPreset(step: BuilderSceneStep, dims: SceneDims): {
   target: [number, number, number];
   fov: number;
 } {
+  const frontDistance = Math.max(dims.widthIn * 1.45, dims.depthIn * 2.42, 34);
+
   if (step === "tank") {
     return {
-      position: [0, dims.heightIn * 0.68, dims.depthIn * 1.34],
-      target: [0, dims.heightIn * 0.34, 0],
-      fov: 42,
+      position: [0, dims.heightIn * 0.62, frontDistance],
+      target: [0, dims.heightIn * 0.4, 0],
+      fov: 47,
     };
   }
   if (step === "substrate") {
     return {
-      position: [0, dims.heightIn * 0.98, dims.depthIn * 0.9],
-      target: [0, dims.heightIn * 0.2, 0],
-      fov: 38,
+      position: [0, dims.heightIn * 0.5, Math.max(28, frontDistance * 0.88)],
+      target: [0, dims.heightIn * 0.26, 0],
+      fov: 44,
     };
   }
   if (step === "hardscape") {
     return {
-      position: [0, dims.heightIn * 0.66, dims.depthIn * 1.02],
-      target: [0, dims.heightIn * 0.3, 0],
-      fov: 40,
+      position: [0, dims.heightIn * 0.54, Math.max(30, frontDistance * 0.94)],
+      target: [0, dims.heightIn * 0.32, 0],
+      fov: 44,
     };
   }
   if (step === "plants") {
     return {
-      position: [0, dims.heightIn * 0.54, dims.depthIn * 0.84],
-      target: [0, dims.heightIn * 0.3, 0],
-      fov: 37,
+      position: [0, dims.heightIn * 0.53, Math.max(30, frontDistance * 0.92)],
+      target: [0, dims.heightIn * 0.32, 0],
+      fov: 44,
     };
   }
   if (step === "equipment") {
     return {
-      position: [0, dims.heightIn * 0.6, dims.depthIn * 1.08],
+      position: [0, dims.heightIn * 0.58, Math.max(32, frontDistance * 0.96)],
       target: [0, dims.heightIn * 0.42, 0],
-      fov: 42,
+      fov: 45,
     };
   }
   return {
-    position: [0, dims.heightIn * 0.74, dims.depthIn * 1.46],
-    target: [0, dims.heightIn * 0.34, 0],
-    fov: 44,
+    position: [0, dims.heightIn * 0.62, Math.max(34, frontDistance * 1.04)],
+    target: [0, dims.heightIn * 0.37, 0],
+    fov: 46,
   };
 }
 
@@ -1304,7 +1306,7 @@ function focusItemCameraPreset(params: {
 
   const maxX = params.dims.widthIn * 1.15;
   const maxY = params.dims.heightIn * 1.28;
-  const maxZ = params.dims.depthIn * 1.2;
+  const maxZ = Math.max(params.dims.depthIn * 2.6, params.dims.widthIn * 1.35, 24);
 
   const positionX = THREE.MathUtils.clamp(targetX, -maxX, maxX);
   const positionY = THREE.MathUtils.clamp(
@@ -2225,6 +2227,18 @@ function CinematicCameraRig(props: {
   } | null>(null);
   const forcedPresetRef = useRef<ReturnType<typeof cameraPreset> | null>(null);
   const lastIntentSeqRef = useRef<number>(0);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    shouldAutoFrameRef.current = true;
+    forcedPresetRef.current = preset;
+    if (props.cameraPresetMode !== "step") {
+      props.onCameraPresetModeChange?.("step");
+    }
+  }, [preset, props.cameraPresetMode, props.onCameraPresetModeChange]);
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -3225,35 +3239,6 @@ function SceneBackdrop() {
   );
 }
 
-function SceneGroundPlane(props: { dims: SceneDims }) {
-  const groundWidth = props.dims.widthIn * 3.6;
-  const groundDepth = props.dims.depthIn * 3.4;
-  const groundY = -0.16;
-
-  return (
-    <group>
-      <mesh
-        position={[0, groundY, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
-        raycast={DISABLED_RAYCAST}
-      >
-        <planeGeometry args={[groundWidth, groundDepth]} />
-        <meshStandardMaterial color="#141f29" roughness={0.94} metalness={0.04} />
-      </mesh>
-      <mesh
-        position={[0, groundY + 0.0015, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
-        raycast={DISABLED_RAYCAST}
-      >
-        <planeGeometry args={[groundWidth, groundDepth]} />
-        <shadowMaterial transparent opacity={0.22} />
-      </mesh>
-    </group>
-  );
-}
-
 function resolveAquariumLightRigProfile(params: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
@@ -3427,9 +3412,10 @@ function TankBackgroundPanel(props: {
 }) {
   const halfDepth = props.dims.depthIn * 0.5;
   const panelY = props.dims.heightIn * 0.5;
-  const panelZ = halfDepth - Math.max(0.02, props.dims.depthIn * 0.004);
-  const panelWidth = props.dims.widthIn * 0.95;
-  const panelHeight = props.dims.heightIn * 0.97;
+  const panelThickness = Math.max(0.12, Math.min(0.32, props.dims.depthIn * 0.016));
+  const panelZ = -halfDepth - panelThickness * 0.5 - Math.max(0.03, props.dims.depthIn * 0.006);
+  const panelWidth = props.dims.widthIn * 0.995;
+  const panelHeight = props.dims.heightIn * 0.995;
   const solidColor =
     props.style === "black"
       ? "#0a0d10"
@@ -3437,33 +3423,23 @@ function TankBackgroundPanel(props: {
         ? "#f5f8fb"
         : props.style === "custom"
           ? props.customColor
-          : "#d2e2ea";
+          : "#d6e4ea";
+  const panelRoughness = props.style === "frosted" ? 0.97 : 0.9;
 
   return (
-    <mesh position={[0, panelY, panelZ]} raycast={DISABLED_RAYCAST} receiveShadow castShadow>
-      <planeGeometry args={[panelWidth, panelHeight]} />
-      {props.style === "frosted" ? (
-        <meshPhysicalMaterial
-          color={solidColor}
-          transparent
-          opacity={0.8}
-          transmission={0.42}
-          roughness={0.85}
-          metalness={0}
-          thickness={0.45}
-          ior={1.2}
-          clearcoat={0.1}
-          clearcoatRoughness={0.74}
-          side={THREE.DoubleSide}
-        />
-      ) : (
-        <meshStandardMaterial
-          color={solidColor}
-          roughness={0.92}
-          metalness={0.03}
-          side={THREE.DoubleSide}
-        />
-      )}
+    <mesh
+      position={[0, panelY, panelZ]}
+      raycast={DISABLED_RAYCAST}
+      renderOrder={6}
+    >
+      <boxGeometry args={[panelWidth, panelHeight, panelThickness]} />
+      <meshStandardMaterial
+        color={solidColor}
+        roughness={panelRoughness}
+        metalness={0}
+        envMapIntensity={0.06}
+        side={THREE.DoubleSide}
+      />
     </mesh>
   );
 }
@@ -3659,78 +3635,42 @@ function RimlessGlassEdgeHighlights(props: {
   const verticalCenterY = bottomEdgeY + verticalHeight * 0.5;
   const horizontalWidth = Math.max(thickness, props.dims.widthIn - thickness);
   const horizontalDepth = Math.max(thickness, props.dims.depthIn - thickness);
+  const edgeMaterialProps = {
+    color: "#8fd7e6",
+    transparent: true,
+    opacity: 0.66,
+    roughness: 0.26,
+    metalness: 0.05,
+    depthWrite: false,
+  } as const;
 
   return (
     <group raycast={DISABLED_RAYCAST} renderOrder={34}>
       {[edgeZ, -edgeZ].map((z) => (
         <mesh key={`top-width-${z}`} position={[0, topEdgeY, z]}>
           <boxGeometry args={[horizontalWidth, thickness, thickness]} />
-          <meshPhysicalMaterial
-            color="#9fdfeb"
-            transparent
-            opacity={0.88}
-            transmission={0.7}
-            roughness={0.1}
-            metalness={0}
-            thickness={0.08}
-            ior={1.5}
-            clearcoat={0.48}
-            clearcoatRoughness={0.22}
-          />
+          <meshStandardMaterial {...edgeMaterialProps} />
         </mesh>
       ))}
 
       {[edgeX, -edgeX].map((x) => (
         <mesh key={`top-depth-${x}`} position={[x, topEdgeY, 0]}>
           <boxGeometry args={[thickness, thickness, horizontalDepth]} />
-          <meshPhysicalMaterial
-            color="#9fdfeb"
-            transparent
-            opacity={0.88}
-            transmission={0.7}
-            roughness={0.1}
-            metalness={0}
-            thickness={0.08}
-            ior={1.5}
-            clearcoat={0.48}
-            clearcoatRoughness={0.22}
-          />
+          <meshStandardMaterial {...edgeMaterialProps} />
         </mesh>
       ))}
 
       {[edgeZ, -edgeZ].map((z) => (
         <mesh key={`bottom-width-${z}`} position={[0, bottomEdgeY, z]}>
           <boxGeometry args={[horizontalWidth, thickness, thickness]} />
-          <meshPhysicalMaterial
-            color="#8ad7e8"
-            transparent
-            opacity={0.8}
-            transmission={0.66}
-            roughness={0.12}
-            metalness={0}
-            thickness={0.06}
-            ior={1.5}
-            clearcoat={0.42}
-            clearcoatRoughness={0.24}
-          />
+          <meshStandardMaterial {...edgeMaterialProps} opacity={0.6} />
         </mesh>
       ))}
 
       {[edgeX, -edgeX].map((x) => (
         <mesh key={`bottom-depth-${x}`} position={[x, bottomEdgeY, 0]}>
           <boxGeometry args={[thickness, thickness, horizontalDepth]} />
-          <meshPhysicalMaterial
-            color="#8ad7e8"
-            transparent
-            opacity={0.8}
-            transmission={0.66}
-            roughness={0.12}
-            metalness={0}
-            thickness={0.06}
-            ior={1.5}
-            clearcoat={0.42}
-            clearcoatRoughness={0.24}
-          />
+          <meshStandardMaterial {...edgeMaterialProps} opacity={0.6} />
         </mesh>
       ))}
 
@@ -3742,18 +3682,7 @@ function RimlessGlassEdgeHighlights(props: {
       ].map(([x, z]) => (
         <mesh key={`vertical-${x}-${z}`} position={[x, verticalCenterY, z]}>
           <boxGeometry args={[thickness, verticalHeight, thickness]} />
-          <meshPhysicalMaterial
-            color="#9fdfeb"
-            transparent
-            opacity={0.86}
-            transmission={0.68}
-            roughness={0.1}
-            metalness={0}
-            thickness={0.08}
-            ior={1.5}
-            clearcoat={0.48}
-            clearcoatRoughness={0.22}
-          />
+          <meshStandardMaterial {...edgeMaterialProps} opacity={0.64} />
         </mesh>
       ))}
     </group>
@@ -4194,16 +4123,13 @@ function TankShell(props: {
   const backFrontPaneWidth = Math.max(0.35, props.dims.widthIn - glassThickness * 2);
   const sidePaneDepth = Math.max(0.35, props.dims.depthIn - glassThickness * 2);
   const paneMaterial = {
-    color: "#d6f3ff",
+    color: "#add8e8",
     transparent: true,
-    opacity: 0.14,
-    transmission: 0.92,
-    roughness: 0.04,
-    thickness: 0.3,
-    ior: 1.48,
-    clearcoat: 1,
-    clearcoatRoughness: 0.03,
-    envMapIntensity: 1.15,
+    opacity: 0.12,
+    roughness: 0.94,
+    metalness: 0,
+    envMapIntensity: 0.08,
+    depthWrite: false,
   } as const;
 
   return (
@@ -4226,16 +4152,14 @@ function TankShell(props: {
         raycast={DISABLED_RAYCAST}
       >
         <boxGeometry args={[interiorWidth, waterHeight, interiorDepth]} />
-        <meshPhysicalMaterial
-          color="#8ec9da"
+        <meshStandardMaterial
+          color="#8fb8c4"
           transparent
-          opacity={0.22}
-          transmission={0.92}
-          roughness={0.08}
-          ior={1.33}
-          thickness={2}
-          attenuationColor="#5ea6ba"
-          attenuationDistance={30}
+          opacity={0.14}
+          roughness={0.92}
+          metalness={0}
+          envMapIntensity={0.06}
+          depthWrite={false}
         />
       </mesh>
 
@@ -4262,7 +4186,7 @@ function TankShell(props: {
             raycast={DISABLED_RAYCAST}
           >
             <boxGeometry args={[backFrontPaneWidth, props.dims.heightIn, glassThickness]} />
-            <meshPhysicalMaterial {...paneMaterial} side={THREE.DoubleSide} />
+            <meshStandardMaterial {...paneMaterial} side={THREE.DoubleSide} />
           </mesh>
 
           <mesh
@@ -4271,7 +4195,7 @@ function TankShell(props: {
             raycast={DISABLED_RAYCAST}
           >
             <boxGeometry args={[backFrontPaneWidth, props.dims.heightIn, glassThickness]} />
-            <meshPhysicalMaterial {...paneMaterial} side={THREE.DoubleSide} />
+            <meshStandardMaterial {...paneMaterial} side={THREE.DoubleSide} />
           </mesh>
 
           <mesh
@@ -4280,7 +4204,7 @@ function TankShell(props: {
             raycast={DISABLED_RAYCAST}
           >
             <boxGeometry args={[glassThickness, props.dims.heightIn, sidePaneDepth]} />
-            <meshPhysicalMaterial {...paneMaterial} side={THREE.DoubleSide} />
+            <meshStandardMaterial {...paneMaterial} side={THREE.DoubleSide} />
           </mesh>
 
           <mesh
@@ -4289,7 +4213,7 @@ function TankShell(props: {
             raycast={DISABLED_RAYCAST}
           >
             <boxGeometry args={[glassThickness, props.dims.heightIn, sidePaneDepth]} />
-            <meshPhysicalMaterial {...paneMaterial} side={THREE.DoubleSide} />
+            <meshStandardMaterial {...paneMaterial} side={THREE.DoubleSide} />
           </mesh>
 
           <mesh
@@ -4298,7 +4222,7 @@ function TankShell(props: {
             raycast={DISABLED_RAYCAST}
           >
             <boxGeometry args={[interiorWidth, glassThickness, interiorDepth]} />
-            <meshPhysicalMaterial {...paneMaterial} side={THREE.DoubleSide} />
+            <meshStandardMaterial {...paneMaterial} side={THREE.DoubleSide} />
           </mesh>
         </group>
       ) : null}
@@ -5208,9 +5132,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         source={lightSimulationSource}
         lightMountHeightIn={props.lightMountHeightIn}
       />
-      <Environment preset="city" background={false} blur={0.66} />
-
-      <SceneGroundPlane dims={dims} />
 
       <TankShell
         dims={dims}
@@ -5242,17 +5163,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       {props.showMeasurements ? (
         <TankMeasurementOverlay dims={dims} unit={props.measurementUnit} />
       ) : null}
-
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.04, 0]}
-        onPointerMove={(event) => handleSurfacePointer(event, "substrate", null)}
-        onPointerDown={(event) => handleSurfaceDown(event, "substrate", null)}
-        onPointerUp={handleSurfaceUp}
-      >
-        <planeGeometry args={[dims.widthIn * 2.6, dims.depthIn * 2.6]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
-      </mesh>
 
       {singleRenderItems.map((renderItem) => (
         <group
