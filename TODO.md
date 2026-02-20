@@ -630,7 +630,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Add a "Restore this version" button that creates a new version with the old state.
   - **Verify:** Save a build 3 times with changes. Version history shows 3 entries. Click an old version — preview loads. Restore — build reverts.
 
-- [ ] **P12-3: Build export as image**
+- [x] **P12-3: Build export as image**
   - Add an "Export as image" button to the builder toolbar.
   - Capture the 3D scene at high resolution (2x canvas size) using `renderer.domElement.toDataURL()`.
   - Add a simple watermark in the corner: "PlantedTankLab.com" in small text.

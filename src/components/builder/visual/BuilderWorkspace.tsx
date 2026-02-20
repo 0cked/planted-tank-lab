@@ -206,6 +206,7 @@ export type BuilderWorkspaceProps = {
   canNavigateToStep: (step: BuilderStepId) => boolean;
   onStepChange: (step: BuilderStepId) => void;
   onSaveDraft: () => void;
+  onExportImage: () => void;
   saving: boolean;
 };
 
@@ -519,6 +520,13 @@ function BuildActionsCard(
           className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5 text-[11px] font-semibold text-[var(--ptl-ink)] transition hover:bg-black/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
         >
           Load selected
+        </button>
+        <button
+          type="button"
+          onClick={props.onExportImage}
+          className="col-span-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5 text-[11px] font-semibold text-[var(--ptl-ink)] transition hover:bg-black/[0.06]"
+        >
+          Export as image
         </button>
       </div>
 
@@ -1553,6 +1561,12 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         disabled={props.saving}
         compact
         onClick={props.onSaveDraft}
+      />
+      <RailBtn
+        label="\u21e9"
+        title="Export as image"
+        compact
+        onClick={props.onExportImage}
       />
       <RailBtn
         label="?"

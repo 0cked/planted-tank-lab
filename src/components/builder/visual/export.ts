@@ -7,9 +7,17 @@ type ExportParams = {
   fileName?: string;
 };
 
+type SceneCanvasExportParams = {
+  canvas: HTMLCanvasElement;
+  buildName?: string | null;
+  fileName?: string;
+};
+
 const DEPTH_SIDE_INSET = 0.18;
 const DEPTH_TOP_LIFT = 0.2;
 const DEPTH_SCALE_DECAY = 0.28;
+const SCENE_EXPORT_SCALE = 2;
+const WATERMARK_TEXT = "PlantedTankLab.com";
 
 function projectCanvasPoint(point: { x: number; y: number; z: number }): {
   x: number;
@@ -49,6 +57,80 @@ function loadImage(src: string | null): Promise<HTMLImageElement | null> {
 
   imageCache.set(key, next);
   return next;
+}
+
+function sanitizeBuildNameForFileName(value: string | null | undefined): string {
+  const normalized = (value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return normalized.length > 0 ? normalized : "visual-build";
+}
+
+export function buildImageExportFileName(buildName: string | null | undefined): string {
+  return `${sanitizeBuildNameForFileName(buildName)}-plantedtanklab.png`;
+}
+
+function drawWatermark(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  const fontSize = Math.max(20, Math.round(Math.min(width, height) * 0.024));
+  const padding = Math.max(20, Math.round(fontSize * 0.75));
+  ctx.save();
+  ctx.font = `600 ${fontSize}px ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+  ctx.shadowColor = "rgba(0,0,0,0.45)";
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = "rgba(255,255,255,0.86)";
+  ctx.fillText(WATERMARK_TEXT, width - padding, height - padding);
+  ctx.restore();
+}
+
+async function downloadCanvasPng(canvas: HTMLCanvasElement, fileName: string): Promise<void> {
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((nextBlob) => {
+      if (!nextBlob) {
+        reject(new Error("Failed to generate PNG blob."));
+        return;
+      }
+      resolve(nextBlob);
+    }, "image/png");
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportSceneCanvasPng(params: SceneCanvasExportParams): Promise<void> {
+  const sourceCanvas = params.canvas;
+  if (sourceCanvas.width <= 0 || sourceCanvas.height <= 0) {
+    throw new Error("Unable to export scene image.");
+  }
+
+  // Capture directly from the live renderer canvas.
+  const sceneDataUrl = sourceCanvas.toDataURL("image/png");
+  const sceneImage = await loadImage(sceneDataUrl);
+
+  const output = document.createElement("canvas");
+  output.width = Math.max(1, Math.round(sourceCanvas.width * SCENE_EXPORT_SCALE));
+  output.height = Math.max(1, Math.round(sourceCanvas.height * SCENE_EXPORT_SCALE));
+
+  const ctx = output.getContext("2d");
+  if (!ctx) throw new Error("Canvas export context unavailable.");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  if (sceneImage) {
+    ctx.drawImage(sceneImage, 0, 0, output.width, output.height);
+  } else {
+    ctx.drawImage(sourceCanvas, 0, 0, output.width, output.height);
+  }
+
+  drawWatermark(ctx, output.width, output.height);
+  await downloadCanvasPng(output, params.fileName ?? buildImageExportFileName(params.buildName));
 }
 
 export async function exportVisualLayoutPng(params: ExportParams): Promise<void> {
@@ -112,20 +194,6 @@ export async function exportVisualLayoutPng(params: ExportParams): Promise<void>
     ctx.restore();
   }
 
-  const blob: Blob = await new Promise((resolve, reject) => {
-    canvas.toBlob((b) => {
-      if (!b) {
-        reject(new Error("Failed to generate PNG blob."));
-        return;
-      }
-      resolve(b);
-    }, "image/png");
-  });
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = params.fileName ?? `plantedtanklab-visual-build-${Date.now()}.png`;
-  link.click();
-  URL.revokeObjectURL(url);
+  drawWatermark(ctx, canvas.width, canvas.height);
+  await downloadCanvasPng(canvas, params.fileName ?? buildImageExportFileName("visual-build"));
 }

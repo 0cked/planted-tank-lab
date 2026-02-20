@@ -18,13 +18,16 @@ import {
 } from "@/components/builder/visual/build-templates";
 import { CameraDiagnosticsPanel } from "@/components/builder/visual/CameraDiagnosticsPanel";
 import { evaluateVisualCompatibility } from "@/components/builder/visual/compatibility";
-import { exportVisualLayoutPng } from "@/components/builder/visual/export";
+import {
+  buildImageExportFileName,
+  exportSceneCanvasPng,
+  exportVisualLayoutPng,
+} from "@/components/builder/visual/export";
 import {
   buildBomLines,
   CANVAS_CATEGORIES,
   categoryLabel,
   clampRotationDeg,
-  exportCanvasPng,
   STEP_META,
   STEP_ORDER,
   stepAllowsAsset,
@@ -920,12 +923,16 @@ export function useVisualBuilderPageController(
 
     try {
       if (sceneCanvasRef.current) {
-        await exportCanvasPng(sceneCanvasRef.current);
+        await exportSceneCanvasPng({
+          canvas: sceneCanvasRef.current,
+          buildName: name,
+        });
       } else {
         await exportVisualLayoutPng({
           tank: selectedTank,
           assetsById,
           items: canvasState.items,
+          fileName: buildImageExportFileName(name),
         });
       }
       setSaveState({ type: "ok", message: "PNG export created." });
@@ -1395,6 +1402,9 @@ export function useVisualBuilderPageController(
     // Metadata actions (for icon rail save button)
     onSaveDraft: () => {
       void saveBuild(false);
+    },
+    onExportImage: () => {
+      void handleExport();
     },
     saving: saveMutation.isPending,
   };
