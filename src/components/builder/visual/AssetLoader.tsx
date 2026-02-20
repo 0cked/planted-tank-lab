@@ -3,6 +3,7 @@
 import { useGLTF } from "@react-three/drei";
 import { Component, type ReactNode, useMemo } from "react";
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 export type LoadedAssetModel = {
   geometry: THREE.BufferGeometry;
@@ -29,6 +30,14 @@ type AssetLoaderErrorBoundaryState = {
 
 const preparedModelCache = new Map<string, LoadedAssetModel>();
 
+type MeshSource = {
+  geometry: THREE.BufferGeometry;
+  material: THREE.Material | THREE.Material[] | undefined;
+  bounds: THREE.Vector3;
+  triangleCount: number;
+  volume: number;
+};
+
 function countGeometryTriangles(geometry: THREE.BufferGeometry): number {
   const indexCount = geometry.index?.count;
   if (typeof indexCount === "number" && Number.isFinite(indexCount)) {
@@ -43,25 +52,118 @@ function countGeometryTriangles(geometry: THREE.BufferGeometry): number {
   return 0;
 }
 
-function extractPrimaryMesh(scene: THREE.Object3D): THREE.Mesh | null {
-  let firstMesh: THREE.Mesh | null = null;
-
-  scene.traverse((node) => {
-    if (firstMesh) return;
-    if (!(node instanceof THREE.Mesh)) return;
-    if (!(node.geometry instanceof THREE.BufferGeometry)) return;
-    firstMesh = node;
-  });
-
-  return firstMesh;
+function transformedMeshGeometry(mesh: THREE.Mesh): THREE.BufferGeometry | null {
+  if (!(mesh.geometry instanceof THREE.BufferGeometry)) return null;
+  const geometry = mesh.geometry.clone();
+  geometry.applyMatrix4(mesh.matrixWorld);
+  geometry.computeBoundingBox();
+  return geometry;
 }
 
-function normalizeGeometryForPlacement(source: THREE.BufferGeometry): {
+function collectMeshSources(scene: THREE.Object3D): MeshSource[] {
+  const sources: MeshSource[] = [];
+  scene.updateWorldMatrix(true, true);
+
+  scene.traverse((node) => {
+    if (!(node instanceof THREE.Mesh)) return;
+    const geometry = transformedMeshGeometry(node);
+    if (!geometry?.boundingBox) return;
+
+    const bounds = new THREE.Vector3();
+    geometry.boundingBox.getSize(bounds);
+    bounds.x = Math.max(0.001, bounds.x);
+    bounds.y = Math.max(0.001, bounds.y);
+    bounds.z = Math.max(0.001, bounds.z);
+
+    sources.push({
+      geometry,
+      material: node.material,
+      bounds,
+      triangleCount: countGeometryTriangles(geometry),
+      volume: bounds.x * bounds.y * bounds.z,
+    });
+  });
+
+  return sources;
+}
+
+function normalizeMergeAttributes(geometries: THREE.BufferGeometry[]): void {
+  const allowed = new Set(["position", "normal", "uv", "color"]);
+  for (const geometry of geometries) {
+    for (const key of Object.keys(geometry.attributes)) {
+      if (!allowed.has(key)) {
+        geometry.deleteAttribute(key);
+      }
+    }
+  }
+
+  const keys = ["uv", "color"] as const;
+  for (const key of keys) {
+    const allHave = geometries.every((geometry) => geometry.getAttribute(key) != null);
+    if (allHave) continue;
+    for (const geometry of geometries) {
+      if (geometry.getAttribute(key) != null) {
+        geometry.deleteAttribute(key);
+      }
+    }
+  }
+
+  for (const geometry of geometries) {
+    if (geometry.getAttribute("normal") == null) {
+      geometry.computeVertexNormals();
+    }
+  }
+}
+
+function mergeMeshSources(sources: MeshSource[]): THREE.BufferGeometry | null {
+  if (sources.length === 0) return null;
+  if (sources.length === 1) {
+    return sources[0]?.geometry.clone() ?? null;
+  }
+
+  const geometries = sources.map((source) => source.geometry.clone());
+  normalizeMergeAttributes(geometries);
+  try {
+    return mergeGeometries(geometries, false);
+  } catch {
+    return null;
+  }
+}
+
+function pickLargestSource(sources: MeshSource[]): MeshSource | null {
+  let largest: MeshSource | null = null;
+  for (const source of sources) {
+    if (!largest || source.volume > largest.volume) {
+      largest = source;
+    }
+  }
+  return largest;
+}
+
+function shouldAutoUprightPath(path: string): boolean {
+  return /hardscape\/.*(wood|branch|root|spider|manzanita)/i.test(path);
+}
+
+function normalizeGeometryForPlacement(source: THREE.BufferGeometry, path: string): {
   geometry: THREE.BufferGeometry;
   bounds: THREE.Vector3;
 } {
   const geometry = source.clone();
   geometry.computeBoundingBox();
+
+  if (geometry.boundingBox && shouldAutoUprightPath(path)) {
+    const size = new THREE.Vector3();
+    geometry.boundingBox.getSize(size);
+    const needsUprightFromX = size.x > size.y * 1.25 && size.x >= size.z;
+    const needsUprightFromZ = size.z > size.y * 1.25 && size.z > size.x;
+    if (needsUprightFromX) {
+      geometry.rotateZ(Math.PI * 0.5);
+      geometry.computeBoundingBox();
+    } else if (needsUprightFromZ) {
+      geometry.rotateX(-Math.PI * 0.5);
+      geometry.computeBoundingBox();
+    }
+  }
 
   const boundingBox = geometry.boundingBox;
   if (boundingBox) {
@@ -100,19 +202,27 @@ function prepareModel(path: string, scene: THREE.Object3D): LoadedAssetModel {
   const cached = preparedModelCache.get(path);
   if (cached) return cached;
 
-  const mesh = extractPrimaryMesh(scene);
-  if (!mesh || !(mesh.geometry instanceof THREE.BufferGeometry)) {
+  const sources = collectMeshSources(scene);
+  if (sources.length === 0) {
     throw new Error(`Visual asset at '${path}' does not contain a mesh geometry.`);
   }
 
-  const { geometry, bounds } = normalizeGeometryForPlacement(mesh.geometry);
-  const material = clonePrimaryMaterial(mesh.material);
+  const mergedGeometry = mergeMeshSources(sources);
+  const fallbackSource = pickLargestSource(sources);
+  const sourceGeometry = mergedGeometry ?? fallbackSource?.geometry.clone();
+  const sourceMaterial = fallbackSource?.material;
+  if (!sourceGeometry) {
+    throw new Error(`Visual asset at '${path}' could not be prepared for placement.`);
+  }
+
+  const { geometry, bounds } = normalizeGeometryForPlacement(sourceGeometry, path);
+  const material = clonePrimaryMaterial(sourceMaterial);
 
   const model: LoadedAssetModel = {
     geometry,
     material,
     bounds,
-    triangleCount: countGeometryTriangles(geometry),
+    triangleCount: sources.reduce((sum, source) => sum + source.triangleCount, 0),
   };
 
   preparedModelCache.set(path, model);

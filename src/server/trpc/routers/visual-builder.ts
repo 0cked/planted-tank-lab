@@ -98,6 +98,7 @@ const ACTIVE_STATUS = "active" as const;
 
 const sceneSettingsSchema = z.object({
   qualityTier: z.enum(["auto", "high", "medium", "low"]).optional(),
+  rendererPreference: z.enum(["auto", "webgpu", "webgl"]).optional(),
   postprocessingEnabled: z.boolean().optional(),
   guidesVisible: z.boolean().optional(),
   gridSnapEnabled: z.boolean().optional(),
@@ -572,8 +573,14 @@ function normalizeSceneSettings(
       ? source.cabinetFinishStyle
       : "oak";
 
+  const rendererPreference =
+    source.rendererPreference === "webgpu" || source.rendererPreference === "webgl"
+      ? source.rendererPreference
+      : "auto";
+
   return {
     qualityTier,
+    rendererPreference,
     postprocessingEnabled: source.postprocessingEnabled ?? true,
     guidesVisible: source.guidesVisible ?? true,
     gridSnapEnabled: source.gridSnapEnabled ?? false,

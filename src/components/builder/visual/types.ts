@@ -95,6 +95,25 @@ export type VisualDepthZone = "foreground" | "midground" | "background";
 
 export type TankBackgroundStyle = "black" | "white" | "frosted" | "custom";
 export type CabinetFinishStyle = "white" | "charcoal" | "oak" | "walnut" | "custom";
+export type VisualRendererPreference = "auto" | "webgpu" | "webgl";
+export type VisualRendererMode = "webgpu" | "webgl";
+export type VisualRendererFallbackReason =
+  | "none"
+  | "forced_webgl"
+  | "webgpu_unsupported"
+  | "webgpu_adapter_unavailable"
+  | "webgpu_device_unavailable"
+  | "webgpu_renderer_init_failed"
+  | "webgpu_runtime_failed";
+
+export type VisualRendererRuntimeState = {
+  preference: VisualRendererPreference;
+  requestedMode: VisualRendererMode;
+  activeMode: VisualRendererMode;
+  fallbackReason: VisualRendererFallbackReason;
+  webgpuSupported: boolean;
+  detail: string | null;
+};
 
 export type VisualItemTransform = {
   position: [number, number, number];
@@ -132,6 +151,7 @@ export type VisualCanvasItem = {
 
 export type VisualSceneSettings = {
   qualityTier: "auto" | "high" | "medium" | "low";
+  rendererPreference: VisualRendererPreference;
   postprocessingEnabled: boolean;
   guidesVisible: boolean;
   gridSnapEnabled: boolean;

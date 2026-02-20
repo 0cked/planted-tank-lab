@@ -10,7 +10,16 @@ import { hasAnalyticsConsentFromCookieHeader } from "@/server/services/analytics
 export const runtime = "nodejs";
 
 const BodySchema = z.object({
-  name: z.enum(["builder_started", "share_created", "signup_completed"]),
+  name: z.enum([
+    "builder_started",
+    "share_created",
+    "signup_completed",
+    "camera_command_invoked",
+    "camera_unexpected_pose_delta_detected",
+    "renderer_init_success",
+    "renderer_fallback",
+    "renderer_recovery",
+  ]),
   buildId: z.string().uuid().optional(),
   meta: z.record(z.unknown()).optional(),
 });

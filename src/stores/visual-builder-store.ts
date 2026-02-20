@@ -363,8 +363,14 @@ function normalizeSceneSettings(input: Partial<VisualSceneSettings> | undefined)
       ? next.cabinetFinishStyle
       : "oak";
 
+  const rendererPreference =
+    next.rendererPreference === "webgpu" || next.rendererPreference === "webgl"
+      ? next.rendererPreference
+      : "auto";
+
   return {
     qualityTier,
+    rendererPreference,
     postprocessingEnabled: next.postprocessingEnabled ?? true,
     guidesVisible: next.guidesVisible ?? true,
     gridSnapEnabled: next.gridSnapEnabled ?? false,
@@ -611,6 +617,7 @@ const initialCanvasState: VisualCanvasState = {
   substrateMaterialGrid: createFlatSubstrateMaterialGrid("soil"),
   sceneSettings: {
     qualityTier: "auto",
+    rendererPreference: "auto",
     postprocessingEnabled: true,
     guidesVisible: true,
     gridSnapEnabled: false,

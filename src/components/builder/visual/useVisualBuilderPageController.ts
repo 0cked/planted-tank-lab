@@ -44,6 +44,7 @@ import type {
   BuilderSceneQualityTier,
   BuilderSceneToolMode,
 } from "@/components/builder/visual/VisualBuilderScene";
+import { resolveVisualAsset } from "@/components/builder/visual/useAsset";
 import { useCameraEvidence } from "@/hooks/useCameraEvidence";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -302,6 +303,19 @@ export function useVisualBuilderPageController(
     },
   );
 
+  const catalogAssets = useMemo(() => {
+    return (catalogQuery.data?.assets ?? []).map((asset) => {
+      const resolved = resolveVisualAsset(asset);
+      return {
+        ...asset,
+        widthIn: resolved.widthIn,
+        heightIn: resolved.heightIn,
+        depthIn: resolved.depthIn,
+        defaultScale: resolved.defaultScale,
+      };
+    });
+  }, [catalogQuery.data?.assets]);
+
   useEffect(() => {
     if (!initialBuild || hydratedShareRef.current === initialBuild.build.shareSlug) return;
 
@@ -331,8 +345,8 @@ export function useVisualBuilderPageController(
   }, [catalogQuery.data?.categories]);
 
   const assetsById = useMemo(() => {
-    return new Map((catalogQuery.data?.assets ?? []).map((asset) => [asset.id, asset] as const));
-  }, [catalogQuery.data?.assets]);
+    return new Map(catalogAssets.map((asset) => [asset.id, asset] as const));
+  }, [catalogAssets]);
 
   const tanksById = useMemo(() => {
     return new Map((catalogQuery.data?.tanks ?? []).map((tank) => [tank.id, tank] as const));
@@ -373,7 +387,7 @@ export function useVisualBuilderPageController(
 
   const resolvedTemplatesById = useMemo(() => {
     const map = new Map<VisualBuildTemplateId, ReturnType<typeof resolveVisualBuildTemplate>>();
-    const assets = catalogQuery.data?.assets ?? [];
+    const assets = catalogAssets;
     const tanks = catalogQuery.data?.tanks ?? [];
 
     for (const template of VISUAL_BUILD_TEMPLATE_CARDS) {
@@ -388,7 +402,7 @@ export function useVisualBuilderPageController(
     }
 
     return map;
-  }, [catalogQuery.data?.assets, catalogQuery.data?.tanks]);
+  }, [catalogAssets, catalogQuery.data?.tanks]);
 
   const templateCards = useMemo(() => {
     return VISUAL_BUILD_TEMPLATE_CARDS.map((template) => {
@@ -406,7 +420,7 @@ export function useVisualBuilderPageController(
   const equipmentCategories = useMemo(() => {
     const next = new Set<string>();
 
-    for (const asset of catalogQuery.data?.assets ?? []) {
+    for (const asset of catalogAssets) {
       if (asset.type !== "product") continue;
       if (CANVAS_CATEGORIES.has(asset.categorySlug)) continue;
       if (asset.categorySlug === "substrate" || asset.categorySlug === "tank") continue;
@@ -414,7 +428,7 @@ export function useVisualBuilderPageController(
     }
 
     return Array.from(next).sort((a, b) => a.localeCompare(b));
-  }, [catalogQuery.data?.assets]);
+  }, [catalogAssets]);
 
   const activeEquipmentCategory = equipmentCategories.includes(equipmentCategoryFilter)
     ? equipmentCategoryFilter
@@ -422,7 +436,7 @@ export function useVisualBuilderPageController(
 
   const recommendedEquipmentByCategory = useMemo(() => {
     const recommendations: Record<string, VisualAsset | null> = {};
-    const assets = catalogQuery.data?.assets ?? [];
+    const assets = catalogAssets;
 
     for (const categorySlug of equipmentCategories) {
       recommendations[categorySlug] = pickRecommendedAsset({
@@ -432,7 +446,7 @@ export function useVisualBuilderPageController(
     }
 
     return recommendations;
-  }, [catalogQuery.data?.assets, equipmentCategories]);
+  }, [catalogAssets, equipmentCategories]);
 
   const hardscapeCount = useMemo(() => {
     return canvasState.items.filter((item) => item.categorySlug === "hardscape").length;
@@ -487,7 +501,7 @@ export function useVisualBuilderPageController(
       catalog_product: 2,
     };
 
-    return (catalogQuery.data?.assets ?? [])
+    return catalogAssets
       .filter((asset) => {
         if (!stepAllowsAsset(currentStep, asset, activeEquipmentCategory)) return false;
         if (!query) return true;
@@ -502,7 +516,7 @@ export function useVisualBuilderPageController(
         if (aRank !== bRank) return aRank - bRank;
         return a.name.localeCompare(b.name);
       });
-  }, [activeEquipmentCategory, catalogQuery.data?.assets, currentStep, search]);
+  }, [activeEquipmentCategory, catalogAssets, currentStep, search]);
 
   const placementAsset = useMemo(() => {
     if (!placementAssetId) return null;
@@ -511,11 +525,11 @@ export function useVisualBuilderPageController(
 
   const selectedSubstrateAsset = useMemo(() => {
     return pickRecommendedAsset({
-      assets: catalogQuery.data?.assets ?? [],
+      assets: catalogAssets,
       categorySlug: "substrate",
       substrateMaterial: sculptMaterial,
     });
-  }, [catalogQuery.data?.assets, sculptMaterial]);
+  }, [catalogAssets, sculptMaterial]);
 
   useEffect(() => {
     setSubstrateMaterialGrid(createFlatSubstrateMaterialGrid(sculptMaterial));
