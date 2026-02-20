@@ -9,30 +9,90 @@
       "triangleCount": 12,
       "fallbackPlantType": "rosette"
     },
-    "plant:ludwigia-repens": {
-      "path": "/visual-assets/plants/ludwigia-repens.glb",
+    "plant:amazon-sword": {
+      "path": "/visual-assets/plants/amazon-sword.glb",
+      "previewImagePath": "/visual-assets/plants/amazon-sword.webp",
+      "category": "plant",
+      "defaultScale": 0.92,
+      "placementZone": "midground",
+      "fallbackPlantType": "rosette"
+    },
+    "plant:limnophila-sessiliflora": {
+      "path": "/visual-assets/plants/limnophila-sessiliflora.glb",
+      "previewImagePath": "/visual-assets/plants/limnophila-sessiliflora.webp",
+      "category": "plant",
+      "defaultScale": 0.88,
+      "placementZone": "background",
+      "fallbackPlantType": "stem"
+    },
+    "plant:rotala-rotundifolia": {
+      "path": "/visual-assets/plants/rotala-rotundifolia.glb",
+      "previewImagePath": "/visual-assets/plants/rotala-rotundifolia.webp",
       "category": "plant",
       "defaultScale": 0.9,
       "placementZone": "background",
       "fallbackPlantType": "stem"
     },
+    "plant:ludwigia-repens": {
+      "path": "/visual-assets/plants/ludwigia-repens.glb",
+      "previewImagePath": "/visual-assets/plants/ludwigia-repens.webp",
+      "category": "plant",
+      "defaultScale": 0.9,
+      "placementZone": "background",
+      "fallbackPlantType": "stem"
+    },
+    "plant:cryptocoryne-balansae": {
+      "path": "/visual-assets/plants/cryptocoryne-balansae.glb",
+      "previewImagePath": "/visual-assets/plants/cryptocoryne-balansae.webp",
+      "category": "plant",
+      "defaultScale": 0.9,
+      "placementZone": "background",
+      "fallbackPlantType": "rosette"
+    },
     "2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a": {
       "path": "/visual-assets/hardscape/seiryu-1.glb",
+      "previewImagePath": "/visual-assets/hardscape/seiryu-1.webp",
       "category": "rock",
       "defaultScale": 0.95,
       "placementZone": "midground",
       "triangleCount": 12,
       "fallbackRockType": "jagged"
     },
-    "85d4cf8f-f421-4cc1-a5e5-61ecf22a85ec": {
+    "product:seiryu-stone": {
       "path": "/visual-assets/hardscape/seiryu-1.glb",
+      "previewImagePath": "/visual-assets/hardscape/seiryu-1.webp",
+      "category": "rock",
+      "defaultScale": 0.96,
+      "placementZone": "midground",
+      "fallbackRockType": "jagged"
+    },
+    "85d4cf8f-f421-4cc1-a5e5-61ecf22a85ec": {
+      "path": "/visual-assets/hardscape/seiryu-2.glb",
+      "previewImagePath": "/visual-assets/hardscape/seiryu-2.webp",
       "category": "rock",
       "defaultScale": 1,
       "placementZone": "midground",
       "fallbackRockType": "jagged"
     },
+    "3d4eaf6f-2858-449f-a0fe-c819d8898d9d": {
+      "path": "/visual-assets/hardscape/lava-rock-1.glb",
+      "previewImagePath": "/visual-assets/hardscape/lava-rock-1.webp",
+      "category": "rock",
+      "defaultScale": 0.95,
+      "placementZone": "midground",
+      "fallbackRockType": "jagged"
+    },
+    "product:lava-rock": {
+      "path": "/visual-assets/hardscape/lava-rock-1.glb",
+      "previewImagePath": "/visual-assets/hardscape/lava-rock-1.webp",
+      "category": "rock",
+      "defaultScale": 0.96,
+      "placementZone": "midground",
+      "fallbackRockType": "jagged"
+    },
     "9f7fd6f9-74aa-4b3a-a6f2-ebbe7af11d60": {
       "path": "/visual-assets/hardscape/spiderwood-1.glb",
+      "previewImagePath": "/visual-assets/hardscape/spiderwood-1.webp",
       "category": "wood",
       "defaultScale": 0.88,
       "placementZone": "hardscape",
@@ -40,6 +100,23 @@
     },
     "a9d0f802-81f5-4ef9-9ebf-aad2e3264a2d": {
       "path": "/visual-assets/hardscape/spiderwood-1.glb",
+      "previewImagePath": "/visual-assets/hardscape/spiderwood-1.webp",
+      "category": "wood",
+      "defaultScale": 0.96,
+      "placementZone": "hardscape",
+      "fallbackWoodType": "spider"
+    },
+    "product:spider-wood-branch": {
+      "path": "/visual-assets/hardscape/spiderwood-1.glb",
+      "previewImagePath": "/visual-assets/hardscape/spiderwood-1.webp",
+      "category": "wood",
+      "defaultScale": 0.92,
+      "placementZone": "hardscape",
+      "fallbackWoodType": "spider"
+    },
+    "product:spider-wood-twig-set": {
+      "path": "/visual-assets/hardscape/spiderwood-1.glb",
+      "previewImagePath": "/visual-assets/hardscape/spiderwood-1.webp",
       "category": "wood",
       "defaultScale": 0.96,
       "placementZone": "hardscape",
@@ -47,6 +124,7 @@
     },
     "product:spiderwood-branch": {
       "path": "/visual-assets/hardscape/spiderwood-1.glb",
+      "previewImagePath": "/visual-assets/hardscape/spiderwood-1.webp",
       "category": "wood",
       "defaultScale": 1,
       "placementZone": "hardscape",

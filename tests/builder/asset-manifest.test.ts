@@ -84,8 +84,24 @@ describe("useAsset manifest resolution", () => {
 
     expect(resolved.manifestKey).toBe("plant:ludwigia-repens");
     expect(resolved.glbPath).toBe("/visual-assets/plants/ludwigia-repens.glb");
+    expect(resolved.previewImagePath).toBe("/visual-assets/plants/ludwigia-repens.webp");
     expect(resolved.fallbackKind).toBe("plant");
     expect(resolved.proceduralPlantType).toBe("stem");
+  });
+
+  it("resolves newly added plant assets with thumbnail previews", () => {
+    const asset = buildAsset({
+      id: "unknown-db-id",
+      slug: "amazon-sword",
+      name: "Amazon Sword",
+    });
+
+    const resolved = useAsset(asset);
+
+    expect(resolved.manifestKey).toBe("plant:amazon-sword");
+    expect(resolved.glbPath).toBe("/visual-assets/plants/amazon-sword.glb");
+    expect(resolved.previewImagePath).toBe("/visual-assets/plants/amazon-sword.webp");
+    expect(resolved.proceduralPlantType).toBe("rosette");
   });
 
   it("resolves a manifest rock variant for hardscape assets", () => {
@@ -235,11 +251,11 @@ describe("useAsset manifest resolution", () => {
     expect(resolved.proceduralPlantType).toBe("floating");
   });
 
-  it("infers stem fallback type for common background stem plants", () => {
+  it("infers stem fallback type for background stem plants without manifest entries", () => {
     const asset = buildAsset({
       id: "rotala-id",
-      slug: "rotala-rotundifolia",
-      name: "Rotala Rotundifolia",
+      slug: "rotala-hra",
+      name: "Rotala HRA",
     });
 
     if (!asset.plantProfile) {

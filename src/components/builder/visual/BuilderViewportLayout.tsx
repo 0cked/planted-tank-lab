@@ -15,13 +15,13 @@ export function BuilderViewportLayout(props: BuilderViewportLayoutProps) {
       <div className="absolute inset-0">{props.scene}</div>
 
       {/* Left icon rail */}
-      <nav className="pointer-events-auto absolute left-3 top-3 bottom-3 z-10 flex w-11 flex-col items-center gap-1 rounded-2xl border border-[var(--ptl-border)] bg-white/60 py-2 backdrop-blur-xl">
+      <nav className="pointer-events-auto absolute left-3 top-3 bottom-3 z-10 flex w-14 flex-col items-center gap-1.5 rounded-2xl border border-[var(--ptl-border)] bg-white/72 px-1.5 py-2.5 shadow-2xl backdrop-blur-xl">
         {props.iconRail}
       </nav>
 
       {/* Floating contextual panel (appears next to icon rail) */}
       {props.floatingPanel ? (
-        <aside className="pointer-events-auto absolute left-[68px] top-3 bottom-3 z-10 w-[260px] overflow-auto rounded-2xl border border-[var(--ptl-border)] bg-white/60 p-3 shadow-2xl backdrop-blur-xl">
+        <aside className="pointer-events-auto absolute left-[82px] top-3 bottom-3 z-10 w-[260px] overflow-auto rounded-2xl border border-[var(--ptl-border)] bg-white/60 p-3 shadow-2xl backdrop-blur-xl">
           {props.floatingPanel}
         </aside>
       ) : null}

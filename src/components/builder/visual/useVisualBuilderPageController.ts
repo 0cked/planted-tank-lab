@@ -193,6 +193,12 @@ function isEditableShortcutTarget(target: EventTarget | null): boolean {
   );
 }
 
+function toIsoDateString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string" && value.trim().length > 0) return value;
+  return new Date(0).toISOString();
+}
+
 type VisualBuilderPageController = {
   metadataPanelProps: ComponentProps<typeof BuildMetadataPanel>;
   stepNavigatorProps: ComponentProps<typeof BuildStepNavigator>;
@@ -289,6 +295,13 @@ export function useVisualBuilderPageController(
 
   const saveMutation = trpc.visualBuilder.save.useMutation();
   const duplicateMutation = trpc.visualBuilder.duplicatePublic.useMutation();
+  const myBuildsQuery = trpc.builds.listMine.useQuery(
+    { limit: 50 },
+    {
+      enabled: status === "authenticated",
+      staleTime: 30_000,
+    },
+  );
 
   useEffect(() => {
     if (!initialBuild || hydratedShareRef.current === initialBuild.build.shareSlug) return;
@@ -330,6 +343,24 @@ export function useVisualBuilderPageController(
     if (tankId) return tanksById.get(tankId) ?? null;
     return (catalogQuery.data?.tanks ?? [])[0] ?? null;
   }, [catalogQuery.data?.tanks, tankId, tanksById]);
+
+  const savedBuilds = useMemo(() => {
+    const rows = myBuildsQuery.data ?? [];
+    return rows
+      .filter(
+        (row): row is typeof row & { shareSlug: string } =>
+          typeof row.shareSlug === "string" && row.shareSlug.trim().length > 0,
+      )
+      .map((row) => ({
+        buildId: row.id,
+        shareSlug: row.shareSlug,
+        name: row.name?.trim() ? row.name : "Untitled Build",
+        updatedAt: toIsoDateString(row.updatedAt),
+        itemCount: typeof row.itemCount === "number" ? row.itemCount : 0,
+        isPublic: Boolean(row.isPublic),
+      }))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }, [myBuildsQuery.data]);
 
   useEffect(() => {
     if (!selectedTank || tankId === selectedTank.id) return;
@@ -440,7 +471,7 @@ export function useVisualBuilderPageController(
 
       for (let index = 0; index < targetIndex; index += 1) {
         const step = STEP_ORDER[index]!;
-        if (step === "review") continue;
+        if (step === "review" || step === "equipment") continue;
         if (!stepCompletion[step]) return false;
       }
 
@@ -811,6 +842,49 @@ export function useVisualBuilderPageController(
     setSaveState({ type: "ok", message: "Created an editable duplicate draft." });
   };
 
+  const handleCreateNewDraft = () => {
+    setBuildIdentity({ buildId: null, shareSlug: null });
+    setPublic(false);
+    setSaveState({ type: "ok", message: "New draft created from the current layout. Save when ready." });
+    if (typeof window !== "undefined" && window.location.pathname !== "/builder") {
+      router.replace("/builder");
+    }
+  };
+
+  const handleWipeStartClean = () => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        "Wipe this build and start clean? This clears placed items, substrate shape, and draft metadata.",
+      );
+      if (!confirmed) return;
+    }
+
+    resetAll();
+    applyStepChange("tank");
+    setPlacementAssetId(null);
+    setToolMode("move");
+    setSearch("");
+    setSaveState({ type: "ok", message: "Builder wiped. Start a fresh layout." });
+    if (typeof window !== "undefined" && window.location.pathname !== "/builder") {
+      router.replace("/builder");
+    }
+  };
+
+  const handleLoadSavedBuild = (nextShareSlug: string) => {
+    const normalizedShareSlug = nextShareSlug.trim();
+    if (!normalizedShareSlug) return;
+
+    if (typeof window !== "undefined" && window.location.pathname === `/builder/${normalizedShareSlug}`) {
+      setSaveState({ type: "ok", message: "That build is already loaded." });
+      return;
+    }
+
+    setPlacementAssetId(null);
+    setToolMode("move");
+    setSaveState({ type: "ok", message: "Loading saved build..." });
+    router.push(`/builder/${normalizedShareSlug}`);
+  };
+
   const handleExport = async () => {
     if (!selectedTank) {
       setSaveState({ type: "error", message: "Pick a tank before exporting." });
@@ -1100,12 +1174,7 @@ export function useVisualBuilderPageController(
     onExport: () => {
       void handleExport();
     },
-    onReset: () => {
-      resetAll();
-      applyStepChange("tank");
-      setPlacementAssetId(null);
-      setToolMode("move");
-    },
+    onReset: handleWipeStartClean,
   };
 
   const stepNavigatorProps: ComponentProps<typeof BuildStepNavigator> = {
@@ -1123,6 +1192,15 @@ export function useVisualBuilderPageController(
   };
 
   const workspaceProps: BuilderWorkspaceProps = {
+    buildId,
+    shareSlug,
+    saveState,
+    canLoadSavedBuilds: status === "authenticated",
+    loadingSavedBuilds: myBuildsQuery.isLoading || myBuildsQuery.isFetching,
+    savedBuilds,
+    onLoadSavedBuild: handleLoadSavedBuild,
+    onCreateNewDraft: handleCreateNewDraft,
+    onWipeStartClean: handleWipeStartClean,
     selectedTank,
     canvasState,
     assetsById,
@@ -1191,10 +1269,6 @@ export function useVisualBuilderPageController(
       onSculptMaterialChange: setSculptMaterial,
     },
     onSceneSettingsChange: setSceneSettings,
-    growthTimelineMonths: canvasState.sceneSettings.growthTimelineMonths,
-    onGrowthTimelineMonthsChange: (months) => {
-      setSceneSettings({ growthTimelineMonths: months });
-    },
     onReframe: () => triggerCameraIntent({ type: "reframe" }),
     onResetView: () => triggerCameraIntent({ type: "reset" }),
     onFocusSceneItem: handleFocusSceneItem,

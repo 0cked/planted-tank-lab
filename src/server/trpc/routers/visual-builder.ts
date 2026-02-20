@@ -103,6 +103,10 @@ const sceneSettingsSchema = z.object({
   gridSnapEnabled: z.boolean().optional(),
   measurementsVisible: z.boolean().optional(),
   measurementUnit: z.enum(["in", "cm"]).optional(),
+  tankBackgroundStyle: z.enum(["black", "white", "frosted", "custom"]).optional(),
+  tankBackgroundColor: z.string().regex(/^#[\da-fA-F]{6}$/).optional(),
+  cabinetFinishStyle: z.enum(["white", "charcoal", "oak", "walnut", "custom"]).optional(),
+  cabinetColor: z.string().regex(/^#[\da-fA-F]{6}$/).optional(),
   glassWallsEnabled: z.boolean().optional(),
   ambientParticlesEnabled: z.boolean().optional(),
   lightingSimulationEnabled: z.boolean().optional(),
@@ -492,6 +496,15 @@ function round(value: number): number {
   return Math.round(value * 10_000) / 10_000;
 }
 
+function normalizeHexColor(value: unknown, fallback: string): string {
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  if (/^#[\da-fA-F]{6}$/.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  return fallback;
+}
+
 function defaultAnchorForCategory(categorySlug: string): VisualAnchorType {
   if (categorySlug === "hardscape") return "substrate";
   if (categorySlug === "plants") return "substrate";
@@ -543,6 +556,21 @@ function normalizeSceneSettings(
     source.qualityTier === "low"
       ? source.qualityTier
       : "auto";
+  const tankBackgroundStyle =
+    source.tankBackgroundStyle === "black" ||
+    source.tankBackgroundStyle === "white" ||
+    source.tankBackgroundStyle === "frosted" ||
+    source.tankBackgroundStyle === "custom"
+      ? source.tankBackgroundStyle
+      : "frosted";
+  const cabinetFinishStyle =
+    source.cabinetFinishStyle === "white" ||
+    source.cabinetFinishStyle === "charcoal" ||
+    source.cabinetFinishStyle === "oak" ||
+    source.cabinetFinishStyle === "walnut" ||
+    source.cabinetFinishStyle === "custom"
+      ? source.cabinetFinishStyle
+      : "oak";
 
   return {
     qualityTier,
@@ -551,6 +579,10 @@ function normalizeSceneSettings(
     gridSnapEnabled: source.gridSnapEnabled ?? false,
     measurementsVisible: source.measurementsVisible ?? false,
     measurementUnit: source.measurementUnit === "cm" ? "cm" : "in",
+    tankBackgroundStyle,
+    tankBackgroundColor: normalizeHexColor(source.tankBackgroundColor, "#88a9be"),
+    cabinetFinishStyle,
+    cabinetColor: normalizeHexColor(source.cabinetColor, "#b38b61"),
     glassWallsEnabled: source.glassWallsEnabled ?? qualityTier !== "low",
     ambientParticlesEnabled: source.ambientParticlesEnabled ?? qualityTier !== "low",
     lightingSimulationEnabled: source.lightingSimulationEnabled ?? false,

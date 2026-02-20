@@ -108,6 +108,10 @@ describe("tRPC visualBuilder router", () => {
           qualityTier: "auto",
           postprocessingEnabled: true,
           guidesVisible: true,
+          tankBackgroundStyle: "custom",
+          tankBackgroundColor: "#334455",
+          cabinetFinishStyle: "custom",
+          cabinetColor: "#6e543d",
           audioEnabled: false,
           cameraPreset: "step",
         },
@@ -125,6 +129,10 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.initialState.canvasState.sceneSettings.lightingSimulationEnabled).toBe(false);
     expect(loaded.initialState.canvasState.sceneSettings.lightMountHeightIn).toBe(4);
     expect(loaded.initialState.canvasState.sceneSettings.growthTimelineMonths).toBe(1);
+    expect(loaded.initialState.canvasState.sceneSettings.tankBackgroundStyle).toBe("custom");
+    expect(loaded.initialState.canvasState.sceneSettings.tankBackgroundColor).toBe("#334455");
+    expect(loaded.initialState.canvasState.sceneSettings.cabinetFinishStyle).toBe("custom");
+    expect(loaded.initialState.canvasState.sceneSettings.cabinetColor).toBe("#6e543d");
     expect(loaded.initialState.canvasState.widthIn).toBe(40);
     expect(loaded.initialState.canvasState.heightIn).toBe(16);
     expect(loaded.initialState.canvasState.depthIn).toBe(20);
@@ -176,6 +184,8 @@ describe("tRPC visualBuilder router", () => {
     const loaded = await anon.visualBuilder.getByShareSlug({ shareSlug: saved.shareSlug });
     expect(loaded.build.coverImageUrl).toBe(`/api/builds/${saved.shareSlug}/thumbnail`);
     expect(loaded.initialState.flags).toEqual({ hasShrimp: false, lowTechNoCo2: false });
+    expect(loaded.initialState.canvasState.sceneSettings.cabinetFinishStyle).toBe("oak");
+    expect(loaded.initialState.canvasState.sceneSettings.cabinetColor).toBe("#b38b61");
 
     const persistedRows = await db
       .select({ coverImageUrl: builds.coverImageUrl, flags: builds.flags })

@@ -1,6 +1,6 @@
 "use client";
 
-import { Edges, Environment, Html, OrbitControls, useProgress } from "@react-three/drei";
+import { Environment, Html, OrbitControls, useProgress } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
@@ -15,9 +15,11 @@ import {
   type LoadedAssetModel,
 } from "@/components/builder/visual/AssetLoader";
 import type {
+  CabinetFinishStyle,
   SubstrateHeightfield,
   SubstrateMaterialGrid,
   SubstrateMaterialType,
+  TankBackgroundStyle,
   VisualAnchorType,
   VisualAsset,
   VisualCanvasItem,
@@ -54,10 +56,6 @@ import {
   writeParHeatmapColor,
   type LightSimulationSource,
 } from "@/components/builder/visual/light-simulation";
-import {
-  resolvePlantGrowthScale,
-  type GrowthTimelineMonths,
-} from "@/components/builder/visual/plant-growth";
 import {
   BLOOM_INTENSITY,
   BLOOM_LUMINANCE_SMOOTHING,
@@ -165,10 +163,13 @@ type VisualBuilderSceneProps = {
   qualityTier: BuilderSceneQualityTier;
   postprocessingEnabled: boolean;
   glassWallsEnabled: boolean;
+  tankBackgroundStyle: TankBackgroundStyle;
+  tankBackgroundColor: string;
+  cabinetFinishStyle: CabinetFinishStyle;
+  cabinetColor: string;
   ambientParticlesEnabled: boolean;
   lightingSimulationEnabled: boolean;
   lightMountHeightIn: number;
-  growthTimelineMonths: GrowthTimelineMonths;
   selectedLightAsset: VisualAsset | null;
   sculptMode: SubstrateBrushMode;
   sculptBrushSize: number;
@@ -225,6 +226,10 @@ type MoveDragState = {
     x: number;
     y: number;
     z: number;
+    minXNorm: number;
+    maxXNorm: number;
+    minZNorm: number;
+    maxZNorm: number;
     anchorType: VisualAnchorType;
     yOffsetNorm: number;
     scale: number;
@@ -250,12 +255,17 @@ const CLUSTER_OFFSETS: ReadonlyArray<[number, number]> = [
   [-0.035, -0.007],
   [0.012, 0.033],
 ];
+const ITEM_OUTLINE_SCALE = 1.045;
 
 const SUBSTRATE_SURFACE_SCALE = 0.96;
 const SUBSTRATE_DEFAULT_DEPTH_IN = 1.6;
 const SUBSTRATE_MIN_DEPTH_IN = 0.2;
 const SUBSTRATE_MAX_DEPTH_RATIO = 0.62;
 const SUBSTRATE_HEIGHT_EPSILON = 0.0001;
+const SUBSTRATE_AQUASOIL_TEXTURE_PATH = "/visual-assets/materials/aquasoil-texture.png";
+const SUBSTRATE_SURFACE_TEXTURE_TILE_IN = 2.4;
+const SUBSTRATE_SIDE_TEXTURE_TILE_IN = 2.1;
+const SUBSTRATE_SIDE_TEXTURE_VERTICAL_TILE_IN = 1.5;
 const SUBSTRATE_HEATMAP_Y_OFFSET = 0.015;
 const SUBSTRATE_HEATMAP_OPACITY = 0.64;
 const SUBSTRATE_RENDER_SMOOTH_PASSES = 2;
@@ -267,6 +277,8 @@ const WATER_SURFACE_TEXTURE_SEED = 0x51f91f7;
 const WATER_SURFACE_NOISE_SCALE = 5.25;
 const WATER_SURFACE_OCTAVES = 4;
 const CAUSTIC_TEXTURE_SEED = 0x2a9df53;
+const CABINET_OAK_TEXTURE_SEED = 0x4b7d1f31;
+const CABINET_WALNUT_TEXTURE_SEED = 0x8134f921;
 const AMBIENT_PARTICLE_SEED = 0x1bd5c91;
 const AMBIENT_PARTICLE_COLORS: ReadonlyArray<[number, number, number]> = [
   [0.94, 0.99, 0.97],
@@ -411,12 +423,17 @@ type SubstrateVolumeSegment = {
   topAIndex: number;
   topBIndex: number;
   positionOffset: number;
+  uvOffset: number;
+  uStartTile: number;
+  uEndTile: number;
 };
 
 type SubstrateVolumeData = {
   geometry: THREE.BufferGeometry;
   positionAttribute: THREE.BufferAttribute;
   positions: Float32Array;
+  uvAttribute: THREE.BufferAttribute;
+  uvs: Float32Array;
   segments: SubstrateVolumeSegment[];
   bottomOffsets: [number, number, number, number];
 };
@@ -427,6 +444,50 @@ function clampPointToTankBounds(point: THREE.Vector3, dims: SceneDims): THREE.Ve
     THREE.MathUtils.clamp(point.y, 0, dims.heightIn),
     THREE.MathUtils.clamp(point.z, -dims.depthIn * 0.49, dims.depthIn * 0.49),
   );
+}
+
+function normalizeFootprintInset(sizeIn: number, radiusIn: number): number {
+  if (!Number.isFinite(sizeIn) || sizeIn <= 0) return 0.5;
+  if (!Number.isFinite(radiusIn) || radiusIn <= 0) return 0;
+  return THREE.MathUtils.clamp(radiusIn / sizeIn, 0, 0.5);
+}
+
+function resolveFootprintBounds(params: {
+  dims: SceneDims;
+  footprintRadiusIn: number;
+}): {
+  minXNorm: number;
+  maxXNorm: number;
+  minZNorm: number;
+  maxZNorm: number;
+  fitsInsideTank: boolean;
+} {
+  const xInset = normalizeFootprintInset(params.dims.widthIn, params.footprintRadiusIn);
+  const zInset = normalizeFootprintInset(params.dims.depthIn, params.footprintRadiusIn);
+  const fitsInsideTank = xInset < 0.5 && zInset < 0.5;
+
+  if (!fitsInsideTank) {
+    return {
+      minXNorm: 0.5,
+      maxXNorm: 0.5,
+      minZNorm: 0.5,
+      maxZNorm: 0.5,
+      fitsInsideTank,
+    };
+  }
+
+  return {
+    minXNorm: xInset,
+    maxXNorm: 1 - xInset,
+    minZNorm: zInset,
+    maxZNorm: 1 - zInset,
+    fitsInsideTank,
+  };
+}
+
+function clampNormalizedToFootprintBounds(value: number, min: number, max: number): number {
+  if (min >= max) return 0.5;
+  return THREE.MathUtils.clamp(clamp01(value), min, max);
 }
 
 function inchGridStepNormalized(sizeIn: number): number {
@@ -1491,11 +1552,27 @@ function createSubstrateVolumeData(params: {
   const sideVertexCount = segmentCount * 4;
   const totalVertexCount = sideVertexCount + 4;
   const positions = new Float32Array(totalVertexCount * 3);
+  const uvs = new Float32Array(totalVertexCount * 2);
   const indices = new Uint16Array(segmentCount * 6 + 6);
   const segments: SubstrateVolumeSegment[] = [];
+  const segmentLengths = new Float32Array(segmentCount);
+
+  for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
+    const topAIndex = edgePath[segmentIndex] ?? 0;
+    const topBIndex = edgePath[(segmentIndex + 1) % segmentCount] ?? topAIndex;
+    const topAOffset = topAIndex * 3;
+    const topBOffset = topBIndex * 3;
+    const ax = params.topPositions[topAOffset] ?? 0;
+    const az = params.topPositions[topAOffset + 2] ?? 0;
+    const bx = params.topPositions[topBOffset] ?? 0;
+    const bz = params.topPositions[topBOffset + 2] ?? 0;
+    const segmentLength = Math.max(0.001, Math.hypot(bx - ax, bz - az));
+    segmentLengths[segmentIndex] = segmentLength;
+  }
 
   let vertexCursor = 0;
   let indexCursor = 0;
+  let perimeterCursorIn = 0;
 
   for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
     const topAIndex = edgePath[segmentIndex] ?? 0;
@@ -1509,6 +1586,12 @@ function createSubstrateVolumeData(params: {
     const bx = params.topPositions[topBOffset] ?? 0;
     const by = params.topPositions[topBOffset + 1] ?? 0;
     const bz = params.topPositions[topBOffset + 2] ?? 0;
+    const segmentLength = segmentLengths[segmentIndex] ?? 0.001;
+    const uStartTile = perimeterCursorIn / SUBSTRATE_SIDE_TEXTURE_TILE_IN;
+    const uEndTile = (perimeterCursorIn + segmentLength) / SUBSTRATE_SIDE_TEXTURE_TILE_IN;
+    const topAV = Math.max(0.001, ay - SUBSTRATE_VOLUME_BASE_Y) / SUBSTRATE_SIDE_TEXTURE_VERTICAL_TILE_IN;
+    const topBV = Math.max(0.001, by - SUBSTRATE_VOLUME_BASE_Y) / SUBSTRATE_SIDE_TEXTURE_VERTICAL_TILE_IN;
+    const uvOffset = vertexCursor * 2;
 
     const quadOffset = vertexCursor * 3;
     positions[quadOffset] = ax;
@@ -1524,6 +1607,15 @@ function createSubstrateVolumeData(params: {
     positions[quadOffset + 10] = SUBSTRATE_VOLUME_BASE_Y;
     positions[quadOffset + 11] = az;
 
+    uvs[uvOffset] = uStartTile;
+    uvs[uvOffset + 1] = topAV;
+    uvs[uvOffset + 2] = uEndTile;
+    uvs[uvOffset + 3] = topBV;
+    uvs[uvOffset + 4] = uEndTile;
+    uvs[uvOffset + 5] = 0;
+    uvs[uvOffset + 6] = uStartTile;
+    uvs[uvOffset + 7] = 0;
+
     indices[indexCursor] = vertexCursor;
     indices[indexCursor + 1] = vertexCursor + 1;
     indices[indexCursor + 2] = vertexCursor + 2;
@@ -1535,10 +1627,14 @@ function createSubstrateVolumeData(params: {
       topAIndex,
       topBIndex,
       positionOffset: quadOffset,
+      uvOffset,
+      uStartTile,
+      uEndTile,
     });
 
     vertexCursor += 4;
     indexCursor += 6;
+    perimeterCursorIn += segmentLength;
   }
 
   const frontLeft = 0;
@@ -1557,10 +1653,15 @@ function createSubstrateVolumeData(params: {
     const topIndex = bottomIndices[cornerIndex] ?? 0;
     const topOffset = topIndex * 3;
     const writeOffset = vertexCursor * 3;
+    const uvOffset = vertexCursor * 2;
+    const x = params.topPositions[topOffset] ?? 0;
+    const z = params.topPositions[topOffset + 2] ?? 0;
 
-    positions[writeOffset] = params.topPositions[topOffset] ?? 0;
+    positions[writeOffset] = x;
     positions[writeOffset + 1] = SUBSTRATE_VOLUME_BASE_Y;
-    positions[writeOffset + 2] = params.topPositions[topOffset + 2] ?? 0;
+    positions[writeOffset + 2] = z;
+    uvs[uvOffset] = x / SUBSTRATE_SIDE_TEXTURE_TILE_IN;
+    uvs[uvOffset + 1] = z / SUBSTRATE_SIDE_TEXTURE_TILE_IN;
     vertexCursor += 1;
   }
 
@@ -1573,7 +1674,9 @@ function createSubstrateVolumeData(params: {
 
   const geometry = new THREE.BufferGeometry();
   const positionAttribute = new THREE.BufferAttribute(positions, 3);
+  const uvAttribute = new THREE.BufferAttribute(uvs, 2);
   geometry.setAttribute("position", positionAttribute);
+  geometry.setAttribute("uv", uvAttribute);
   geometry.setIndex(new THREE.BufferAttribute(indices, 1));
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
@@ -1582,6 +1685,8 @@ function createSubstrateVolumeData(params: {
     geometry,
     positionAttribute,
     positions,
+    uvAttribute,
+    uvs,
     segments,
     bottomOffsets,
   };
@@ -1840,6 +1945,7 @@ function sampleInterpolatedSubstrateHeight(params: {
 function updateSubstrateVolumeGeometry(params: { data: SubstrateGeometryData }) {
   const topPositions = params.data.positionAttribute.array;
   const volumePositions = params.data.volume.positions;
+  const volumeUvs = params.data.volume.uvs;
 
   if (!(topPositions instanceof Float32Array)) return;
 
@@ -1863,6 +1969,21 @@ function updateSubstrateVolumeGeometry(params: { data: SubstrateGeometryData }) 
     volumePositions[positionOffset + 9] = topPositions[topAOffset] ?? 0;
     volumePositions[positionOffset + 10] = SUBSTRATE_VOLUME_BASE_Y;
     volumePositions[positionOffset + 11] = topPositions[topAOffset + 2] ?? 0;
+
+    const uvOffset = segment.uvOffset;
+    const topAY = topPositions[topAOffset + 1] ?? 0;
+    const topBY = topPositions[topBOffset + 1] ?? 0;
+    const topAV = Math.max(0.001, topAY - SUBSTRATE_VOLUME_BASE_Y) / SUBSTRATE_SIDE_TEXTURE_VERTICAL_TILE_IN;
+    const topBV = Math.max(0.001, topBY - SUBSTRATE_VOLUME_BASE_Y) / SUBSTRATE_SIDE_TEXTURE_VERTICAL_TILE_IN;
+
+    volumeUvs[uvOffset] = segment.uStartTile;
+    volumeUvs[uvOffset + 1] = topAV;
+    volumeUvs[uvOffset + 2] = segment.uEndTile;
+    volumeUvs[uvOffset + 3] = topBV;
+    volumeUvs[uvOffset + 4] = segment.uEndTile;
+    volumeUvs[uvOffset + 5] = 0;
+    volumeUvs[uvOffset + 6] = segment.uStartTile;
+    volumeUvs[uvOffset + 7] = 0;
   }
 
   for (const bottomOffset of params.data.volume.bottomOffsets) {
@@ -1870,6 +1991,7 @@ function updateSubstrateVolumeGeometry(params: { data: SubstrateGeometryData }) 
   }
 
   params.data.volume.positionAttribute.needsUpdate = true;
+  params.data.volume.uvAttribute.needsUpdate = true;
   params.data.volume.geometry.computeVertexNormals();
   params.data.volume.geometry.computeBoundingSphere();
   const normalAttribute = params.data.volume.geometry.getAttribute("normal");
@@ -2271,7 +2393,23 @@ function ProceduralPlantMesh(props: {
       scale={scale}
       raycast={props.interactive ? undefined : DISABLED_RAYCAST}
     >
-      {props.highlightColor ? <Edges color={props.highlightColor} threshold={22} /> : null}
+      {props.highlightColor ? (
+        <mesh
+          geometry={model.geometry}
+          scale={[ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE]}
+          raycast={DISABLED_RAYCAST}
+          renderOrder={91}
+        >
+          <meshBasicMaterial
+            color={props.highlightColor}
+            side={THREE.BackSide}
+            transparent
+            opacity={0.96}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ) : null}
     </mesh>
   );
 }
@@ -2335,7 +2473,21 @@ function ProceduralHardscapeMesh(props: {
       raycast={props.interactive ? undefined : DISABLED_RAYCAST}
     >
       {props.highlightColor ? (
-        <Edges color={props.highlightColor} threshold={isWood ? 26 : 20} />
+        <mesh
+          geometry={model.geometry}
+          scale={[ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE]}
+          raycast={DISABLED_RAYCAST}
+          renderOrder={91}
+        >
+          <meshBasicMaterial
+            color={props.highlightColor}
+            side={THREE.BackSide}
+            transparent
+            opacity={0.96}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
       ) : null}
     </mesh>
   );
@@ -2474,7 +2626,23 @@ function ItemMesh(props: {
                     scale={scale}
                     raycast={props.interactive ? undefined : DISABLED_RAYCAST}
                   >
-                    {highlightColor ? <Edges color={highlightColor} threshold={22} /> : null}
+                    {highlightColor ? (
+                      <mesh
+                        geometry={model.geometry}
+                        scale={[ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE]}
+                        raycast={DISABLED_RAYCAST}
+                        renderOrder={91}
+                      >
+                        <meshBasicMaterial
+                          color={highlightColor}
+                          side={THREE.BackSide}
+                          transparent
+                          opacity={0.96}
+                          depthWrite={false}
+                          toneMapped={false}
+                        />
+                      </mesh>
+                    ) : null}
                   </mesh>
                 );
               }}
@@ -3064,8 +3232,399 @@ function SceneGroundPlane(props: { dims: SceneDims }) {
   );
 }
 
+function TankBackgroundPanel(props: {
+  dims: SceneDims;
+  style: TankBackgroundStyle;
+  customColor: string;
+}) {
+  const halfDepth = props.dims.depthIn * 0.5;
+  const panelY = props.dims.heightIn * 0.5;
+  const panelZ = halfDepth - Math.max(0.04, props.dims.depthIn * 0.01);
+  const panelWidth = props.dims.widthIn * 0.95;
+  const panelHeight = props.dims.heightIn * 0.97;
+  const solidColor =
+    props.style === "black"
+      ? "#0a0d10"
+      : props.style === "white"
+        ? "#f5f8fb"
+        : props.style === "custom"
+          ? props.customColor
+          : "#d2e2ea";
+
+  return (
+    <mesh position={[0, panelY, panelZ]} raycast={DISABLED_RAYCAST} receiveShadow castShadow>
+      <planeGeometry args={[panelWidth, panelHeight]} />
+      {props.style === "frosted" ? (
+        <meshPhysicalMaterial
+          color={solidColor}
+          transparent
+          opacity={0.8}
+          transmission={0.42}
+          roughness={0.85}
+          metalness={0}
+          thickness={0.45}
+          ior={1.2}
+          clearcoat={0.1}
+          clearcoatRoughness={0.74}
+        />
+      ) : (
+        <meshStandardMaterial color={solidColor} roughness={0.92} metalness={0.03} />
+      )}
+    </mesh>
+  );
+}
+
+function resolveCabinetFinishColor(style: CabinetFinishStyle, customColor: string): string {
+  if (style === "white") return "#e8ece8";
+  if (style === "charcoal") return "#2f353a";
+  if (style === "oak") return "#be9468";
+  if (style === "walnut") return "#6d4f38";
+  if (/^#[\da-fA-F]{6}$/.test(customColor.trim())) {
+    return customColor.trim().toLowerCase();
+  }
+  return "#b38b61";
+}
+
+function colorChannels(color: THREE.Color): { r: number; g: number; b: number } {
+  return {
+    r: Math.round(THREE.MathUtils.clamp(color.r, 0, 1) * 255),
+    g: Math.round(THREE.MathUtils.clamp(color.g, 0, 1) * 255),
+    b: Math.round(THREE.MathUtils.clamp(color.b, 0, 1) * 255),
+  };
+}
+
+function createWoodCabinetTexture(params: {
+  seed: number;
+  base: string;
+  grain: string;
+  highlight: string;
+}): THREE.Texture | null {
+  if (typeof document === "undefined") return null;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 320;
+  canvas.height = 320;
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+
+  const base = colorChannels(new THREE.Color(params.base));
+  const grain = colorChannels(new THREE.Color(params.grain));
+  const highlight = colorChannels(new THREE.Color(params.highlight));
+
+  context.fillStyle = `rgb(${base.r}, ${base.g}, ${base.b})`;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const random = seededRandom(params.seed);
+  const stripeCount = 230;
+  const stripeHeight = 2;
+  for (let index = 0; index < stripeCount; index += 1) {
+    const x = random() * canvas.width;
+    const width = THREE.MathUtils.lerp(0.8, 3.6, random());
+    const frequency = THREE.MathUtils.lerp(1.2, 4.8, random());
+    const amplitude = THREE.MathUtils.lerp(2.5, 12, random());
+    const phase = random() * Math.PI * 2;
+    const useHighlight = random() > 0.84;
+    const tone = useHighlight ? highlight : grain;
+    const alpha = useHighlight
+      ? THREE.MathUtils.lerp(0.06, 0.16, random())
+      : THREE.MathUtils.lerp(0.08, 0.22, random());
+
+    context.fillStyle = `rgba(${tone.r}, ${tone.g}, ${tone.b}, ${alpha.toFixed(3)})`;
+    for (let y = 0; y < canvas.height; y += stripeHeight) {
+      const drift = Math.sin((y / canvas.height) * Math.PI * frequency + phase) * amplitude;
+      context.fillRect(x + drift, y, width, stripeHeight);
+    }
+  }
+
+  const sheen = context.createLinearGradient(0, 0, 0, canvas.height);
+  sheen.addColorStop(0, "rgba(255,255,255,0.09)");
+  sheen.addColorStop(0.5, "rgba(255,255,255,0.02)");
+  sheen.addColorStop(1, "rgba(0,0,0,0.15)");
+  context.fillStyle = sheen;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2.2, 1.15);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function CabinetStand(props: {
+  dims: SceneDims;
+  finishStyle: CabinetFinishStyle;
+  customColor: string;
+}) {
+  const finishColor = resolveCabinetFinishColor(props.finishStyle, props.customColor);
+  const woodTexture = useMemo(() => {
+    if (props.finishStyle === "oak") {
+      return createWoodCabinetTexture({
+        seed: CABINET_OAK_TEXTURE_SEED,
+        base: "#be9468",
+        grain: "#8e633e",
+        highlight: "#d2b08e",
+      });
+    }
+    if (props.finishStyle === "walnut") {
+      return createWoodCabinetTexture({
+        seed: CABINET_WALNUT_TEXTURE_SEED,
+        base: "#6d4f38",
+        grain: "#4f3525",
+        highlight: "#866046",
+      });
+    }
+    return null;
+  }, [props.finishStyle]);
+
+  useEffect(() => {
+    return () => {
+      woodTexture?.dispose();
+    };
+  }, [woodTexture]);
+
+  const cabinetWidth = props.dims.widthIn + Math.max(1, props.dims.widthIn * 0.03);
+  const cabinetDepth = props.dims.depthIn + Math.max(0.8, props.dims.depthIn * 0.05);
+  const topThickness = Math.max(0.22, Math.min(0.45, props.dims.heightIn * 0.022));
+  const cabinetHeight = Math.max(10, Math.min(30, props.dims.heightIn * 1.12));
+  const plinthHeight = Math.max(0.48, Math.min(1, cabinetHeight * 0.06));
+  const bodyHeight = Math.max(4, cabinetHeight - topThickness - plinthHeight);
+  const topY = -topThickness * 0.5 - 0.02;
+  const bodyY = -topThickness - bodyHeight * 0.5 - 0.02;
+  const plinthY = -topThickness - bodyHeight - plinthHeight * 0.5 - 0.02;
+  const panelInset = Math.max(0.18, Math.min(0.36, cabinetDepth * 0.03));
+  const panelWidth = cabinetWidth * 0.47;
+  const panelGap = Math.max(0.06, cabinetWidth * 0.01);
+
+  const bodyColor = woodTexture ? "#ffffff" : finishColor;
+  const topColor = woodTexture ? "#f4eee8" : new THREE.Color(finishColor).offsetHSL(0, 0, 0.06).getStyle();
+  const plinthColor = woodTexture
+    ? "#2a211b"
+    : new THREE.Color(finishColor).multiplyScalar(0.56).getStyle();
+
+  return (
+    <group>
+      <mesh receiveShadow castShadow position={[0, topY, 0]} raycast={DISABLED_RAYCAST}>
+        <boxGeometry args={[cabinetWidth, topThickness, cabinetDepth]} />
+        <meshStandardMaterial
+          color={topColor}
+          map={woodTexture ?? undefined}
+          roughness={0.66}
+          metalness={0.03}
+        />
+      </mesh>
+
+      <mesh receiveShadow castShadow position={[0, bodyY, 0]} raycast={DISABLED_RAYCAST}>
+        <boxGeometry args={[cabinetWidth, bodyHeight, cabinetDepth]} />
+        <meshStandardMaterial
+          color={bodyColor}
+          map={woodTexture ?? undefined}
+          roughness={props.finishStyle === "white" ? 0.84 : 0.76}
+          metalness={0.03}
+        />
+      </mesh>
+
+      <mesh
+        receiveShadow
+        castShadow
+        position={[0, plinthY, 0]}
+        raycast={DISABLED_RAYCAST}
+      >
+        <boxGeometry args={[cabinetWidth * 0.98, plinthHeight, cabinetDepth * 0.98]} />
+        <meshStandardMaterial color={plinthColor} roughness={0.8} metalness={0.05} />
+      </mesh>
+
+      {[ -1, 1 ].map((direction) => (
+        <mesh
+          key={`cabinet-door-${direction}`}
+          position={[
+            direction * (panelWidth * 0.5 + panelGap * 0.5),
+            bodyY,
+            cabinetDepth * 0.5 - panelInset,
+          ]}
+          raycast={DISABLED_RAYCAST}
+        >
+          <boxGeometry args={[panelWidth, bodyHeight * 0.92, 0.08]} />
+          <meshStandardMaterial
+            color={woodTexture ? "#ffffff" : finishColor}
+            map={woodTexture ?? undefined}
+            roughness={0.8}
+            metalness={0.02}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function RimlessGlassEdgeHighlights(props: {
+  dims: SceneDims;
+}) {
+  const halfWidth = props.dims.widthIn * 0.5;
+  const halfDepth = props.dims.depthIn * 0.5;
+  const thickness = Math.max(
+    0.02,
+    Math.min(0.065, Math.min(props.dims.widthIn, props.dims.depthIn) * 0.0021),
+  );
+  const bottomEdgeY = thickness * 0.5;
+  const topEdgeY = Math.max(bottomEdgeY + thickness, props.dims.heightIn - thickness * 0.5);
+  const verticalHeight = Math.max(thickness, topEdgeY - bottomEdgeY);
+  const verticalCenterY = bottomEdgeY + verticalHeight * 0.5;
+
+  return (
+    <group raycast={DISABLED_RAYCAST} renderOrder={34}>
+      {[halfDepth, -halfDepth].map((z) => (
+        <mesh key={`top-width-${z}`} position={[0, topEdgeY, z]}>
+          <boxGeometry args={[props.dims.widthIn, thickness, thickness]} />
+          <meshPhysicalMaterial
+            color="#9fdfeb"
+            transparent
+            opacity={0.92}
+            transmission={0.7}
+            roughness={0.1}
+            metalness={0}
+            thickness={0.16}
+            ior={1.5}
+            clearcoat={0.48}
+            clearcoatRoughness={0.22}
+          />
+        </mesh>
+      ))}
+
+      {[halfWidth, -halfWidth].map((x) => (
+        <mesh key={`top-depth-${x}`} position={[x, topEdgeY, 0]}>
+          <boxGeometry args={[thickness, thickness, props.dims.depthIn]} />
+          <meshPhysicalMaterial
+            color="#9fdfeb"
+            transparent
+            opacity={0.92}
+            transmission={0.7}
+            roughness={0.1}
+            metalness={0}
+            thickness={0.16}
+            ior={1.5}
+            clearcoat={0.48}
+            clearcoatRoughness={0.22}
+          />
+        </mesh>
+      ))}
+
+      {[halfDepth, -halfDepth].map((z) => (
+        <mesh key={`bottom-width-${z}`} position={[0, bottomEdgeY, z]}>
+          <boxGeometry args={[props.dims.widthIn, thickness, thickness]} />
+          <meshPhysicalMaterial
+            color="#8ad7e8"
+            transparent
+            opacity={0.86}
+            transmission={0.66}
+            roughness={0.12}
+            metalness={0}
+            thickness={0.12}
+            ior={1.5}
+            clearcoat={0.42}
+            clearcoatRoughness={0.24}
+          />
+        </mesh>
+      ))}
+
+      {[halfWidth, -halfWidth].map((x) => (
+        <mesh key={`bottom-depth-${x}`} position={[x, bottomEdgeY, 0]}>
+          <boxGeometry args={[thickness, thickness, props.dims.depthIn]} />
+          <meshPhysicalMaterial
+            color="#8ad7e8"
+            transparent
+            opacity={0.86}
+            transmission={0.66}
+            roughness={0.12}
+            metalness={0}
+            thickness={0.12}
+            ior={1.5}
+            clearcoat={0.42}
+            clearcoatRoughness={0.24}
+          />
+        </mesh>
+      ))}
+
+      {[
+        [-halfWidth, -halfDepth],
+        [-halfWidth, halfDepth],
+        [halfWidth, -halfDepth],
+        [halfWidth, halfDepth],
+      ].map(([x, z]) => (
+        <mesh key={`vertical-${x}-${z}`} position={[x, verticalCenterY, z]}>
+          <boxGeometry args={[thickness, verticalHeight, thickness]} />
+          <meshPhysicalMaterial
+            color="#9fdfeb"
+            transparent
+            opacity={0.9}
+            transmission={0.68}
+            roughness={0.1}
+            metalness={0}
+            thickness={0.16}
+            ior={1.5}
+            clearcoat={0.48}
+            clearcoatRoughness={0.22}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function configureSubstrateTexture(texture: THREE.Texture): void {
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+}
+
+function useSubstrateTextureMaps(params: {
+  widthIn: number;
+  depthIn: number;
+}): {
+  surfaceTexture: THREE.Texture;
+  sideTexture: THREE.Texture;
+} {
+  const surfaceTexture = useMemo(
+    () => new THREE.TextureLoader().load(SUBSTRATE_AQUASOIL_TEXTURE_PATH),
+    [],
+  );
+  const sideTexture = useMemo(
+    () => new THREE.TextureLoader().load(SUBSTRATE_AQUASOIL_TEXTURE_PATH),
+    [],
+  );
+
+  useEffect(() => {
+    configureSubstrateTexture(surfaceTexture);
+    configureSubstrateTexture(sideTexture);
+
+    surfaceTexture.repeat.set(
+      Math.max(1, params.widthIn / SUBSTRATE_SURFACE_TEXTURE_TILE_IN),
+      Math.max(1, params.depthIn / SUBSTRATE_SURFACE_TEXTURE_TILE_IN),
+    );
+    sideTexture.repeat.set(1, 1);
+  }, [params.depthIn, params.widthIn, sideTexture, surfaceTexture]);
+
+  useEffect(() => {
+    return () => {
+      surfaceTexture.dispose();
+      sideTexture.dispose();
+    };
+  }, [sideTexture, surfaceTexture]);
+
+  return {
+    surfaceTexture,
+    sideTexture,
+  };
+}
+
 function SubstrateCausticMaterial(props: {
   qualityTier: BuilderSceneQualityTier;
+  surfaceTexture: THREE.Texture;
 }) {
   const caustics = useMemo(
     () => createAnimatedCausticTexture(props.qualityTier),
@@ -3096,6 +3655,7 @@ function SubstrateCausticMaterial(props: {
     <meshStandardMaterial
       color="#ffffff"
       vertexColors
+      map={props.surfaceTexture}
       roughness={0.93}
       metalness={0.03}
       emissive="#8fbfca"
@@ -3306,6 +3866,10 @@ function TankMeasurementOverlay(props: {
 function TankShell(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
+  tankBackgroundStyle: TankBackgroundStyle;
+  tankBackgroundColor: string;
+  cabinetFinishStyle: CabinetFinishStyle;
+  cabinetColor: string;
   substrateHeightfield: SubstrateHeightfield;
   substrateMaterialGrid: SubstrateMaterialGrid;
   showGlassWalls: boolean;
@@ -3325,6 +3889,10 @@ function TankShell(props: {
   onSubstrateStrokeEnd: () => void;
   onSubstrateControlPointDragStateChange: (active: boolean) => void;
 }) {
+  const substrateTextures = useSubstrateTextureMaps({
+    widthIn: props.dims.widthIn,
+    depthIn: props.dims.depthIn,
+  });
   const substrateGeometryData = useMemo(
     () =>
       createSubstrateGeometryData({
@@ -3382,10 +3950,17 @@ function TankShell(props: {
 
   return (
     <group>
-      <mesh receiveShadow position={[0, -0.05, 0]}>
-        <boxGeometry args={[props.dims.widthIn * 0.98, 0.1, props.dims.depthIn * 0.98]} />
-        <meshStandardMaterial color="#2f2924" roughness={0.95} metalness={0.02} />
-      </mesh>
+      <CabinetStand
+        dims={props.dims}
+        finishStyle={props.cabinetFinishStyle}
+        customColor={props.cabinetColor}
+      />
+
+      <TankBackgroundPanel
+        dims={props.dims}
+        style={props.tankBackgroundStyle}
+        customColor={props.tankBackgroundColor}
+      />
 
       <mesh
         position={[0, waterHeight * 0.5, 0]}
@@ -3476,13 +4051,20 @@ function TankShell(props: {
         </group>
       ) : null}
 
+      {props.showGlassWalls ? <RimlessGlassEdgeHighlights dims={props.dims} /> : null}
+
       <mesh
         geometry={substrateGeometryData.volume.geometry}
         receiveShadow
         castShadow
         raycast={DISABLED_RAYCAST}
       >
-        <meshStandardMaterial color="#34281f" roughness={0.92} metalness={0.03} />
+        <meshStandardMaterial
+          color="#f5f2ec"
+          map={substrateTextures.sideTexture}
+          roughness={0.9}
+          metalness={0.02}
+        />
       </mesh>
 
       <mesh
@@ -3494,7 +4076,10 @@ function TankShell(props: {
         onPointerDown={(event) => props.onSurfaceDown(event, "substrate", null)}
         onPointerUp={props.onSurfaceUp}
       >
-        <SubstrateCausticMaterial qualityTier={props.qualityTier} />
+        <SubstrateCausticMaterial
+          qualityTier={props.qualityTier}
+          surfaceTexture={substrateTextures.surfaceTexture}
+        />
       </mesh>
 
       {props.showLightingHeatmap && props.lightSimulationSource ? (
@@ -3639,19 +4224,11 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         dims,
         substrateHeightfield: props.canvasState.substrateHeightfield,
       });
-      const plantGrowthScale =
-        asset.categorySlug === "plants"
-          ? resolvePlantGrowthScale({
-              asset,
-              timelineMonths: props.growthTimelineMonths,
-              plantTypeHint: resolveVisualAsset(asset).proceduralPlantType,
-            })
-          : { x: 1, y: 1, z: 1 };
 
       const size = {
-        width: Math.max(0.35, asset.widthIn * item.scale * 0.18 * plantGrowthScale.x),
-        height: Math.max(0.35, asset.heightIn * item.scale * 0.18 * plantGrowthScale.y),
-        depth: Math.max(0.35, asset.depthIn * item.scale * 0.18 * plantGrowthScale.z),
+        width: Math.max(0.35, asset.widthIn * item.scale * 0.18),
+        height: Math.max(0.35, asset.heightIn * item.scale * 0.18),
+        depth: Math.max(0.35, asset.depthIn * item.scale * 0.18),
       };
 
       resolved.push({
@@ -3672,8 +4249,12 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     props.assetsById,
     props.canvasState.items,
     props.canvasState.substrateHeightfield,
-    props.growthTimelineMonths,
   ]);
+
+  const renderItemsById = useMemo(
+    () => new Map(renderItems.map((renderItem) => [renderItem.item.id, renderItem] as const)),
+    [renderItems],
+  );
 
   const cameraFocusTarget = useMemo<CameraFocusTarget | null>(() => {
     const intent = props.cameraIntent;
@@ -3842,9 +4423,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       point: nextCandidate.point,
       anchorType: nextCandidate.anchorType,
     });
+    const provisionalYNorm = resolvedPlacement.yNorm;
 
-    const snappedPoint = resolvedPlacement.point;
-    const yNorm = resolvedPlacement.yNorm;
     const scale = Math.max(0.1, asset.defaultScale);
     const previewWidth = Math.max(0.35, asset.widthIn * scale * 0.18);
     const previewDepth = Math.max(0.35, asset.depthIn * scale * 0.18);
@@ -3857,7 +4437,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       sku: asset.sku,
       variant: asset.slug,
       x: resolvedPlacement.xNorm,
-      y: yNorm,
+      y: provisionalYNorm,
       z: resolvedPlacement.zNorm,
       scale,
       rotation: props.placementRotationDeg,
@@ -3873,7 +4453,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       },
       transform: buildTransformFromNormalized({
         x: resolvedPlacement.xNorm,
-        y: yNorm,
+        y: provisionalYNorm,
         z: resolvedPlacement.zNorm,
         scale,
         rotation: props.placementRotationDeg,
@@ -3886,8 +4466,38 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       assetWidthIn: asset.widthIn,
       assetDepthIn: asset.depthIn,
     });
+    const footprintBounds = resolveFootprintBounds({
+      dims,
+      footprintRadiusIn: previewRadius,
+    });
+    const xNorm = clampNormalizedToFootprintBounds(
+      resolvedPlacement.xNorm,
+      footprintBounds.minXNorm,
+      footprintBounds.maxXNorm,
+    );
+    const zNorm = clampNormalizedToFootprintBounds(
+      resolvedPlacement.zNorm,
+      footprintBounds.minZNorm,
+      footprintBounds.maxZNorm,
+    );
+    const substrateY =
+      nextCandidate.anchorType === "substrate"
+        ? sampleSubstrateDepth({
+            xNorm,
+            zNorm,
+            heightfield: props.canvasState.substrateHeightfield,
+            tankHeightIn: dims.heightIn,
+          })
+        : null;
+    const yNorm =
+      substrateY == null ? provisionalYNorm : clamp01(substrateY / Math.max(1, dims.heightIn));
+    const worldPoint = normalizedToWorld({ x: xNorm, y: yNorm, z: zNorm, dims });
+    const snappedPoint =
+      substrateY == null
+        ? new THREE.Vector3(worldPoint.x, worldPoint.y, worldPoint.z)
+        : new THREE.Vector3(worldPoint.x, substrateY, worldPoint.z);
 
-    let valid = true;
+    let valid = footprintBounds.fitsInsideTank;
     for (const placed of renderItems) {
       if (
         nextCandidate.anchorType === "hardscape" &&
@@ -3921,16 +4531,16 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       valid = false;
     }
 
-    const insideX = Math.abs(snappedPoint.x) <= dims.widthIn * 0.495;
-    const insideZ = Math.abs(snappedPoint.z) <= dims.depthIn * 0.495;
+    const insideX = Math.abs(snappedPoint.x) + previewRadius <= dims.widthIn * 0.5;
+    const insideZ = Math.abs(snappedPoint.z) + previewRadius <= dims.depthIn * 0.5;
     const insideY = snappedPoint.y >= 0 && snappedPoint.y <= dims.heightIn;
     valid = valid && insideX && insideZ && insideY;
 
     return {
       valid,
-      xNorm: resolvedPlacement.xNorm,
+      xNorm,
       yNorm,
-      zNorm: resolvedPlacement.zNorm,
+      zNorm,
       point: snappedPoint,
       previewRadius: Math.max(previewRadius, Math.max(previewWidth, previewDepth) * 0.48),
     };
@@ -3944,16 +4554,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const scale = Math.max(0.1, props.placementAsset.defaultScale);
     const rotation = clampRotation(props.placementRotationDeg);
     const placementZone = depthZoneFromZ(placementValidity.zNorm);
-    const resolvedPlacementAsset = resolveVisualAsset(props.placementAsset);
-    const plantGrowthScale =
-      props.placementAsset.categorySlug === "plants"
-        ? resolvePlantGrowthScale({
-            asset: props.placementAsset,
-            timelineMonths: props.growthTimelineMonths,
-            plantTypeHint: resolvedPlacementAsset.proceduralPlantType,
-          })
-        : { x: 1, y: 1, z: 1 };
-
     const previewItem: VisualCanvasItem = {
       id: "__placement-preview__",
       assetId: props.placementAsset.id,
@@ -3991,9 +4591,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       asset: props.placementAsset,
       position: placementValidity.point.clone(),
       size: {
-        width: Math.max(0.35, props.placementAsset.widthIn * scale * 0.18 * plantGrowthScale.x),
-        height: Math.max(0.35, props.placementAsset.heightIn * scale * 0.18 * plantGrowthScale.y),
-        depth: Math.max(0.35, props.placementAsset.depthIn * scale * 0.18 * plantGrowthScale.z),
+        width: Math.max(0.35, props.placementAsset.widthIn * scale * 0.18),
+        height: Math.max(0.35, props.placementAsset.heightIn * scale * 0.18),
+        depth: Math.max(0.35, props.placementAsset.depthIn * scale * 0.18),
       },
       collisionRadius: placementValidity.previewRadius,
     };
@@ -4005,7 +4605,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     placementValidity.xNorm,
     placementValidity.yNorm,
     placementValidity.zNorm,
-    props.growthTimelineMonths,
     props.placementAsset,
     props.placementRotationDeg,
   ]);
@@ -4019,6 +4618,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const count = Math.max(1, props.placementClusterCount);
     const anchorType = activeCandidate.anchorType;
     const shouldSnapToGrid = props.gridSnapEnabled && anchorType === "substrate";
+    const placementBounds = resolveFootprintBounds({
+      dims,
+      footprintRadiusIn: validity.previewRadius,
+    });
 
     for (let i = 0; i < count; i += 1) {
       const offset = CLUSTER_OFFSETS[i % CLUSTER_OFFSETS.length] ?? [0, 0];
@@ -4029,6 +4632,16 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         xNorm = snapNormalizedToInchGrid(xNorm, dims.widthIn);
         zNorm = snapNormalizedToInchGrid(zNorm, dims.depthIn);
       }
+      xNorm = clampNormalizedToFootprintBounds(
+        xNorm,
+        placementBounds.minXNorm,
+        placementBounds.maxXNorm,
+      );
+      zNorm = clampNormalizedToFootprintBounds(
+        zNorm,
+        placementBounds.minZNorm,
+        placementBounds.maxZNorm,
+      );
 
       const substrateY = sampleSubstrateDepth({
         xNorm,
@@ -4117,6 +4730,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         x: selectedItem.x,
         y: selectedItem.y,
         z: selectedItem.z,
+        minXNorm: 0,
+        maxXNorm: 1,
+        minZNorm: 0,
+        maxZNorm: 1,
         anchorType: selectedItem.anchorType,
         yOffsetNorm: selectedItem.y - substrateYNorm,
         scale: selectedItem.scale,
@@ -4131,15 +4748,39 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     };
     pointerTarget.setPointerCapture?.(event.pointerId);
 
-    let minX = 1;
-    let maxX = 0;
-    let minZ = 1;
-    let maxZ = 0;
+    let minDeltaX = Number.NEGATIVE_INFINITY;
+    let maxDeltaX = Number.POSITIVE_INFINITY;
+    let minDeltaZ = Number.NEGATIVE_INFINITY;
+    let maxDeltaZ = Number.POSITIVE_INFINITY;
     for (const selectedDragItem of selectedDragItems) {
-      if (selectedDragItem.x < minX) minX = selectedDragItem.x;
-      if (selectedDragItem.x > maxX) maxX = selectedDragItem.x;
-      if (selectedDragItem.z < minZ) minZ = selectedDragItem.z;
-      if (selectedDragItem.z > maxZ) maxZ = selectedDragItem.z;
+      const renderItem = renderItemsById.get(selectedDragItem.id);
+      const footprintRadiusIn = renderItem?.collisionRadius ?? 0.18;
+      const bounds = resolveFootprintBounds({
+        dims,
+        footprintRadiusIn,
+      });
+
+      selectedDragItem.minXNorm = bounds.minXNorm;
+      selectedDragItem.maxXNorm = bounds.maxXNorm;
+      selectedDragItem.minZNorm = bounds.minZNorm;
+      selectedDragItem.maxZNorm = bounds.maxZNorm;
+
+      minDeltaX = Math.max(minDeltaX, bounds.minXNorm - selectedDragItem.x);
+      maxDeltaX = Math.min(maxDeltaX, bounds.maxXNorm - selectedDragItem.x);
+      minDeltaZ = Math.max(minDeltaZ, bounds.minZNorm - selectedDragItem.z);
+      maxDeltaZ = Math.min(maxDeltaZ, bounds.maxZNorm - selectedDragItem.z);
+    }
+    if (!Number.isFinite(minDeltaX)) minDeltaX = 0;
+    if (!Number.isFinite(maxDeltaX)) maxDeltaX = 0;
+    if (!Number.isFinite(minDeltaZ)) minDeltaZ = 0;
+    if (!Number.isFinite(maxDeltaZ)) maxDeltaZ = 0;
+    if (minDeltaX > maxDeltaX) {
+      minDeltaX = 0;
+      maxDeltaX = 0;
+    }
+    if (minDeltaZ > maxDeltaZ) {
+      minDeltaZ = 0;
+      maxDeltaZ = 0;
     }
 
     moveDragRef.current = {
@@ -4148,10 +4789,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         x: pointerNorm.x,
         z: pointerNorm.z,
       },
-      minDeltaX: -minX,
-      maxDeltaX: 1 - maxX,
-      minDeltaZ: -minZ,
-      maxDeltaZ: 1 - maxZ,
+      minDeltaX,
+      maxDeltaX,
+      minDeltaZ,
+      maxDeltaZ,
       releasePointerCaptureTarget: pointerTarget,
       items: selectedDragItems,
     };
@@ -4178,8 +4819,16 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     );
 
     for (const selectedDragItem of activeMoveDrag.items) {
-      const nextX = clamp01(selectedDragItem.x + deltaX);
-      const nextZ = clamp01(selectedDragItem.z + deltaZ);
+      const nextX = clampNormalizedToFootprintBounds(
+        selectedDragItem.x + deltaX,
+        selectedDragItem.minXNorm,
+        selectedDragItem.maxXNorm,
+      );
+      const nextZ = clampNormalizedToFootprintBounds(
+        selectedDragItem.z + deltaZ,
+        selectedDragItem.minZNorm,
+        selectedDragItem.maxZNorm,
+      );
       const substrateY = sampleSubstrateDepth({
         xNorm: nextX,
         zNorm: nextZ,
@@ -4326,6 +4975,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       <TankShell
         dims={dims}
         qualityTier={props.qualityTier}
+        tankBackgroundStyle={props.tankBackgroundStyle}
+        tankBackgroundColor={props.tankBackgroundColor}
+        cabinetFinishStyle={props.cabinetFinishStyle}
+        cabinetColor={props.cabinetColor}
         substrateHeightfield={props.canvasState.substrateHeightfield}
         substrateMaterialGrid={props.canvasState.substrateMaterialGrid}
         showGlassWalls={props.glassWallsEnabled && props.qualityTier !== "low"}

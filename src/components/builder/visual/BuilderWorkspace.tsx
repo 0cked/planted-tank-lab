@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import Image from "next/image";
 
 import { BuilderShortcutsOverlay } from "@/components/builder/visual/BuilderShortcutsOverlay";
 import { BuilderViewportLayout } from "@/components/builder/visual/BuilderViewportLayout";
@@ -8,8 +9,6 @@ import type {
   VisualBuildTemplateId,
 } from "@/components/builder/visual/build-templates";
 import {
-  STEP_META,
-  STEP_ORDER,
   categoryLabel,
   formatMoney,
   lineUnitPrice,
@@ -17,16 +16,15 @@ import {
   type BuilderStepId,
 } from "@/components/builder/visual/builder-page-utils";
 import {
-  GROWTH_TIMELINE_MONTH_OPTIONS,
-  growthTimelineFromSliderIndex,
-  growthTimelineSliderIndex,
-  type GrowthTimelineMonths,
-} from "@/components/builder/visual/plant-growth";
-import type { SubstrateBrushMode } from "@/components/builder/visual/scene-utils";
+  estimateCollisionRadius,
+  type SubstrateBrushMode,
+} from "@/components/builder/visual/scene-utils";
 import type {
+  CabinetFinishStyle,
   SubstrateHeightfield,
   SubstrateMaterialGrid,
   SubstrateMaterialType,
+  TankBackgroundStyle,
   VisualAsset,
   VisualCanvasItem,
   VisualCanvasState,
@@ -48,6 +46,25 @@ export type BuilderWorkspaceCameraIntent =
   | { type: "focus-item"; itemId: string; seq: number };
 
 export type BuilderWorkspaceProps = {
+  buildId: string | null;
+  shareSlug: string | null;
+  saveState: {
+    type: "idle" | "ok" | "error";
+    message: string;
+  };
+  canLoadSavedBuilds: boolean;
+  loadingSavedBuilds: boolean;
+  savedBuilds: Array<{
+    buildId: string;
+    shareSlug: string;
+    name: string;
+    updatedAt: string;
+    itemCount: number;
+    isPublic: boolean;
+  }>;
+  onLoadSavedBuild: (shareSlug: string) => void;
+  onCreateNewDraft: () => void;
+  onWipeStartClean: () => void;
   selectedTank: VisualTank | null;
   canvasState: VisualCanvasState;
   assetsById: Map<string, VisualAsset>;
@@ -131,8 +148,6 @@ export type BuilderWorkspaceProps = {
     onSculptMaterialChange: (material: SubstrateMaterialType) => void;
   };
   onSceneSettingsChange: (patch: Partial<VisualSceneSettings>) => void;
-  growthTimelineMonths: GrowthTimelineMonths;
-  onGrowthTimelineMonthsChange: (months: GrowthTimelineMonths) => void;
   onReframe: () => void;
   onResetView: () => void;
   onFocusSceneItem: (itemId: string) => void;
@@ -189,17 +204,101 @@ export type BuilderWorkspaceProps = {
   saving: boolean;
 };
 
-const STEP_ICONS: Record<BuilderStepId, string> = {
-  tank: "\u2B21",
-  substrate: "\u25A4",
-  hardscape: "\u25C6",
-  plants: "\u273B",
-  equipment: "\u2699",
-  review: "\u2713",
+type HardscapeSplitMode = "rocks" | "wood";
+
+type WorkflowRailItem = {
+  id: "tank" | "substrate" | "rocks" | "wood" | "plants" | "review";
+  step: BuilderStepId;
+  title: string;
+  iconSrc?: string;
+  iconAlt?: string;
+  label?: string;
+  hardscapeMode?: HardscapeSplitMode;
+  doneStep: BuilderStepId;
 };
 
-function RailBtn(props: {
+const WORKFLOW_RAIL_ITEMS: ReadonlyArray<WorkflowRailItem> = [
+  {
+    id: "tank",
+    step: "tank",
+    title: "Choose tank",
+    iconSrc: "/visual-assets/icons/tank-select-icon.svg",
+    iconAlt: "Tank",
+    doneStep: "tank",
+  },
+  {
+    id: "substrate",
+    step: "substrate",
+    title: "Shape substrate",
+    iconSrc: "/visual-assets/icons/substrate-select-icon.svg",
+    iconAlt: "Substrate",
+    doneStep: "substrate",
+  },
+  {
+    id: "rocks",
+    step: "hardscape",
+    title: "Place rocks",
+    iconSrc: "/visual-assets/icons/rock-select-icon.svg",
+    iconAlt: "Rocks",
+    hardscapeMode: "rocks",
+    doneStep: "hardscape",
+  },
+  {
+    id: "wood",
+    step: "hardscape",
+    title: "Place wood",
+    iconSrc: "/visual-assets/icons/wood-select-icon.svg",
+    iconAlt: "Wood",
+    hardscapeMode: "wood",
+    doneStep: "hardscape",
+  },
+  {
+    id: "plants",
+    step: "plants",
+    title: "Plant zones",
+    iconSrc: "/visual-assets/icons/plant-select-icon.svg",
+    iconAlt: "Plants",
+    doneStep: "plants",
+  },
+  {
+    id: "review",
+    step: "review",
+    title: "Review build",
+    label: "✓",
+    doneStep: "review",
+  },
+];
+
+const HARDSCAPE_MODE_LABEL: Record<HardscapeSplitMode, string> = {
+  rocks: "Rocks",
+  wood: "Wood",
+};
+
+const TANK_BACKGROUND_OPTIONS: ReadonlyArray<{
+  value: TankBackgroundStyle;
   label: string;
+}> = [
+  { value: "black", label: "Black" },
+  { value: "white", label: "White" },
+  { value: "frosted", label: "Frosted" },
+  { value: "custom", label: "Custom" },
+];
+
+const CABINET_FINISH_OPTIONS: ReadonlyArray<{
+  value: CabinetFinishStyle;
+  label: string;
+}> = [
+  { value: "white", label: "White" },
+  { value: "charcoal", label: "Charcoal" },
+  { value: "oak", label: "Oak grain" },
+  { value: "walnut", label: "Walnut grain" },
+  { value: "custom", label: "Custom" },
+];
+
+function RailBtn(props: {
+  label?: string;
+  iconSrc?: string;
+  iconAlt?: string;
   title: string;
   active?: boolean;
   done?: boolean;
@@ -207,14 +306,14 @@ function RailBtn(props: {
   compact?: boolean;
   onClick: () => void;
 }) {
-  const size = props.compact ? "h-7 w-7 text-xs" : "h-8 w-8 text-sm";
+  const size = props.compact ? "h-8 w-8 text-xs" : "h-11 w-11";
   const variant = props.disabled
-    ? "text-neutral-300 cursor-not-allowed"
+    ? "cursor-not-allowed text-neutral-300"
     : props.active
-      ? "bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)] shadow-[0_0_12px_rgba(27,127,90,0.15)]"
+      ? "border-[var(--ptl-accent)]/50 bg-[var(--ptl-accent)]/14 text-[var(--ptl-accent)] shadow-[0_8px_22px_rgba(27,127,90,0.2)]"
       : props.done
-        ? "text-emerald-600 hover:bg-black/[0.06] hover:text-emerald-700"
-        : "text-neutral-500 hover:bg-black/[0.06] hover:text-[var(--ptl-ink)]";
+        ? "border-emerald-300/45 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-50/70"
+        : "border-[var(--ptl-border)] bg-white/75 text-neutral-500 hover:bg-white/95 hover:text-[var(--ptl-ink)]";
   return (
     <button
       type="button"
@@ -222,9 +321,19 @@ function RailBtn(props: {
       disabled={props.disabled}
       title={props.title}
       aria-label={props.title}
-      className={`flex ${size} items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ptl-accent)]/50 ${variant}`}
+      className={`flex ${size} items-center justify-center rounded-xl border transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ptl-accent)]/50 ${variant}`}
     >
-      {props.label}
+      {props.iconSrc ? (
+        <Image
+          src={props.iconSrc}
+          alt={props.iconAlt ?? props.title}
+          width={props.compact ? 16 : 28}
+          height={props.compact ? 16 : 28}
+          className={`h-auto w-auto object-contain ${props.disabled ? "opacity-35" : props.active ? "opacity-100" : "opacity-80"}`}
+        />
+      ) : (
+        <span className="font-semibold">{props.label}</span>
+      )}
     </button>
   );
 }
@@ -259,6 +368,140 @@ function isTankPresetActive(
     Math.abs(preset.heightIn - dims.heightIn) <= t &&
     Math.abs(preset.depthIn - dims.depthIn) <= t
   );
+}
+
+function normalizeHexColor(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  if (/^#[\da-fA-F]{6}$/.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  return fallback;
+}
+
+function formatSavedBuildTimestamp(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Updated recently";
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function BuildActionsCard(props: BuilderWorkspaceProps) {
+  const [selectedShareSlug, setSelectedShareSlug] = useState("");
+  const activeShareSlug =
+    selectedShareSlug && props.savedBuilds.some((build) => build.shareSlug === selectedShareSlug)
+      ? selectedShareSlug
+      : props.savedBuilds[0]?.shareSlug ?? "";
+
+  const saveTone =
+    props.saveState.type === "error"
+      ? "border-red-300/60 bg-red-50/80 text-red-700"
+      : props.saveState.type === "ok"
+        ? "border-emerald-300/60 bg-emerald-50/80 text-emerald-700"
+        : "border-[var(--ptl-border)] bg-black/[0.02] text-[var(--ptl-ink-muted)]";
+
+  return (
+    <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+          Build actions
+        </div>
+        <div className="text-[10px] text-[var(--ptl-ink-muted)]">
+          {props.buildId ? "Saved build" : "Unsaved draft"}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1.5">
+        <button
+          type="button"
+          onClick={props.onSaveDraft}
+          disabled={props.saving}
+          className="rounded-lg border border-[var(--ptl-accent)]/35 bg-[var(--ptl-accent)]/10 px-2 py-1.5 text-[11px] font-semibold text-[var(--ptl-accent)] transition hover:bg-[var(--ptl-accent)]/15 disabled:cursor-wait disabled:opacity-60"
+        >
+          {props.saving ? "Saving..." : "Save build"}
+        </button>
+        <button
+          type="button"
+          onClick={props.onCreateNewDraft}
+          className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5 text-[11px] font-semibold text-[var(--ptl-ink)] transition hover:bg-black/[0.06]"
+        >
+          New draft
+        </button>
+        <button
+          type="button"
+          onClick={props.onWipeStartClean}
+          className="rounded-lg border border-amber-300/35 bg-amber-50/45 px-2 py-1.5 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-50/65"
+        >
+          Wipe clean
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!activeShareSlug) return;
+            props.onLoadSavedBuild(activeShareSlug);
+          }}
+          disabled={props.loadingSavedBuilds || !activeShareSlug || !props.canLoadSavedBuilds}
+          className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5 text-[11px] font-semibold text-[var(--ptl-ink)] transition hover:bg-black/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Load selected
+        </button>
+      </div>
+
+      <div className="space-y-1">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+          Saved builds
+        </div>
+        {!props.canLoadSavedBuilds ? (
+          <div className="rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[10px] text-[var(--ptl-ink-muted)]">
+            Sign in to load your saved builds.
+          </div>
+        ) : props.loadingSavedBuilds ? (
+          <div className="rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[10px] text-[var(--ptl-ink-muted)]">
+            Loading saved builds...
+          </div>
+        ) : props.savedBuilds.length === 0 ? (
+          <div className="rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[10px] text-[var(--ptl-ink-muted)]">
+            No saved builds yet. Save this draft first.
+          </div>
+        ) : (
+          <>
+            <select
+              value={activeShareSlug}
+              onChange={(event) => setSelectedShareSlug(event.target.value)}
+              className="w-full rounded-md border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5 text-[11px] text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
+            >
+              {props.savedBuilds.map((build) => (
+                <option key={build.buildId} value={build.shareSlug}>
+                  {build.name} ({build.itemCount} items)
+                </option>
+              ))}
+            </select>
+            <div className="rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[10px] text-[var(--ptl-ink-muted)]">
+              {(() => {
+                const selected = props.savedBuilds.find((build) => build.shareSlug === activeShareSlug);
+                if (!selected) return "Choose a saved build to load.";
+                return `${formatSavedBuildTimestamp(selected.updatedAt)} • ${selected.isPublic ? "Public" : "Private"} • /builder/${selected.shareSlug}`;
+              })()}
+            </div>
+          </>
+        )}
+      </div>
+
+      {props.saveState.message ? (
+        <div className={`rounded-md border px-2 py-1.5 text-[10px] font-medium ${saveTone}`}>
+          {props.saveState.message}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function normalizeInset(sizeIn: number, radiusIn: number): number {
+  if (!Number.isFinite(sizeIn) || sizeIn <= 0) return 0.5;
+  if (!Number.isFinite(radiusIn) || radiusIn <= 0) return 0;
+  return Math.min(0.5, Math.max(0, radiusIn / sizeIn));
 }
 
 function severityChip(severity: Severity): string {
@@ -392,7 +635,13 @@ function SectionLabel(props: { children: React.ReactNode }) {
   );
 }
 
-function StepPanel(props: BuilderWorkspaceProps) {
+type StepPanelProps = BuilderWorkspaceProps & {
+  hardscapeMode: HardscapeSplitMode;
+  onHardscapeModeChange: (mode: HardscapeSplitMode) => void;
+  filteredAssetsForStep: VisualAsset[];
+};
+
+function StepPanel(props: StepPanelProps) {
   const step = props.currentStep;
   const unit = props.canvasState.sceneSettings.measurementUnit;
   const tankDims = {
@@ -408,8 +657,14 @@ function StepPanel(props: BuilderWorkspaceProps) {
   };
 
   if (step === "tank") {
+    const tankBackgroundStyle = props.canvasState.sceneSettings.tankBackgroundStyle;
+    const tankBackgroundColor = props.canvasState.sceneSettings.tankBackgroundColor;
+    const cabinetFinishStyle = props.canvasState.sceneSettings.cabinetFinishStyle;
+    const cabinetColor = props.canvasState.sceneSettings.cabinetColor;
+
     return (
       <div className="space-y-3">
+        <BuildActionsCard {...props} />
         <SectionLabel>Tank</SectionLabel>
         <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
           <div className="flex items-center justify-between">
@@ -455,6 +710,114 @@ function StepPanel(props: BuilderWorkspaceProps) {
               </label>
             ))}
           </div>
+        </div>
+
+        <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+            Background
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {TANK_BACKGROUND_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => props.onSceneSettingsChange({ tankBackgroundStyle: option.value })}
+                className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${
+                  tankBackgroundStyle === option.value
+                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
+                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {tankBackgroundStyle === "custom" ? (
+            <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5">
+              <label className="flex items-center justify-between gap-2 text-[10px] text-[var(--ptl-ink-muted)]">
+                <span>Color</span>
+                <span className="tabular-nums text-[var(--ptl-ink)]">{tankBackgroundColor}</span>
+              </label>
+              <div className="mt-1.5 flex items-center gap-2">
+                <input
+                  type="color"
+                  value={tankBackgroundColor}
+                  aria-label="Tank background color"
+                  onChange={(event) => {
+                    props.onSceneSettingsChange({
+                      tankBackgroundColor: normalizeHexColor(event.target.value, tankBackgroundColor),
+                    });
+                  }}
+                  className="h-8 w-10 cursor-pointer rounded border border-[var(--ptl-border)] bg-transparent p-0.5"
+                />
+                <input
+                  type="text"
+                  value={tankBackgroundColor}
+                  onChange={(event) => {
+                    props.onSceneSettingsChange({
+                      tankBackgroundColor: normalizeHexColor(event.target.value, tankBackgroundColor),
+                    });
+                  }}
+                  className="h-8 w-full rounded-md border border-[var(--ptl-border)] bg-black/5 px-2 py-1 text-xs font-medium uppercase tracking-[0.04em] text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+            Cabinet
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {CABINET_FINISH_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => props.onSceneSettingsChange({ cabinetFinishStyle: option.value })}
+                className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${
+                  cabinetFinishStyle === option.value
+                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
+                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {cabinetFinishStyle === "custom" ? (
+            <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5">
+              <label className="flex items-center justify-between gap-2 text-[10px] text-[var(--ptl-ink-muted)]">
+                <span>Color</span>
+                <span className="tabular-nums text-[var(--ptl-ink)]">{cabinetColor}</span>
+              </label>
+              <div className="mt-1.5 flex items-center gap-2">
+                <input
+                  type="color"
+                  value={cabinetColor}
+                  aria-label="Cabinet color"
+                  onChange={(event) => {
+                    props.onSceneSettingsChange({
+                      cabinetColor: normalizeHexColor(event.target.value, cabinetColor),
+                    });
+                  }}
+                  className="h-8 w-10 cursor-pointer rounded border border-[var(--ptl-border)] bg-transparent p-0.5"
+                />
+                <input
+                  type="text"
+                  value={cabinetColor}
+                  onChange={(event) => {
+                    props.onSceneSettingsChange({
+                      cabinetColor: normalizeHexColor(event.target.value, cabinetColor),
+                    });
+                  }}
+                  className="h-8 w-full rounded-md border border-[var(--ptl-border)] bg-black/5 px-2 py-1 text-xs font-medium uppercase tracking-[0.04em] text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="space-y-1.5">
@@ -506,6 +869,7 @@ function StepPanel(props: BuilderWorkspaceProps) {
   if (step === "substrate") {
     return (
       <div className="space-y-3">
+        <BuildActionsCard {...props} />
         <SectionLabel>Substrate</SectionLabel>
         <SubstrateToolbar {...props.substrateControls} />
       </div>
@@ -515,6 +879,7 @@ function StepPanel(props: BuilderWorkspaceProps) {
   if (step === "equipment") {
     return (
       <div className="space-y-3">
+        <BuildActionsCard {...props} />
         <SectionLabel>Equipment</SectionLabel>
         <div className="flex flex-wrap gap-1">
           {props.equipmentCategories.map((slug) => (
@@ -578,11 +943,35 @@ function StepPanel(props: BuilderWorkspaceProps) {
   if (step === "hardscape" || step === "plants") {
     return (
       <div className="space-y-3">
-        <SectionLabel>{step === "hardscape" ? "Hardscape" : "Plants"}</SectionLabel>
+        <BuildActionsCard {...props} />
+        <SectionLabel>
+          {step === "hardscape"
+            ? `Hardscape - ${HARDSCAPE_MODE_LABEL[props.hardscapeMode]}`
+            : "Plants"}
+        </SectionLabel>
+        {step === "hardscape" ? (
+          <div className="grid grid-cols-2 gap-1">
+            {(["rocks", "wood"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={props.hardscapeMode === mode}
+                onClick={() => props.onHardscapeModeChange(mode)}
+                className={`rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition ${
+                  props.hardscapeMode === mode
+                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]"
+                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink-muted)] hover:text-[var(--ptl-ink)]"
+                }`}
+              >
+                {HARDSCAPE_MODE_LABEL[mode]}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <AssetList
           search={props.search}
           onSearchChange={props.onSearchChange}
-          filteredAssets={props.filteredAssets}
+          filteredAssets={props.filteredAssetsForStep}
           selectedProductByCategory={props.selectedProductByCategory}
           placementAssetId={props.placementAssetId}
           onChooseAsset={props.onChooseAsset}
@@ -593,6 +982,7 @@ function StepPanel(props: BuilderWorkspaceProps) {
 
   return (
     <div className="space-y-3">
+      <BuildActionsCard {...props} />
       <SectionLabel>Review</SectionLabel>
 
       <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
@@ -678,7 +1068,21 @@ function RightPanel(props: BuilderWorkspaceProps) {
     Math.round(dims.widthIn * dims.depthIn * dims.heightIn * 0.004329 * 10) / 10;
   const selectedScale = props.selectedItem ? Math.round(props.selectedItem.scale * 100) / 100 : 1;
   const selectedRotation = props.selectedItem ? Math.round(props.selectedItem.rotation) : 0;
-  const selectedDepth = props.selectedItem ? Math.round(props.selectedItem.z * 100) : 50;
+  const selectedCollisionRadius =
+    props.selectedItem && props.selectedAsset
+      ? estimateCollisionRadius({
+          item: props.selectedItem,
+          assetWidthIn: props.selectedAsset.widthIn,
+          assetDepthIn: props.selectedAsset.depthIn,
+        })
+      : 0;
+  const depthInset = normalizeInset(dims.depthIn, selectedCollisionRadius);
+  const depthMin = depthInset >= 0.5 ? 0.5 : depthInset;
+  const depthMax = depthInset >= 0.5 ? 0.5 : 1 - depthInset;
+  const selectedDepthValue = props.selectedItem
+    ? Math.min(depthMax, Math.max(depthMin, props.selectedItem.z))
+    : 0.5;
+  const selectedDepth = Math.round(selectedDepthValue * 100);
   const selectedHeightIn = props.selectedItem
     ? (Math.round(props.selectedItem.y * dims.heightIn * 10) / 10).toFixed(1)
     : "0.0";
@@ -766,13 +1170,13 @@ function RightPanel(props: BuilderWorkspaceProps) {
               </div>
               <input
                 type="range"
-                min={0}
-                max={1}
+                min={depthMin}
+                max={depthMax}
                 step={0.001}
-                value={props.selectedItem.z}
+                value={selectedDepthValue}
                 onChange={(event) =>
                   props.onUpdateCanvasItem(props.selectedItem!.id, {
-                    z: Number.parseFloat(event.target.value),
+                    z: Math.min(depthMax, Math.max(depthMin, Number.parseFloat(event.target.value))),
                   })
                 }
                 className="h-1.5 w-full accent-[var(--ptl-accent)]"
@@ -832,6 +1236,19 @@ function RightPanel(props: BuilderWorkspaceProps) {
 
 export function BuilderWorkspace(props: BuilderWorkspaceProps) {
   const [panelOpen, setPanelOpen] = useState(true);
+  const [hardscapeMode, setHardscapeMode] = useState<HardscapeSplitMode>("rocks");
+
+  const filteredAssetsForStep = useMemo(() => {
+    if (props.currentStep !== "hardscape") {
+      return props.filteredAssets;
+    }
+
+    return props.filteredAssets.filter((asset) => {
+      if (asset.categorySlug !== "hardscape") return false;
+      const kind = resolveVisualAsset(asset).fallbackKind;
+      return hardscapeMode === "rocks" ? kind === "rock" : kind === "wood";
+    });
+  }, [hardscapeMode, props.currentStep, props.filteredAssets]);
 
   const scene = (
     <ErrorBoundary
@@ -868,10 +1285,13 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         qualityTier={props.qualityTier}
         postprocessingEnabled={props.canvasState.sceneSettings.postprocessingEnabled}
         glassWallsEnabled={props.canvasState.sceneSettings.glassWallsEnabled}
+        tankBackgroundStyle={props.canvasState.sceneSettings.tankBackgroundStyle}
+        tankBackgroundColor={props.canvasState.sceneSettings.tankBackgroundColor}
+        cabinetFinishStyle={props.canvasState.sceneSettings.cabinetFinishStyle}
+        cabinetColor={props.canvasState.sceneSettings.cabinetColor}
         ambientParticlesEnabled={props.canvasState.sceneSettings.ambientParticlesEnabled}
         lightingSimulationEnabled={props.canvasState.sceneSettings.lightingSimulationEnabled}
         lightMountHeightIn={props.canvasState.sceneSettings.lightMountHeightIn}
-        growthTimelineMonths={props.growthTimelineMonths}
         selectedLightAsset={props.selectedLightAsset}
         sculptMode={props.sculptMode}
         sculptBrushSize={props.sculptBrushSize}
@@ -900,19 +1320,30 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
 
   const iconRail = (
     <>
-      {STEP_ORDER.map((stepId) => (
+      {WORKFLOW_RAIL_ITEMS.map((item) => (
         <RailBtn
-          key={stepId}
-          label={STEP_ICONS[stepId]}
-          title={STEP_META[stepId].title}
-          active={props.currentStep === stepId}
-          done={props.stepCompletion[stepId]}
-          disabled={!props.canNavigateToStep(stepId)}
-          onClick={() => { props.onStepChange(stepId); setPanelOpen(true); }}
+          key={item.id}
+          iconSrc={item.iconSrc}
+          iconAlt={item.iconAlt}
+          label={item.label}
+          title={item.title}
+          active={
+            props.currentStep === item.step &&
+            (item.step !== "hardscape" || item.hardscapeMode === hardscapeMode)
+          }
+          done={props.stepCompletion[item.doneStep]}
+          disabled={!props.canNavigateToStep(item.step)}
+          onClick={() => {
+            if (item.hardscapeMode) {
+              setHardscapeMode(item.hardscapeMode);
+            }
+            props.onStepChange(item.step);
+            setPanelOpen(true);
+          }}
         />
       ))}
 
-      <div className="my-1 h-px w-5 bg-black/8" />
+      <div className="my-1 h-px w-8 bg-black/10" />
 
       <RailBtn
         label={"\u2630"}
@@ -955,60 +1386,22 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
     </>
   );
 
-  const gti = growthTimelineSliderIndex(props.growthTimelineMonths);
-
-  const growthToolbar = (
-    <div
-      role="toolbar"
-      aria-label="Plant growth timeline"
-      className="flex min-w-[250px] items-center gap-2.5 rounded-xl border border-[var(--ptl-border)] bg-white/60 px-3 py-2 backdrop-blur-xl"
-    >
-      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ptl-ink-muted)]">
-        Growth
-      </span>
-      <input
-        type="range"
-        min={0}
-        max={GROWTH_TIMELINE_MONTH_OPTIONS.length - 1}
-        step={1}
-        value={gti}
-        aria-label="Plant growth timeline"
-        aria-valuetext={`${props.growthTimelineMonths} months`}
-        onChange={(e) => {
-          props.onGrowthTimelineMonthsChange(
-            growthTimelineFromSliderIndex(Number.parseInt(e.target.value, 10)),
-          );
-        }}
-        className="h-1 flex-1 accent-[var(--ptl-accent)]"
-      />
-      <div className="flex min-w-[76px] items-center justify-between text-[10px]">
-        {GROWTH_TIMELINE_MONTH_OPTIONS.map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => props.onGrowthTimelineMonthsChange(m)}
-            className={`rounded px-1 transition ${
-              props.growthTimelineMonths === m
-                ? "bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]"
-                : "text-neutral-500 hover:text-[var(--ptl-ink)]"
-            }`}
-            aria-pressed={props.growthTimelineMonths === m}
-          >
-            {m}m
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
   return (
     <>
       <BuilderViewportLayout
         scene={scene}
         iconRail={iconRail}
-        floatingPanel={panelOpen ? <StepPanel {...props} /> : null}
+        floatingPanel={
+          panelOpen ? (
+            <StepPanel
+              {...props}
+              hardscapeMode={hardscapeMode}
+              onHardscapeModeChange={setHardscapeMode}
+              filteredAssetsForStep={filteredAssetsForStep}
+            />
+          ) : null
+        }
         floatingRight={<RightPanel {...props} />}
-        bottomToolbar={growthToolbar}
       />
       <BuilderShortcutsOverlay
         open={props.shortcutsOverlayOpen}

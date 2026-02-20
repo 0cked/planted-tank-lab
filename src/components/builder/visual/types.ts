@@ -93,6 +93,9 @@ export type VisualAnchorType = "substrate" | "hardscape" | "glass";
 
 export type VisualDepthZone = "foreground" | "midground" | "background";
 
+export type TankBackgroundStyle = "black" | "white" | "frosted" | "custom";
+export type CabinetFinishStyle = "white" | "charcoal" | "oak" | "walnut" | "custom";
+
 export type VisualItemTransform = {
   position: [number, number, number];
   rotation: [number, number, number];
@@ -134,6 +137,10 @@ export type VisualSceneSettings = {
   gridSnapEnabled: boolean;
   measurementsVisible: boolean;
   measurementUnit: "in" | "cm";
+  tankBackgroundStyle: TankBackgroundStyle;
+  tankBackgroundColor: string;
+  cabinetFinishStyle: CabinetFinishStyle;
+  cabinetColor: string;
   glassWallsEnabled: boolean;
   ambientParticlesEnabled: boolean;
   lightingSimulationEnabled: boolean;

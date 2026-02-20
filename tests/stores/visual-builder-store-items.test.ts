@@ -304,6 +304,10 @@ describe("visual-builder-store canvas item actions", () => {
     expect(store.canvasState.sceneSettings.gridSnapEnabled).toBe(false);
     expect(store.canvasState.sceneSettings.measurementsVisible).toBe(false);
     expect(store.canvasState.sceneSettings.measurementUnit).toBe("in");
+    expect(store.canvasState.sceneSettings.tankBackgroundStyle).toBe("frosted");
+    expect(store.canvasState.sceneSettings.tankBackgroundColor).toBe("#88a9be");
+    expect(store.canvasState.sceneSettings.cabinetFinishStyle).toBe("oak");
+    expect(store.canvasState.sceneSettings.cabinetColor).toBe("#b38b61");
     expect(store.canvasState.sceneSettings.lightingSimulationEnabled).toBe(false);
     expect(store.canvasState.sceneSettings.lightMountHeightIn).toBe(4);
     expect(store.canvasState.sceneSettings.growthTimelineMonths).toBe(1);
@@ -315,6 +319,10 @@ describe("visual-builder-store canvas item actions", () => {
       gridSnapEnabled: true,
       measurementsVisible: true,
       measurementUnit: "cm",
+      tankBackgroundStyle: "custom",
+      tankBackgroundColor: "#336699",
+      cabinetFinishStyle: "custom",
+      cabinetColor: "#674b35",
       lightingSimulationEnabled: true,
       lightMountHeightIn: 9.5,
       growthTimelineMonths: 6,
@@ -329,6 +337,10 @@ describe("visual-builder-store canvas item actions", () => {
     expect(stateAfterToggle.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
     expect(stateAfterToggle.canvasState.sceneSettings.measurementsVisible).toBe(true);
     expect(stateAfterToggle.canvasState.sceneSettings.measurementUnit).toBe("cm");
+    expect(stateAfterToggle.canvasState.sceneSettings.tankBackgroundStyle).toBe("custom");
+    expect(stateAfterToggle.canvasState.sceneSettings.tankBackgroundColor).toBe("#336699");
+    expect(stateAfterToggle.canvasState.sceneSettings.cabinetFinishStyle).toBe("custom");
+    expect(stateAfterToggle.canvasState.sceneSettings.cabinetColor).toBe("#674b35");
     expect(stateAfterToggle.canvasState.sceneSettings.lightingSimulationEnabled).toBe(true);
     expect(stateAfterToggle.canvasState.sceneSettings.lightMountHeightIn).toBe(9.5);
     expect(stateAfterToggle.canvasState.sceneSettings.growthTimelineMonths).toBe(6);
@@ -339,6 +351,10 @@ describe("visual-builder-store canvas item actions", () => {
     expect(payload.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
     expect(payload.canvasState.sceneSettings.measurementsVisible).toBe(true);
     expect(payload.canvasState.sceneSettings.measurementUnit).toBe("cm");
+    expect(payload.canvasState.sceneSettings.tankBackgroundStyle).toBe("custom");
+    expect(payload.canvasState.sceneSettings.tankBackgroundColor).toBe("#336699");
+    expect(payload.canvasState.sceneSettings.cabinetFinishStyle).toBe("custom");
+    expect(payload.canvasState.sceneSettings.cabinetColor).toBe("#674b35");
     expect(payload.canvasState.sceneSettings.lightingSimulationEnabled).toBe(true);
     expect(payload.canvasState.sceneSettings.lightMountHeightIn).toBe(9.5);
     expect(payload.canvasState.sceneSettings.growthTimelineMonths).toBe(6);

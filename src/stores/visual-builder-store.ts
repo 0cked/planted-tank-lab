@@ -280,6 +280,15 @@ function clampRotation(value: number): number {
   return value;
 }
 
+function normalizeHexColor(value: unknown, fallback: string): string {
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  if (/^#[\da-fA-F]{6}$/.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  return fallback;
+}
+
 function defaultDepthForCategory(categorySlug: string): number {
   if (categorySlug === "hardscape") return 0.56;
   if (categorySlug === "plants") return 0.62;
@@ -338,6 +347,21 @@ function normalizeSceneSettings(input: Partial<VisualSceneSettings> | undefined)
       ? next.qualityTier
       : "auto";
   const cameraPreset = next.cameraPreset === "free" ? "free" : "step";
+  const tankBackgroundStyle =
+    next.tankBackgroundStyle === "black" ||
+    next.tankBackgroundStyle === "white" ||
+    next.tankBackgroundStyle === "frosted" ||
+    next.tankBackgroundStyle === "custom"
+      ? next.tankBackgroundStyle
+      : "frosted";
+  const cabinetFinishStyle =
+    next.cabinetFinishStyle === "white" ||
+    next.cabinetFinishStyle === "charcoal" ||
+    next.cabinetFinishStyle === "oak" ||
+    next.cabinetFinishStyle === "walnut" ||
+    next.cabinetFinishStyle === "custom"
+      ? next.cabinetFinishStyle
+      : "oak";
 
   return {
     qualityTier,
@@ -346,6 +370,10 @@ function normalizeSceneSettings(input: Partial<VisualSceneSettings> | undefined)
     gridSnapEnabled: next.gridSnapEnabled ?? false,
     measurementsVisible: next.measurementsVisible ?? false,
     measurementUnit: next.measurementUnit === "cm" ? "cm" : "in",
+    tankBackgroundStyle,
+    tankBackgroundColor: normalizeHexColor(next.tankBackgroundColor, "#88a9be"),
+    cabinetFinishStyle,
+    cabinetColor: normalizeHexColor(next.cabinetColor, "#b38b61"),
     glassWallsEnabled: next.glassWallsEnabled ?? qualityTier !== "low",
     ambientParticlesEnabled: next.ambientParticlesEnabled ?? qualityTier !== "low",
     lightingSimulationEnabled: next.lightingSimulationEnabled ?? false,
@@ -588,6 +616,10 @@ const initialCanvasState: VisualCanvasState = {
     gridSnapEnabled: false,
     measurementsVisible: false,
     measurementUnit: "in",
+    tankBackgroundStyle: "frosted",
+    tankBackgroundColor: "#88a9be",
+    cabinetFinishStyle: "oak",
+    cabinetColor: "#b38b61",
     glassWallsEnabled: true,
     ambientParticlesEnabled: true,
     lightingSimulationEnabled: false,
@@ -1242,7 +1274,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
     }),
     {
       name: "ptl-visual-builder-v1",
-      version: 7,
+      version: 9,
       storage: createJSONStorage(() => localStorage),
       migrate: (persistedState: unknown) => {
         const source = persistedState as Partial<VisualBuilderState> | undefined;
