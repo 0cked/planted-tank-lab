@@ -623,7 +623,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Keyboard shortcuts: Cmd+Z / Ctrl+Z for undo, Cmd+Shift+Z / Ctrl+Shift+Z for redo.
   - **Verify:** Place 3 items, move one, delete one. Undo 3 times — all actions reversed in order. Redo twice — actions replayed.
 
-- [ ] **P12-2: Build versioning**
+- [x] **P12-2: Build versioning**
   - When a user saves a build, store a version snapshot (increment version number, store previous canvas state).
   - Add a `build_versions` table (build_id, version_number, canvas_state JSON, created_at). Run migration.
   - On the build detail page, show version history with timestamps. Clicking a version loads it into a read-only preview.

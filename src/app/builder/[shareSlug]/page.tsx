@@ -56,9 +56,20 @@ export async function generateMetadata(props: {
   };
 }
 
-export default async function Page(props: { params: Promise<{ shareSlug: string }> }) {
+export default async function Page(props: {
+  params: Promise<{ shareSlug: string }>;
+  searchParams: Promise<{ version?: string | string[] }>;
+}) {
   const params = await props.params;
   const shareSlug = params.shareSlug;
+  const versionParam = (await props.searchParams).version;
+  const parsedVersion =
+    typeof versionParam === "string"
+      ? Number.parseInt(versionParam, 10)
+      : Array.isArray(versionParam) && versionParam[0]
+        ? Number.parseInt(versionParam[0], 10)
+        : Number.NaN;
+  const versionNumber = Number.isFinite(parsedVersion) && parsedVersion > 0 ? parsedVersion : undefined;
 
   const caller = appRouter.createCaller(
     await createTRPCContext({ req: new Request("http://localhost") }),
@@ -66,7 +77,7 @@ export default async function Page(props: { params: Promise<{ shareSlug: string 
 
   let data: Awaited<ReturnType<typeof caller.visualBuilder.getByShareSlug>>;
   try {
-    data = await caller.visualBuilder.getByShareSlug({ shareSlug });
+    data = await caller.visualBuilder.getByShareSlug({ shareSlug, versionNumber });
   } catch {
     notFound();
   }
@@ -75,6 +86,12 @@ export default async function Page(props: { params: Promise<{ shareSlug: string 
     <VisualBuilderPage
       initialBuild={{
         ...data,
+        version: data.version
+          ? {
+              ...data.version,
+              createdAt: data.version.createdAt ? data.version.createdAt.toISOString() : null,
+            }
+          : null,
         build: {
           ...data.build,
           updatedAt: data.build.updatedAt.toISOString(),

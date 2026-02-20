@@ -1,9 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { eq, sql } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/server/db";
-import { buildItems, buildTags, builds, users } from "@/server/db/schema";
+import { buildItems, buildTags, buildVersions, builds, users } from "@/server/db/schema";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/router";
 
@@ -35,6 +35,18 @@ const ONE_PIXEL_PNG_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/w8AAgMBAQEAH4QAAAAASUVORK5CYII=";
 
 describe("tRPC visualBuilder router", () => {
+  beforeEach(async () => {
+    await db.execute(sql`
+      create table if not exists "build_versions" (
+        "build_id" uuid not null references "builds"("id") on delete cascade,
+        "version_number" integer not null,
+        "canvas_state" jsonb not null default '{}'::jsonb,
+        "created_at" timestamp with time zone not null default now(),
+        primary key ("build_id", "version_number")
+      );
+    `);
+  });
+
   it("saves and reloads a public visual build by share slug", async () => {
     const anon = await getAnonCaller();
     const catalog = await anon.visualBuilder.catalog();
@@ -236,6 +248,92 @@ describe("tRPC visualBuilder router", () => {
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));
+  }, 40_000);
+
+  it("stores build versions and restores an older snapshot", async () => {
+    const email = `visual-version-owner-${crypto.randomUUID()}@example.com`;
+    const createdUser = await db
+      .insert(users)
+      .values({ email, authProvider: "email" })
+      .returning({ id: users.id });
+    const userId = createdUser[0]?.id;
+    expect(userId).toBeTruthy();
+
+    const owner = getUserCaller(userId!, email);
+    const anon = await getAnonCaller();
+    const catalog = await anon.visualBuilder.catalog();
+    const tank = catalog.tanks[0];
+    expect(tank?.id).toBeTruthy();
+
+    const firstSave = await owner.visualBuilder.save({
+      name: "Visual Builder Versioning Test",
+      tankId: tank!.id,
+      canvasState: {
+        version: 4,
+        widthIn: 30,
+        heightIn: tank!.heightIn,
+        depthIn: tank!.depthIn,
+        substrateHeightfield: Array.from({ length: 32 * 32 }, () => 1.2),
+        items: [],
+      },
+      lineItems: [],
+      isPublic: false,
+      flags: {},
+    });
+
+    const secondSave = await owner.visualBuilder.save({
+      buildId: firstSave.buildId,
+      shareSlug: firstSave.shareSlug,
+      name: "Visual Builder Versioning Test",
+      tankId: tank!.id,
+      canvasState: {
+        version: 4,
+        widthIn: 42,
+        heightIn: tank!.heightIn,
+        depthIn: tank!.depthIn,
+        substrateHeightfield: Array.from({ length: 32 * 32 }, () => 0.9),
+        items: [],
+      },
+      lineItems: [],
+      isPublic: false,
+      flags: {},
+    });
+
+    expect(firstSave.versionNumber).toBe(1);
+    expect(secondSave.versionNumber).toBe(2);
+
+    const versions = await owner.visualBuilder.listVersions({ shareSlug: firstSave.shareSlug });
+    expect(versions.versions.map((entry) => entry.versionNumber)).toEqual([2, 1]);
+
+    const versionOneSnapshot = await owner.visualBuilder.getByShareSlug({
+      shareSlug: firstSave.shareSlug,
+      versionNumber: 1,
+    });
+    expect(versionOneSnapshot.initialState.canvasState.widthIn).toBe(30);
+
+    const restored = await owner.visualBuilder.restoreVersion({
+      shareSlug: firstSave.shareSlug,
+      versionNumber: 1,
+    });
+    expect(restored.restoredFromVersion).toBe(1);
+    expect(restored.versionNumber).toBe(3);
+
+    const current = await owner.visualBuilder.getByShareSlug({ shareSlug: firstSave.shareSlug });
+    expect(current.initialState.canvasState.widthIn).toBe(30);
+
+    const persistedVersions = await db
+      .select({
+        versionNumber: buildVersions.versionNumber,
+      })
+      .from(buildVersions)
+      .where(eq(buildVersions.buildId, firstSave.buildId));
+    expect(persistedVersions.map((row) => row.versionNumber).sort((a, b) => a - b)).toEqual([
+      1, 2, 3,
+    ]);
+
+    await db.delete(buildItems).where(eq(buildItems.buildId, firstSave.buildId));
+    await db.delete(builds).where(eq(builds.id, firstSave.buildId));
+    await db.delete(users).where(eq(users.id, userId!));
   }, 40_000);
 
   it("hides private builds from anonymous callers while allowing owner access", async () => {

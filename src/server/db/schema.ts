@@ -672,6 +672,25 @@ export const builds = pgTable(
   ],
 );
 
+export const buildVersions = pgTable(
+  "build_versions",
+  {
+    buildId: uuid("build_id")
+      .notNull()
+      .references(() => builds.id, { onDelete: "cascade" }),
+    versionNumber: integer("version_number").notNull(),
+    canvasState: jsonb("canvas_state").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.buildId, t.versionNumber] }),
+    index("idx_build_versions_build").on(t.buildId),
+    index("idx_build_versions_build_version").on(t.buildId, t.versionNumber),
+  ],
+);
+
 export const buildVotes = pgTable(
   "build_votes",
   {
