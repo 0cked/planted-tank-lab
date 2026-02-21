@@ -192,20 +192,10 @@ describe("tRPC visualBuilder router", () => {
       isPublic: true,
       flags: {},
       thumbnailDataUrl: ONE_PIXEL_PNG_DATA_URL,
-      galleryDataUrls: {
-        front: ONE_PIXEL_PNG_DATA_URL,
-        top: ONE_PIXEL_PNG_DATA_URL,
-        threeQuarter: ONE_PIXEL_PNG_DATA_URL,
-      },
     });
 
     const loaded = await anon.visualBuilder.getByShareSlug({ shareSlug: saved.shareSlug });
     expect(loaded.build.coverImageUrl).toBe(`/api/builds/${saved.shareSlug}/thumbnail`);
-    expect(loaded.build.galleryImageUrls).toEqual({
-      front: `/api/builds/${saved.shareSlug}/gallery/front`,
-      top: `/api/builds/${saved.shareSlug}/gallery/top`,
-      threeQuarter: `/api/builds/${saved.shareSlug}/gallery/three-quarter`,
-    });
     expect(loaded.initialState.flags).toEqual({ hasShrimp: false, lowTechNoCo2: false });
     expect(loaded.initialState.canvasState.sceneSettings.cabinetFinishStyle).toBe("oak");
     expect(loaded.initialState.canvasState.sceneSettings.cabinetColor).toBe("#b38b61");
@@ -222,8 +212,6 @@ describe("tRPC visualBuilder router", () => {
     expect(typeof (persisted?.flags as Record<string, unknown>)?.["thumbnailDataUrl"]).toBe(
       "string",
     );
-    const galleryFlags = (persisted?.flags as Record<string, unknown>)?.["galleryDataUrls"];
-    expect(galleryFlags && typeof galleryFlags === "object").toBe(true);
 
     await db.delete(buildItems).where(eq(buildItems.buildId, saved.buildId));
     await db.delete(builds).where(eq(builds.id, saved.buildId));

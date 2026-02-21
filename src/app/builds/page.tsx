@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { BuildImageCarousel } from "@/components/builds/BuildImageCarousel";
 import {
   BUILD_SORT_OPTIONS,
   DEFAULT_BUILD_SORT_OPTION,
@@ -72,11 +71,11 @@ function formatMoney(cents: number | null | undefined): string {
   return (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
-function versionedImageUrl(
-  imageUrl: string | null | undefined,
+function buildThumbnailSrc(
+  coverImageUrl: string | null | undefined,
   updatedAt: Date | string | null | undefined,
 ): string | null {
-  if (!imageUrl) return null;
+  if (!coverImageUrl) return null;
 
   const timestamp =
     updatedAt instanceof Date
@@ -85,29 +84,10 @@ function versionedImageUrl(
         ? Date.parse(updatedAt)
         : Number.NaN;
 
-  if (!Number.isFinite(timestamp)) return imageUrl;
+  if (!Number.isFinite(timestamp)) return coverImageUrl;
 
-  const separator = imageUrl.includes("?") ? "&" : "?";
-  return `${imageUrl}${separator}v=${timestamp}`;
-}
-
-function versionedGalleryImages(
-  gallery:
-    | {
-        front: string | null;
-        top: string | null;
-        threeQuarter: string | null;
-      }
-    | null
-    | undefined,
-  updatedAt: Date | string | null | undefined,
-) {
-  if (!gallery) return null;
-  return {
-    front: versionedImageUrl(gallery.front, updatedAt),
-    top: versionedImageUrl(gallery.top, updatedAt),
-    threeQuarter: versionedImageUrl(gallery.threeQuarter, updatedAt),
-  };
+  const separator = coverImageUrl.includes("?") ? "&" : "?";
+  return `${coverImageUrl}${separator}v=${timestamp}`;
 }
 
 function tierMeta(style: string | null | undefined): {
@@ -327,8 +307,7 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {rows.map((b) => {
               const tier = tierMeta(b.style);
-              const thumbnailSrc = versionedImageUrl(b.coverImageUrl, b.updatedAt);
-              const galleryImages = versionedGalleryImages(b.galleryImageUrls, b.updatedAt);
+              const thumbnailSrc = buildThumbnailSrc(b.coverImageUrl, b.updatedAt);
 
               const buildHref = b.shareSlug ? `/builds/${b.shareSlug}` : "/builder";
 
@@ -336,11 +315,19 @@ export default async function BuildsIndexPage(props: { searchParams: Promise<Sea
                 <article key={b.id} className="ptl-surface overflow-hidden">
                   <Link href={buildHref} className="block ptl-hover-lift transition hover:bg-white/70">
                     <div className="aspect-[16/10] w-full border-b" style={{ borderColor: "var(--ptl-border)" }}>
-                      <BuildImageCarousel
-                        altBase={b.name}
-                        images={galleryImages}
-                        fallbackSrc={thumbnailSrc}
-                      />
+                      {thumbnailSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={thumbnailSrc}
+                          alt={`${b.name} thumbnail`}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-emerald-50 px-6 text-center text-xs font-medium uppercase tracking-wide text-neutral-500">
+                          Screenshot preview available after save
+                        </div>
+                      )}
                     </div>
 
                     <div className="p-6">

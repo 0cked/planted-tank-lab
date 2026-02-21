@@ -20,8 +20,6 @@ import { CameraDiagnosticsPanel } from "@/components/builder/visual/CameraDiagno
 import { evaluateVisualCompatibility } from "@/components/builder/visual/compatibility";
 import {
   buildImageExportFileName,
-  captureSceneGalleryDataUrls,
-  captureSceneThumbnailDataUrl,
   exportSceneCanvasPng,
   exportVisualLayoutPng,
 } from "@/components/builder/visual/export";
@@ -65,6 +63,7 @@ import { useVisualBuilderStore } from "@/stores/visual-builder-store";
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type InitialBuildResponse = RouterOutputs["visualBuilder"]["getByShareSlug"];
 
+const MAX_THUMBNAIL_WIDTH = 960;
 const VISUAL_BUILD_TEMPLATE_CARDS = getVisualBuildTemplateCards();
 
 export type TankDimensionPreset = {
@@ -158,6 +157,35 @@ function pickRecommendedAsset(params: {
   }
 
   return [...candidates].sort((a, b) => recommendationScore(a) - recommendationScore(b))[0] ?? null;
+}
+
+function captureSceneThumbnailDataUrl(canvas: HTMLCanvasElement | null): string | undefined {
+  if (!canvas) return undefined;
+
+  try {
+    const sourceWidth = canvas.width;
+    const sourceHeight = canvas.height;
+    if (sourceWidth <= 0 || sourceHeight <= 0) return undefined;
+
+    const scale = Math.min(1, MAX_THUMBNAIL_WIDTH / sourceWidth);
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
+
+    const targetCanvas = document.createElement("canvas");
+    targetCanvas.width = width;
+    targetCanvas.height = height;
+
+    const context = targetCanvas.getContext("2d");
+    if (!context) return undefined;
+
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(canvas, 0, 0, width, height);
+
+    return targetCanvas.toDataURL("image/png");
+  } catch {
+    return undefined;
+  }
 }
 
 function isEditableShortcutTarget(target: EventTarget | null): boolean {
@@ -763,10 +791,7 @@ export function useVisualBuilderPageController(
 
     try {
       const payload = toBuildPayload({ bomLineItems: bomForSave });
-      const [thumbnailDataUrl, galleryDataUrls] = await Promise.all([
-        captureSceneThumbnailDataUrl(sceneCanvasRef.current),
-        captureSceneGalleryDataUrls(sceneCanvasRef.current),
-      ]);
+      const thumbnailDataUrl = captureSceneThumbnailDataUrl(sceneCanvasRef.current);
 
       const result = await saveMutation.mutateAsync({
         buildId: payload.buildId ?? undefined,
@@ -780,7 +805,6 @@ export function useVisualBuilderPageController(
         tags: payload.tags,
         flags: payload.flags,
         thumbnailDataUrl,
-        galleryDataUrls: galleryDataUrls ?? undefined,
       });
 
       setBuildIdentity({ buildId: result.buildId, shareSlug: result.shareSlug });

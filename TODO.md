@@ -637,7 +637,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Download as PNG with filename `{build-name}-plantedtanklab.png`.
   - **Verify:** Click export. High-res PNG downloads. Watermark visible in corner. Image looks like the 3D scene.
 
-- [x] **P12-4: Multi-angle screenshot gallery**
+- [ ] **P12-4: Multi-angle screenshot gallery**
   - When saving a build, auto-capture 3 screenshots from different angles: front, top-down, and 3/4 view.
   - Store all 3 as the build's gallery images in Supabase storage.
   - On the builds gallery page and shared build page, show a small image carousel (3 images, click/swipe to rotate).

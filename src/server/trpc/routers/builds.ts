@@ -29,12 +29,6 @@ import {
   buildSortOptionSchema,
 } from "@/lib/build-sort";
 import { buildTagSlugSchema, normalizeBuildTagSlugs } from "@/lib/build-tags";
-import {
-  buildGalleryRoute,
-  buildThumbnailRoute,
-  extractGalleryDataUrls,
-  extractThumbnailDataUrl,
-} from "@/server/build-image-flags";
 import type * as fullSchema from "@/server/db/schema";
 
 const buildFlagsSchema = z
@@ -177,7 +171,6 @@ export const buildsRouter = createTRPCRouter({
         shareSlug: builds.shareSlug,
         description: builds.description,
         coverImageUrl: builds.coverImageUrl,
-        flags: builds.flags,
         totalPriceCents: builds.totalPriceCents,
         itemCount: builds.itemCount,
         updatedAt: builds.updatedAt,
@@ -231,7 +224,6 @@ export const buildsRouter = createTRPCRouter({
               builds.shareSlug,
               builds.description,
               builds.coverImageUrl,
-              builds.flags,
               builds.totalPriceCents,
               builds.itemCount,
               builds.updatedAt,
@@ -250,7 +242,6 @@ export const buildsRouter = createTRPCRouter({
               builds.shareSlug,
               builds.description,
               builds.coverImageUrl,
-              builds.flags,
               builds.totalPriceCents,
               builds.itemCount,
               builds.updatedAt,
@@ -276,28 +267,10 @@ export const buildsRouter = createTRPCRouter({
         tagsByBuildId.set(row.buildId, previous);
       }
 
-      return rows.map((row) => {
-        const { flags, ...rest } = row;
-        const galleryDataUrls = extractGalleryDataUrls(flags);
-        const hasPreviewImage =
-          extractThumbnailDataUrl(flags) != null || Object.keys(galleryDataUrls).length > 0;
-        const fallbackThumbnailRoute = row.shareSlug ? buildThumbnailRoute(row.shareSlug) : null;
-
-        return {
-          ...rest,
-          coverImageUrl: hasPreviewImage ? (row.coverImageUrl ?? fallbackThumbnailRoute) : row.coverImageUrl,
-          galleryImageUrls: row.shareSlug
-            ? {
-                front: galleryDataUrls.front ? buildGalleryRoute(row.shareSlug, "front") : fallbackThumbnailRoute,
-                top: galleryDataUrls.top ? buildGalleryRoute(row.shareSlug, "top") : fallbackThumbnailRoute,
-                threeQuarter: galleryDataUrls.threeQuarter
-                  ? buildGalleryRoute(row.shareSlug, "threeQuarter")
-                  : fallbackThumbnailRoute,
-              }
-            : null,
-          tags: normalizeBuildTagSlugs(tagsByBuildId.get(row.id) ?? []),
-        };
-      });
+      return rows.map((row) => ({
+        ...row,
+        tags: normalizeBuildTagSlugs(tagsByBuildId.get(row.id) ?? []),
+      }));
     }),
 
   getVotes: publicProcedure
@@ -691,11 +664,6 @@ export const buildsRouter = createTRPCRouter({
         }
       }
 
-      const galleryDataUrls = extractGalleryDataUrls(build.flags);
-      const hasPreviewImage =
-        extractThumbnailDataUrl(build.flags) != null || Object.keys(galleryDataUrls).length > 0;
-      const fallbackThumbnailRoute = build.shareSlug ? buildThumbnailRoute(build.shareSlug) : null;
-
       return {
         build: {
           id: build.id,
@@ -703,16 +671,7 @@ export const buildsRouter = createTRPCRouter({
           style: build.style,
           shareSlug: build.shareSlug,
           description: build.description,
-          coverImageUrl: hasPreviewImage ? (build.coverImageUrl ?? fallbackThumbnailRoute) : build.coverImageUrl,
-          galleryImageUrls: build.shareSlug
-            ? {
-                front: galleryDataUrls.front ? buildGalleryRoute(build.shareSlug, "front") : fallbackThumbnailRoute,
-                top: galleryDataUrls.top ? buildGalleryRoute(build.shareSlug, "top") : fallbackThumbnailRoute,
-                threeQuarter: galleryDataUrls.threeQuarter
-                  ? buildGalleryRoute(build.shareSlug, "threeQuarter")
-                  : fallbackThumbnailRoute,
-              }
-            : null,
+          coverImageUrl: build.coverImageUrl,
           isPublic: build.isPublic,
           itemCount: build.itemCount,
           totalPriceCents: build.totalPriceCents,

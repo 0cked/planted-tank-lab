@@ -38,16 +38,6 @@ import {
   normalizeSubstrateMaterialGrid,
 } from "@/lib/visual/substrate-materials";
 import { buildTankIllustrationUrl, tankModelFromSlug } from "@/lib/tank-visual";
-import {
-  buildGalleryRoute,
-  buildThumbnailRoute,
-  extractGalleryDataUrls,
-  extractThumbnailDataUrl,
-  sanitizeGalleryDataUrls,
-  sanitizePngDataUrl,
-  withBuildImageFlags,
-  type BuildGalleryAngle,
-} from "@/server/build-image-flags";
 import type {
   SubstrateHeightfield,
   VisualAnchorType,
@@ -280,6 +270,10 @@ const lineItemSchema = z
     }
   });
 
+const MAX_THUMBNAIL_DATA_URL_LENGTH = 1_500_000;
+const PNG_DATA_URL_PREFIX = "data:image/png;base64,";
+const BUILD_THUMBNAIL_FLAG_KEY = "thumbnailDataUrl";
+
 const saveInputSchema = z.object({
   buildId: z.string().uuid().optional(),
   shareSlug: z.string().min(1).max(20).optional(),
@@ -291,14 +285,7 @@ const saveInputSchema = z.object({
   isPublic: z.boolean().optional(),
   flags: z.record(z.string(), z.unknown()).optional(),
   tags: z.array(buildTagSlugSchema).max(9).default([]),
-  thumbnailDataUrl: z.string().trim().optional(),
-  galleryDataUrls: z
-    .object({
-      front: z.string().trim().optional(),
-      top: z.string().trim().optional(),
-      threeQuarter: z.string().trim().optional(),
-    })
-    .optional(),
+  thumbnailDataUrl: z.string().trim().max(MAX_THUMBNAIL_DATA_URL_LENGTH).optional(),
 });
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -335,25 +322,42 @@ function normalizeVisualBuilderFlags(value: unknown): {
   };
 }
 
-function resolveBuildGalleryImageUrls(
-  shareSlug: string,
-  flags: unknown,
-): Record<BuildGalleryAngle, string> {
-  const galleryDataUrls = extractGalleryDataUrls(flags);
+function sanitizeThumbnailDataUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+
+  const normalized = value.trim();
+  if (!normalized.startsWith(PNG_DATA_URL_PREFIX)) return null;
+  if (normalized.length > MAX_THUMBNAIL_DATA_URL_LENGTH) return null;
+
+  const encoded = normalized.slice(PNG_DATA_URL_PREFIX.length);
+  if (!encoded) return null;
+  if (!/^[A-Za-z0-9+/]+=*$/.test(encoded)) return null;
+
+  return normalized;
+}
+
+function extractThumbnailDataUrl(flags: unknown): string | null {
+  const row = asRecord(flags);
+  return sanitizeThumbnailDataUrl(row[BUILD_THUMBNAIL_FLAG_KEY]);
+}
+
+function withThumbnailFlag(
+  flags: {
+    hasShrimp: boolean;
+    lowTechNoCo2: boolean;
+  },
+  thumbnailDataUrl: string | null,
+): Record<string, unknown> {
+  if (!thumbnailDataUrl) return { ...flags };
+
   return {
-    front:
-      galleryDataUrls.front != null
-        ? buildGalleryRoute(shareSlug, "front")
-        : buildThumbnailRoute(shareSlug),
-    top:
-      galleryDataUrls.top != null
-        ? buildGalleryRoute(shareSlug, "top")
-        : buildThumbnailRoute(shareSlug),
-    threeQuarter:
-      galleryDataUrls.threeQuarter != null
-        ? buildGalleryRoute(shareSlug, "threeQuarter")
-        : buildThumbnailRoute(shareSlug),
+    ...flags,
+    [BUILD_THUMBNAIL_FLAG_KEY]: thumbnailDataUrl,
   };
+}
+
+function buildThumbnailRoute(shareSlug: string): string {
+  return `/api/builds/${shareSlug}/thumbnail`;
 }
 
 function firstImage(primary: string | null, imageUrls: unknown): string | null {
@@ -1174,12 +1178,6 @@ export const visualBuilderRouter = createTRPCRouter({
         .from(buildTags)
         .where(eq(buildTags.buildId, build.id));
       const tags = normalizeBuildTagSlugs(tagRows.map((row) => row.tagSlug));
-      const hasPreviewImage =
-        extractThumbnailDataUrl(build.flags) != null ||
-        Object.keys(extractGalleryDataUrls(build.flags)).length > 0;
-      const galleryImageUrls = hasPreviewImage
-        ? resolveBuildGalleryImageUrls(build.shareSlug ?? input.shareSlug, build.flags)
-        : null;
 
       return {
         build: {
@@ -1191,7 +1189,6 @@ export const visualBuilderRouter = createTRPCRouter({
           isPublic: build.isPublic,
           tankId: build.tankId,
           coverImageUrl: build.coverImageUrl,
-          galleryImageUrls,
           totalPriceCents: build.totalPriceCents,
           itemCount: build.itemCount,
           updatedAt: build.updatedAt,
@@ -1387,8 +1384,7 @@ export const visualBuilderRouter = createTRPCRouter({
 
       const normalizedFlags = normalizeVisualBuilderFlags(input.flags);
       const normalizedTags = normalizeBuildTagSlugs(input.tags);
-      const requestedThumbnailDataUrl = sanitizePngDataUrl(input.thumbnailDataUrl);
-      const requestedGalleryDataUrls = sanitizeGalleryDataUrls(input.galleryDataUrls);
+      const requestedThumbnailDataUrl = sanitizeThumbnailDataUrl(input.thumbnailDataUrl);
 
       if (buildId) {
         const existing = await tx
@@ -1449,28 +1445,9 @@ export const visualBuilderRouter = createTRPCRouter({
         });
       }
 
-      const existingThumbnailDataUrl = extractThumbnailDataUrl(existingFlags);
-      const existingGalleryDataUrls = extractGalleryDataUrls(existingFlags);
-
-      const thumbnailDataUrl = requestedThumbnailDataUrl ?? existingThumbnailDataUrl;
-      const galleryDataUrls =
-        Object.keys(requestedGalleryDataUrls).length > 0
-          ? requestedGalleryDataUrls
-          : existingGalleryDataUrls;
-
-      if (!galleryDataUrls.front && thumbnailDataUrl) {
-        galleryDataUrls.front = thumbnailDataUrl;
-      }
-
-      const buildFlags = withBuildImageFlags(normalizedFlags, {
-        thumbnailDataUrl,
-        galleryDataUrls,
-      });
-
-      const coverImageUrl =
-        thumbnailDataUrl || galleryDataUrls.front
-          ? buildThumbnailRoute(shareSlug)
-          : null;
+      const thumbnailDataUrl = requestedThumbnailDataUrl ?? extractThumbnailDataUrl(existingFlags);
+      const buildFlags = withThumbnailFlag(normalizedFlags, thumbnailDataUrl);
+      const coverImageUrl = thumbnailDataUrl ? buildThumbnailRoute(shareSlug) : null;
 
       if (!buildId) {
         const created = await tx
@@ -1737,8 +1714,6 @@ export const visualBuilderRouter = createTRPCRouter({
         if (!source) throw new TRPCError({ code: "NOT_FOUND" });
 
         const shareSlug = nanoid(10);
-        const sourceThumbnailDataUrl = extractThumbnailDataUrl(source.flags);
-        const sourceGalleryDataUrls = extractGalleryDataUrls(source.flags);
         const created = await tx
           .insert(builds)
           .values({
@@ -1750,10 +1725,7 @@ export const visualBuilderRouter = createTRPCRouter({
             tankId: source.tankId,
             canvasState: source.canvasState,
             flags: source.flags ?? {},
-            coverImageUrl:
-              sourceThumbnailDataUrl || sourceGalleryDataUrls.front
-                ? buildThumbnailRoute(shareSlug)
-                : null,
+            coverImageUrl: extractThumbnailDataUrl(source.flags) ? buildThumbnailRoute(shareSlug) : null,
             isPublic: false,
             isCompleted: true,
             totalPriceCents: source.totalPriceCents,
