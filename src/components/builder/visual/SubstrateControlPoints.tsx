@@ -70,6 +70,8 @@ function ControlDot(props: {
       <mesh>
         <sphereGeometry args={[DOT_RADIUS, 14, 10]} />
         <meshStandardMaterial
+          color={color}
+          emissive={color}
           emissiveIntensity={props.active ? 0.7 : hovered ? 0.4 : 0.2}
           roughness={0.35}
           metalness={0.1}
@@ -78,9 +80,9 @@ function ControlDot(props: {
         />
       </mesh>
 
-      <mesh renderOrder={100}>
+      <mesh>
         <sphereGeometry args={[DOT_HIT_RADIUS, 12, 8]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -235,7 +237,7 @@ export function SubstrateControlPoints(props: SubstrateControlPointsProps) {
   }, [gl, camera, cols, rows, dims.heightIn, onHeightfieldChange, onStrokeEnd, onDragStateChange]);
 
   return (
-    <group renderOrder={100}>
+    <group>
       {dotPositions.map((position, index) => (
         <ControlDot
           key={`${index}`}
