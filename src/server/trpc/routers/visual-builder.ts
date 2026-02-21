@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -7,7 +7,6 @@ import { z } from "zod";
 import {
   buildItems,
   buildTags,
-  buildVersions,
   builds,
   categories,
   offers,
@@ -796,22 +795,6 @@ function parseCanvasState(value: unknown): {
   });
 }
 
-async function nextBuildVersionNumber(params: {
-  db: PostgresJsDatabase<typeof fullSchema>;
-  buildId: string;
-}): Promise<number> {
-  const rows = await params.db
-    .select({
-      latest: sql<number>`coalesce(max(${buildVersions.versionNumber}), 0)::int`,
-    })
-    .from(buildVersions)
-    .where(eq(buildVersions.buildId, params.buildId))
-    .limit(1);
-
-  const latest = rows[0]?.latest ?? 0;
-  return latest + 1;
-}
-
 async function findBestOffers(params: {
   db: PostgresJsDatabase<typeof fullSchema>;
   productIds: string[];
@@ -1083,12 +1066,7 @@ export const visualBuilderRouter = createTRPCRouter({
   }),
 
   getByShareSlug: publicProcedure
-    .input(
-      z.object({
-        shareSlug: z.string().min(1).max(20),
-        versionNumber: z.number().int().min(1).optional(),
-      }),
-    )
+    .input(z.object({ shareSlug: z.string().min(1).max(20) }))
     .query(async ({ ctx, input }) => {
       const buildRows = await ctx.db
         .select({
@@ -1116,36 +1094,6 @@ export const visualBuilderRouter = createTRPCRouter({
       if (!build.isPublic && (!requesterUserId || build.userId !== requesterUserId)) {
         // Avoid leaking private build existence through share-slug probing.
         throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      let versionCreatedAt: Date | null = null;
-      let selectedVersionNumber: number | null = null;
-      let canvasStateSource: unknown = build.canvasState;
-
-      if (input.versionNumber != null) {
-        const versionRows = await ctx.db
-          .select({
-            versionNumber: buildVersions.versionNumber,
-            canvasState: buildVersions.canvasState,
-            createdAt: buildVersions.createdAt,
-          })
-          .from(buildVersions)
-          .where(
-            and(
-              eq(buildVersions.buildId, build.id),
-              eq(buildVersions.versionNumber, input.versionNumber),
-            ),
-          )
-          .limit(1);
-
-        const selectedVersion = versionRows[0];
-        if (!selectedVersion) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Build version not found." });
-        }
-
-        selectedVersionNumber = selectedVersion.versionNumber;
-        versionCreatedAt = selectedVersion.createdAt;
-        canvasStateSource = selectedVersion.canvasState;
       }
 
       const itemRows = await ctx.db
@@ -1201,7 +1149,7 @@ export const visualBuilderRouter = createTRPCRouter({
           description: build.description,
           isPublic: build.isPublic,
           tankId: build.tankId,
-          canvasState: parseCanvasState(canvasStateSource),
+          canvasState: parseCanvasState(build.canvasState),
           flags: normalizeVisualBuilderFlags(build.flags),
           tags,
           lineItems: itemRows.map((row) => ({
@@ -1227,125 +1175,7 @@ export const visualBuilderRouter = createTRPCRouter({
               : null,
           })),
         },
-        version: selectedVersionNumber
-          ? {
-              versionNumber: selectedVersionNumber,
-              createdAt: versionCreatedAt,
-            }
-          : null,
       };
-    }),
-
-  listVersions: publicProcedure
-    .input(z.object({ shareSlug: z.string().min(1).max(20) }))
-    .query(async ({ ctx, input }) => {
-      const buildRows = await ctx.db
-        .select({
-          id: builds.id,
-          userId: builds.userId,
-          isPublic: builds.isPublic,
-          updatedAt: builds.updatedAt,
-        })
-        .from(builds)
-        .where(eq(builds.shareSlug, input.shareSlug))
-        .limit(1);
-
-      const build = buildRows[0];
-      if (!build) throw new TRPCError({ code: "NOT_FOUND" });
-
-      const requesterUserId = ctx.session?.user?.id ?? null;
-      if (!build.isPublic && (!requesterUserId || build.userId !== requesterUserId)) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      const versions = await ctx.db
-        .select({
-          versionNumber: buildVersions.versionNumber,
-          createdAt: buildVersions.createdAt,
-        })
-        .from(buildVersions)
-        .where(eq(buildVersions.buildId, build.id))
-        .orderBy(desc(buildVersions.versionNumber))
-        .limit(100);
-
-      return {
-        versions,
-        buildUpdatedAt: build.updatedAt,
-      };
-    }),
-
-  restoreVersion: protectedProcedure
-    .input(
-      z.object({
-        shareSlug: z.string().min(1).max(20),
-        versionNumber: z.number().int().min(1),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      return ctx.db.transaction(async (tx) => {
-        const buildRows = await tx
-          .select({
-            id: builds.id,
-            userId: builds.userId,
-            shareSlug: builds.shareSlug,
-          })
-          .from(builds)
-          .where(eq(builds.shareSlug, input.shareSlug))
-          .limit(1);
-
-        const build = buildRows[0];
-        if (!build) throw new TRPCError({ code: "NOT_FOUND" });
-        if (build.userId !== ctx.session.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-
-        const versionRows = await tx
-          .select({
-            versionNumber: buildVersions.versionNumber,
-            canvasState: buildVersions.canvasState,
-          })
-          .from(buildVersions)
-          .where(
-            and(
-              eq(buildVersions.buildId, build.id),
-              eq(buildVersions.versionNumber, input.versionNumber),
-            ),
-          )
-          .limit(1);
-
-        const selectedVersion = versionRows[0];
-        if (!selectedVersion) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Build version not found." });
-        }
-
-        const normalizedCanvasState = parseCanvasState(selectedVersion.canvasState);
-
-        await tx
-          .update(builds)
-          .set({
-            canvasState: normalizedCanvasState,
-            updatedAt: new Date(),
-          })
-          .where(eq(builds.id, build.id));
-
-        const versionNumber = await nextBuildVersionNumber({
-          db: tx,
-          buildId: build.id,
-        });
-
-        await tx.insert(buildVersions).values({
-          buildId: build.id,
-          versionNumber,
-          canvasState: normalizedCanvasState,
-          createdAt: new Date(),
-        });
-
-        return {
-          shareSlug: build.shareSlug,
-          versionNumber,
-          restoredFromVersion: input.versionNumber,
-        };
-      });
     }),
 
   save: publicProcedure.input(saveInputSchema).mutation(async ({ ctx, input }) => {
@@ -1664,22 +1494,9 @@ export const visualBuilderRouter = createTRPCRouter({
         })
         .where(eq(builds.id, buildId));
 
-      const versionNumber = await nextBuildVersionNumber({
-        db: tx,
-        buildId,
-      });
-
-      await tx.insert(buildVersions).values({
-        buildId,
-        versionNumber,
-        canvasState: input.canvasState,
-        createdAt: new Date(),
-      });
-
       return {
         buildId,
         shareSlug,
-        versionNumber,
         isPublic: nextPublic,
         itemCount,
         totalPriceCents,

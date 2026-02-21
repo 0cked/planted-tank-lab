@@ -120,13 +120,6 @@
       "when": 1771380000000,
       "tag": "0016_price_alerts",
       "breakpoints": true
-    },
-    {
-      "idx": 17,
-      "version": "7",
-      "when": 1771900000000,
-      "tag": "0017_build_versions",
-      "breakpoints": true
     }
   ]
 }

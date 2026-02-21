@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BuildCommentsSection } from "./BuildCommentsSection";
-import { BuildVersionHistoryPanel } from "./BuildVersionHistoryPanel";
 import { ReportBuildDialog } from "./ReportBuildDialog";
 
 import {
@@ -134,22 +133,10 @@ function defaultBuyAllOptionId(options: BuyAllItemOption[]): string | null {
   );
 }
 
-function parseVersionNumber(value: string | string[] | undefined): number | null {
-  const raw = Array.isArray(value) ? value[0] : value;
-  if (!raw) return null;
-
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed) || parsed < 1) return null;
-  return parsed;
-}
-
 export default async function BuildSharePage(props: {
   params: Promise<{ shareSlug: string }>;
-  searchParams: Promise<{ version?: string | string[] }>;
 }) {
   const { shareSlug } = await props.params;
-  const searchParams = await props.searchParams;
-  const selectedVersionNumber = parseVersionNumber(searchParams.version);
 
   const caller = appRouter.createCaller(
     await createTRPCContext({ req: new Request("http://localhost") }),
@@ -177,17 +164,6 @@ export default async function BuildSharePage(props: {
           : reply.createdAt,
     })),
   }));
-
-  const versionHistory = await caller.visualBuilder
-    .listVersions({ shareSlug })
-    .catch(() => ({ versions: [], buildUpdatedAt: null }));
-
-  const selectedVersionPreview =
-    selectedVersionNumber != null
-      ? await caller.visualBuilder
-          .getByShareSlug({ shareSlug, versionNumber: selectedVersionNumber })
-          .catch(() => null)
-      : null;
 
   const gear = data.items.filter(
     (
@@ -414,64 +390,6 @@ export default async function BuildSharePage(props: {
           )}
         </section>
       </div>
-
-      <div className="mt-10">
-        <BuildVersionHistoryPanel
-          shareSlug={shareSlug}
-          initialVersions={versionHistory.versions.map((version) => ({
-            versionNumber: version.versionNumber,
-            createdAt: version.createdAt.toISOString(),
-          }))}
-        />
-      </div>
-
-      {selectedVersionPreview ? (
-        <section className="mt-6 ptl-surface p-7 sm:p-10">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">
-              Read-only preview: version {selectedVersionPreview.version?.versionNumber}
-            </h2>
-            <div className="text-xs text-neutral-600">
-              {selectedVersionPreview.version?.createdAt
-                ? new Intl.DateTimeFormat(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  }).format(new Date(selectedVersionPreview.version.createdAt))
-                : "Saved snapshot"}
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border bg-white/60 p-3" style={{ borderColor: "var(--ptl-border)" }}>
-              <div className="text-xs uppercase tracking-wide text-neutral-600">Width</div>
-              <div className="mt-1 text-sm font-semibold text-neutral-900">
-                {selectedVersionPreview.initialState.canvasState.widthIn.toFixed(1)} in
-              </div>
-            </div>
-            <div className="rounded-xl border bg-white/60 p-3" style={{ borderColor: "var(--ptl-border)" }}>
-              <div className="text-xs uppercase tracking-wide text-neutral-600">Depth</div>
-              <div className="mt-1 text-sm font-semibold text-neutral-900">
-                {selectedVersionPreview.initialState.canvasState.depthIn.toFixed(1)} in
-              </div>
-            </div>
-            <div className="rounded-xl border bg-white/60 p-3" style={{ borderColor: "var(--ptl-border)" }}>
-              <div className="text-xs uppercase tracking-wide text-neutral-600">Height</div>
-              <div className="mt-1 text-sm font-semibold text-neutral-900">
-                {selectedVersionPreview.initialState.canvasState.heightIn.toFixed(1)} in
-              </div>
-            </div>
-            <div className="rounded-xl border bg-white/60 p-3" style={{ borderColor: "var(--ptl-border)" }}>
-              <div className="text-xs uppercase tracking-wide text-neutral-600">Placed items</div>
-              <div className="mt-1 text-sm font-semibold text-neutral-900">
-                {selectedVersionPreview.initialState.canvasState.items.length}
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : null}
 
       <div className="mt-10">
         <BuildCommentsSection
