@@ -42,7 +42,6 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import type { Severity } from "@/engine/types";
 import type { CameraDiagnosticEvent } from "@/hooks/useCameraEvidence";
 import {
-  defaultRendererRuntimeState,
   describeRendererFallbackReason,
   toRendererRuntimeFailureState,
 } from "@/lib/graphics/renderer-mode";
@@ -313,7 +312,15 @@ const CABINET_FINISH_OPTIONS: ReadonlyArray<{
   { value: "walnut", label: "Walnut grain" },
   { value: "custom", label: "Custom" },
 ];
-const BUILDER_DRAG_ASSET_MIME = "application/x-ptl-asset-id";
+
+const DEFAULT_RENDERER_RUNTIME_STATE: VisualRendererRuntimeState = {
+  preference: "auto",
+  requestedMode: "webgpu",
+  activeMode: "webgl",
+  fallbackReason: "webgpu_unsupported",
+  webgpuSupported: false,
+  detail: null,
+};
 
 function RailBtn(props: {
   label?: string;
@@ -668,13 +675,6 @@ function AssetList(props: {
             <button
               key={`${asset.type}:${asset.id}:${asset.categorySlug}`}
               type="button"
-              draggable={isCanvas}
-              onDragStart={(event) => {
-                if (!isCanvas) return;
-                event.dataTransfer.effectAllowed = "copy";
-                event.dataTransfer.setData(BUILDER_DRAG_ASSET_MIME, asset.id);
-                event.dataTransfer.setData("text/plain", asset.id);
-              }}
               onClick={() => {
                 if (isArmed) {
                   props.onClearPlacementMode();
@@ -686,7 +686,7 @@ function AssetList(props: {
                 isArmed || isSel
                   ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8"
                   : "border-[var(--ptl-border)] bg-black/[0.03] hover:bg-black/[0.06]"
-              } ${isCanvas ? "cursor-grab active:cursor-grabbing" : ""}`}
+              }`}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[var(--ptl-border)] bg-black/5">
                 <AssetThumbnail asset={asset} />
@@ -1368,9 +1368,16 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [hardscapeMode, setHardscapeMode] = useState<HardscapeSplitMode>("rocks");
   const [tankPanelMode, setTankPanelMode] = useState<TankPanelMode>("tank");
-  const [rendererRuntimeState, setRendererRuntimeState] = useState<VisualRendererRuntimeState>(() =>
-    defaultRendererRuntimeState(props.canvasState.sceneSettings.rendererPreference),
-  );
+  const [rendererRuntimeState, setRendererRuntimeState] = useState<VisualRendererRuntimeState>({
+    ...DEFAULT_RENDERER_RUNTIME_STATE,
+    preference: props.canvasState.sceneSettings.rendererPreference,
+    requestedMode:
+      props.canvasState.sceneSettings.rendererPreference === "webgl" ? "webgl" : "webgpu",
+    fallbackReason:
+      props.canvasState.sceneSettings.rendererPreference === "webgl"
+        ? "forced_webgl"
+        : "webgpu_unsupported",
+  });
 
   const filteredAssetsForStep = useMemo(() => {
     if (props.currentStep !== "hardscape") {
@@ -1411,6 +1418,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
               error,
             ),
           );
+          props.onSceneSettingsChange({ rendererPreference: "webgl" });
         }
       }}
       fallback={({ retry }) => (

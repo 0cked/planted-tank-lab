@@ -129,15 +129,6 @@ export function zFromDepthZone(zone: VisualDepthZone | null | undefined): number
   return 0.5;
 }
 
-export function depthZoneFromPlacementPreference(
-  placementZone: string | null | undefined,
-): VisualDepthZone | null {
-  if (placementZone === "foreground") return "foreground";
-  if (placementZone === "midground") return "midground";
-  if (placementZone === "background") return "background";
-  return null;
-}
-
 export function defaultAnchorForCategory(categorySlug: string): VisualAnchorType {
   if (categorySlug === "hardscape") return "substrate";
   if (categorySlug === "plants") return "substrate";

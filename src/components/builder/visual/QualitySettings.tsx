@@ -97,11 +97,11 @@ export function QualitySettings(props: QualitySettingsProps) {
         <label className="flex items-center gap-1.5">
           <input
             type="checkbox"
-            aria-label="Show depth zones"
+            aria-label="Show depth guides"
             checked={props.sceneSettings.guidesVisible}
             onChange={(event) => props.onSceneSettingsChange({ guidesVisible: event.target.checked })}
           />
-          Depth zones
+          Guides
         </label>
 
         <label
