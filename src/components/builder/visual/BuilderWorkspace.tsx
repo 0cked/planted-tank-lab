@@ -349,7 +349,7 @@ function RailBtn(props: {
           alt={props.iconAlt ?? props.title}
           width={props.compact ? 18 : 24}
           height={props.compact ? 18 : 24}
-          className={`h-auto w-auto object-contain drop-shadow-md brightness-0 invert transition-opacity duration-300 ${props.disabled ? "opacity-30" : props.active ? "opacity-100" : "opacity-70 group-hover:opacity-100"}`}
+          className={`h-auto w-auto object-contain drop-shadow-md brightness-0 invert mix-blend-screen transition-opacity duration-300 ${props.disabled ? "opacity-30" : props.active ? "opacity-100" : "opacity-70 group-hover:opacity-100"}`}
         />
       ) : (
         <span className="font-semibold drop-shadow-sm">{props.label}</span>

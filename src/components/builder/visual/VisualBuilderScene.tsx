@@ -141,14 +141,14 @@ type CameraDiagnosticEvent = {
 
 type CameraIntent =
   | {
-      type: "reframe" | "reset";
-      seq: number;
-    }
+    type: "reframe" | "reset";
+    seq: number;
+  }
   | {
-      type: "focus-item";
-      itemId: string;
-      seq: number;
-    };
+    type: "focus-item";
+    itemId: string;
+    seq: number;
+  };
 
 type CameraFocusTarget = {
   itemId: string;
@@ -2484,13 +2484,13 @@ function ProceduralHardscapeMesh(props: {
     () =>
       isWood
         ? getProceduralWoodModel({
-            type: woodType,
-            seed,
-          })
+          type: woodType,
+          seed,
+        })
         : getProceduralRockModel({
-            type: rockType,
-            seed,
-          }),
+          type: rockType,
+          seed,
+        }),
     [isWood, rockType, seed, woodType],
   );
   const material = useMemo(
@@ -2608,8 +2608,8 @@ function ItemMesh(props: {
     group.rotation.y =
       props.renderItem.asset.categorySlug === "plants"
         ?
-            baseYRotation +
-            Math.sin(state.clock.elapsedTime * 1.25 + props.renderItem.position.x * 0.2) * 0.06
+        baseYRotation +
+        Math.sin(state.clock.elapsedTime * 1.25 + props.renderItem.position.x * 0.2) * 0.06
         : baseYRotation;
     group.scale.setScalar(pulse);
   });
@@ -2645,17 +2645,17 @@ function ItemMesh(props: {
       onPointerOver={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              props.onHover(props.renderItem.item.id);
-            }
+            event.stopPropagation();
+            props.onHover(props.renderItem.item.id);
+          }
           : undefined
       }
       onPointerOut={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              props.onHover(null);
-            }
+            event.stopPropagation();
+            props.onHover(null);
+          }
           : undefined
       }
     >
@@ -2827,40 +2827,40 @@ function InstancedPlantRenderer(props: {
       onPointerMove={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              const renderItem = renderItemFromInstanceId(event.instanceId);
-              if (!renderItem) return;
+            event.stopPropagation();
+            const renderItem = renderItemFromInstanceId(event.instanceId);
+            if (!renderItem) return;
 
-              props.onHover(renderItem.item.id);
-              props.onSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
-            }
+            props.onHover(renderItem.item.id);
+            props.onSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
+          }
           : undefined
       }
       onPointerDown={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              const renderItem = renderItemFromInstanceId(event.instanceId);
-              if (!renderItem) return;
+            event.stopPropagation();
+            const renderItem = renderItemFromInstanceId(event.instanceId);
+            if (!renderItem) return;
 
-              props.onSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
-            }
+            props.onSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
+          }
           : undefined
       }
       onPointerOut={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              props.onHover(null);
-            }
+            event.stopPropagation();
+            props.onHover(null);
+          }
           : undefined
       }
       onPointerUp={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              props.onSurfaceUp(event);
-            }
+            event.stopPropagation();
+            props.onSurfaceUp(event);
+          }
           : undefined
       }
     />
@@ -3634,6 +3634,7 @@ function createWoodCabinetTexture(params: {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.magFilter = THREE.LinearFilter;
   texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
   texture.needsUpdate = true;
   return texture;
 }
@@ -3708,7 +3709,7 @@ function CabinetStand(props: {
         <meshStandardMaterial color={plinthColor} roughness={0.8} metalness={0.05} />
       </mesh>
 
-      {[ -1, 1 ].map((direction) => (
+      {[-1, 1].map((direction) => (
         <mesh
           key={`cabinet-door-${direction}`}
           position={[
@@ -4457,10 +4458,10 @@ function DepthZoneIndicators(props: {
     color: string;
     zCenterRatio: number;
   }> = [
-    { zone: "foreground", color: "#8ec3a9", zCenterRatio: 1 / 6 },
-    { zone: "midground", color: "#8daecc", zCenterRatio: 0.5 },
-    { zone: "background", color: "#9a9fcd", zCenterRatio: 5 / 6 },
-  ];
+      { zone: "foreground", color: "#8ec3a9", zCenterRatio: 1 / 6 },
+      { zone: "midground", color: "#8daecc", zCenterRatio: 0.5 },
+      { zone: "background", color: "#9a9fcd", zCenterRatio: 5 / 6 },
+    ];
 
   const boundaryRatios: ReadonlyArray<number> = [1 / 3, 2 / 3];
   const zoneWidth = props.dims.widthIn * 0.965;
@@ -4530,10 +4531,10 @@ function PlacementPreview(props: {
         highlightColorOverride={color}
         toolMode="place"
         interactive={false}
-        onSelect={() => {}}
-        onHover={() => {}}
-        onRotate={() => {}}
-        onDelete={() => {}}
+        onSelect={() => { }}
+        onHover={() => { }}
+        onRotate={() => { }}
+        onDelete={() => { }}
       />
 
       <mesh
@@ -4653,9 +4654,9 @@ function SceneRoot(
   const postprocessingPipeline =
     props.rendererMode === "webgl"
       ? resolveScenePostprocessingPipeline({
-          enabled: props.postprocessingEnabled,
-          qualityTier: props.qualityTier,
-        })
+        enabled: props.postprocessingEnabled,
+        qualityTier: props.qualityTier,
+      })
       : "none";
 
   const { singleRenderItems, plantInstancedGroups } = useMemo(() => {
@@ -4855,11 +4856,11 @@ function SceneRoot(
     const substrateY =
       nextCandidate.anchorType === "substrate"
         ? sampleSubstrateDepth({
-            xNorm,
-            zNorm,
-            heightfield: props.canvasState.substrateHeightfield,
-            tankHeightIn: dims.heightIn,
-          })
+          xNorm,
+          zNorm,
+          heightfield: props.canvasState.substrateHeightfield,
+          tankHeightIn: dims.heightIn,
+        })
         : null;
     const yNorm =
       substrateY == null ? provisionalYNorm : clamp01(substrateY / Math.max(1, dims.heightIn));
@@ -4928,9 +4929,9 @@ function SceneRoot(
   }, [props.placementAsset]);
   const activePlacementDepthZone =
     props.toolMode === "place" &&
-    props.placementAsset?.categorySlug === "plants" &&
-    candidate &&
-    placementValidity.valid
+      props.placementAsset?.categorySlug === "plants" &&
+      candidate &&
+      placementValidity.valid
       ? depthZoneFromZ(placementValidity.zNorm)
       : null;
 
@@ -5364,9 +5365,9 @@ function SceneRoot(
     const candidatePoint =
       props.toolMode === "place" && props.placementAsset
         ? resolvePlacementCoordinates({
-            point: event.point,
-            anchorType,
-          }).point
+          point: event.point,
+          anchorType,
+        }).point
         : event.point.clone();
 
     setCandidate({
@@ -5465,8 +5466,8 @@ function SceneRoot(
         onSurfaceDown={handleSurfaceDown}
         onSurfaceUp={handleSurfaceUp}
         onSubstrateHeightfield={props.onSubstrateHeightfield}
-        onSubstrateStrokeStart={onSubstrateStrokeStart ?? (() => {})}
-        onSubstrateStrokeEnd={onSubstrateStrokeEnd ?? (() => {})}
+        onSubstrateStrokeStart={onSubstrateStrokeStart ?? (() => { })}
+        onSubstrateStrokeEnd={onSubstrateStrokeEnd ?? (() => { })}
         onSubstrateControlPointDragStateChange={setSubstrateNodeDragActive}
       />
 
@@ -5480,13 +5481,13 @@ function SceneRoot(
           onPointerMove={
             itemInteractionsEnabled
               ? (event) =>
-                  handleSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
+                handleSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
               : undefined
           }
           onPointerDown={
             itemInteractionsEnabled
               ? (event) =>
-                  handleSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
+                handleSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
               : undefined
           }
           onPointerUp={itemInteractionsEnabled ? handleSurfaceUp : undefined}
@@ -5714,16 +5715,27 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
       if (activeRendererMode === "webgpu") {
         try {
           const webgpuRenderer = new WebGPURenderer(baseParams as ConstructorParameters<typeof WebGPURenderer>[0]);
+          webgpuRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+          webgpuRenderer.toneMappingExposure = 1.0;
+          webgpuRenderer.outputColorSpace = THREE.SRGBColorSpace;
           await webgpuRenderer.init();
           return webgpuRenderer as unknown as THREE.WebGLRenderer;
         } catch (error) {
           console.error("WebGPU renderer creation failed, falling back to WebGL.", error);
           handleWebGpuInitError(error);
-          return new THREE.WebGLRenderer(baseParams);
+          const fallback = new THREE.WebGLRenderer(baseParams);
+          fallback.toneMapping = THREE.ACESFilmicToneMapping;
+          fallback.toneMappingExposure = 1.0;
+          fallback.outputColorSpace = THREE.SRGBColorSpace;
+          return fallback;
         }
       }
 
-      return new THREE.WebGLRenderer(baseParams);
+      const renderer = new THREE.WebGLRenderer(baseParams);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      return renderer;
     },
     [activeRendererMode, handleWebGpuInitError],
   );
