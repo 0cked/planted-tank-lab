@@ -17,10 +17,6 @@ type WebGpuSupportResult = {
 
 let cachedWebGpuSupport: Promise<WebGpuSupportResult> | null = null;
 
-export function __resetWebGpuSupportCacheForTests(): void {
-  cachedWebGpuSupport = null;
-}
-
 function toErrorDetail(error: unknown): string {
   if (error instanceof Error && typeof error.message === "string" && error.message.trim().length > 0) {
     return error.message.slice(0, 280);

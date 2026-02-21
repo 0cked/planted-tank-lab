@@ -10,36 +10,31 @@ type BuilderViewportLayoutProps = {
 
 export function BuilderViewportLayout(props: BuilderViewportLayoutProps) {
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-[#020504] text-white/90 font-sans antialiased selection:bg-cyan-500/30">
+    <div className="relative h-full w-full overflow-hidden bg-[var(--ptl-bg)]">
       {/* 3D scene fills the entire viewport */}
       <div className="absolute inset-0">{props.scene}</div>
 
-      {/* Premium dark icon rail */}
-      <nav className="pointer-events-auto absolute left-4 top-4 bottom-4 z-10 flex w-[72px] flex-col items-center gap-2.5 rounded-[28px] border border-white/10 bg-black/40 px-2 py-4 shadow-[0_16px_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition duration-300 hover:bg-black/50">
+      {/* Left icon rail */}
+      <nav className="pointer-events-auto absolute left-3 top-3 bottom-3 z-10 flex w-14 flex-col items-center gap-1.5 rounded-2xl border border-[var(--ptl-border)] bg-white/72 px-1.5 py-2.5 shadow-2xl backdrop-blur-xl">
         {props.iconRail}
       </nav>
 
-      {/* Floating contextual panel */}
+      {/* Floating contextual panel (appears next to icon rail) */}
       {props.floatingPanel ? (
-        <aside className="pointer-events-auto absolute left-[104px] top-4 bottom-4 z-10 w-[340px] overflow-hidden rounded-[28px] border border-white/5 bg-black/40 shadow-[0_16px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl transition-all duration-300 flex flex-col">
-          {/* Scrollable inner content to prevent layout shifts */}
-          <div className="flex-1 overflow-x-hidden overflow-y-auto p-5 custom-scrollbar">
-            {props.floatingPanel}
-          </div>
+        <aside className="pointer-events-auto absolute left-[82px] top-3 bottom-3 z-10 w-[260px] overflow-auto rounded-2xl border border-[var(--ptl-border)] bg-white/60 p-3 shadow-2xl backdrop-blur-xl">
+          {props.floatingPanel}
         </aside>
       ) : null}
 
       {/* Floating right info panel */}
       {props.floatingRight ? (
-        <aside className="pointer-events-auto absolute right-4 top-4 z-10 max-h-[calc(100dvh-32px)] w-[320px] overflow-hidden rounded-[28px] border border-white/5 bg-black/40 shadow-[0_16px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl transition-all duration-300 flex flex-col">
-          <div className="flex-1 overflow-x-hidden overflow-y-auto p-5 custom-scrollbar">
-            {props.floatingRight}
-          </div>
+        <aside className="pointer-events-auto absolute right-3 top-3 z-10 max-h-[calc(100dvh-24px)] overflow-auto rounded-2xl border border-[var(--ptl-border)] bg-white/60 p-3 shadow-2xl backdrop-blur-xl">
+          {props.floatingRight}
         </aside>
       ) : null}
 
       {props.bottomToolbar ? (
-        <div className="pointer-events-auto absolute bottom-6 left-1/2 z-10 -translate-x-1/2 transition-transform duration-300 hover:scale-105">
+        <div className="pointer-events-auto absolute bottom-3 left-1/2 z-10 -translate-x-1/2">
           {props.bottomToolbar}
         </div>
       ) : null}
