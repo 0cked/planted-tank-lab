@@ -4,16 +4,8 @@ import { useEffect, useState } from "react";
 
 const OFFLINE_MESSAGE = "You're offline — some data may be outdated.";
 
-function getInitialOnlineState(): boolean {
-  if (typeof navigator === "undefined") {
-    return true;
-  }
-
-  return navigator.onLine;
-}
-
 export function OfflineStatusBanner() {
-  const [isOnline, setIsOnline] = useState<boolean>(getInitialOnlineState);
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
     const syncOnlineStatus = () => {

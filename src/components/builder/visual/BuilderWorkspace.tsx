@@ -297,22 +297,22 @@ const TANK_BACKGROUND_OPTIONS: ReadonlyArray<{
   value: TankBackgroundStyle;
   label: string;
 }> = [
-  { value: "black", label: "Black" },
-  { value: "white", label: "White" },
-  { value: "frosted", label: "Frosted" },
-  { value: "custom", label: "Custom" },
-];
+    { value: "black", label: "Black" },
+    { value: "white", label: "White" },
+    { value: "frosted", label: "Frosted" },
+    { value: "custom", label: "Custom" },
+  ];
 
 const CABINET_FINISH_OPTIONS: ReadonlyArray<{
   value: CabinetFinishStyle;
   label: string;
 }> = [
-  { value: "white", label: "White" },
-  { value: "charcoal", label: "Charcoal" },
-  { value: "oak", label: "Oak grain" },
-  { value: "walnut", label: "Walnut grain" },
-  { value: "custom", label: "Custom" },
-];
+    { value: "white", label: "White" },
+    { value: "charcoal", label: "Charcoal" },
+    { value: "oak", label: "Oak grain" },
+    { value: "walnut", label: "Walnut grain" },
+    { value: "custom", label: "Custom" },
+  ];
 const BUILDER_DRAG_ASSET_MIME = "application/x-ptl-asset-id";
 
 function RailBtn(props: {
@@ -326,14 +326,14 @@ function RailBtn(props: {
   compact?: boolean;
   onClick: () => void;
 }) {
-  const size = props.compact ? "h-8 w-8 text-xs" : "h-11 w-11";
+  const size = props.compact ? "h-9 w-9 text-xs" : "h-12 w-12";
   const variant = props.disabled
-    ? "cursor-not-allowed text-neutral-300"
+    ? "cursor-not-allowed opacity-30 saturate-0 border-white/5 bg-transparent"
     : props.active
-      ? "border-[var(--ptl-accent)]/50 bg-[var(--ptl-accent)]/14 text-[var(--ptl-accent)] shadow-[0_8px_22px_rgba(27,127,90,0.2)]"
+      ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-300 shadow-[0_0_24px_rgba(34,211,238,0.25)]"
       : props.done
-        ? "border-emerald-300/45 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-50/70"
-        : "border-[var(--ptl-border)] bg-white/75 text-neutral-500 hover:bg-white/95 hover:text-[var(--ptl-ink)]";
+        ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 hover:border-emerald-400/40"
+        : "border-white/5 bg-white/5 text-white/50 hover:bg-white/10 hover:border-white/10 hover:text-white/90";
   return (
     <button
       type="button"
@@ -341,18 +341,18 @@ function RailBtn(props: {
       disabled={props.disabled}
       title={props.title}
       aria-label={props.title}
-      className={`flex ${size} items-center justify-center rounded-xl border transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ptl-accent)]/50 ${variant}`}
+      className={`group flex ${size} items-center justify-center rounded-2xl border transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 ${variant}`}
     >
       {props.iconSrc ? (
         <Image
           src={props.iconSrc}
           alt={props.iconAlt ?? props.title}
-          width={props.compact ? 16 : 28}
-          height={props.compact ? 16 : 28}
-          className={`h-auto w-auto object-contain ${props.disabled ? "opacity-35" : props.active ? "opacity-100" : "opacity-80"}`}
+          width={props.compact ? 18 : 24}
+          height={props.compact ? 18 : 24}
+          className={`h-auto w-auto object-contain drop-shadow-md brightness-0 invert transition-opacity duration-300 ${props.disabled ? "opacity-30" : props.active ? "opacity-100" : "opacity-70 group-hover:opacity-100"}`}
         />
       ) : (
-        <span className="font-semibold">{props.label}</span>
+        <span className="font-semibold drop-shadow-sm">{props.label}</span>
       )}
     </button>
   );
@@ -421,58 +421,56 @@ function BuildActionsCard(
 
   const saveTone =
     props.saveState.type === "error"
-      ? "border-red-300/60 bg-red-50/80 text-red-700"
+      ? "border-red-500/40 bg-red-500/10 text-red-400"
       : props.saveState.type === "ok"
-        ? "border-emerald-300/60 bg-emerald-50/80 text-emerald-700"
-        : "border-[var(--ptl-border)] bg-black/[0.02] text-[var(--ptl-ink-muted)]";
+        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+        : "border-white/10 bg-white/[0.02] text-white/50";
 
   return (
-    <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
+    <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur-xl">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/50">
           Build actions
         </div>
-        <div className="text-[10px] text-[var(--ptl-ink-muted)]">
+        <div className="text-[10px] text-white/40">
           {props.buildId ? "Saved build" : "Unsaved draft"}
         </div>
       </div>
 
-      <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5">
+      <div className="rounded-xl border border-white/5 bg-black/20 px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+          <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-white/40">
             Renderer
           </span>
           <span
-            className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
-              props.rendererRuntimeState.activeMode === "webgpu"
-                ? "border border-emerald-300/40 bg-emerald-50/70 text-emerald-700"
-                : "border border-amber-300/45 bg-amber-50/75 text-amber-700"
-            }`}
+            className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${props.rendererRuntimeState.activeMode === "webgpu"
+              ? "border border-cyan-400/30 bg-cyan-400/10 text-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.15)]"
+              : "border border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+              }`}
           >
             {props.rendererRuntimeState.activeMode === "webgpu" ? "WebGPU" : "WebGL"}
           </span>
         </div>
-        <div className="mt-1 text-[10px] text-[var(--ptl-ink-muted)]">
+        <div className="mt-1.5 text-[10px] text-white/50">
           {props.rendererRuntimeState.fallbackReason === "none"
             ? "Primary renderer active."
             : `Fallback: ${describeRendererFallbackReason(props.rendererRuntimeState.fallbackReason)}.`}
         </div>
         {props.rendererRuntimeState.detail ? (
-          <div className="mt-0.5 text-[10px] text-[var(--ptl-ink-muted)]/80">
+          <div className="mt-0.5 text-[10px] text-white/40">
             {props.rendererRuntimeState.detail}
           </div>
         ) : null}
-        <div className="mt-1.5 grid grid-cols-3 gap-1">
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
           {(["auto", "webgpu", "webgl"] as const).map((preference) => (
             <button
               key={preference}
               type="button"
               onClick={() => props.onSceneSettingsChange({ rendererPreference: preference })}
-              className={`rounded-md border px-1.5 py-1 text-[10px] font-semibold transition ${
-                props.canvasState.sceneSettings.rendererPreference === preference
-                  ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]"
-                  : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
-              }`}
+              className={`rounded-lg border px-2 py-1.5 text-[10px] font-medium transition duration-300 ${props.canvasState.sceneSettings.rendererPreference === preference
+                ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.2)]"
+                : "border-white/5 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/90"
+                }`}
             >
               {preference === "auto" ? "Auto" : preference === "webgpu" ? "WebGPU" : "WebGL"}
             </button>
@@ -480,26 +478,26 @@ function BuildActionsCard(
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={props.onSaveDraft}
           disabled={props.saving}
-          className="rounded-lg border border-[var(--ptl-accent)]/35 bg-[var(--ptl-accent)]/10 px-2 py-1.5 text-[11px] font-semibold text-[var(--ptl-accent)] transition hover:bg-[var(--ptl-accent)]/15 disabled:cursor-wait disabled:opacity-60"
+          className="rounded-xl border border-cyan-400/40 bg-cyan-400/15 px-3 py-2 text-[11px] font-semibold text-cyan-300 shadow-[0_0_16px_rgba(34,211,238,0.2)] transition-all duration-300 hover:bg-cyan-400/25 hover:shadow-[0_0_24px_rgba(34,211,238,0.35)] hover:border-cyan-400/60 disabled:cursor-wait disabled:opacity-50"
         >
           {props.saving ? "Saving..." : "Save build"}
         </button>
         <button
           type="button"
           onClick={props.onCreateNewDraft}
-          className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5 text-[11px] font-semibold text-[var(--ptl-ink)] transition hover:bg-black/[0.06]"
+          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white/80 transition-all duration-300 hover:bg-white/10 hover:text-white"
         >
           New draft
         </button>
         <button
           type="button"
           onClick={props.onWipeStartClean}
-          className="rounded-lg border border-amber-300/35 bg-amber-50/45 px-2 py-1.5 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-50/65"
+          className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] font-semibold text-rose-400 transition-all duration-300 hover:bg-rose-500/20 hover:border-rose-500/50"
         >
           Wipe clean
         </button>
@@ -510,49 +508,56 @@ function BuildActionsCard(
             props.onLoadSavedBuild(activeShareSlug);
           }}
           disabled={props.loadingSavedBuilds || !activeShareSlug || !props.canLoadSavedBuilds}
-          className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5 text-[11px] font-semibold text-[var(--ptl-ink)] transition hover:bg-black/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white/80 transition-all duration-300 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
         >
           Load selected
         </button>
         <button
           type="button"
           onClick={props.onExportImage}
-          className="col-span-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5 text-[11px] font-semibold text-[var(--ptl-ink)] transition hover:bg-black/[0.06]"
+          className="col-span-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white/80 transition-all duration-300 hover:bg-white/10 hover:text-white"
         >
           Export as image
         </button>
       </div>
 
-      <div className="space-y-1">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+      <div className="space-y-1.5 pt-1">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/50">
           Saved builds
         </div>
         {!props.canLoadSavedBuilds ? (
-          <div className="rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[10px] text-[var(--ptl-ink-muted)]">
+          <div className="rounded-xl border border-white/5 bg-black/20 px-3 py-2 text-[10px] text-white/40">
             Sign in to load your saved builds.
           </div>
         ) : props.loadingSavedBuilds ? (
-          <div className="rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[10px] text-[var(--ptl-ink-muted)]">
+          <div className="rounded-xl border border-white/5 bg-black/20 px-3 py-2 text-[10px] text-white/40">
             Loading saved builds...
           </div>
         ) : props.savedBuilds.length === 0 ? (
-          <div className="rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[10px] text-[var(--ptl-ink-muted)]">
+          <div className="rounded-xl border border-white/5 bg-black/20 px-3 py-2 text-[10px] text-white/40">
             No saved builds yet. Save this draft first.
           </div>
         ) : (
           <>
-            <select
-              value={activeShareSlug}
-              onChange={(event) => setSelectedShareSlug(event.target.value)}
-              className="w-full rounded-md border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5 text-[11px] text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
-            >
-              {props.savedBuilds.map((build) => (
-                <option key={build.buildId} value={build.shareSlug}>
-                  {build.name} ({build.itemCount} items)
-                </option>
-              ))}
-            </select>
-            <div className="rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[10px] text-[var(--ptl-ink-muted)]">
+            <div className="relative">
+              <select
+                value={activeShareSlug}
+                onChange={(event) => setSelectedShareSlug(event.target.value)}
+                className="w-full appearance-none rounded-xl border border-white/10 bg-black/40 px-3 py-2 pr-8 text-[11px] font-medium text-white/90 outline-none transition duration-300 focus:border-cyan-500/50 focus:bg-black/60 focus:ring-1 focus:ring-cyan-500/50"
+              >
+                {props.savedBuilds.map((build) => (
+                  <option key={build.buildId} value={build.shareSlug}>
+                    {build.name} ({build.itemCount} items)
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white/40">
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                </svg>
+              </div>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-black/20 px-3 py-2 text-[10px] text-white/40">
               {(() => {
                 const selected = props.savedBuilds.find((build) => build.shareSlug === activeShareSlug);
                 if (!selected) return "Choose a saved build to load.";
@@ -564,7 +569,7 @@ function BuildActionsCard(
       </div>
 
       {props.saveState.message ? (
-        <div className={`rounded-md border px-2 py-1.5 text-[10px] font-medium ${saveTone}`}>
+        <div className={`mt-2 rounded-xl border px-3 py-2 text-[10px] font-medium ${saveTone}`}>
           {props.saveState.message}
         </div>
       ) : null}
@@ -580,14 +585,10 @@ function normalizeInset(sizeIn: number, radiusIn: number): number {
 
 function severityChip(severity: Severity): string {
   switch (severity) {
-    case "error":
-      return "border-red-400/40 bg-red-400/10 text-red-700";
-    case "warning":
-      return "border-amber-400/40 bg-amber-400/10 text-amber-700";
-    case "recommendation":
-      return "border-sky-400/40 bg-sky-400/10 text-sky-700";
-    case "completeness":
-      return "border-[var(--ptl-border)] bg-black/5 text-neutral-500";
+    case "error": return "border-red-500/40 bg-red-500/10 text-red-400";
+    case "warning": return "border-amber-500/40 bg-amber-500/10 text-amber-400";
+    case "recommendation": return "border-cyan-500/40 bg-cyan-500/10 text-cyan-400";
+    case "completeness": return "border-emerald-500/40 bg-emerald-500/10 text-emerald-400";
   }
 }
 
@@ -655,9 +656,9 @@ function AssetList(props: {
         value={props.search}
         onChange={(e) => props.onSearchChange(e.target.value)}
         placeholder="Search\u2026"
-        className="w-full rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-1.5 text-xs text-[var(--ptl-ink)] outline-none placeholder:text-neutral-400 focus:border-[var(--ptl-border)]"
+        className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs text-white/90 outline-none placeholder:text-white/30 transition-all duration-300 focus:border-cyan-500/50 focus:bg-black/60 focus:ring-1 focus:ring-cyan-500/50"
       />
-      <div className="max-h-[50vh] space-y-1 overflow-auto">
+      <div className="max-h-[50vh] space-y-1.5 overflow-auto custom-scrollbar pr-1">
         {props.filteredAssets.map((asset) => {
           const isCanvas =
             asset.categorySlug === "hardscape" || asset.categorySlug === "plants";
@@ -682,23 +683,22 @@ function AssetList(props: {
                 }
                 props.onChooseAsset(asset);
               }}
-              className={`flex w-full items-center gap-2 rounded-lg border p-1.5 text-left transition ${
-                isArmed || isSel
-                  ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8"
-                  : "border-[var(--ptl-border)] bg-black/[0.03] hover:bg-black/[0.06]"
-              } ${isCanvas ? "cursor-grab active:cursor-grabbing" : ""}`}
+              className={`group flex w-full items-center gap-3 rounded-xl border p-2 text-left transition-all duration-300 ${isArmed || isSel
+                ? "border-cyan-400/40 bg-cyan-400/15 shadow-[0_0_16px_rgba(34,211,238,0.15)]"
+                : "border-white/5 bg-white/5 hover:border-white/15 hover:bg-white/10"
+                } ${isCanvas ? "cursor-grab active:cursor-grabbing" : ""}`}
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[var(--ptl-border)] bg-black/5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/40">
                 <AssetThumbnail asset={asset} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[11px] font-medium text-[var(--ptl-ink)]">
+                <div className="truncate text-[11px] font-medium text-white/90 transition-colors group-hover:text-white">
                   {asset.name}
                 </div>
-                <div className="text-[10px] text-[var(--ptl-ink-muted)]">{categoryLabel(asset.categorySlug)}</div>
+                <div className="mt-0.5 text-[10px] text-white/40">{categoryLabel(asset.categorySlug)}</div>
               </div>
               {isArmed ? (
-                <span className="rounded-full border border-[var(--ptl-accent)]/30 bg-[var(--ptl-accent)]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--ptl-accent)]">
+                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/20 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.2)]">
                   Stop
                 </span>
               ) : null}
@@ -706,7 +706,7 @@ function AssetList(props: {
           );
         })}
         {props.filteredAssets.length === 0 ? (
-          <div className="py-4 text-center text-[11px] text-neutral-400">
+          <div className="py-6 text-center text-[11px] text-white/40">
             No assets match
           </div>
         ) : null}
@@ -717,7 +717,7 @@ function AssetList(props: {
 
 function SectionLabel(props: { children: React.ReactNode }) {
   return (
-    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ptl-ink-muted)]">
+    <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/50">
       {props.children}
     </div>
   );
@@ -729,21 +729,20 @@ function CabinetSettingsCard(props: {
   onSceneSettingsChange: (patch: Partial<VisualSceneSettings>) => void;
 }) {
   return (
-    <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+    <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur-xl">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/50">
         Cabinet
       </div>
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-2 gap-2">
         {CABINET_FINISH_OPTIONS.map((option) => (
           <button
             key={option.value}
             type="button"
             onClick={() => props.onSceneSettingsChange({ cabinetFinishStyle: option.value })}
-            className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${
-              props.cabinetFinishStyle === option.value
-                ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
-                : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
-            }`}
+            className={`rounded-xl border px-3 py-2 text-left text-[11px] font-medium transition-all duration-300 ${props.cabinetFinishStyle === option.value
+              ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.15)]"
+              : "border-white/5 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/90"
+              }`}
           >
             {option.label}
           </button>
@@ -751,12 +750,12 @@ function CabinetSettingsCard(props: {
       </div>
 
       {props.cabinetFinishStyle === "custom" ? (
-        <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5">
-          <label className="flex items-center justify-between gap-2 text-[10px] text-[var(--ptl-ink-muted)]">
+        <div className="rounded-xl border border-white/5 bg-black/20 px-3 py-2.5">
+          <label className="flex items-center justify-between gap-2 text-[9px] font-medium uppercase tracking-[0.1em] text-white/40">
             <span>Color</span>
-            <span className="tabular-nums text-[var(--ptl-ink)]">{props.cabinetColor}</span>
+            <span className="tabular-nums text-white/90">{props.cabinetColor}</span>
           </label>
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-2">
             <input
               type="color"
               value={props.cabinetColor}
@@ -766,7 +765,7 @@ function CabinetSettingsCard(props: {
                   cabinetColor: normalizeHexColor(event.target.value, props.cabinetColor),
                 });
               }}
-              className="h-8 w-10 cursor-pointer rounded border border-[var(--ptl-border)] bg-transparent p-0.5"
+              className="h-9 w-12 cursor-pointer rounded-lg border border-white/10 bg-black/40 p-0.5 outline-none transition duration-300 hover:border-white/30"
             />
             <input
               type="text"
@@ -776,7 +775,7 @@ function CabinetSettingsCard(props: {
                   cabinetColor: normalizeHexColor(event.target.value, props.cabinetColor),
                 });
               }}
-              className="h-8 w-full rounded-md border border-[var(--ptl-border)] bg-black/5 px-2 py-1 text-xs font-medium uppercase tracking-[0.04em] text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
+              className="h-9 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.05em] text-white/90 outline-none transition-all duration-300 focus:border-cyan-500/50 focus:bg-black/60 focus:ring-1 focus:ring-cyan-500/50"
             />
           </div>
         </div>
@@ -832,17 +831,17 @@ function StepPanel(props: StepPanelProps) {
       <div className="space-y-3">
         <BuildActionsCard {...props} rendererRuntimeState={props.rendererRuntimeState} />
         <SectionLabel>Tank</SectionLabel>
-        <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
+        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur-xl">
           <div className="flex items-center justify-between">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/50">
               Dimensions
             </div>
-            <div className="inline-flex rounded-md border border-[var(--ptl-border)] bg-black/5 p-0.5 text-[10px]">
+            <div className="inline-flex rounded-lg border border-white/10 bg-black/40 p-0.5 text-[10px] shadow-inner">
               <button
                 type="button"
                 aria-pressed={unit === "in"}
                 onClick={() => { if (unit === "cm") props.onToggleMeasurementUnit(); }}
-                className={`rounded px-1.5 py-0.5 transition ${unit === "in" ? "bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]" : "text-neutral-500"}`}
+                className={`rounded-md px-2.5 py-1 font-semibold transition-all duration-300 ${unit === "in" ? "bg-cyan-500/20 text-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.2)]" : "text-white/40 hover:text-white/70"}`}
               >
                 in
               </button>
@@ -850,19 +849,19 @@ function StepPanel(props: StepPanelProps) {
                 type="button"
                 aria-pressed={unit === "cm"}
                 onClick={() => { if (unit === "in") props.onToggleMeasurementUnit(); }}
-                className={`rounded px-1.5 py-0.5 transition ${unit === "cm" ? "bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]" : "text-neutral-500"}`}
+                className={`rounded-md px-2.5 py-1 font-semibold transition-all duration-300 ${unit === "cm" ? "bg-cyan-500/20 text-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.2)]" : "text-white/40 hover:text-white/70"}`}
               >
                 cm
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-3 gap-2">
             {([
               { key: "widthIn" as const, short: "W", maxCm: 244, maxIn: 96 },
               { key: "depthIn" as const, short: "D", maxCm: 92, maxIn: 36 },
               { key: "heightIn" as const, short: "H", maxCm: 102, maxIn: 40 },
             ] as const).map(({ key, short, maxCm, maxIn }) => (
-              <label key={key} className="space-y-1 text-[10px] text-neutral-500">
+              <label key={key} className="space-y-1.5 text-[10px] font-medium text-white/50">
                 <span>{short}</span>
                 <input
                   type="number"
@@ -871,28 +870,27 @@ function StepPanel(props: StepPanelProps) {
                   step={0.5}
                   value={toDisplayDimension(tankDims[key], unit)}
                   onChange={(e) => handleDimInput(key, e.target.value)}
-                  className="w-full rounded-md border border-[var(--ptl-border)] bg-black/5 px-2 py-1 text-xs tabular-nums text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs font-semibold tabular-nums text-white/90 outline-none transition-all duration-300 focus:border-cyan-500/50 focus:bg-black/60 focus:ring-1 focus:ring-cyan-500/50"
                 />
               </label>
             ))}
           </div>
         </div>
 
-        <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur-xl">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/50">
             Background
           </div>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
             {TANK_BACKGROUND_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => props.onSceneSettingsChange({ tankBackgroundStyle: option.value })}
-                className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${
-                  tankBackgroundStyle === option.value
-                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
-                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
-                }`}
+                className={`rounded-xl border px-3 py-2 text-left text-[11px] font-medium transition-all duration-300 ${tankBackgroundStyle === option.value
+                  ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.15)]"
+                  : "border-white/5 bg-white/5 text-white/60 hover:border-white/10 hover:bg-white/10 hover:text-white/90"
+                  }`}
               >
                 {option.label}
               </button>
@@ -900,12 +898,12 @@ function StepPanel(props: StepPanelProps) {
           </div>
 
           {tankBackgroundStyle === "custom" ? (
-            <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1.5">
-              <label className="flex items-center justify-between gap-2 text-[10px] text-[var(--ptl-ink-muted)]">
+            <div className="rounded-xl border border-white/5 bg-black/20 px-3 py-2.5">
+              <label className="flex items-center justify-between gap-2 text-[9px] font-medium uppercase tracking-[0.1em] text-white/40">
                 <span>Color</span>
-                <span className="tabular-nums text-[var(--ptl-ink)]">{tankBackgroundColor}</span>
+                <span className="tabular-nums text-white/90">{tankBackgroundColor}</span>
               </label>
-              <div className="mt-1.5 flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2">
                 <input
                   type="color"
                   value={tankBackgroundColor}
@@ -915,7 +913,7 @@ function StepPanel(props: StepPanelProps) {
                       tankBackgroundColor: normalizeHexColor(event.target.value, tankBackgroundColor),
                     });
                   }}
-                  className="h-8 w-10 cursor-pointer rounded border border-[var(--ptl-border)] bg-transparent p-0.5"
+                  className="h-9 w-12 cursor-pointer rounded-lg border border-white/10 bg-black/40 p-0.5 outline-none transition duration-300 hover:border-white/30"
                 />
                 <input
                   type="text"
@@ -925,29 +923,28 @@ function StepPanel(props: StepPanelProps) {
                       tankBackgroundColor: normalizeHexColor(event.target.value, tankBackgroundColor),
                     });
                   }}
-                  className="h-8 w-full rounded-md border border-[var(--ptl-border)] bg-black/5 px-2 py-1 text-xs font-medium uppercase tracking-[0.04em] text-[var(--ptl-ink)] outline-none focus:border-[var(--ptl-accent)]/40"
+                  className="h-9 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.05em] text-white/90 outline-none transition-all duration-300 focus:border-cyan-500/50 focus:bg-black/60 focus:ring-1 focus:ring-cyan-500/50"
                 />
               </div>
             </div>
           ) : null}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <SectionLabel>Common sizes</SectionLabel>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
             {props.tankDimensionPresets.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
                 onClick={() => props.onApplyTankDimensionPreset(preset.id)}
-                className={`rounded-lg border px-2 py-1.5 text-left text-[10px] transition ${
-                  isTankPresetActive(preset, tankDims)
-                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
-                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
-                }`}
+                className={`flex flex-col items-start justify-center rounded-xl border px-3 py-2.5 text-left transition-all duration-300 ${isTankPresetActive(preset, tankDims)
+                  ? "border-cyan-400/40 bg-cyan-400/15 shadow-[0_0_12px_rgba(34,211,238,0.15)]"
+                  : "border-white/5 bg-white/5 hover:border-white/10 hover:bg-white/10"
+                  }`}
               >
-                <div className="font-semibold">{preset.label}</div>
-                <div className="text-[9px] text-[var(--ptl-ink-muted)]">
+                <div className={`text-[11px] font-medium ${isTankPresetActive(preset, tankDims) ? "text-cyan-300" : "text-white/90"}`}>{preset.label}</div>
+                <div className="mt-0.5 text-[9px] text-white/50">
                   {formatTankPresetDimensions(preset, unit)}
                 </div>
               </button>
@@ -958,17 +955,17 @@ function StepPanel(props: StepPanelProps) {
         {props.templates.length > 0 ? (
           <>
             <SectionLabel>Templates</SectionLabel>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {props.templates.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => props.onApplyTemplate(t.id)}
                   disabled={!t.available}
-                  className="w-full rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-2 text-left text-xs text-[var(--ptl-ink)] transition hover:bg-black/[0.06] disabled:opacity-40"
+                  className="w-full rounded-xl border border-white/5 bg-white/5 px-3 py-2.5 text-left text-xs text-white/90 transition-all duration-300 hover:border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:saturate-0"
                 >
-                  <div className="font-semibold">{t.name}</div>
-                  <div className="mt-0.5 text-[10px] text-neutral-500">{t.description}</div>
+                  <div className="font-medium text-white/90">{t.name}</div>
+                  <div className="mt-0.5 text-[10px] text-white/50">{t.description}</div>
                 </button>
               ))}
             </div>
@@ -993,23 +990,22 @@ function StepPanel(props: StepPanelProps) {
       <div className="space-y-3">
         <BuildActionsCard {...props} rendererRuntimeState={props.rendererRuntimeState} />
         <SectionLabel>Equipment</SectionLabel>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-2">
           {props.equipmentCategories.map((slug) => (
             <button
               key={slug}
               type="button"
               onClick={() => props.onEquipmentCategoryChange(slug)}
-              className={`rounded-full border px-2 py-1 text-[10px] font-semibold transition ${
-                props.activeEquipmentCategory === slug
-                  ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
-                  : "border-[var(--ptl-border)] text-neutral-500 hover:text-[var(--ptl-ink)]"
-              }`}
+              className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold transition-all duration-300 ${props.activeEquipmentCategory === slug
+                ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.15)]"
+                : "border-white/10 bg-transparent text-white/50 hover:bg-white/5 hover:text-white/80"
+                }`}
             >
               {categoryLabel(slug)}
             </button>
           ))}
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {props.equipmentCategories.map((slug) => {
             const recommended = props.recommendedEquipmentByCategory[slug] ?? null;
             const selectedId = props.selectedProductByCategory[slug];
@@ -1018,14 +1014,14 @@ function StepPanel(props: StepPanelProps) {
             return (
               <div
                 key={slug}
-                className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-2"
+                className="rounded-xl border border-white/5 bg-black/20 px-3 py-2.5 transition-all duration-300 hover:border-white/10"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <div className="text-xs font-semibold text-[var(--ptl-ink)]">
+                    <div className="text-xs font-semibold text-white/90">
                       {categoryLabel(slug)}
                     </div>
-                    <div className="text-[10px] text-[var(--ptl-ink-muted)]">
+                    <div className="text-[10px] text-white/40">
                       {isEnabled ? "Auto recommendation enabled" : "Not included yet"}
                     </div>
                   </div>
@@ -1036,7 +1032,7 @@ function StepPanel(props: StepPanelProps) {
                       if (!recommended) return;
                       props.onChooseAsset(recommended);
                     }}
-                    className="rounded-md border border-[var(--ptl-border)] px-2 py-1 text-[10px] font-semibold text-[var(--ptl-ink)] transition hover:bg-black/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-medium text-white/80 transition-all duration-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:saturate-0"
                   >
                     {isEnabled ? "Refresh" : "Enable"}
                   </button>
@@ -1045,7 +1041,7 @@ function StepPanel(props: StepPanelProps) {
             );
           })}
         </div>
-        <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-2 text-[10px] leading-relaxed text-[var(--ptl-ink-muted)]">
+        <div className="rounded-xl border border-cyan-500/10 bg-cyan-500/5 px-3 py-2.5 text-[10px] leading-relaxed text-cyan-200/70">
           Specific product picks are generated automatically from your build state and applied in Review.
         </div>
       </div>
@@ -1062,18 +1058,17 @@ function StepPanel(props: StepPanelProps) {
             : "Plants"}
         </SectionLabel>
         {step === "hardscape" ? (
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-2">
             {(["rocks", "wood"] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
                 aria-pressed={props.hardscapeMode === mode}
                 onClick={() => props.onHardscapeModeChange(mode)}
-                className={`rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition ${
-                  props.hardscapeMode === mode
-                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]"
-                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink-muted)] hover:text-[var(--ptl-ink)]"
-                }`}
+                className={`rounded-xl border px-3 py-2 text-[11px] font-medium transition-all duration-300 ${props.hardscapeMode === mode
+                  ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.15)]"
+                  : "border-white/5 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80"
+                  }`}
               >
                 {HARDSCAPE_MODE_LABEL[mode]}
               </button>
@@ -1081,17 +1076,17 @@ function StepPanel(props: StepPanelProps) {
           </div>
         ) : null}
         {props.placementAsset && (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--ptl-accent)]/25 bg-[var(--ptl-accent)]/[0.05] px-2.5 py-2">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2">
             <div className="min-w-0">
-              <div className="truncate text-[11px] font-semibold text-[var(--ptl-accent)]">
+              <div className="truncate text-[11px] font-semibold text-cyan-300">
                 Placing: {props.placementAsset.name}
               </div>
-              <div className="text-[10px] text-[var(--ptl-ink-muted)]">Press Esc or stop to select/move items.</div>
+              <div className="text-[10px] text-cyan-200/50">Press Esc or stop to select/move items.</div>
             </div>
             <button
               type="button"
               onClick={props.onClearPlacementMode}
-              className="rounded-md border border-[var(--ptl-border)] bg-white/70 px-2 py-1 text-[10px] font-semibold text-[var(--ptl-ink)] transition hover:bg-white"
+              className="rounded-lg border border-cyan-400/40 bg-cyan-400/20 px-3 py-1.5 text-[10px] font-semibold text-cyan-300 transition-all duration-300 hover:bg-cyan-400/30 hover:shadow-[0_0_8px_rgba(34,211,238,0.3)]"
             >
               Stop
             </button>
@@ -1115,31 +1110,31 @@ function StepPanel(props: StepPanelProps) {
       <BuildActionsCard {...props} rendererRuntimeState={props.rendererRuntimeState} />
       <SectionLabel>Review</SectionLabel>
 
-      <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
-        <div className="space-y-1.5 text-xs">
+      <div className="rounded-xl border border-white/5 bg-black/20 p-4 shadow-inner">
+        <div className="space-y-2.5 text-xs">
           <div className="flex justify-between">
-            <span className="text-neutral-500">Tank</span>
-            <span className="tabular-nums text-[var(--ptl-ink)]">
+            <span className="text-white/50">Tank</span>
+            <span className="tabular-nums font-medium text-white/90">
               {Math.round(props.canvasState.widthIn * 10) / 10}{"\u00D7"}
               {Math.round(props.canvasState.depthIn * 10) / 10}{"\u00D7"}
               {Math.round(props.canvasState.heightIn * 10) / 10} in
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-neutral-500">Substrate</span>
-            <span className="text-[var(--ptl-ink)]">{props.substrateSelectionLabel}</span>
+            <span className="text-white/50">Substrate</span>
+            <span className="font-medium text-white/90">{props.substrateSelectionLabel}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-neutral-500">Hardscape</span>
-            <span className="tabular-nums text-[var(--ptl-ink)]">{props.hardscapeCount}</span>
+            <span className="text-white/50">Hardscape</span>
+            <span className="tabular-nums font-medium text-white/90">{props.hardscapeCount}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-neutral-500">Plants</span>
-            <span className="tabular-nums text-[var(--ptl-ink)]">{props.plantCount}</span>
+            <span className="text-white/50">Plants</span>
+            <span className="tabular-nums font-medium text-white/90">{props.plantCount}</span>
           </div>
-          <div className="flex justify-between border-t border-[var(--ptl-border)] pt-1.5">
-            <span className="font-semibold text-neutral-500">Total</span>
-            <span className="font-semibold tabular-nums text-[var(--ptl-ink)]">
+          <div className="mt-3 flex justify-between border-t border-white/10 pt-3">
+            <span className="font-semibold text-white/50">Total</span>
+            <span className="font-semibold tabular-nums text-white">
               {formatMoney(props.totalCents)}
             </span>
           </div>
@@ -1147,16 +1142,16 @@ function StepPanel(props: StepPanelProps) {
       </div>
 
       {props.compatibilityEvaluations.length > 0 ? (
-        <div className="space-y-1.5">
+        <div className="space-y-2 pt-2">
           <SectionLabel>Compatibility</SectionLabel>
           {props.compatibilityEvaluations.map((ev) => (
             <div
               key={ev.ruleCode}
-              className={`rounded-lg border px-2.5 py-2 text-[11px] ${severityChip(ev.severity)}`}
+              className={`rounded-xl border px-3 py-2.5 text-[11px] shadow-[0_0_8px_rgba(0,0,0,0.2)] ${severityChip(ev.severity)}`}
             >
               <div className="font-medium">{ev.message}</div>
               {ev.fixSuggestion ? (
-                <div className="mt-0.5 text-[10px] opacity-70">{ev.fixSuggestion}</div>
+                <div className="mt-1 text-[10px] opacity-70">{ev.fixSuggestion}</div>
               ) : null}
             </div>
           ))}
@@ -1164,20 +1159,20 @@ function StepPanel(props: StepPanelProps) {
       ) : null}
 
       {props.bomLines.length > 0 ? (
-        <div className="space-y-1.5">
+        <div className="space-y-2 pt-2">
           <SectionLabel>Bill of materials</SectionLabel>
           {props.bomLines.map((line) => (
             <div
               key={line.key}
-              className="flex items-center justify-between rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[11px]"
+              className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-[11px] transition-all duration-300 hover:bg-white/10"
             >
-              <span className="truncate pr-2 text-[var(--ptl-ink)]">
+              <span className="truncate pr-2 font-medium text-white/90">
                 {line.asset.name}
                 {line.quantity > 1 ? (
-                  <span className="ml-1 text-[var(--ptl-ink-muted)]">{"\u00D7"}{line.quantity}</span>
+                  <span className="ml-1.5 text-white/50">{"\u00D7"}{line.quantity}</span>
                 ) : null}
               </span>
-              <span className="shrink-0 tabular-nums text-[var(--ptl-ink)]">
+              <span className="shrink-0 tabular-nums font-medium text-white/90">
                 {formatMoney(lineUnitPrice(line.asset) * line.quantity)}
               </span>
             </div>
@@ -1201,10 +1196,10 @@ function RightPanel(props: BuilderWorkspaceProps) {
   const selectedCollisionRadius =
     props.selectedItem && props.selectedAsset
       ? estimateCollisionRadius({
-          item: props.selectedItem,
-          assetWidthIn: props.selectedAsset.widthIn,
-          assetDepthIn: props.selectedAsset.depthIn,
-        })
+        item: props.selectedItem,
+        assetWidthIn: props.selectedAsset.widthIn,
+        assetDepthIn: props.selectedAsset.depthIn,
+      })
       : 0;
   const depthInset = normalizeInset(dims.depthIn, selectedCollisionRadius);
   const depthMin = depthInset >= 0.5 ? 0.5 : depthInset;
@@ -1218,45 +1213,63 @@ function RightPanel(props: BuilderWorkspaceProps) {
     : "0.0";
 
   return (
-    <div className="w-[190px] space-y-3">
-      <div className="space-y-1.5">
+    <div className="w-[280px] space-y-4">
+      <div className="space-y-2 rounded-xl border border-white/5 bg-black/20 p-3 shadow-inner">
         {([
           { label: "W", value: dims.widthIn },
           { label: "D", value: dims.depthIn },
           { label: "H", value: dims.heightIn },
         ] as const).map((d) => (
           <div key={d.label} className="flex items-center justify-between text-xs">
-            <span className="text-[var(--ptl-ink-muted)]">{d.label}</span>
-            <span className="tabular-nums text-[var(--ptl-ink)]">
+            <span className="font-semibold text-white/40">{d.label}</span>
+            <span className="tabular-nums font-medium text-white/90">
               {Math.round(d.value * 10) / 10}{" "}
-              <span className="text-[var(--ptl-ink-muted)]">in</span>
+              <span className="text-white/40">in</span>
             </span>
           </div>
         ))}
       </div>
 
-      <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-2 text-center">
-        <div className="text-2xl font-bold tabular-nums tracking-tight text-[var(--ptl-ink)]">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center shadow-lg backdrop-blur-md">
+        <div className="text-3xl font-bold tabular-nums tracking-tight text-white/90 drop-shadow-sm">
           {volumeL}
         </div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ptl-ink-muted)]">
+        <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
           Liters
         </div>
       </div>
 
       {props.selectedItem && props.selectedAsset ? (
-        <div className="rounded-lg border border-[var(--ptl-accent)]/25 bg-[var(--ptl-accent)]/[0.04] p-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
-            Selected
+        <div className="rounded-xl border border-cyan-500/30 bg-cyan-900/10 p-4 shadow-[0_0_16px_rgba(34,211,238,0.1)] backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-cyan-500/80">
+              Selected Item
+            </div>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => props.onDuplicateCanvasItem(props.selectedItem!.id)}
+                className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-300 transition-all hover:bg-cyan-500/20"
+              >
+                Dup
+              </button>
+              <button
+                type="button"
+                onClick={() => props.onRemoveCanvasItem(props.selectedItem!.id)}
+                className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-400 transition-all hover:bg-rose-500/20"
+              >
+                Del
+              </button>
+            </div>
           </div>
-          <div className="mt-1 text-xs font-medium text-[var(--ptl-ink)]">
+          <div className="mt-1.5 text-xs font-medium text-white/90">
             {props.selectedAsset.name}
           </div>
-          <div className="mt-2 space-y-2.5">
+          <div className="mt-3.5 space-y-3">
             <label className="block">
-              <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+              <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.1em] text-cyan-200/50">
                 <span>Scale</span>
-                <span className="tabular-nums text-[var(--ptl-ink)]">{selectedScale.toFixed(2)}x</span>
+                <span className="tabular-nums text-cyan-100/90">{selectedScale.toFixed(2)}x</span>
               </div>
               <input
                 type="range"
@@ -1269,14 +1282,14 @@ function RightPanel(props: BuilderWorkspaceProps) {
                     scale: Number.parseFloat(event.target.value),
                   })
                 }
-                className="h-1.5 w-full accent-[var(--ptl-accent)]"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-cyan-900/40 accent-cyan-400 outline-none hover:bg-cyan-900/60"
               />
             </label>
 
             <label className="block">
-              <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+              <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.1em] text-cyan-200/50">
                 <span>Rotate</span>
-                <span className="tabular-nums text-[var(--ptl-ink)]">{selectedRotation}°</span>
+                <span className="tabular-nums text-cyan-100/90">{selectedRotation}°</span>
               </div>
               <input
                 type="range"
@@ -1289,14 +1302,14 @@ function RightPanel(props: BuilderWorkspaceProps) {
                     rotation: Number.parseFloat(event.target.value),
                   })
                 }
-                className="h-1.5 w-full accent-[var(--ptl-accent)]"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-cyan-900/40 accent-cyan-400 outline-none hover:bg-cyan-900/60"
               />
             </label>
 
             <label className="block">
-              <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+              <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.1em] text-cyan-200/50">
                 <span>Depth</span>
-                <span className="tabular-nums text-[var(--ptl-ink)]">{selectedDepth}%</span>
+                <span className="tabular-nums text-cyan-100/90">{selectedDepth}%</span>
               </div>
               <input
                 type="range"
@@ -1309,14 +1322,14 @@ function RightPanel(props: BuilderWorkspaceProps) {
                     z: Math.min(depthMax, Math.max(depthMin, Number.parseFloat(event.target.value))),
                   })
                 }
-                className="h-1.5 w-full accent-[var(--ptl-accent)]"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-cyan-900/40 accent-cyan-400 outline-none hover:bg-cyan-900/60"
               />
             </label>
 
             <label className="block">
-              <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+              <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.1em] text-cyan-200/50">
                 <span>Height</span>
-                <span className="tabular-nums text-[var(--ptl-ink)]">{selectedHeightIn} in</span>
+                <span className="tabular-nums text-cyan-100/90">{selectedHeightIn} in</span>
               </div>
               <input
                 type="range"
@@ -1329,33 +1342,19 @@ function RightPanel(props: BuilderWorkspaceProps) {
                     y: Number.parseFloat(event.target.value),
                   })
                 }
-                className="h-1.5 w-full accent-[var(--ptl-accent)]"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-cyan-900/40 accent-cyan-400 outline-none hover:bg-cyan-900/60"
               />
             </label>
           </div>
-          <div className="mt-2 flex flex-wrap gap-1">
+          <div className="mt-3 flex justify-start">
             <button
               type="button"
               onClick={() =>
                 props.onUpdateCanvasItem(props.selectedItem!.id, { scale: 1, rotation: 0 })
               }
-              className="rounded border border-[var(--ptl-border)] px-1.5 py-0.5 text-[10px] text-neutral-500 transition hover:bg-black/[0.06] hover:text-[var(--ptl-ink)]"
+              className="rounded-md border border-cyan-500/20 bg-transparent px-3 py-1.5 text-[10px] font-medium text-cyan-300 transition-all hover:bg-cyan-500/10"
             >
-              Reset
-            </button>
-            <button
-              type="button"
-              onClick={() => props.onDuplicateCanvasItem(props.selectedItem!.id)}
-              className="rounded border border-[var(--ptl-border)] px-1.5 py-0.5 text-[10px] text-neutral-500 transition hover:bg-black/[0.06] hover:text-[var(--ptl-ink)]"
-            >
-              Dup
-            </button>
-            <button
-              type="button"
-              onClick={() => props.onRemoveCanvasItem(props.selectedItem!.id)}
-              className="rounded border border-red-400/25 px-1.5 py-0.5 text-[10px] text-red-600/70 transition hover:bg-red-400/10 hover:text-red-700"
-            >
-              Del
+              Reset Transform
             </button>
           </div>
         </div>
