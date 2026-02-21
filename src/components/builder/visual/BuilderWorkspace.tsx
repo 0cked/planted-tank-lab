@@ -28,7 +28,6 @@ import type {
   VisualAsset,
   VisualCanvasItem,
   VisualCanvasState,
-  VisualRendererRuntimeState,
   VisualSceneSettings,
   VisualTank,
 } from "@/components/builder/visual/types";
@@ -41,11 +40,6 @@ import {
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import type { Severity } from "@/engine/types";
 import type { CameraDiagnosticEvent } from "@/hooks/useCameraEvidence";
-import {
-  describeRendererFallbackReason,
-  toRendererRuntimeFailureState,
-} from "@/lib/graphics/renderer-mode";
-import { trackEvent } from "@/lib/analytics";
 
 export type BuilderWorkspaceCameraIntent =
   | { type: "reframe" | "reset"; seq: number }
@@ -312,15 +306,6 @@ const CABINET_FINISH_OPTIONS: ReadonlyArray<{
   { value: "custom", label: "Custom" },
 ];
 
-const DEFAULT_RENDERER_RUNTIME_STATE: VisualRendererRuntimeState = {
-  preference: "auto",
-  requestedMode: "webgpu",
-  activeMode: "webgl",
-  fallbackReason: "webgpu_unsupported",
-  webgpuSupported: false,
-  detail: null,
-};
-
 function RailBtn(props: {
   label?: string;
   iconSrc?: string;
@@ -414,11 +399,7 @@ function formatSavedBuildTimestamp(value: string): string {
   });
 }
 
-function BuildActionsCard(
-  props: BuilderWorkspaceProps & {
-    rendererRuntimeState: VisualRendererRuntimeState;
-  },
-) {
+function BuildActionsCard(props: BuilderWorkspaceProps) {
   const [selectedShareSlug, setSelectedShareSlug] = useState("");
   const activeShareSlug =
     selectedShareSlug && props.savedBuilds.some((build) => build.shareSlug === selectedShareSlug)
@@ -440,49 +421,6 @@ function BuildActionsCard(
         </div>
         <div className="text-[10px] text-[var(--ptl-ink-muted)]">
           {props.buildId ? "Saved build" : "Unsaved draft"}
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
-            Renderer
-          </span>
-          <span
-            className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
-              props.rendererRuntimeState.activeMode === "webgpu"
-                ? "border border-emerald-300/40 bg-emerald-50/70 text-emerald-700"
-                : "border border-amber-300/45 bg-amber-50/75 text-amber-700"
-            }`}
-          >
-            {props.rendererRuntimeState.activeMode === "webgpu" ? "WebGPU" : "WebGL"}
-          </span>
-        </div>
-        <div className="mt-1 text-[10px] text-[var(--ptl-ink-muted)]">
-          {props.rendererRuntimeState.fallbackReason === "none"
-            ? "Primary renderer active."
-            : `Fallback: ${describeRendererFallbackReason(props.rendererRuntimeState.fallbackReason)}.`}
-        </div>
-        {props.rendererRuntimeState.detail ? (
-          <div className="mt-0.5 text-[10px] text-[var(--ptl-ink-muted)]/80">
-            {props.rendererRuntimeState.detail}
-          </div>
-        ) : null}
-        <div className="mt-1.5 grid grid-cols-3 gap-1">
-          {(["auto", "webgpu", "webgl"] as const).map((preference) => (
-            <button
-              key={preference}
-              type="button"
-              onClick={() => props.onSceneSettingsChange({ rendererPreference: preference })}
-              className={`rounded-md border px-1.5 py-1 text-[10px] font-semibold transition ${
-                props.canvasState.sceneSettings.rendererPreference === preference
-                  ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]"
-                  : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
-              }`}
-            >
-              {preference === "auto" ? "Auto" : preference === "webgpu" ? "WebGPU" : "WebGL"}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -782,7 +720,6 @@ type StepPanelProps = BuilderWorkspaceProps & {
   tankPanelMode: TankPanelMode;
   onHardscapeModeChange: (mode: HardscapeSplitMode) => void;
   filteredAssetsForStep: VisualAsset[];
-  rendererRuntimeState: VisualRendererRuntimeState;
 };
 
 function StepPanel(props: StepPanelProps) {
@@ -809,7 +746,7 @@ function StepPanel(props: StepPanelProps) {
     if (props.tankPanelMode === "cabinet") {
       return (
         <div className="space-y-3">
-          <BuildActionsCard {...props} rendererRuntimeState={props.rendererRuntimeState} />
+          <BuildActionsCard {...props} />
           <SectionLabel>Cabinet</SectionLabel>
           <CabinetSettingsCard
             cabinetFinishStyle={cabinetFinishStyle}
@@ -822,7 +759,7 @@ function StepPanel(props: StepPanelProps) {
 
     return (
       <div className="space-y-3">
-        <BuildActionsCard {...props} rendererRuntimeState={props.rendererRuntimeState} />
+        <BuildActionsCard {...props} />
         <SectionLabel>Tank</SectionLabel>
         <div className="space-y-2 rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
           <div className="flex items-center justify-between">
@@ -973,7 +910,7 @@ function StepPanel(props: StepPanelProps) {
   if (step === "substrate") {
     return (
       <div className="space-y-3">
-        <BuildActionsCard {...props} rendererRuntimeState={props.rendererRuntimeState} />
+        <BuildActionsCard {...props} />
         <SectionLabel>Substrate</SectionLabel>
         <SubstrateToolbar {...props.substrateControls} />
       </div>
@@ -983,7 +920,7 @@ function StepPanel(props: StepPanelProps) {
   if (step === "equipment") {
     return (
       <div className="space-y-3">
-        <BuildActionsCard {...props} rendererRuntimeState={props.rendererRuntimeState} />
+        <BuildActionsCard {...props} />
         <SectionLabel>Equipment</SectionLabel>
         <div className="flex flex-wrap gap-1">
           {props.equipmentCategories.map((slug) => (
@@ -1047,7 +984,7 @@ function StepPanel(props: StepPanelProps) {
   if (step === "hardscape" || step === "plants") {
     return (
       <div className="space-y-3">
-        <BuildActionsCard {...props} rendererRuntimeState={props.rendererRuntimeState} />
+        <BuildActionsCard {...props} />
         <SectionLabel>
           {step === "hardscape"
             ? `Hardscape - ${HARDSCAPE_MODE_LABEL[props.hardscapeMode]}`
@@ -1104,7 +1041,7 @@ function StepPanel(props: StepPanelProps) {
 
   return (
     <div className="space-y-3">
-      <BuildActionsCard {...props} rendererRuntimeState={props.rendererRuntimeState} />
+      <BuildActionsCard {...props} />
       <SectionLabel>Review</SectionLabel>
 
       <div className="rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] p-2.5">
@@ -1360,16 +1297,6 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [hardscapeMode, setHardscapeMode] = useState<HardscapeSplitMode>("rocks");
   const [tankPanelMode, setTankPanelMode] = useState<TankPanelMode>("tank");
-  const [rendererRuntimeState, setRendererRuntimeState] = useState<VisualRendererRuntimeState>({
-    ...DEFAULT_RENDERER_RUNTIME_STATE,
-    preference: props.canvasState.sceneSettings.rendererPreference,
-    requestedMode:
-      props.canvasState.sceneSettings.rendererPreference === "webgl" ? "webgl" : "webgpu",
-    fallbackReason:
-      props.canvasState.sceneSettings.rendererPreference === "webgl"
-        ? "forced_webgl"
-        : "webgpu_unsupported",
-  });
 
   const filteredAssetsForStep = useMemo(() => {
     if (props.currentStep !== "hardscape") {
@@ -1385,34 +1312,6 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
 
   const scene = (
     <ErrorBoundary
-      resetKeys={[
-        props.canvasState.sceneSettings.rendererPreference,
-        rendererRuntimeState.activeMode,
-        rendererRuntimeState.fallbackReason,
-      ]}
-      onError={(error) => {
-        if (
-          rendererRuntimeState.activeMode === "webgpu" &&
-          props.canvasState.sceneSettings.rendererPreference !== "webgl"
-        ) {
-          void trackEvent("renderer_fallback", {
-            meta: {
-              activeMode: "webgl",
-              preference: props.canvasState.sceneSettings.rendererPreference,
-              fallbackReason: "webgpu_runtime_failed",
-              detail: error.message,
-            },
-          });
-          setRendererRuntimeState((current) =>
-            toRendererRuntimeFailureState(
-              props.canvasState.sceneSettings.rendererPreference,
-              current,
-              error,
-            ),
-          );
-          props.onSceneSettingsChange({ rendererPreference: "webgl" });
-        }
-      }}
       fallback={({ retry }) => (
         <div className="flex h-full w-full items-center justify-center bg-white/80 px-4 text-[var(--ptl-ink)]">
           <div className="w-full max-w-md rounded-2xl border border-rose-200/45 bg-white/90 p-5 text-center shadow-2xl">
@@ -1443,7 +1342,6 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         showMeasurements={props.canvasState.sceneSettings.measurementsVisible}
         measurementUnit={props.canvasState.sceneSettings.measurementUnit}
         qualityTier={props.qualityTier}
-        rendererPreference={props.canvasState.sceneSettings.rendererPreference}
         postprocessingEnabled={props.canvasState.sceneSettings.postprocessingEnabled}
         glassWallsEnabled={props.canvasState.sceneSettings.glassWallsEnabled}
         tankBackgroundStyle={props.canvasState.sceneSettings.tankBackgroundStyle}
@@ -1474,7 +1372,6 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         onCaptureCanvas={props.onCaptureSceneCanvas}
         onCameraPresetModeChange={props.onCameraPresetModeChange}
         onCameraDiagnostic={props.onCameraDiagnostic}
-        onRendererRuntimeStateChange={setRendererRuntimeState}
         cameraIntent={props.cameraIntent}
       />
     </ErrorBoundary>
@@ -1577,7 +1474,6 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
               tankPanelMode={tankPanelMode}
               onHardscapeModeChange={setHardscapeMode}
               filteredAssetsForStep={filteredAssetsForStep}
-              rendererRuntimeState={rendererRuntimeState}
             />
           ) : null
         }

@@ -29,8 +29,7 @@ export type SubstrateBrushMode = "raise" | "lower" | "smooth" | "erode" | "mater
 
 export type SubstratePreset = "flat" | "island" | "slope" | "valley";
 
-// Scene units are inches; keep render scale 1:1 with physical dimensions.
-export const ASSET_RENDER_DIMENSION_SCALE = 1;
+export const ASSET_RENDER_DIMENSION_SCALE = 0.72;
 
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;

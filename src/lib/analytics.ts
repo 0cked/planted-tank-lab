@@ -22,10 +22,7 @@ export type AnalyticsEventName =
   | "share_created"
   | "signup_completed"
   | "camera_command_invoked"
-  | "camera_unexpected_pose_delta_detected"
-  | "renderer_init_success"
-  | "renderer_fallback"
-  | "renderer_recovery";
+  | "camera_unexpected_pose_delta_detected";
 
 export function hasAnalyticsConsent(): boolean {
   return readCookie(CONSENT_COOKIE) === "accepted";

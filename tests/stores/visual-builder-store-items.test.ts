@@ -304,7 +304,6 @@ describe("visual-builder-store canvas item actions", () => {
     expect(store.canvasState.sceneSettings.gridSnapEnabled).toBe(false);
     expect(store.canvasState.sceneSettings.measurementsVisible).toBe(false);
     expect(store.canvasState.sceneSettings.measurementUnit).toBe("in");
-    expect(store.canvasState.sceneSettings.rendererPreference).toBe("auto");
     expect(store.canvasState.sceneSettings.tankBackgroundStyle).toBe("frosted");
     expect(store.canvasState.sceneSettings.tankBackgroundColor).toBe("#88a9be");
     expect(store.canvasState.sceneSettings.cabinetFinishStyle).toBe("oak");
@@ -320,7 +319,6 @@ describe("visual-builder-store canvas item actions", () => {
       gridSnapEnabled: true,
       measurementsVisible: true,
       measurementUnit: "cm",
-      rendererPreference: "webgl",
       tankBackgroundStyle: "custom",
       tankBackgroundColor: "#336699",
       cabinetFinishStyle: "custom",
@@ -339,7 +337,6 @@ describe("visual-builder-store canvas item actions", () => {
     expect(stateAfterToggle.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
     expect(stateAfterToggle.canvasState.sceneSettings.measurementsVisible).toBe(true);
     expect(stateAfterToggle.canvasState.sceneSettings.measurementUnit).toBe("cm");
-    expect(stateAfterToggle.canvasState.sceneSettings.rendererPreference).toBe("webgl");
     expect(stateAfterToggle.canvasState.sceneSettings.tankBackgroundStyle).toBe("custom");
     expect(stateAfterToggle.canvasState.sceneSettings.tankBackgroundColor).toBe("#336699");
     expect(stateAfterToggle.canvasState.sceneSettings.cabinetFinishStyle).toBe("custom");
@@ -354,7 +351,6 @@ describe("visual-builder-store canvas item actions", () => {
     expect(payload.canvasState.sceneSettings.gridSnapEnabled).toBe(true);
     expect(payload.canvasState.sceneSettings.measurementsVisible).toBe(true);
     expect(payload.canvasState.sceneSettings.measurementUnit).toBe("cm");
-    expect(payload.canvasState.sceneSettings.rendererPreference).toBe("webgl");
     expect(payload.canvasState.sceneSettings.tankBackgroundStyle).toBe("custom");
     expect(payload.canvasState.sceneSettings.tankBackgroundColor).toBe("#336699");
     expect(payload.canvasState.sceneSettings.cabinetFinishStyle).toBe("custom");

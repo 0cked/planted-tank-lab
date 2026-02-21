@@ -1,13 +1,12 @@
 "use client";
 
-import { Html, OrbitControls } from "@react-three/drei";
+import { Html, OrbitControls, useProgress } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
-import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
-import { WebGPURenderer } from "three/webgpu";
 
 import {
   AssetLoader,
@@ -27,8 +26,6 @@ import type {
   VisualCanvasState,
   VisualDepthZone,
   VisualItemTransform,
-  VisualRendererPreference,
-  VisualRendererRuntimeState,
   VisualTank,
 } from "@/components/builder/visual/types";
 import {
@@ -80,12 +77,6 @@ import {
   SUBSTRATE_MATERIAL_RGB_BY_CODE,
 } from "@/lib/visual/substrate-materials";
 import { SubstrateControlPoints } from "@/components/builder/visual/SubstrateControlPoints";
-import { trackEvent } from "@/lib/analytics";
-import {
-  defaultRendererRuntimeState,
-  resolveRendererRuntimeState,
-  toRendererInitFailureState,
-} from "@/lib/graphics/renderer-mode";
 
 export type BuilderSceneStep =
   | "tank"
@@ -170,7 +161,6 @@ type VisualBuilderSceneProps = {
   showMeasurements: boolean;
   measurementUnit: MeasurementUnit;
   qualityTier: BuilderSceneQualityTier;
-  rendererPreference: VisualRendererPreference;
   postprocessingEnabled: boolean;
   glassWallsEnabled: boolean;
   tankBackgroundStyle: TankBackgroundStyle;
@@ -201,7 +191,6 @@ type VisualBuilderSceneProps = {
   onCaptureCanvas?: (canvas: HTMLCanvasElement | null) => void;
   onCameraPresetModeChange?: (mode: CameraPresetMode) => void;
   onCameraDiagnostic?: (event: CameraDiagnosticEvent) => void;
-  onRendererRuntimeStateChange?: (state: VisualRendererRuntimeState) => void;
   cameraIntent?: CameraIntent | null;
 };
 
@@ -462,10 +451,6 @@ type AquariumLightRigProfile = {
   hemisphereIntensity: number;
   bounceColor: string;
   bounceIntensity: number;
-  frontFillColor: string;
-  frontFillIntensity: number;
-  underWaterFillColor: string;
-  underWaterFillIntensity: number;
   angle: number;
   penumbra: number;
   decay: number;
@@ -1360,19 +1345,10 @@ function hasHardscapeAttach(asset: VisualAsset): boolean {
   );
 }
 
-type LoadedAssetScaleFitMode = "contain" | "height";
-
-function loadedAssetUniformScale(
-  target: SceneRenderItem["size"],
-  bounds: THREE.Vector3,
-  fitMode: LoadedAssetScaleFitMode,
-): number {
+function loadedAssetUniformScale(target: SceneRenderItem["size"], bounds: THREE.Vector3): number {
   const scaleX = target.width / Math.max(0.001, bounds.x);
   const scaleY = target.height / Math.max(0.001, bounds.y);
   const scaleZ = target.depth / Math.max(0.001, bounds.z);
-  if (fitMode === "height") {
-    return Math.max(0.001, scaleY);
-  }
   return Math.max(0.001, Math.min(scaleX, scaleY, scaleZ));
 }
 
@@ -1452,6 +1428,37 @@ function useRetryableFailedAssetPath(assetId: string): {
       });
     },
   };
+}
+
+function SceneAssetLoadingIndicator(props: {
+  enabled: boolean;
+}) {
+  const { active, progress, loaded, total } = useProgress();
+  const clampedProgress = Number.isFinite(progress)
+    ? THREE.MathUtils.clamp(progress, 0, 100)
+    : 0;
+
+  if (!props.enabled || !active || total < 1 || loaded >= total) {
+    return null;
+  }
+
+  return (
+    <Html center style={{ pointerEvents: "none" }}>
+      <div className="rounded-xl border border-white/20 bg-slate-950/82 px-3 py-2 shadow-2xl backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
+          <span className="text-[11px] font-semibold text-slate-100">Loading 3D assets</span>
+          <span className="text-[10px] text-slate-300">{Math.round(clampedProgress)}%</span>
+        </div>
+        <div className="mt-1.5 h-1.5 w-32 overflow-hidden rounded-full bg-slate-700/75">
+          <div
+            className="h-full rounded-full bg-cyan-300 transition-[width] duration-150"
+            style={{ width: `${clampedProgress}%` }}
+          />
+        </div>
+      </div>
+    </Html>
+  );
 }
 
 function itemWorldPosition(params: {
@@ -2571,10 +2578,6 @@ function ItemMesh(props: {
     (props.selected ? "#cbf2dd" : props.hovered ? "#d6e9ff" : null);
   const { failedPath, markPathFailed } = useRetryableFailedAssetPath(props.renderItem.asset.id);
   const resolvedAsset = useAsset(props.renderItem.asset, { failedPath });
-  const scaleFitMode: LoadedAssetScaleFitMode =
-    resolvedAsset.fallbackKind === "plant" || resolvedAsset.fallbackKind === "wood"
-      ? "height"
-      : "contain";
 
   useFrame((state) => {
     const group = groupRef.current;
@@ -2649,7 +2652,7 @@ function ItemMesh(props: {
           <Suspense fallback={proceduralMesh}>
             <AssetLoader path={resolvedAsset.glbPath}>
               {(model) => {
-                const scale = loadedAssetUniformScale(props.renderItem.size, model.bounds, scaleFitMode);
+                const scale = loadedAssetUniformScale(props.renderItem.size, model.bounds);
                 return (
                   <mesh
                     castShadow
@@ -2742,7 +2745,7 @@ function InstancedPlantRenderer(props: {
       matrixObject.rotation.set(0, (renderItem.item.rotation * Math.PI) / 180 + sway, 0);
 
       if (props.loadedModel) {
-        const uniformScale = loadedAssetUniformScale(renderItem.size, props.bounds, "height") * pulse;
+        const uniformScale = loadedAssetUniformScale(renderItem.size, props.bounds) * pulse;
         matrixObject.scale.setScalar(uniformScale);
       } else {
         matrixObject.scale.set(
@@ -3019,7 +3022,6 @@ function WaterSurfacePlane(props: {
   depthIn: number;
   waterLineY: number;
   qualityTier: BuilderSceneQualityTier;
-  shaderEffectsEnabled: boolean;
 }) {
   const textureSize = waterSurfaceTextureSize(props.qualityTier);
   const segmentCount = waterSurfaceGridResolution(props.qualityTier);
@@ -3048,15 +3050,12 @@ function WaterSurfacePlane(props: {
   );
 
   useFrame((state) => {
-    if (!props.shaderEffectsEnabled) return;
     const material = materialRef.current;
     if (!material) return;
     material.uniforms.uTime.value = state.clock.elapsedTime;
   });
 
   useEffect(() => {
-    if (!props.shaderEffectsEnabled) return;
-
     const material = materialRef.current;
     if (material) {
       material.uniforms.uNormalMap.value = normalTexture;
@@ -3072,8 +3071,6 @@ function WaterSurfacePlane(props: {
   }, [normalTexture]);
 
   useEffect(() => {
-    if (!props.shaderEffectsEnabled) return;
-
     const material = materialRef.current;
     if (!material) return;
 
@@ -3088,30 +3085,6 @@ function WaterSurfacePlane(props: {
       Math.min(0.036, Math.min(props.widthIn, props.depthIn) * 0.0011),
     );
   }, [props.depthIn, props.qualityTier, props.widthIn]);
-
-  if (!props.shaderEffectsEnabled) {
-    return (
-      <mesh
-        position={[0, props.waterLineY + 0.02, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        raycast={DISABLED_RAYCAST}
-        renderOrder={24}
-      >
-        <planeGeometry args={[props.widthIn * 0.95, props.depthIn * 0.95, 2, 2]} />
-        <meshPhysicalMaterial
-          color="#b7d3de"
-          transparent
-          opacity={0.08}
-          roughness={0.16}
-          metalness={0}
-          clearcoat={0.8}
-          clearcoatRoughness={0.22}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-    );
-  }
 
   return (
     <mesh
@@ -3240,7 +3213,7 @@ function AmbientWaterParticles(props: {
   );
 }
 
-function SceneBackdrop(props: { shaderEffectsEnabled: boolean }) {
+function SceneBackdrop() {
   const uniforms = useMemo(
     () => ({
       uTopColor: { value: new THREE.Color("#1b3042") },
@@ -3249,15 +3222,6 @@ function SceneBackdrop(props: { shaderEffectsEnabled: boolean }) {
     }),
     [],
   );
-
-  if (!props.shaderEffectsEnabled) {
-    return (
-      <mesh scale={[460, 460, 460]} renderOrder={-1000} raycast={DISABLED_RAYCAST}>
-        <sphereGeometry args={[1, 36, 24]} />
-        <meshBasicMaterial color="#0b1f2f" side={THREE.BackSide} toneMapped={false} />
-      </mesh>
-    );
-  }
 
   return (
     <mesh scale={[460, 460, 460]} renderOrder={-1000} raycast={DISABLED_RAYCAST}>
@@ -3340,16 +3304,12 @@ function resolveAquariumLightRigProfile(params: {
     emitters,
     emitterColor: fixtureColor,
     ambientColor: fixtureType === "led" ? "#9cb6cb" : "#a8b7c4",
-    ambientIntensity: params.source ? 0.31 : 0.35,
+    ambientIntensity: params.source ? 0.2 : 0.23,
     hemisphereSkyColor: fixtureType === "led" ? "#cde6ff" : "#d8e3ef",
-    hemisphereGroundColor: "#1b2f3f",
-    hemisphereIntensity: params.source ? 0.45 : 0.5,
+    hemisphereGroundColor: "#0a1520",
+    hemisphereIntensity: params.source ? 0.3 : 0.34,
     bounceColor: fixtureType === "led" ? "#79c1da" : "#8cbfd2",
-    bounceIntensity: baseIntensity * 0.46,
-    frontFillColor: fixtureType === "led" ? "#c8ebff" : "#d7eaf5",
-    frontFillIntensity: baseIntensity * 0.35,
-    underWaterFillColor: fixtureType === "led" ? "#9bc9db" : "#a7cad8",
-    underWaterFillIntensity: baseIntensity * 0.2,
+    bounceIntensity: baseIntensity * 0.32,
     angle,
     penumbra,
     decay,
@@ -3440,20 +3400,6 @@ function AquariumOverheadLighting(props: {
         position={[0, Math.max(0.4, props.dims.heightIn * 0.58), -props.dims.depthIn * 0.03]}
         distance={bounceDistance}
         decay={1.9}
-      />
-      <pointLight
-        color={profile.frontFillColor}
-        intensity={profile.frontFillIntensity}
-        position={[0, Math.max(0.5, props.dims.heightIn * 0.52), props.dims.depthIn * 0.38]}
-        distance={bounceDistance * 1.04}
-        decay={1.75}
-      />
-      <pointLight
-        color={profile.underWaterFillColor}
-        intensity={profile.underWaterFillIntensity}
-        position={[0, Math.max(0.3, props.dims.heightIn * 0.28), props.dims.depthIn * 0.08]}
-        distance={Math.max(props.dims.widthIn, props.dims.depthIn) * 1.45}
-        decay={1.7}
       />
     </group>
   );
@@ -3677,7 +3623,10 @@ function RimlessGlassEdgeHighlights(props: {
 }) {
   const halfWidth = props.dims.widthIn * 0.5;
   const halfDepth = props.dims.depthIn * 0.5;
-  const thickness = Math.max(0.04, props.glassThickness * 0.92);
+  const thickness = Math.max(
+    0.01,
+    Math.min(0.028, props.glassThickness * 0.55),
+  );
   const edgeX = Math.max(0, halfWidth - thickness * 0.5);
   const edgeZ = Math.max(0, halfDepth - thickness * 0.5);
   const bottomEdgeY = thickness * 0.5;
@@ -3689,7 +3638,7 @@ function RimlessGlassEdgeHighlights(props: {
   const edgeMaterialProps = {
     color: "#8fd7e6",
     transparent: true,
-    opacity: 0.58,
+    opacity: 0.66,
     roughness: 0.26,
     metalness: 0.05,
     depthWrite: false,
@@ -3751,28 +3700,7 @@ function configureSubstrateTexture(params: {
   params.texture.magFilter = THREE.LinearFilter;
   params.texture.minFilter = THREE.LinearMipmapLinearFilter;
   params.texture.anisotropy = Math.max(1, Math.floor(params.anisotropy));
-}
-
-function getRendererMaxAnisotropy(renderer: unknown): number {
-  const withCapabilities = renderer as {
-    capabilities?: {
-      getMaxAnisotropy?: () => number;
-    };
-  };
-  const fromCapabilities = withCapabilities.capabilities?.getMaxAnisotropy?.();
-  if (typeof fromCapabilities === "number" && Number.isFinite(fromCapabilities) && fromCapabilities > 0) {
-    return fromCapabilities;
-  }
-
-  const withMethod = renderer as {
-    getMaxAnisotropy?: () => number;
-  };
-  const fromMethod = withMethod.getMaxAnisotropy?.();
-  if (typeof fromMethod === "number" && Number.isFinite(fromMethod) && fromMethod > 0) {
-    return fromMethod;
-  }
-
-  return 1;
+  params.texture.needsUpdate = true;
 }
 
 function useSubstrateTextureMaps(params: {
@@ -3784,8 +3712,7 @@ function useSubstrateTextureMaps(params: {
   surfaceReliefTexture: THREE.Texture;
   sideReliefTexture: THREE.Texture;
 } {
-  const renderer = useThree((state) => state.gl);
-  const maxTextureAnisotropy = useMemo(() => getRendererMaxAnisotropy(renderer), [renderer]);
+  const maxTextureAnisotropy = useThree((state) => state.gl.capabilities.getMaxAnisotropy());
   const surfaceTexture = useMemo(
     () => new THREE.TextureLoader().load(SUBSTRATE_AQUASOIL_TEXTURE_PATH),
     [],
@@ -4106,7 +4033,6 @@ function TankMeasurementOverlay(props: {
 function TankShell(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
-  shaderEffectsEnabled: boolean;
   tankBackgroundStyle: TankBackgroundStyle;
   tankBackgroundColor: string;
   cabinetFinishStyle: CabinetFinishStyle;
@@ -4189,8 +4115,8 @@ function TankShell(props: {
   const halfWidth = props.dims.widthIn * 0.5;
   const halfDepth = props.dims.depthIn * 0.5;
   const glassThickness = Math.max(
-    0.12,
-    Math.min(0.26, Math.min(props.dims.widthIn, props.dims.depthIn) * 0.007),
+    0.04,
+    Math.min(0.095, Math.min(props.dims.widthIn, props.dims.depthIn) * 0.0032),
   );
   const interiorWidth = Math.max(0.4, props.dims.widthIn - glassThickness * 2);
   const interiorDepth = Math.max(0.4, props.dims.depthIn - glassThickness * 2);
@@ -4199,10 +4125,10 @@ function TankShell(props: {
   const paneMaterial = {
     color: "#add8e8",
     transparent: true,
-    opacity: 0.14,
-    roughness: 0.88,
+    opacity: 0.12,
+    roughness: 0.94,
     metalness: 0,
-    envMapIntensity: 0.09,
+    envMapIntensity: 0.08,
     depthWrite: false,
   } as const;
 
@@ -4227,12 +4153,12 @@ function TankShell(props: {
       >
         <boxGeometry args={[interiorWidth, waterHeight, interiorDepth]} />
         <meshStandardMaterial
-          color="#a6cad7"
+          color="#8fb8c4"
           transparent
-          opacity={0.11}
-          roughness={0.82}
+          opacity={0.14}
+          roughness={0.92}
           metalness={0}
-          envMapIntensity={0.1}
+          envMapIntensity={0.06}
           depthWrite={false}
         />
       </mesh>
@@ -4250,7 +4176,6 @@ function TankShell(props: {
         depthIn={props.dims.depthIn}
         waterLineY={waterHeight}
         qualityTier={props.qualityTier}
-        shaderEffectsEnabled={props.shaderEffectsEnabled}
       />
 
       {props.showGlassWalls ? (
@@ -4445,11 +4370,7 @@ function PlacementPreview(props: {
   );
 }
 
-function SceneRoot(
-  props: VisualBuilderSceneProps & {
-    rendererMode: "webgpu" | "webgl";
-  },
-) {
+function SceneRoot(props: VisualBuilderSceneProps) {
   const dims = useMemo(() => normalizeDims(props.tank, props.canvasState), [props.canvasState, props.tank]);
   const lightSimulationSource = useMemo(
     () => resolveLightSimulationSource(props.selectedLightAsset),
@@ -4533,14 +4454,19 @@ function SceneRoot(
     };
   }, [props.cameraIntent, renderItems]);
 
-  const shaderEffectsEnabled = props.rendererMode === "webgl";
-  const postprocessingPipeline =
-    props.rendererMode === "webgl"
-      ? resolveScenePostprocessingPipeline({
-          enabled: props.postprocessingEnabled,
-          qualityTier: props.qualityTier,
-        })
-      : "none";
+  const loadableAssetPaths = useMemo(
+    () =>
+      collectBuildAssetGlbPaths({
+        items: props.canvasState.items,
+        assetsById: props.assetsById,
+      }),
+    [props.assetsById, props.canvasState.items],
+  );
+
+  const postprocessingPipeline = resolveScenePostprocessingPipeline({
+    enabled: props.postprocessingEnabled,
+    qualityTier: props.qualityTier,
+  });
 
   const { singleRenderItems, plantInstancedGroups } = useMemo(() => {
     const singles: SceneRenderItem[] = [];
@@ -5198,7 +5124,7 @@ function SceneRoot(
   return (
     <>
       <color attach="background" args={["#071019"]} />
-      <SceneBackdrop shaderEffectsEnabled={shaderEffectsEnabled} />
+      <SceneBackdrop />
 
       <AquariumOverheadLighting
         dims={dims}
@@ -5210,7 +5136,6 @@ function SceneRoot(
       <TankShell
         dims={dims}
         qualityTier={props.qualityTier}
-        shaderEffectsEnabled={shaderEffectsEnabled}
         tankBackgroundStyle={props.tankBackgroundStyle}
         tankBackgroundColor={props.tankBackgroundColor}
         cabinetFinishStyle={props.cabinetFinishStyle}
@@ -5218,7 +5143,7 @@ function SceneRoot(
         substrateHeightfield={props.canvasState.substrateHeightfield}
         substrateMaterialGrid={props.canvasState.substrateMaterialGrid}
         showGlassWalls={props.glassWallsEnabled && props.qualityTier !== "low"}
-        showAmbientParticles={false}
+        showAmbientParticles={props.ambientParticlesEnabled && props.qualityTier !== "low"}
         showDepthGuides={props.showDepthGuides}
         showSnapGrid={props.gridSnapEnabled}
         showLightingHeatmap={showLightingHeatmap}
@@ -5301,6 +5226,8 @@ function SceneRoot(
         />
       ) : null}
 
+      <SceneAssetLoadingIndicator enabled={loadableAssetPaths.length > 0} />
+
       {postprocessingPipeline === "full" ? (
         <EffectComposer multisampling={4}>
           <Bloom
@@ -5340,9 +5267,6 @@ function SceneRoot(
 export function VisualBuilderScene(props: VisualBuilderSceneProps) {
   const dims = useMemo(() => normalizeDims(props.tank, props.canvasState), [props.canvasState, props.tank]);
   const camera = useMemo(() => cameraPreset(props.currentStep, dims), [dims, props.currentStep]);
-  const [rendererRuntimeState, setRendererRuntimeState] = useState<VisualRendererRuntimeState>(() =>
-    defaultRendererRuntimeState(props.rendererPreference),
-  );
   const buildAssetGlbPaths = useMemo(
     () =>
       collectBuildAssetGlbPaths({
@@ -5352,7 +5276,6 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
     [props.assetsById, props.canvasState.items],
   );
   const preloadedAssetPathsRef = useRef<Set<string>>(new Set());
-  const onRendererRuntimeStateChange = props.onRendererRuntimeStateChange;
 
   useEffect(() => {
     if (buildAssetGlbPaths.length === 0) return;
@@ -5364,125 +5287,11 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
     }
   }, [buildAssetGlbPaths]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    void resolveRendererRuntimeState(props.rendererPreference).then((nextState) => {
-      if (cancelled) return;
-      setRendererRuntimeState(nextState);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [props.rendererPreference]);
-
-  useEffect(() => {
-    onRendererRuntimeStateChange?.(rendererRuntimeState);
-  }, [onRendererRuntimeStateChange, rendererRuntimeState]);
-
-  const previousRendererRuntimeStateRef = useRef<VisualRendererRuntimeState | null>(null);
-
-  useEffect(() => {
-    const previous = previousRendererRuntimeStateRef.current;
-    const requestedWebGpu = rendererRuntimeState.requestedMode === "webgpu";
-    const webGpuActive = rendererRuntimeState.activeMode === "webgpu";
-    const reason = rendererRuntimeState.fallbackReason;
-
-    if (webGpuActive && requestedWebGpu && reason === "none") {
-      if (previous && previous.activeMode === "webgl" && previous.requestedMode === "webgpu") {
-        void trackEvent("renderer_recovery", {
-          meta: {
-            from: previous.activeMode,
-            to: rendererRuntimeState.activeMode,
-            preference: rendererRuntimeState.preference,
-            previousReason: previous.fallbackReason,
-          },
-        });
-      } else if (
-        !previous ||
-        previous.activeMode !== rendererRuntimeState.activeMode ||
-        previous.preference !== rendererRuntimeState.preference ||
-        previous.fallbackReason !== rendererRuntimeState.fallbackReason
-      ) {
-        void trackEvent("renderer_init_success", {
-          meta: {
-            activeMode: rendererRuntimeState.activeMode,
-            preference: rendererRuntimeState.preference,
-          },
-        });
-      }
-    }
-
-    if (
-      requestedWebGpu &&
-      rendererRuntimeState.activeMode === "webgl" &&
-      (!previous ||
-        previous.activeMode !== rendererRuntimeState.activeMode ||
-        previous.fallbackReason !== rendererRuntimeState.fallbackReason ||
-        previous.preference !== rendererRuntimeState.preference)
-    ) {
-      void trackEvent("renderer_fallback", {
-        meta: {
-          activeMode: rendererRuntimeState.activeMode,
-          preference: rendererRuntimeState.preference,
-          fallbackReason: rendererRuntimeState.fallbackReason,
-          detail: rendererRuntimeState.detail,
-        },
-      });
-    }
-
-    previousRendererRuntimeStateRef.current = rendererRuntimeState;
-  }, [rendererRuntimeState]);
-
-  const handleWebGpuInitError = useCallback(
-    (error: unknown) => {
-      setRendererRuntimeState((current) => {
-        if (current.activeMode === "webgl" && current.fallbackReason === "webgpu_renderer_init_failed") {
-          return current;
-        }
-        return toRendererInitFailureState(props.rendererPreference, current, error);
-      });
-    },
-    [props.rendererPreference],
-  );
-
-  const createRenderer = useCallback(
-    async (canvasProps: unknown) => {
-      const normalizedCanvasProps = canvasProps as THREE.WebGLRendererParameters & {
-        canvas: HTMLCanvasElement;
-      };
-      const baseParams: THREE.WebGLRendererParameters = {
-        canvas: normalizedCanvasProps.canvas,
-        antialias: true,
-        alpha: false,
-        powerPreference: "high-performance",
-        preserveDrawingBuffer: true,
-      };
-
-      if (rendererRuntimeState.activeMode === "webgpu") {
-        try {
-          const webgpuRenderer = new WebGPURenderer(baseParams as ConstructorParameters<typeof WebGPURenderer>[0]);
-          await webgpuRenderer.init();
-          return webgpuRenderer as unknown as THREE.WebGLRenderer;
-        } catch (error) {
-          console.error("WebGPU renderer creation failed, falling back to WebGL.", error);
-          handleWebGpuInitError(error);
-          return new THREE.WebGLRenderer(baseParams);
-        }
-      }
-
-      return new THREE.WebGLRenderer(baseParams);
-    },
-    [handleWebGpuInitError, rendererRuntimeState.activeMode],
-  );
-
   return (
     <Canvas
-      key={`renderer:${rendererRuntimeState.activeMode}:${rendererRuntimeState.fallbackReason}`}
       shadows={props.qualityTier !== "low"}
       dpr={props.qualityTier === "high" ? [1, 2] : props.qualityTier === "medium" ? [1, 1.6] : [1, 1.25]}
-      gl={createRenderer}
+      gl={{ antialias: true, alpha: false, powerPreference: "high-performance", preserveDrawingBuffer: true }}
       camera={{
         position: camera.position,
         fov: camera.fov,
@@ -5494,7 +5303,7 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
       }}
       style={{ touchAction: "none" }}
     >
-      <SceneRoot {...props} rendererMode={rendererRuntimeState.activeMode} />
+      <SceneRoot {...props} />
     </Canvas>
   );
 }

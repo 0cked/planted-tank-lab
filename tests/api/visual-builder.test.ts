@@ -129,7 +129,6 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.initialState.canvasState.sceneSettings.lightingSimulationEnabled).toBe(false);
     expect(loaded.initialState.canvasState.sceneSettings.lightMountHeightIn).toBe(4);
     expect(loaded.initialState.canvasState.sceneSettings.growthTimelineMonths).toBe(1);
-    expect(loaded.initialState.canvasState.sceneSettings.rendererPreference).toBe("auto");
     expect(loaded.initialState.canvasState.sceneSettings.tankBackgroundStyle).toBe("custom");
     expect(loaded.initialState.canvasState.sceneSettings.tankBackgroundColor).toBe("#334455");
     expect(loaded.initialState.canvasState.sceneSettings.cabinetFinishStyle).toBe("custom");
@@ -187,7 +186,6 @@ describe("tRPC visualBuilder router", () => {
     expect(loaded.initialState.flags).toEqual({ hasShrimp: false, lowTechNoCo2: false });
     expect(loaded.initialState.canvasState.sceneSettings.cabinetFinishStyle).toBe("oak");
     expect(loaded.initialState.canvasState.sceneSettings.cabinetColor).toBe("#b38b61");
-    expect(loaded.initialState.canvasState.sceneSettings.rendererPreference).toBe("auto");
 
     const persistedRows = await db
       .select({ coverImageUrl: builds.coverImageUrl, flags: builds.flags })

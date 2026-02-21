@@ -42,7 +42,6 @@ type ParticleSample = {
 
 const DISABLED_MESH_RAYCAST: THREE.Mesh["raycast"] = () => undefined;
 const DISABLED_POINTS_RAYCAST: THREE.Points["raycast"] = () => undefined;
-const SHOW_WATER_PARTICLE_EFFECTS = false;
 
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -392,9 +391,7 @@ function FilterVisual(props: {
         <cylinderGeometry args={[0.08, 0.08, 0.54, 14]} />
         <meshStandardMaterial color="#a9bfd4" roughness={0.34} metalness={0.4} />
       </mesh>
-      {SHOW_WATER_PARTICLE_EFFECTS ? (
-        <FilterFlowParticles dims={props.dims} anchor={props.anchor} />
-      ) : null}
+      <FilterFlowParticles dims={props.dims} anchor={props.anchor} />
     </group>
   );
 }
@@ -456,13 +453,11 @@ function Co2DiffuserVisual(props: {
         <cylinderGeometry args={[0.11, 0.11, 0.11, 16]} />
         <meshStandardMaterial color="#d8e4ef" roughness={0.28} metalness={0.14} />
       </mesh>
-      {SHOW_WATER_PARTICLE_EFFECTS ? (
-        <Co2Bubbles
-          dims={props.dims}
-          anchor={[x, y + 0.48, z + 0.04]}
-          waterLineY={props.waterLineY}
-        />
-      ) : null}
+      <Co2Bubbles
+        dims={props.dims}
+        anchor={[x, y + 0.48, z + 0.04]}
+        waterLineY={props.waterLineY}
+      />
     </group>
   );
 }
