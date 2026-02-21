@@ -616,7 +616,7 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
 
 ### Phase 12 -- Builder Advanced Features
 
-- [x] **P12-1: Undo/redo for all builder actions**
+- [ ] **P12-1: Undo/redo for all builder actions**
   - Extend the substrate undo system (P1-4) to cover ALL builder actions: item placement, item removal, item move, item rotation/scale, tank size change.
   - Use a command pattern: each action creates an undoable command object with `execute()` and `undo()` methods.
   - Store commands in a single undo stack (shared with substrate strokes).

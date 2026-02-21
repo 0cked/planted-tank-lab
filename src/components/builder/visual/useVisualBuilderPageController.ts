@@ -256,8 +256,8 @@ export function useVisualBuilderPageController(
   const setSubstrateMaterialGrid = useVisualBuilderStore((state) => state.setSubstrateMaterialGrid);
   const beginSubstrateStroke = useVisualBuilderStore((state) => state.beginSubstrateStroke);
   const endSubstrateStroke = useVisualBuilderStore((state) => state.endSubstrateStroke);
-  const undoAction = useVisualBuilderStore((state) => state.undoAction);
-  const redoAction = useVisualBuilderStore((state) => state.redoAction);
+  const undoSubstrateStroke = useVisualBuilderStore((state) => state.undoSubstrateStroke);
+  const redoSubstrateStroke = useVisualBuilderStore((state) => state.redoSubstrateStroke);
   const setSceneSettings = useVisualBuilderStore((state) => state.setSceneSettings);
   const setSelectedProduct = useVisualBuilderStore((state) => state.setSelectedProduct);
   const setCompatibilityEnabled = useVisualBuilderStore((state) => state.setCompatibilityEnabled);
@@ -967,11 +967,11 @@ export function useVisualBuilderPageController(
       if (hasCommandModifier && !hasBlockedModifier && keyLower === "z") {
         event.preventDefault();
         if (event.shiftKey) {
-          redoAction();
+          redoSubstrateStroke();
           return;
         }
 
-        undoAction();
+        undoSubstrateStroke();
         return;
       }
 
@@ -1046,14 +1046,14 @@ export function useVisualBuilderPageController(
     currentStep,
     duplicateCanvasItem,
     placementAssetId,
-    redoAction,
+    redoSubstrateStroke,
     removeCanvasItem,
     selectAllCanvasItems,
     selectedItemId,
     selectedItemIds,
     showShortcutsOverlay,
     toolMode,
-    undoAction,
+    undoSubstrateStroke,
     updateCanvasItem,
   ]);
 
