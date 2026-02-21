@@ -600,14 +600,14 @@ T037-T055 implemented camera ownership modes and diagnostics panel. The camera s
   - Internal links to products, plants, and tools throughout.
   - **Verify:** Guide page renders with all sections. Internal links navigate correctly. Page has proper SEO metadata.
 
-- [x] **P11-5: Aquascaping styles guide**
+- [ ] **P11-5: Aquascaping styles guide**
   - Create `/guides/aquascaping-styles` page.
   - Cover 5 styles: Nature Aquarium (Amano), Dutch, Iwagumi, Jungle, and Walstad/Low-tech.
   - Each style section: description, key characteristics, recommended plants, recommended hardscape, example tank dimensions, difficulty rating.
   - Link each style to its build tag (P4-6) so users can browse builds in that style.
   - **Verify:** Styles page renders with all 5 styles. Links to build tags and plants work.
 
-- [x] **P11-6: Glossary page**
+- [ ] **P11-6: Glossary page**
   - Create `/guides/glossary` page.
   - Define 40-50 common planted tank terms: PAR, photoperiod, KH, GH, TDS, EI dosing, dry start method, carpet plant, rhizome, runner, emersed/submersed, algae types (BBA, GSA, GDA, staghorn), etc.
   - Alphabetically sorted with anchor links for each letter.
