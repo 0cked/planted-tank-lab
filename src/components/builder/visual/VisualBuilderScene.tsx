@@ -1416,11 +1416,26 @@ function loadedAssetAxisScale(
   const safeTargetWidth = Number.isFinite(target.width) ? Math.max(0.08, target.width) : 1;
   const safeTargetHeight = Number.isFinite(target.height) ? Math.max(0.08, target.height) : 1;
   const safeTargetDepth = Number.isFinite(target.depth) ? Math.max(0.08, target.depth) : 1;
-  return [
-    safeTargetWidth / Math.max(0.001, bounds.x),
-    safeTargetHeight / Math.max(0.001, bounds.y),
-    safeTargetDepth / Math.max(0.001, bounds.z),
-  ];
+  const scaleX = safeTargetWidth / Math.max(0.001, bounds.x);
+  const scaleY = safeTargetHeight / Math.max(0.001, bounds.y);
+  const scaleZ = safeTargetDepth / Math.max(0.001, bounds.z);
+
+  // Preserve model proportions: resolve a stable uniform scale from axis targets instead of
+  // applying independent per-axis scale that can visually squash GLB assets.
+  const safeScales = [scaleX, scaleY, scaleZ].map((value) =>
+    Number.isFinite(value) && value > 0 ? value : 1,
+  ) as [number, number, number];
+  const sorted = [...safeScales].sort((a, b) => a - b);
+  const median = sorted[1] ?? 1;
+  const clampedScaleX = THREE.MathUtils.clamp(safeScales[0], median / 1.35, median * 1.35);
+  const clampedScaleY = THREE.MathUtils.clamp(safeScales[1], median / 1.35, median * 1.35);
+  const clampedScaleZ = THREE.MathUtils.clamp(safeScales[2], median / 1.35, median * 1.35);
+  const uniformScale = Math.max(
+    0.001,
+    Math.cbrt(clampedScaleX * clampedScaleY * clampedScaleZ),
+  );
+
+  return [uniformScale, uniformScale, uniformScale];
 }
 
 function cloneInstancedMaterial(source: THREE.Material | null, fallbackColor: string): THREE.Material {
@@ -2521,11 +2536,7 @@ function ProceduralPlantMesh(props: {
     };
   }, [material]);
 
-  const scale: [number, number, number] = [
-    props.renderItem.size.width / Math.max(0.001, model.bounds.x),
-    props.renderItem.size.height / Math.max(0.001, model.bounds.y),
-    props.renderItem.size.depth / Math.max(0.001, model.bounds.z),
-  ];
+  const scale = loadedAssetAxisScale(props.renderItem.size, model.bounds);
 
   return (
     <mesh
@@ -2586,11 +2597,7 @@ function ProceduralHardscapeMesh(props: {
     };
   }, [material]);
 
-  const scale: [number, number, number] = [
-    props.renderItem.size.width / Math.max(0.001, model.bounds.x),
-    props.renderItem.size.height / Math.max(0.001, model.bounds.y),
-    props.renderItem.size.depth / Math.max(0.001, model.bounds.z),
-  ];
+  const scale = loadedAssetAxisScale(props.renderItem.size, model.bounds);
 
   return (
     <mesh
