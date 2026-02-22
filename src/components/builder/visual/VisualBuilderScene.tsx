@@ -6,6 +6,7 @@ import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
+import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry.js";
 
 import {
   AssetLoader,
@@ -308,16 +309,63 @@ const SIMPLEX_GRADIENTS_2D: ReadonlyArray<[number, number]> = [
 const DISABLED_RAYCAST: THREE.Mesh["raycast"] = () => undefined;
 const DISABLED_POINTS_RAYCAST: THREE.Points["raycast"] = () => undefined;
 const DISABLED_LINE_SEGMENTS_RAYCAST: THREE.LineSegments["raycast"] = () => undefined;
+const SILHOUETTE_CONVEX_GEOMETRY_CACHE = new Map<string, THREE.BufferGeometry>();
+
+function convexSilhouetteGeometryFor(
+  geometry: THREE.BufferGeometry,
+): THREE.BufferGeometry {
+  const cached = SILHOUETTE_CONVEX_GEOMETRY_CACHE.get(geometry.uuid);
+  if (cached) return cached;
+
+  const positionAttribute = geometry.getAttribute("position");
+  if (!(positionAttribute instanceof THREE.BufferAttribute) || positionAttribute.count < 4) {
+    SILHOUETTE_CONVEX_GEOMETRY_CACHE.set(geometry.uuid, geometry);
+    return geometry;
+  }
+
+  const maxPointSamples = 1700;
+  const step = Math.max(1, Math.ceil(positionAttribute.count / maxPointSamples));
+  const points: THREE.Vector3[] = [];
+  for (let index = 0; index < positionAttribute.count; index += step) {
+    points.push(
+      new THREE.Vector3(
+        positionAttribute.getX(index),
+        positionAttribute.getY(index),
+        positionAttribute.getZ(index),
+      ),
+    );
+  }
+
+  if (points.length < 4) {
+    SILHOUETTE_CONVEX_GEOMETRY_CACHE.set(geometry.uuid, geometry);
+    return geometry;
+  }
+
+  try {
+    const convexGeometry = new ConvexGeometry(points);
+    convexGeometry.computeVertexNormals();
+    convexGeometry.computeBoundingSphere();
+    SILHOUETTE_CONVEX_GEOMETRY_CACHE.set(geometry.uuid, convexGeometry);
+    return convexGeometry;
+  } catch {
+    SILHOUETTE_CONVEX_GEOMETRY_CACHE.set(geometry.uuid, geometry);
+    return geometry;
+  }
+}
 
 function MeshSilhouetteHighlight(props: {
   geometry: THREE.BufferGeometry;
   color: string;
 }) {
-  const silhouetteScale = 1.025;
+  const silhouetteScale = 1.022;
+  const silhouetteGeometry = useMemo(
+    () => convexSilhouetteGeometryFor(props.geometry),
+    [props.geometry],
+  );
 
   return (
     <mesh
-      geometry={props.geometry}
+      geometry={silhouetteGeometry}
       scale={[silhouetteScale, silhouetteScale, silhouetteScale]}
       raycast={DISABLED_RAYCAST}
       renderOrder={96}
