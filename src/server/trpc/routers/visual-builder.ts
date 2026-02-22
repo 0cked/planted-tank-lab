@@ -584,7 +584,7 @@ function normalizeSceneSettings(
     cabinetFinishStyle,
     cabinetColor: normalizeHexColor(source.cabinetColor, "#b38b61"),
     glassWallsEnabled: source.glassWallsEnabled ?? qualityTier !== "low",
-    ambientParticlesEnabled: source.ambientParticlesEnabled ?? qualityTier !== "low",
+    ambientParticlesEnabled: source.ambientParticlesEnabled ?? false,
     lightingSimulationEnabled: source.lightingSimulationEnabled ?? false,
     lightMountHeightIn:
       source.lightMountHeightIn == null

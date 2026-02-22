@@ -135,6 +135,41 @@ export function defaultAnchorForCategory(categorySlug: string): VisualAnchorType
   return "substrate";
 }
 
+function footprintClampRatioForCategory(categorySlug: string): number {
+  if (categorySlug === "plants") return 0.28;
+  if (categorySlug === "hardscape") return 0.34;
+  return 0.42;
+}
+
+export function resolveAssetFootprintDimensions(params: {
+  widthIn: number;
+  depthIn: number;
+  scale: number;
+  categorySlug: string;
+  dims: SceneDims;
+}): { widthIn: number; depthIn: number } {
+  const safeWidthIn = Number.isFinite(params.widthIn) ? params.widthIn : 1;
+  const safeDepthIn = Number.isFinite(params.depthIn) ? params.depthIn : 1;
+  const safeTankWidthIn = Number.isFinite(params.dims.widthIn) ? params.dims.widthIn : 1;
+  const safeTankDepthIn = Number.isFinite(params.dims.depthIn) ? params.dims.depthIn : 1;
+  const baseWidth = Math.max(
+    0.35,
+    safeWidthIn * Math.max(0.1, params.scale) * ASSET_RENDER_DIMENSION_SCALE,
+  );
+  const baseDepth = Math.max(
+    0.35,
+    safeDepthIn * Math.max(0.1, params.scale) * ASSET_RENDER_DIMENSION_SCALE,
+  );
+  const clampRatio = footprintClampRatioForCategory(params.categorySlug);
+  const maxWidth = Math.max(0.35, safeTankWidthIn * clampRatio);
+  const maxDepth = Math.max(0.35, safeTankDepthIn * clampRatio);
+
+  return {
+    widthIn: Math.min(baseWidth, maxWidth),
+    depthIn: Math.min(baseDepth, maxDepth),
+  };
+}
+
 export function buildTransformFromNormalized(params: {
   x: number;
   y: number;

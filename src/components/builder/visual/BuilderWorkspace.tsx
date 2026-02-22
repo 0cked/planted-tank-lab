@@ -16,7 +16,7 @@ import {
   type BuilderStepId,
 } from "@/components/builder/visual/builder-page-utils";
 import {
-  ASSET_RENDER_DIMENSION_SCALE,
+  resolveAssetFootprintDimensions,
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
 import type {
@@ -392,11 +392,12 @@ function normalizeHexColor(value: string, fallback: string): string {
 function formatSavedBuildTimestamp(value: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "Updated recently";
-  return parsed.toLocaleDateString(undefined, {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
+  }).format(parsed);
 }
 
 function BuildActionsCard(props: BuilderWorkspaceProps) {
@@ -512,7 +513,7 @@ function BuildActionsCard(props: BuilderWorkspaceProps) {
 function normalizeInset(sizeIn: number, radiusIn: number): number {
   if (!Number.isFinite(sizeIn) || sizeIn <= 0) return 0.5;
   if (!Number.isFinite(radiusIn) || radiusIn <= 0) return 0;
-  const safeRadius = Math.min(radiusIn, Math.max(0.09, sizeIn * 0.4));
+  const safeRadius = Math.min(radiusIn, Math.max(0.09, sizeIn * 0.3));
   return Math.min(0.5, Math.max(0, safeRadius / sizeIn));
 }
 
@@ -554,9 +555,23 @@ function normalizePreviewCandidate(candidate: string | null | undefined): string
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function fallbackDrawerPreviewPath(fallbackKind: ReturnType<typeof resolveVisualAsset>["fallbackKind"]): string {
+  if (fallbackKind === "plant") {
+    return "/visual-assets/plants/amazon-sword.webp";
+  }
+  if (fallbackKind === "wood") {
+    return "/visual-assets/hardscape/spiderwood-1.webp";
+  }
+  return "/visual-assets/hardscape/seiryu-1.webp";
+}
+
 function resolveDrawerPreviewCandidates(asset: VisualAsset): string[] {
   const resolvedAsset = resolveVisualAsset(asset);
-  const orderedCandidates = [resolvedAsset.previewImagePath, asset.imageUrl];
+  const orderedCandidates = [
+    resolvedAsset.previewImagePath,
+    fallbackDrawerPreviewPath(resolvedAsset.fallbackKind),
+    asset.imageUrl,
+  ];
   const seen = new Set<string>();
   const next: string[] = [];
 
@@ -1039,7 +1054,7 @@ function StepPanel(props: StepPanelProps) {
             </div>
             <button
               type="button"
-              onClick={props.onClearPlacementMode}
+              onClick={() => props.onClearPlacementMode()}
               className="rounded-md border border-[var(--ptl-border)] bg-white/70 px-2 py-1 text-[10px] font-semibold text-[var(--ptl-ink)] transition hover:bg-white"
             >
               Stop
@@ -1147,24 +1162,22 @@ function RightPanel(props: BuilderWorkspaceProps) {
     Math.round(dims.widthIn * dims.depthIn * dims.heightIn * 0.004329 * 10) / 10;
   const selectedScale = props.selectedItem ? Math.round(props.selectedItem.scale * 100) / 100 : 1;
   const selectedRotation = props.selectedItem ? Math.round(props.selectedItem.rotation) : 0;
-  const selectedFootprint =
-    props.selectedItem && props.selectedAsset
-      ? {
-          widthIn: Math.max(
-            0.35,
-            props.selectedAsset.widthIn *
-              props.selectedItem.scale *
-              ASSET_RENDER_DIMENSION_SCALE,
-          ),
-          depthIn: Math.max(
-            0.35,
-            props.selectedAsset.depthIn *
-              props.selectedItem.scale *
-              ASSET_RENDER_DIMENSION_SCALE,
-          ),
-          rotationDeg: props.selectedItem.rotation,
-        }
-      : null;
+  const selectedFootprint = useMemo(() => {
+    if (!props.selectedItem || !props.selectedAsset) return null;
+    const footprint = resolveAssetFootprintDimensions({
+      widthIn: props.selectedAsset.widthIn,
+      depthIn: props.selectedAsset.depthIn,
+      scale: props.selectedItem.scale,
+      categorySlug: props.selectedAsset.categorySlug,
+      dims,
+    });
+
+    return {
+      widthIn: footprint.widthIn,
+      depthIn: footprint.depthIn,
+      rotationDeg: props.selectedItem.rotation,
+    };
+  }, [dims, props.selectedAsset, props.selectedItem]);
   const depthInset = selectedFootprint
     ? rotatedDepthInset({
         tankDepthIn: dims.depthIn,
@@ -1173,8 +1186,12 @@ function RightPanel(props: BuilderWorkspaceProps) {
         rotationDeg: selectedFootprint.rotationDeg,
       })
     : 0;
-  const depthMin = depthInset >= 0.5 ? 0.5 : depthInset;
-  const depthMax = depthInset >= 0.5 ? 0.5 : 1 - depthInset;
+  const normalizedDepthInset = Number.isFinite(depthInset)
+    ? Math.min(0.42, Math.max(0, depthInset))
+    : 0;
+  const hasDepthRoom = 1 - normalizedDepthInset * 2 > 0.06;
+  const depthMin = hasDepthRoom ? normalizedDepthInset : 0.05;
+  const depthMax = hasDepthRoom ? 1 - normalizedDepthInset : 0.95;
   const selectedDepthValue = props.selectedItem
     ? Math.min(depthMax, Math.max(depthMin, props.selectedItem.z))
     : 0.5;
@@ -1453,7 +1470,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
           title={`Stop placing ${props.placementAsset.name}`}
           active
           compact
-          onClick={props.onClearPlacementMode}
+          onClick={() => props.onClearPlacementMode()}
         />
       ) : null}
 

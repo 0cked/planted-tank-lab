@@ -1,6 +1,6 @@
 "use client";
 
-import { Html, OrbitControls, Outlines, useProgress } from "@react-three/drei";
+import { Html, OrbitControls, useProgress } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -44,6 +44,7 @@ import {
   depthZoneFromZ,
   estimateCollisionRadius,
   normalizedToWorld,
+  resolveAssetFootprintDimensions,
   sampleSubstrateDepth,
   worldToNormalized,
   type SceneDims,
@@ -244,8 +245,7 @@ const PLANT_COLORS = ["#356f42", "#4f9f5f", "#2f6f3f", "#77ba65"];
 const ROCK_COLORS = ["#6b767e", "#737f87", "#5b666d", "#87939c"];
 const WOOD_COLORS = ["#6d4f35", "#7f5e3f", "#8a6441", "#5f462f"];
 
-const FOOTPRINT_INSET_MAX_FRACTION = 0.4;
-const PLACEMENT_RADIUS_MAX_FRACTION = 0.34;
+const FOOTPRINT_INSET_MAX_FRACTION = 0.34;
 
 const SUBSTRATE_SURFACE_SCALE = 0.992;
 const SUBSTRATE_DEFAULT_DEPTH_IN = 1.6;
@@ -290,6 +290,34 @@ const SIMPLEX_GRADIENTS_2D: ReadonlyArray<[number, number]> = [
 const DISABLED_RAYCAST: THREE.Mesh["raycast"] = () => undefined;
 const DISABLED_POINTS_RAYCAST: THREE.Points["raycast"] = () => undefined;
 const DISABLED_LINE_SEGMENTS_RAYCAST: THREE.LineSegments["raycast"] = () => undefined;
+
+function MeshSilhouetteHighlight(props: {
+  geometry: THREE.BufferGeometry;
+  color: string;
+}) {
+  const silhouetteScale = 1.025;
+
+  return (
+    <mesh
+      geometry={props.geometry}
+      scale={[silhouetteScale, silhouetteScale, silhouetteScale]}
+      raycast={DISABLED_RAYCAST}
+      renderOrder={96}
+    >
+      <meshBasicMaterial
+        color={props.color}
+        side={THREE.BackSide}
+        transparent
+        opacity={0.95}
+        depthWrite={false}
+        polygonOffset
+        polygonOffsetFactor={-2}
+        polygonOffsetUnits={-2}
+        toneMapped={false}
+      />
+    </mesh>
+  );
+}
 
 const WATER_SURFACE_VERTEX_SHADER = `
   varying vec2 vUv;
@@ -361,7 +389,7 @@ const WATER_SURFACE_FRAGMENT_SHADER = `
     color += vec3(0.95, 0.98, 1.0) * specularCore * 0.8;
     color += vec3(0.72, 0.82, 0.92) * specularSoft * 0.16;
 
-    float alpha = clamp(uOpacity + fresnel * 0.12 + specularCore * 0.1, 0.01, 0.2);
+    float alpha = clamp(uOpacity + fresnel * 0.08 + specularCore * 0.05, 0.004, 0.08);
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -462,9 +490,13 @@ function resolveRotatedFootprintHalfExtents(params: {
   halfX: number;
   halfZ: number;
 } {
-  const halfWidth = Math.max(0.09, params.footprintWidthIn * 0.5);
-  const halfDepth = Math.max(0.09, params.footprintDepthIn * 0.5);
-  const rotationRad = THREE.MathUtils.degToRad(clampRotation(params.rotationDeg));
+  const safeWidth = Number.isFinite(params.footprintWidthIn) ? params.footprintWidthIn : 0.35;
+  const safeDepth = Number.isFinite(params.footprintDepthIn) ? params.footprintDepthIn : 0.35;
+  const halfWidth = Math.max(0.09, safeWidth * 0.5);
+  const halfDepth = Math.max(0.09, safeDepth * 0.5);
+  const rotationRad = THREE.MathUtils.degToRad(
+    clampRotation(Number.isFinite(params.rotationDeg) ? params.rotationDeg : 0),
+  );
   const absCos = Math.abs(Math.cos(rotationRad));
   const absSin = Math.abs(Math.sin(rotationRad));
 
@@ -486,6 +518,11 @@ function resolveFootprintBounds(params: {
   maxZNorm: number;
   fitsInsideTank: boolean;
 } {
+  const safeDims: SceneDims = {
+    widthIn: Number.isFinite(params.dims.widthIn) ? Math.max(1, params.dims.widthIn) : 1,
+    heightIn: Number.isFinite(params.dims.heightIn) ? Math.max(1, params.dims.heightIn) : 1,
+    depthIn: Number.isFinite(params.dims.depthIn) ? Math.max(1, params.dims.depthIn) : 1,
+  };
   const rotatedExtents = resolveRotatedFootprintHalfExtents({
     footprintWidthIn: params.footprintWidthIn,
     footprintDepthIn: params.footprintDepthIn,
@@ -493,25 +530,25 @@ function resolveFootprintBounds(params: {
   });
   // Guard against oversized metadata so broken dimensions cannot hard-lock movement.
   const safeHalfX = THREE.MathUtils.clamp(
-    rotatedExtents.halfX,
+    Number.isFinite(rotatedExtents.halfX) ? rotatedExtents.halfX : 0.16,
     0.09,
-    params.dims.widthIn * FOOTPRINT_INSET_MAX_FRACTION,
+    safeDims.widthIn * FOOTPRINT_INSET_MAX_FRACTION,
   );
   const safeHalfZ = THREE.MathUtils.clamp(
-    rotatedExtents.halfZ,
+    Number.isFinite(rotatedExtents.halfZ) ? rotatedExtents.halfZ : 0.16,
     0.09,
-    params.dims.depthIn * FOOTPRINT_INSET_MAX_FRACTION,
+    safeDims.depthIn * FOOTPRINT_INSET_MAX_FRACTION,
   );
-  const xInset = normalizeFootprintInset(params.dims.widthIn, safeHalfX);
-  const zInset = normalizeFootprintInset(params.dims.depthIn, safeHalfZ);
+  const xInset = normalizeFootprintInset(safeDims.widthIn, safeHalfX);
+  const zInset = normalizeFootprintInset(safeDims.depthIn, safeHalfZ);
   const fitsInsideTank = xInset < 0.5 && zInset < 0.5;
 
   if (!fitsInsideTank) {
     return {
-      minXNorm: 0.5,
-      maxXNorm: 0.5,
-      minZNorm: 0.5,
-      maxZNorm: 0.5,
+      minXNorm: 0.05,
+      maxXNorm: 0.95,
+      minZNorm: 0.05,
+      maxZNorm: 0.95,
       fitsInsideTank,
     };
   }
@@ -526,8 +563,12 @@ function resolveFootprintBounds(params: {
 }
 
 function clampNormalizedToFootprintBounds(value: number, min: number, max: number): number {
-  if (min >= max) return 0.5;
-  return THREE.MathUtils.clamp(clamp01(value), min, max);
+  const safeValue = clamp01(Number.isFinite(value) ? value : 0.5);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return safeValue;
+  }
+  if (min >= max) return safeValue;
+  return THREE.MathUtils.clamp(safeValue, min, max);
 }
 
 function inchGridStepNormalized(sizeIn: number): number {
@@ -1363,14 +1404,22 @@ function hasHardscapeAttach(asset: VisualAsset): boolean {
   );
 }
 
+function sanitizeAssetDimension(value: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(0.1, value);
+}
+
 function loadedAssetAxisScale(
   target: SceneRenderItem["size"],
   bounds: THREE.Vector3,
 ): [number, number, number] {
+  const safeTargetWidth = Number.isFinite(target.width) ? Math.max(0.08, target.width) : 1;
+  const safeTargetHeight = Number.isFinite(target.height) ? Math.max(0.08, target.height) : 1;
+  const safeTargetDepth = Number.isFinite(target.depth) ? Math.max(0.08, target.depth) : 1;
   return [
-    target.width / Math.max(0.001, bounds.x),
-    target.height / Math.max(0.001, bounds.y),
-    target.depth / Math.max(0.001, bounds.z),
+    safeTargetWidth / Math.max(0.001, bounds.x),
+    safeTargetHeight / Math.max(0.001, bounds.y),
+    safeTargetDepth / Math.max(0.001, bounds.z),
   ];
 }
 
@@ -2251,6 +2300,21 @@ function CinematicCameraRig(props: {
   const lastIntentSeqRef = useRef<number>(0);
   const initializedRef = useRef(false);
   const initialPoseAppliedRef = useRef(false);
+  const lastPresetKeyRef = useRef<string>("");
+
+  const presetKey = useMemo(
+    () =>
+      [
+        preset.position[0].toFixed(3),
+        preset.position[1].toFixed(3),
+        preset.position[2].toFixed(3),
+        preset.target[0].toFixed(3),
+        preset.target[1].toFixed(3),
+        preset.target[2].toFixed(3),
+        preset.fov.toFixed(3),
+      ].join(":"),
+    [preset],
+  );
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -2298,6 +2362,17 @@ function CinematicCameraRig(props: {
       shouldAutoFrameRef.current = true;
     }
   }, [camera.position, props.cameraPresetMode, props.step]);
+
+  useEffect(() => {
+    const previousPresetKey = lastPresetKeyRef.current;
+    lastPresetKeyRef.current = presetKey;
+    if (!previousPresetKey || previousPresetKey === presetKey) return;
+    if (props.cameraPresetMode !== "step") return;
+
+    // Keep the default framing stable when tank dimensions change after catalog hydration.
+    forcedPresetRef.current = preset;
+    shouldAutoFrameRef.current = true;
+  }, [preset, presetKey, props.cameraPresetMode]);
 
   useEffect(() => {
     if (!props.cameraIntent) return;
@@ -2462,14 +2537,7 @@ function ProceduralPlantMesh(props: {
       raycast={props.interactive ? undefined : DISABLED_RAYCAST}
     >
       {props.highlightColor ? (
-        <Outlines
-          color={props.highlightColor}
-          thickness={1.8}
-          screenspace
-          opacity={1}
-          transparent
-          angle={Math.PI}
-        />
+        <MeshSilhouetteHighlight geometry={model.geometry} color={props.highlightColor} />
       ) : null}
     </mesh>
   );
@@ -2534,14 +2602,7 @@ function ProceduralHardscapeMesh(props: {
       raycast={props.interactive ? undefined : DISABLED_RAYCAST}
     >
       {props.highlightColor ? (
-        <Outlines
-          color={props.highlightColor}
-          thickness={1.8}
-          screenspace
-          opacity={1}
-          transparent
-          angle={Math.PI}
-        />
+        <MeshSilhouetteHighlight geometry={model.geometry} color={props.highlightColor} />
       ) : null}
     </mesh>
   );
@@ -2681,14 +2742,7 @@ function ItemMesh(props: {
                     raycast={props.interactive ? undefined : DISABLED_RAYCAST}
                   >
                     {highlightColor ? (
-                      <Outlines
-                        color={highlightColor}
-                        thickness={1.8}
-                        screenspace
-                        opacity={1}
-                        transparent
-                        angle={Math.PI}
-                      />
+                      <MeshSilhouetteHighlight geometry={model.geometry} color={highlightColor} />
                     ) : null}
                   </mesh>
                 );
@@ -3046,12 +3100,12 @@ function WaterSurfacePlane(props: {
     () => ({
       uTime: { value: 0 },
       uNormalMap: { value: null as THREE.Texture | null },
-      uTintColor: { value: new THREE.Color("#9fc8de") },
-      uOpacity: { value: 0.045 },
-      uNormalStrength: { value: 0.22 },
-      uFlowScale: { value: 6.1 },
-      uWaveScale: { value: 4.7 },
-      uWaveAmplitude: { value: 0.022 },
+      uTintColor: { value: new THREE.Color("#f2fbff") },
+      uOpacity: { value: 0.0085 },
+      uNormalStrength: { value: 0.1 },
+      uFlowScale: { value: 5.2 },
+      uWaveScale: { value: 3.8 },
+      uWaveAmplitude: { value: 0.008 },
     }),
     [],
   );
@@ -3081,14 +3135,14 @@ function WaterSurfacePlane(props: {
     if (!material) return;
 
     material.uniforms.uFlowScale.value =
-      props.qualityTier === "high" ? 6.4 : props.qualityTier === "medium" ? 5.9 : 5.45;
+      props.qualityTier === "high" ? 5.3 : props.qualityTier === "medium" ? 5.05 : 4.8;
     material.uniforms.uWaveScale.value =
-      props.qualityTier === "high" ? 5.05 : props.qualityTier === "medium" ? 4.65 : 4.2;
+      props.qualityTier === "high" ? 3.95 : props.qualityTier === "medium" ? 3.75 : 3.5;
     material.uniforms.uNormalStrength.value =
-      props.qualityTier === "low" ? 0.18 : 0.22;
+      props.qualityTier === "low" ? 0.08 : 0.1;
     material.uniforms.uWaveAmplitude.value = Math.max(
-      0.012,
-      Math.min(0.025, Math.min(props.widthIn, props.depthIn) * 0.00075),
+      0.004,
+      Math.min(0.01, Math.min(props.widthIn, props.depthIn) * 0.00028),
     );
   }, [props.depthIn, props.qualityTier, props.widthIn]);
 
@@ -3104,14 +3158,14 @@ function WaterSurfacePlane(props: {
       />
       {isWebGpuRenderer ? (
         <meshPhysicalMaterial
-          color="#fcffff"
+          color="#fbfeff"
           transparent
-          opacity={0.045}
-          roughness={0.18}
+          opacity={0.02}
+          roughness={0.06}
           metalness={0}
-          transmission={0.9}
-          thickness={0.12}
-          reflectivity={0.26}
+          transmission={0.98}
+          thickness={0.03}
+          reflectivity={0.08}
           ior={1.333}
           depthWrite={false}
           side={THREE.DoubleSide}
@@ -3270,9 +3324,9 @@ function resolveAquariumLightRigProfile(params: {
   const wattageScale = THREE.MathUtils.clamp(sourceWattage / 45, 0.55, 1.82);
   const efficiencyScale = THREE.MathUtils.clamp(sourceEfficiency / 1.2, 0.72, 1.2);
   const baseIntensity = THREE.MathUtils.clamp(
-    8.6 * wattageScale * efficiencyScale * qualityScale,
-    6.2,
-    14,
+    10.4 * wattageScale * efficiencyScale * qualityScale,
+    7.5,
+    16,
   );
 
   const fixtureColor =
@@ -3318,12 +3372,12 @@ function resolveAquariumLightRigProfile(params: {
     fixtureDepth: Math.max(1.8, params.dims.depthIn * 0.2),
     emitterColor: fixtureColor,
     ambientColor: fixtureType === "led" ? "#edf8ff" : "#f2f9ff",
-    ambientIntensity: params.source ? 0.54 : 0.6,
+    ambientIntensity: params.source ? 0.66 : 0.74,
     hemisphereSkyColor: fixtureType === "led" ? "#f4fbff" : "#f5fbff",
     hemisphereGroundColor: "#d8e8f1",
-    hemisphereIntensity: params.source ? 0.82 : 0.92,
+    hemisphereIntensity: params.source ? 0.94 : 1.04,
     bounceColor: fixtureType === "led" ? "#d9efff" : "#e4f3ff",
-    bounceIntensity: baseIntensity * 0.44,
+    bounceIntensity: baseIntensity * 0.52,
     angle,
     penumbra,
     decay,
@@ -3508,9 +3562,7 @@ function TankBackgroundPanel(props: {
           : props.style === "custom"
             ? props.customColor
             : "#d2e5ee";
-  const panelRoughness = props.style === "frosted" ? 0.82 : 0.74;
-  const panelEmissive = props.style === "frosted" ? "#f2fbff" : "#000000";
-  const panelEmissiveIntensity = props.style === "frosted" ? 0.04 : 0;
+  const isFrosted = props.style === "frosted";
 
   return (
     <mesh
@@ -3519,14 +3571,12 @@ function TankBackgroundPanel(props: {
       renderOrder={6}
     >
       <boxGeometry args={[panelWidth, panelHeight, panelThickness]} />
-      <meshStandardMaterial
+      <meshBasicMaterial
         color={solidColor}
-        emissive={panelEmissive}
-        emissiveIntensity={panelEmissiveIntensity}
-        roughness={panelRoughness}
-        metalness={0}
-        envMapIntensity={0.12}
+        transparent={isFrosted}
+        opacity={isFrosted ? 0.9 : 1}
         side={THREE.DoubleSide}
+        toneMapped={false}
       />
     </mesh>
   );
@@ -4210,12 +4260,12 @@ function TankShell(props: {
   const backFrontPaneWidth = Math.max(0.35, props.dims.widthIn - glassThickness * 2);
   const sidePaneDepth = Math.max(0.35, props.dims.depthIn - glassThickness * 2);
   const paneMaterial = {
-    color: "#f6fdff",
+    color: "#fbfeff",
     transparent: true,
-    opacity: 0.03,
-    roughness: 0.08,
+    opacity: 0.0015,
+    roughness: 0.004,
     metalness: 0,
-    envMapIntensity: 0.32,
+    envMapIntensity: 0.015,
     depthWrite: false,
   } as const;
 
@@ -4235,18 +4285,18 @@ function TankShell(props: {
 
       <mesh
         position={[0, glassThickness + waterHeight * 0.5, 0]}
-        receiveShadow
+        receiveShadow={false}
         raycast={DISABLED_RAYCAST}
+        renderOrder={5}
       >
         <boxGeometry args={[interiorWidth, waterHeight, interiorDepth]} />
-        <meshStandardMaterial
+        <meshBasicMaterial
           color="#ffffff"
           transparent
-          opacity={0.02}
-          roughness={0.08}
-          metalness={0}
-          envMapIntensity={0.28}
+          opacity={0.0005}
           depthWrite={false}
+          toneMapped={false}
+          side={THREE.DoubleSide}
         />
       </mesh>
 
@@ -4497,10 +4547,25 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         substrateHeightfield: props.canvasState.substrateHeightfield,
       });
 
+      const footprint = resolveAssetFootprintDimensions({
+        widthIn: sanitizeAssetDimension(asset.widthIn, 4),
+        depthIn: sanitizeAssetDimension(asset.depthIn, 4),
+        scale: item.scale,
+        categorySlug: asset.categorySlug,
+        dims,
+      });
+      const baseHeight = Math.max(
+        0.35,
+        sanitizeAssetDimension(asset.heightIn, 5) * item.scale * ASSET_RENDER_DIMENSION_SCALE,
+      );
+      const maxHeight =
+        asset.categorySlug === "plants"
+          ? Math.max(0.35, dims.heightIn * 0.9)
+          : Math.max(0.35, dims.heightIn * 0.78);
       const size = {
-        width: Math.max(0.35, asset.widthIn * item.scale * ASSET_RENDER_DIMENSION_SCALE),
-        height: Math.max(0.35, asset.heightIn * item.scale * ASSET_RENDER_DIMENSION_SCALE),
-        depth: Math.max(0.35, asset.depthIn * item.scale * ASSET_RENDER_DIMENSION_SCALE),
+        width: footprint.widthIn,
+        height: Math.min(baseHeight, maxHeight),
+        depth: footprint.depthIn,
       };
 
       resolved.push({
@@ -4510,8 +4575,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         size,
         collisionRadius: estimateCollisionRadius({
           item,
-          assetWidthIn: asset.widthIn,
-          assetDepthIn: asset.depthIn,
+          assetWidthIn: sanitizeAssetDimension(asset.widthIn, 4),
+          assetDepthIn: sanitizeAssetDimension(asset.depthIn, 4),
         }),
       });
     }
@@ -4706,8 +4771,15 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const provisionalYNorm = resolvedPlacement.yNorm;
 
     const scale = Math.max(0.1, asset.defaultScale);
-    const previewWidth = Math.max(0.35, asset.widthIn * scale * ASSET_RENDER_DIMENSION_SCALE);
-    const previewDepth = Math.max(0.35, asset.depthIn * scale * ASSET_RENDER_DIMENSION_SCALE);
+    const previewFootprint = resolveAssetFootprintDimensions({
+      widthIn: sanitizeAssetDimension(asset.widthIn, 4),
+      depthIn: sanitizeAssetDimension(asset.depthIn, 4),
+      scale,
+      categorySlug: asset.categorySlug,
+      dims,
+    });
+    const previewWidth = previewFootprint.widthIn;
+    const previewDepth = previewFootprint.depthIn;
 
     const mockItem: VisualCanvasItem = {
       id: "preview",
@@ -4741,14 +4813,18 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       }),
     };
 
-    const rawPreviewRadius = estimateCollisionRadius({
-      item: mockItem,
-      assetWidthIn: asset.widthIn,
-      assetDepthIn: asset.depthIn,
-    });
+    const rawPreviewRadius = Math.max(
+      0.14,
+      Math.hypot(previewWidth, previewDepth) * 0.2,
+      estimateCollisionRadius({
+        item: mockItem,
+        assetWidthIn: sanitizeAssetDimension(asset.widthIn, 4),
+        assetDepthIn: sanitizeAssetDimension(asset.depthIn, 4),
+      }) * 0.45,
+    );
     const previewRadiusCap = Math.max(
-      0.22,
-      Math.min(dims.widthIn, dims.depthIn) * PLACEMENT_RADIUS_MAX_FRACTION,
+      0.28,
+      Math.min(dims.widthIn, dims.depthIn) * 0.19,
     );
     const previewRadius = Math.min(rawPreviewRadius, previewRadiusCap);
     const footprintBounds = resolveFootprintBounds({
@@ -4805,7 +4881,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         placed.collisionRadius,
       );
       const spacingFactor =
-        asset.categorySlug === "plants" && placed.asset.categorySlug === "plants" ? 0.45 : 0.62;
+        asset.categorySlug === "plants" && placed.asset.categorySlug === "plants" ? 0.12 : 0.18;
       const minDistance = previewRadius * spacingFactor + placedRadius * spacingFactor;
 
       if (distanceXZ < minDistance) {
@@ -4818,10 +4894,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       valid = false;
     }
 
-    const insideX = Math.abs(snappedPoint.x) + previewRadius <= dims.widthIn * 0.5;
-    const insideZ = Math.abs(snappedPoint.z) + previewRadius <= dims.depthIn * 0.5;
     const insideY = snappedPoint.y >= 0 && snappedPoint.y <= dims.heightIn;
-    valid = valid && insideX && insideZ && insideY;
+    valid = valid && insideY;
 
     return {
       valid,
@@ -4873,23 +4947,33 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       }),
     };
 
+    const previewFootprint = resolveAssetFootprintDimensions({
+      widthIn: sanitizeAssetDimension(props.placementAsset.widthIn, 4),
+      depthIn: sanitizeAssetDimension(props.placementAsset.depthIn, 4),
+      scale,
+      categorySlug: props.placementAsset.categorySlug,
+      dims,
+    });
+    const previewHeight = Math.min(
+      Math.max(
+        0.35,
+        sanitizeAssetDimension(props.placementAsset.heightIn, 5) *
+          scale *
+          ASSET_RENDER_DIMENSION_SCALE,
+      ),
+      props.placementAsset.categorySlug === "plants"
+        ? Math.max(0.35, dims.heightIn * 0.9)
+        : Math.max(0.35, dims.heightIn * 0.78),
+    );
+
     return {
       item: previewItem,
       asset: props.placementAsset,
       position: placementValidity.point.clone(),
       size: {
-        width: Math.max(
-          0.35,
-          props.placementAsset.widthIn * scale * ASSET_RENDER_DIMENSION_SCALE,
-        ),
-        height: Math.max(
-          0.35,
-          props.placementAsset.heightIn * scale * ASSET_RENDER_DIMENSION_SCALE,
-        ),
-        depth: Math.max(
-          0.35,
-          props.placementAsset.depthIn * scale * ASSET_RENDER_DIMENSION_SCALE,
-        ),
+        width: previewFootprint.widthIn,
+        height: previewHeight,
+        depth: previewFootprint.depthIn,
       },
       collisionRadius: placementValidity.previewRadius,
     };
@@ -4914,16 +4998,17 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const anchorType = activeCandidate.anchorType;
     const shouldSnapToGrid = props.gridSnapEnabled && anchorType === "substrate";
     const scale = Math.max(0.1, props.placementAsset.defaultScale);
+    const placementFootprint = resolveAssetFootprintDimensions({
+      widthIn: sanitizeAssetDimension(props.placementAsset.widthIn, 4),
+      depthIn: sanitizeAssetDimension(props.placementAsset.depthIn, 4),
+      scale,
+      categorySlug: props.placementAsset.categorySlug,
+      dims,
+    });
     const placementBounds = resolveFootprintBounds({
       dims,
-      footprintWidthIn: Math.max(
-        0.35,
-        props.placementAsset.widthIn * scale * ASSET_RENDER_DIMENSION_SCALE,
-      ),
-      footprintDepthIn: Math.max(
-        0.35,
-        props.placementAsset.depthIn * scale * ASSET_RENDER_DIMENSION_SCALE,
-      ),
+      footprintWidthIn: placementFootprint.widthIn,
+      footprintDepthIn: placementFootprint.depthIn,
       rotationDeg: props.placementRotationDeg,
     });
     let xNorm = validity.xNorm;
@@ -5057,8 +5142,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     let maxDeltaZ = Number.POSITIVE_INFINITY;
     for (const selectedDragItem of selectedDragItems) {
       const renderItem = renderItemsById.get(selectedDragItem.id);
-      const footprintWidthIn = renderItem?.size.width ?? 0.35;
-      const footprintDepthIn = renderItem?.size.depth ?? 0.35;
+      const footprintWidthIn =
+        renderItem && Number.isFinite(renderItem.size.width) ? renderItem.size.width : 0.35;
+      const footprintDepthIn =
+        renderItem && Number.isFinite(renderItem.size.depth) ? renderItem.size.depth : 0.35;
       const bounds = resolveFootprintBounds({
         dims,
         footprintWidthIn,
@@ -5175,7 +5262,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const isMoveDragGesture =
       event.buttons === 1 || (event.pointerType === "touch" && event.isPrimary);
 
-    if (isMoveDragGesture && moveDragRef.current) {
+    if (isMoveDragGesture && props.toolMode === "move" && moveDragRef.current) {
       moveSelectedItems(event);
       return;
     }
@@ -5210,7 +5297,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         return;
       }
 
-      const moveDragStarted = startMoveDrag(event, itemId);
+      const moveDragStarted = props.toolMode === "move" ? startMoveDrag(event, itemId) : false;
       if (moveDragStarted) {
         handleSurfacePointer(event, anchorType, itemId);
       } else {
@@ -5218,6 +5305,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       }
       return;
     }
+
+    moveDragRef.current = null;
+    setMoveDragActive(false);
 
     if (props.toolMode === "place" && props.placementAsset) {
       event.stopPropagation();
@@ -5272,7 +5362,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         substrateHeightfield={props.canvasState.substrateHeightfield}
         substrateMaterialGrid={props.canvasState.substrateMaterialGrid}
         showGlassWalls={props.glassWallsEnabled && props.qualityTier !== "low"}
-        showAmbientParticles={props.ambientParticlesEnabled && props.qualityTier !== "low"}
+        showAmbientParticles={false}
         showDepthGuides={props.showDepthGuides}
         showSnapGrid={props.gridSnapEnabled}
         showLightingHeatmap={showLightingHeatmap}
@@ -5430,7 +5520,7 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
           (gl as THREE.WebGLRenderer).outputColorSpace = THREE.SRGBColorSpace;
         }
         if (typeof (gl as THREE.WebGLRenderer).toneMappingExposure === "number") {
-          (gl as THREE.WebGLRenderer).toneMappingExposure = 1.24;
+          (gl as THREE.WebGLRenderer).toneMappingExposure = 1.58;
         }
       }}
       camera={{

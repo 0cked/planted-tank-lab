@@ -149,10 +149,25 @@ function inferFallbackKind(asset: VisualAsset): AssetFallbackKind {
   if (asset.categorySlug === "plants") return "plant";
 
   const materialType = asset.materialType?.toLowerCase() ?? "";
+  const specsMaterialType =
+    typeof asset.specs?.material_type === "string"
+      ? asset.specs.material_type.toLowerCase()
+      : "";
+  const tags = asset.tags?.join(" ").toLowerCase() ?? "";
+  const haystack = `${asset.name} ${asset.slug} ${materialType} ${specsMaterialType} ${tags}`.toLowerCase();
+
   if (
-    materialType.includes("wood") ||
-    materialType.includes("branch") ||
-    materialType.includes("root")
+    includesAny(haystack, [
+      "wood",
+      "branch",
+      "root",
+      "twig",
+      "driftwood",
+      "spider",
+      "manzanita",
+      "mopani",
+      "stump",
+    ])
   ) {
     return "wood";
   }

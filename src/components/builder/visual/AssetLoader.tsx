@@ -44,16 +44,23 @@ function countGeometryTriangles(geometry: THREE.BufferGeometry): number {
 }
 
 function extractPrimaryMesh(scene: THREE.Object3D): THREE.Mesh | null {
-  let firstMesh: THREE.Mesh | null = null;
+  scene.updateWorldMatrix(true, true);
+
+  let bestMesh: THREE.Mesh | null = null;
+  let bestScore = -1;
 
   scene.traverse((node) => {
-    if (firstMesh) return;
     if (!(node instanceof THREE.Mesh)) return;
     if (!(node.geometry instanceof THREE.BufferGeometry)) return;
-    firstMesh = node;
+
+    const triangles = countGeometryTriangles(node.geometry);
+    if (triangles <= bestScore) return;
+
+    bestScore = triangles;
+    bestMesh = node;
   });
 
-  return firstMesh;
+  return bestMesh;
 }
 
 function normalizeGeometryForPlacement(source: THREE.BufferGeometry): {
@@ -80,6 +87,9 @@ function normalizeGeometryForPlacement(source: THREE.BufferGeometry): {
     bounds.z = Math.max(0.001, bounds.z);
   }
 
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+
   return { geometry, bounds };
 }
 
@@ -105,7 +115,9 @@ function prepareModel(path: string, scene: THREE.Object3D): LoadedAssetModel {
     throw new Error(`Visual asset at '${path}' does not contain a mesh geometry.`);
   }
 
-  const { geometry, bounds } = normalizeGeometryForPlacement(mesh.geometry);
+  const sourceGeometry = mesh.geometry.clone();
+  sourceGeometry.applyMatrix4(mesh.matrixWorld);
+  const { geometry, bounds } = normalizeGeometryForPlacement(sourceGeometry);
   const material = clonePrimaryMaterial(mesh.material);
 
   const model: LoadedAssetModel = {

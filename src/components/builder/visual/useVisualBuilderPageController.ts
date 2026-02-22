@@ -229,6 +229,13 @@ export function useVisualBuilderPageController(
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [cameraIntent, setCameraIntent] = useState<BuilderWorkspaceCameraIntent | null>(null);
   const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
+  const lastPlacementRef = useRef<{
+    assetId: string;
+    x: number;
+    y: number;
+    z: number;
+    placedAtMs: number;
+  } | null>(null);
 
   const buildId = useVisualBuilderStore((state) => state.buildId);
   const shareSlug = useVisualBuilderStore((state) => state.shareSlug);
@@ -320,6 +327,10 @@ export function useVisualBuilderPageController(
 
     hydratedShareRef.current = initialBuild.build.shareSlug;
   }, [hydrateFromBuild, initialBuild]);
+
+  useEffect(() => {
+    setSceneSettings({ cameraPreset: "step" });
+  }, [setSceneSettings]);
 
   const isSharedSnapshot =
     initialBuild != null &&
@@ -1332,9 +1343,37 @@ export function useVisualBuilderPageController(
     onSelectSceneItem: handleSceneSelectionChange,
     onHoverSceneItem: setHoveredItemId,
     onPlaceSceneItem: (request) => {
+      const nowMs = Date.now();
+      const previousPlacement = lastPlacementRef.current;
+      if (
+        previousPlacement &&
+        previousPlacement.assetId === request.asset.id &&
+        nowMs - previousPlacement.placedAtMs < 160 &&
+        Math.hypot(
+          request.x - previousPlacement.x,
+          request.y - previousPlacement.y,
+          request.z - previousPlacement.z,
+        ) < 0.0025
+      ) {
+        return;
+      }
+      lastPlacementRef.current = {
+        assetId: request.asset.id,
+        x: request.x,
+        y: request.y,
+        z: request.z,
+        placedAtMs: nowMs,
+      };
       addCanvasItemFromAsset(request.asset, request);
+      setPlacementAssetId(null);
+      setToolMode("move");
       if (currentStep === "hardscape" && hardscapeCount === 0) {
-        setSaveState({ type: "ok", message: "Hardscape placed. Continue layering composition." });
+        setSaveState({ type: "ok", message: "Hardscape placed. Drag to refine placement." });
+      } else {
+        setSaveState({
+          type: "ok",
+          message: `${request.asset.name} placed. Select it to move, scale, or rotate.`,
+        });
       }
     },
     onMoveSceneItem: updateCanvasItem,

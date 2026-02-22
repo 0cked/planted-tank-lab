@@ -236,8 +236,12 @@ export function stepAllowsAsset(
   equipmentCategory: string,
 ): boolean {
   if (step === "substrate") return asset.type === "product" && asset.categorySlug === "substrate";
-  if (step === "hardscape") return asset.categorySlug === "hardscape";
-  if (step === "plants") return asset.categorySlug === "plants";
+  if (step === "hardscape") {
+    return asset.categorySlug === "hardscape" && asset.sourceMode === "design_archetype";
+  }
+  if (step === "plants") {
+    return asset.categorySlug === "plants" && asset.type !== "product";
+  }
 
   if (step === "equipment") {
     return (
