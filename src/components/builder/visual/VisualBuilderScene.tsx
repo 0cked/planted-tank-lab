@@ -1,9 +1,8 @@
 "use client";
 
-import { Html, OrbitControls, useProgress } from "@react-three/drei";
+import { Html, OrbitControls, Outlines, useProgress } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
-import { Bloom, EffectComposer, ToneMapping, Vignette } from "@react-three/postprocessing";
-import { ToneMappingMode } from "postprocessing";
+import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
@@ -245,7 +244,8 @@ const PLANT_COLORS = ["#356f42", "#4f9f5f", "#2f6f3f", "#77ba65"];
 const ROCK_COLORS = ["#6b767e", "#737f87", "#5b666d", "#87939c"];
 const WOOD_COLORS = ["#6d4f35", "#7f5e3f", "#8a6441", "#5f462f"];
 
-const ITEM_OUTLINE_SCALE = 1.045;
+const FOOTPRINT_INSET_MAX_FRACTION = 0.4;
+const PLACEMENT_RADIUS_MAX_FRACTION = 0.34;
 
 const SUBSTRATE_SURFACE_SCALE = 0.992;
 const SUBSTRATE_DEFAULT_DEPTH_IN = 1.6;
@@ -355,37 +355,14 @@ const WATER_SURFACE_FRAGMENT_SHADER = `
     float specularCore = pow(max(dot(normal, halfVector), 0.0), 112.0);
     float specularSoft = pow(max(dot(normal, halfVector), 0.0), 34.0) * (0.4 + shimmer * 0.6);
 
-    vec3 deepTint = mix(uTintColor * 0.88, uTintColor * 1.02, shimmer * 0.16);
-    vec3 skyReflection = vec3(0.67, 0.79, 0.88);
+    vec3 deepTint = mix(uTintColor * 0.96, uTintColor * 1.08, shimmer * 0.2);
+    vec3 skyReflection = vec3(0.84, 0.92, 0.97);
     vec3 color = mix(deepTint, skyReflection, fresnel * 0.92);
-    color += vec3(0.93, 0.97, 1.0) * specularCore * 0.72;
-    color += vec3(0.62, 0.72, 0.82) * specularSoft * 0.1;
+    color += vec3(0.95, 0.98, 1.0) * specularCore * 0.8;
+    color += vec3(0.72, 0.82, 0.92) * specularSoft * 0.16;
 
-    float alpha = clamp(uOpacity + fresnel * 0.15 + specularCore * 0.14, 0.02, 0.26);
+    float alpha = clamp(uOpacity + fresnel * 0.12 + specularCore * 0.1, 0.01, 0.2);
     gl_FragColor = vec4(color, alpha);
-  }
-`;
-
-const BACKDROP_VERTEX_SHADER = `
-  varying float vGradient;
-
-  void main() {
-    vGradient = clamp(position.y * 0.5 + 0.5, 0.0, 1.0);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-
-const BACKDROP_FRAGMENT_SHADER = `
-  varying float vGradient;
-
-  uniform vec3 uTopColor;
-  uniform vec3 uBottomColor;
-  uniform float uCurve;
-
-  void main() {
-    float t = pow(vGradient, uCurve);
-    vec3 color = mix(uBottomColor, uTopColor, t);
-    gl_FragColor = vec4(color, 1.0);
   }
 `;
 
@@ -443,6 +420,9 @@ type AquariumLightRigEmitter = {
 
 type AquariumLightRigProfile = {
   emitters: AquariumLightRigEmitter[];
+  fixtureY: number;
+  fixtureWidth: number;
+  fixtureDepth: number;
   emitterColor: string;
   ambientColor: string;
   ambientIntensity: number;
@@ -474,9 +454,31 @@ function normalizeFootprintInset(sizeIn: number, radiusIn: number): number {
   return THREE.MathUtils.clamp(radiusIn / sizeIn, 0, 0.5);
 }
 
+function resolveRotatedFootprintHalfExtents(params: {
+  footprintWidthIn: number;
+  footprintDepthIn: number;
+  rotationDeg: number;
+}): {
+  halfX: number;
+  halfZ: number;
+} {
+  const halfWidth = Math.max(0.09, params.footprintWidthIn * 0.5);
+  const halfDepth = Math.max(0.09, params.footprintDepthIn * 0.5);
+  const rotationRad = THREE.MathUtils.degToRad(clampRotation(params.rotationDeg));
+  const absCos = Math.abs(Math.cos(rotationRad));
+  const absSin = Math.abs(Math.sin(rotationRad));
+
+  return {
+    halfX: halfWidth * absCos + halfDepth * absSin,
+    halfZ: halfWidth * absSin + halfDepth * absCos,
+  };
+}
+
 function resolveFootprintBounds(params: {
   dims: SceneDims;
-  footprintRadiusIn: number;
+  footprintWidthIn: number;
+  footprintDepthIn: number;
+  rotationDeg: number;
 }): {
   minXNorm: number;
   maxXNorm: number;
@@ -484,8 +486,24 @@ function resolveFootprintBounds(params: {
   maxZNorm: number;
   fitsInsideTank: boolean;
 } {
-  const xInset = normalizeFootprintInset(params.dims.widthIn, params.footprintRadiusIn);
-  const zInset = normalizeFootprintInset(params.dims.depthIn, params.footprintRadiusIn);
+  const rotatedExtents = resolveRotatedFootprintHalfExtents({
+    footprintWidthIn: params.footprintWidthIn,
+    footprintDepthIn: params.footprintDepthIn,
+    rotationDeg: params.rotationDeg,
+  });
+  // Guard against oversized metadata so broken dimensions cannot hard-lock movement.
+  const safeHalfX = THREE.MathUtils.clamp(
+    rotatedExtents.halfX,
+    0.09,
+    params.dims.widthIn * FOOTPRINT_INSET_MAX_FRACTION,
+  );
+  const safeHalfZ = THREE.MathUtils.clamp(
+    rotatedExtents.halfZ,
+    0.09,
+    params.dims.depthIn * FOOTPRINT_INSET_MAX_FRACTION,
+  );
+  const xInset = normalizeFootprintInset(params.dims.widthIn, safeHalfX);
+  const zInset = normalizeFootprintInset(params.dims.depthIn, safeHalfZ);
   const fitsInsideTank = xInset < 0.5 && zInset < 0.5;
 
   if (!fitsInsideTank) {
@@ -1238,47 +1256,47 @@ function cameraPreset(step: BuilderSceneStep, dims: SceneDims): {
   target: [number, number, number];
   fov: number;
 } {
-  const frontDistance = Math.max(dims.widthIn * 1.45, dims.depthIn * 2.42, 34);
+  const frontDistance = Math.max(dims.widthIn * 1.18, dims.depthIn * 2.05, 28);
 
   if (step === "tank") {
     return {
-      position: [0, dims.heightIn * 0.62, frontDistance],
-      target: [0, dims.heightIn * 0.4, 0],
-      fov: 47,
+      position: [0, dims.heightIn * 0.5, frontDistance],
+      target: [0, dims.heightIn * 0.22, 0],
+      fov: 42,
     };
   }
   if (step === "substrate") {
     return {
-      position: [0, dims.heightIn * 0.5, Math.max(28, frontDistance * 0.88)],
-      target: [0, dims.heightIn * 0.26, 0],
-      fov: 44,
+      position: [0, dims.heightIn * 0.42, Math.max(24, frontDistance * 0.88)],
+      target: [0, dims.heightIn * 0.15, 0],
+      fov: 40,
     };
   }
   if (step === "hardscape") {
     return {
-      position: [0, dims.heightIn * 0.54, Math.max(30, frontDistance * 0.94)],
-      target: [0, dims.heightIn * 0.32, 0],
-      fov: 44,
+      position: [0, dims.heightIn * 0.46, Math.max(24, frontDistance * 0.9)],
+      target: [0, dims.heightIn * 0.2, 0],
+      fov: 40,
     };
   }
   if (step === "plants") {
     return {
-      position: [0, dims.heightIn * 0.53, Math.max(30, frontDistance * 0.92)],
-      target: [0, dims.heightIn * 0.32, 0],
-      fov: 44,
+      position: [0, dims.heightIn * 0.46, Math.max(24, frontDistance * 0.92)],
+      target: [0, dims.heightIn * 0.22, 0],
+      fov: 40,
     };
   }
   if (step === "equipment") {
     return {
-      position: [0, dims.heightIn * 0.58, Math.max(32, frontDistance * 0.96)],
-      target: [0, dims.heightIn * 0.42, 0],
-      fov: 45,
+      position: [0, dims.heightIn * 0.52, Math.max(26, frontDistance * 0.94)],
+      target: [0, dims.heightIn * 0.28, 0],
+      fov: 41,
     };
   }
   return {
-    position: [0, dims.heightIn * 0.62, Math.max(34, frontDistance * 1.04)],
-    target: [0, dims.heightIn * 0.37, 0],
-    fov: 46,
+    position: [0, dims.heightIn * 0.56, Math.max(28, frontDistance * 1.02)],
+    target: [0, dims.heightIn * 0.26, 0],
+    fov: 42,
   };
 }
 
@@ -1345,11 +1363,15 @@ function hasHardscapeAttach(asset: VisualAsset): boolean {
   );
 }
 
-function loadedAssetUniformScale(target: SceneRenderItem["size"], bounds: THREE.Vector3): number {
-  const scaleX = target.width / Math.max(0.001, bounds.x);
-  const scaleY = target.height / Math.max(0.001, bounds.y);
-  const scaleZ = target.depth / Math.max(0.001, bounds.z);
-  return Math.max(0.001, Math.min(scaleX, scaleY, scaleZ));
+function loadedAssetAxisScale(
+  target: SceneRenderItem["size"],
+  bounds: THREE.Vector3,
+): [number, number, number] {
+  return [
+    target.width / Math.max(0.001, bounds.x),
+    target.height / Math.max(0.001, bounds.y),
+    target.depth / Math.max(0.001, bounds.z),
+  ];
 }
 
 function cloneInstancedMaterial(source: THREE.Material | null, fallbackColor: string): THREE.Material {
@@ -2228,6 +2250,7 @@ function CinematicCameraRig(props: {
   const forcedPresetRef = useRef<ReturnType<typeof cameraPreset> | null>(null);
   const lastIntentSeqRef = useRef<number>(0);
   const initializedRef = useRef(false);
+  const initialPoseAppliedRef = useRef(false);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -2316,6 +2339,15 @@ function CinematicCameraRig(props: {
     if (!controls) return;
 
     const isStepOwned = props.cameraPresetMode === "step";
+    if (!initialPoseAppliedRef.current) {
+      const activePreset = forcedPresetRef.current ?? preset;
+      camera.position.set(activePreset.position[0], activePreset.position[1], activePreset.position[2]);
+      controls.target.set(activePreset.target[0], activePreset.target[1], activePreset.target[2]);
+      controls.update();
+      initialPoseAppliedRef.current = true;
+      shouldAutoFrameRef.current = false;
+      forcedPresetRef.current = null;
+    }
 
     if (isStepOwned && shouldAutoFrameRef.current) {
       const blend = 1 - Math.exp(-delta * 3.8);
@@ -2430,21 +2462,14 @@ function ProceduralPlantMesh(props: {
       raycast={props.interactive ? undefined : DISABLED_RAYCAST}
     >
       {props.highlightColor ? (
-        <mesh
-          geometry={model.geometry}
-          scale={[ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE]}
-          raycast={DISABLED_RAYCAST}
-          renderOrder={91}
-        >
-          <meshBasicMaterial
-            color={props.highlightColor}
-            side={THREE.BackSide}
-            transparent
-            opacity={0.96}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
+        <Outlines
+          color={props.highlightColor}
+          thickness={1.8}
+          screenspace
+          opacity={1}
+          transparent
+          angle={Math.PI}
+        />
       ) : null}
     </mesh>
   );
@@ -2509,21 +2534,14 @@ function ProceduralHardscapeMesh(props: {
       raycast={props.interactive ? undefined : DISABLED_RAYCAST}
     >
       {props.highlightColor ? (
-        <mesh
-          geometry={model.geometry}
-          scale={[ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE]}
-          raycast={DISABLED_RAYCAST}
-          renderOrder={91}
-        >
-          <meshBasicMaterial
-            color={props.highlightColor}
-            side={THREE.BackSide}
-            transparent
-            opacity={0.96}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
+        <Outlines
+          color={props.highlightColor}
+          thickness={1.8}
+          screenspace
+          opacity={1}
+          transparent
+          angle={Math.PI}
+        />
       ) : null}
     </mesh>
   );
@@ -2652,7 +2670,7 @@ function ItemMesh(props: {
           <Suspense fallback={proceduralMesh}>
             <AssetLoader path={resolvedAsset.glbPath}>
               {(model) => {
-                const scale = loadedAssetUniformScale(props.renderItem.size, model.bounds);
+                const scale = loadedAssetAxisScale(props.renderItem.size, model.bounds);
                 return (
                   <mesh
                     castShadow
@@ -2663,21 +2681,14 @@ function ItemMesh(props: {
                     raycast={props.interactive ? undefined : DISABLED_RAYCAST}
                   >
                     {highlightColor ? (
-                      <mesh
-                        geometry={model.geometry}
-                        scale={[ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE, ITEM_OUTLINE_SCALE]}
-                        raycast={DISABLED_RAYCAST}
-                        renderOrder={91}
-                      >
-                        <meshBasicMaterial
-                          color={highlightColor}
-                          side={THREE.BackSide}
-                          transparent
-                          opacity={0.96}
-                          depthWrite={false}
-                          toneMapped={false}
-                        />
-                      </mesh>
+                      <Outlines
+                        color={highlightColor}
+                        thickness={1.8}
+                        screenspace
+                        opacity={1}
+                        transparent
+                        angle={Math.PI}
+                      />
                     ) : null}
                   </mesh>
                 );
@@ -2736,24 +2747,14 @@ function InstancedPlantRenderer(props: {
       const renderItem = props.group.items[index];
       if (!renderItem) continue;
 
-      const isSelected = props.selectedItemIds.has(renderItem.item.id);
-      const isHovered = renderItem.item.id === props.hoveredItemId;
       const sway = Math.sin(now * 1.25 + renderItem.position.x * 0.2 + index * 0.31) * 0.06;
-      const pulse = isSelected ? 1 + Math.sin(now * 4.1) * 0.02 : 1;
+      const pulse = 1;
 
       matrixObject.position.copy(renderItem.position);
       matrixObject.rotation.set(0, (renderItem.item.rotation * Math.PI) / 180 + sway, 0);
 
-      if (props.loadedModel) {
-        const uniformScale = loadedAssetUniformScale(renderItem.size, props.bounds) * pulse;
-        matrixObject.scale.setScalar(uniformScale);
-      } else {
-        matrixObject.scale.set(
-          (renderItem.size.width / Math.max(0.001, props.bounds.x)) * pulse,
-          (renderItem.size.height / Math.max(0.001, props.bounds.y)) * pulse,
-          (renderItem.size.depth / Math.max(0.001, props.bounds.z)) * pulse,
-        );
-      }
+      const scale = loadedAssetAxisScale(renderItem.size, props.bounds);
+      matrixObject.scale.set(scale[0] * pulse, scale[1] * pulse, scale[2] * pulse);
 
       matrixObject.updateMatrix();
       mesh.setMatrixAt(index, matrixObject.matrix);
@@ -2761,7 +2762,7 @@ function InstancedPlantRenderer(props: {
       const baseColor = props.loadedModel
         ? (palette[index % palette.length] ?? palette[0] ?? "#4f9f5f")
         : "#ffffff";
-      color.set(isSelected ? "#cbf2dd" : isHovered ? "#d6e9ff" : baseColor);
+      color.set(baseColor);
       mesh.setColorAt(index, color);
     }
 
@@ -3023,15 +3024,21 @@ function WaterSurfacePlane(props: {
   waterLineY: number;
   qualityTier: BuilderSceneQualityTier;
 }) {
+  const isWebGpuRenderer = useThree((state) =>
+    Boolean((state.gl as { isWebGPURenderer?: boolean }).isWebGPURenderer),
+  );
   const textureSize = waterSurfaceTextureSize(props.qualityTier);
   const segmentCount = waterSurfaceGridResolution(props.qualityTier);
   const normalTexture = useMemo(
     () =>
+      isWebGpuRenderer
+        ? null
+        :
       createWaterSurfaceNormalTexture({
         size: textureSize,
         seed: WATER_SURFACE_TEXTURE_SEED,
       }),
-    [textureSize],
+    [isWebGpuRenderer, textureSize],
   );
 
   const materialRef = useRef<THREE.ShaderMaterial>(null);
@@ -3039,12 +3046,12 @@ function WaterSurfacePlane(props: {
     () => ({
       uTime: { value: 0 },
       uNormalMap: { value: null as THREE.Texture | null },
-      uTintColor: { value: new THREE.Color("#365865") },
-      uOpacity: { value: 0.08 },
-      uNormalStrength: { value: 0.36 },
+      uTintColor: { value: new THREE.Color("#9fc8de") },
+      uOpacity: { value: 0.045 },
+      uNormalStrength: { value: 0.22 },
       uFlowScale: { value: 6.1 },
       uWaveScale: { value: 4.7 },
-      uWaveAmplitude: { value: 0.028 },
+      uWaveAmplitude: { value: 0.022 },
     }),
     [],
   );
@@ -3057,16 +3064,15 @@ function WaterSurfacePlane(props: {
 
   useEffect(() => {
     const material = materialRef.current;
-    if (material) {
+    if (material && normalTexture) {
       material.uniforms.uNormalMap.value = normalTexture;
     }
 
     return () => {
-      const currentMaterial = materialRef.current;
-      if (currentMaterial && currentMaterial.uniforms.uNormalMap.value === normalTexture) {
-        currentMaterial.uniforms.uNormalMap.value = null;
+      if (material && normalTexture && material.uniforms.uNormalMap.value === normalTexture) {
+        material.uniforms.uNormalMap.value = null;
       }
-      normalTexture.dispose();
+      normalTexture?.dispose();
     };
   }, [normalTexture]);
 
@@ -3079,10 +3085,10 @@ function WaterSurfacePlane(props: {
     material.uniforms.uWaveScale.value =
       props.qualityTier === "high" ? 5.05 : props.qualityTier === "medium" ? 4.65 : 4.2;
     material.uniforms.uNormalStrength.value =
-      props.qualityTier === "low" ? 0.3 : 0.36;
+      props.qualityTier === "low" ? 0.18 : 0.22;
     material.uniforms.uWaveAmplitude.value = Math.max(
-      0.016,
-      Math.min(0.036, Math.min(props.widthIn, props.depthIn) * 0.0011),
+      0.012,
+      Math.min(0.025, Math.min(props.widthIn, props.depthIn) * 0.00075),
     );
   }, [props.depthIn, props.qualityTier, props.widthIn]);
 
@@ -3096,15 +3102,31 @@ function WaterSurfacePlane(props: {
       <planeGeometry
         args={[props.widthIn * 0.95, props.depthIn * 0.95, segmentCount, segmentCount]}
       />
-      <shaderMaterial
-        ref={materialRef}
-        uniforms={initialUniforms}
-        vertexShader={WATER_SURFACE_VERTEX_SHADER}
-        fragmentShader={WATER_SURFACE_FRAGMENT_SHADER}
-        transparent
-        side={THREE.DoubleSide}
-        depthWrite={false}
-      />
+      {isWebGpuRenderer ? (
+        <meshPhysicalMaterial
+          color="#fcffff"
+          transparent
+          opacity={0.045}
+          roughness={0.18}
+          metalness={0}
+          transmission={0.9}
+          thickness={0.12}
+          reflectivity={0.26}
+          ior={1.333}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      ) : (
+        <shaderMaterial
+          ref={materialRef}
+          uniforms={initialUniforms}
+          vertexShader={WATER_SURFACE_VERTEX_SHADER}
+          fragmentShader={WATER_SURFACE_FRAGMENT_SHADER}
+          transparent
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      )}
     </mesh>
   );
 }
@@ -3214,26 +3236,15 @@ function AmbientWaterParticles(props: {
 }
 
 function SceneBackdrop() {
-  const uniforms = useMemo(
-    () => ({
-      uTopColor: { value: new THREE.Color("#1b3042") },
-      uBottomColor: { value: new THREE.Color("#071019") },
-      uCurve: { value: 1.25 },
-    }),
-    [],
-  );
-
   return (
     <mesh scale={[460, 460, 460]} renderOrder={-1000} raycast={DISABLED_RAYCAST}>
       <sphereGeometry args={[1, 40, 26]} />
-      <shaderMaterial
-        uniforms={uniforms}
-        vertexShader={BACKDROP_VERTEX_SHADER}
-        fragmentShader={BACKDROP_FRAGMENT_SHADER}
+      <meshBasicMaterial
+        color="#cfe6f2"
         side={THREE.BackSide}
+        toneMapped={false}
         depthTest={false}
         depthWrite={false}
-        toneMapped={false}
       />
     </mesh>
   );
@@ -3252,25 +3263,25 @@ function resolveAquariumLightRigProfile(params: {
   const emitterCount =
     params.qualityTier === "high" ? 5 : params.qualityTier === "medium" ? 4 : 3;
   const halfSpan = THREE.MathUtils.clamp(params.dims.widthIn * 0.36, 5.4, 19.5);
-  const targetY = Math.max(0.28, params.dims.heightIn * 0.22);
-  const targetZCenter = -params.dims.depthIn * 0.02;
+  const targetY = Math.max(0.34, params.dims.heightIn * 0.28);
+  const targetZCenter = 0;
   const qualityScale =
     params.qualityTier === "high" ? 1.06 : params.qualityTier === "medium" ? 1 : 0.9;
   const wattageScale = THREE.MathUtils.clamp(sourceWattage / 45, 0.55, 1.82);
   const efficiencyScale = THREE.MathUtils.clamp(sourceEfficiency / 1.2, 0.72, 1.2);
   const baseIntensity = THREE.MathUtils.clamp(
-    2.3 * wattageScale * efficiencyScale * qualityScale,
-    1.35,
-    6.1,
+    8.6 * wattageScale * efficiencyScale * qualityScale,
+    6.2,
+    14,
   );
 
   const fixtureColor =
     fixtureType === "t5" ? "#fff5e6" : fixtureType === "t8" ? "#fff2de" : "#f6fbff";
-  const angle = fixtureType === "t5" ? 0.84 : fixtureType === "t8" ? 0.9 : 0.7;
-  const penumbra = fixtureType === "t5" ? 0.8 : fixtureType === "t8" ? 0.84 : 0.72;
-  const decay = fixtureType === "led" ? 1.85 : 1.58;
+  const angle = fixtureType === "t5" ? 0.98 : fixtureType === "t8" ? 1.02 : 0.94;
+  const penumbra = fixtureType === "t5" ? 0.86 : fixtureType === "t8" ? 0.88 : 0.84;
+  const decay = fixtureType === "led" ? 1.45 : 1.35;
   const maxSpan = Math.max(params.dims.widthIn, params.dims.depthIn);
-  const lightDistance = maxSpan * 2.8 + params.dims.heightIn * 1.9;
+  const lightDistance = maxSpan * 3 + params.dims.heightIn * 1.8;
   const shadowMapSize =
     params.qualityTier === "high" ? 2048 : params.qualityTier === "medium" ? 1536 : 1024;
   const shadowRadius =
@@ -3286,7 +3297,7 @@ function resolveAquariumLightRigProfile(params: {
     const x = normalized * halfSpan;
     const centerWeight = Math.exp(-Math.pow(normalized * 1.2, 2));
     const edgeDamp = 1 - Math.min(1, Math.abs(normalized));
-    const intensity = baseIntensity * (0.62 + centerWeight * 0.56 + edgeDamp * 0.08);
+    const intensity = baseIntensity * (0.5 + centerWeight * 0.34 + edgeDamp * 0.05);
     const targetX = x * 0.34;
     const targetZ = targetZCenter + normalized * params.dims.depthIn * 0.012;
 
@@ -3302,14 +3313,17 @@ function resolveAquariumLightRigProfile(params: {
 
   return {
     emitters,
+    fixtureY,
+    fixtureWidth: Math.max(params.dims.widthIn * 1.12, params.dims.widthIn + 6),
+    fixtureDepth: Math.max(1.8, params.dims.depthIn * 0.2),
     emitterColor: fixtureColor,
-    ambientColor: fixtureType === "led" ? "#9cb6cb" : "#a8b7c4",
-    ambientIntensity: params.source ? 0.2 : 0.23,
-    hemisphereSkyColor: fixtureType === "led" ? "#cde6ff" : "#d8e3ef",
-    hemisphereGroundColor: "#0a1520",
-    hemisphereIntensity: params.source ? 0.3 : 0.34,
-    bounceColor: fixtureType === "led" ? "#79c1da" : "#8cbfd2",
-    bounceIntensity: baseIntensity * 0.32,
+    ambientColor: fixtureType === "led" ? "#edf8ff" : "#f2f9ff",
+    ambientIntensity: params.source ? 0.54 : 0.6,
+    hemisphereSkyColor: fixtureType === "led" ? "#f4fbff" : "#f5fbff",
+    hemisphereGroundColor: "#d8e8f1",
+    hemisphereIntensity: params.source ? 0.82 : 0.92,
+    bounceColor: fixtureType === "led" ? "#d9efff" : "#e4f3ff",
+    bounceIntensity: baseIntensity * 0.44,
     angle,
     penumbra,
     decay,
@@ -3394,12 +3408,80 @@ function AquariumOverheadLighting(props: {
           profile={profile}
         />
       ))}
+      <group position={[0, profile.fixtureY + 0.45, 0]} raycast={DISABLED_RAYCAST}>
+        <mesh>
+          <boxGeometry args={[profile.fixtureWidth, 0.56, profile.fixtureDepth]} />
+          <meshStandardMaterial
+            color="#f5fbff"
+            emissive="#ffffff"
+            emissiveIntensity={1.9}
+            roughness={0.16}
+            metalness={0.1}
+          />
+        </mesh>
+        <mesh position={[0, -0.31, 0]} renderOrder={42}>
+          <planeGeometry args={[profile.fixtureWidth * 0.92, profile.fixtureDepth * 0.72]} />
+          <meshBasicMaterial
+            color="#fffdf2"
+            transparent
+            opacity={0.92}
+            toneMapped={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      </group>
+      <mesh
+        position={[0, profile.fixtureY + 0.06, 0]}
+        renderOrder={43}
+        raycast={DISABLED_RAYCAST}
+      >
+        <sphereGeometry args={[Math.max(0.42, profile.fixtureDepth * 0.23), 24, 24]} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} transparent opacity={0.32} />
+      </mesh>
       <pointLight
         color={profile.bounceColor}
-        intensity={profile.bounceIntensity}
-        position={[0, Math.max(0.4, props.dims.heightIn * 0.58), -props.dims.depthIn * 0.03]}
+        intensity={Math.max(1.1, profile.bounceIntensity * 0.86)}
+        position={[0, Math.max(0.4, props.dims.heightIn * 0.52), props.dims.depthIn * 0.06]}
         distance={bounceDistance}
-        decay={1.9}
+        decay={1.1}
+      />
+      <pointLight
+        color="#f8ffff"
+        intensity={Math.max(1, profile.bounceIntensity * 0.58)}
+        position={[0, Math.max(0.4, props.dims.heightIn * 0.84), props.dims.depthIn * 0.38]}
+        distance={bounceDistance * 1.18}
+        decay={1.12}
+      />
+      <pointLight
+        color="#dff3ff"
+        intensity={Math.max(0.8, profile.bounceIntensity * 0.5)}
+        position={[0, Math.max(0.4, props.dims.heightIn * 0.48), -props.dims.depthIn * 0.34]}
+        distance={bounceDistance}
+        decay={1.12}
+      />
+      <directionalLight
+        color="#ffffff"
+        intensity={1.7}
+        position={[0, Math.max(0.4, props.dims.heightIn * 1.34), props.dims.depthIn * 0.86]}
+        target-position={[0, Math.max(0.2, props.dims.heightIn * 0.42), 0]}
+      />
+      <directionalLight
+        color="#f2fbff"
+        intensity={0.95}
+        position={[props.dims.widthIn * 0.22, Math.max(0.4, props.dims.heightIn * 0.92), props.dims.depthIn * 0.48]}
+        target-position={[0, Math.max(0.18, props.dims.heightIn * 0.36), 0]}
+      />
+      <directionalLight
+        color="#f7fdff"
+        intensity={1.05}
+        position={[0, Math.max(0.4, props.dims.heightIn * 0.74), Math.max(8, props.dims.depthIn * 1.25)]}
+        target-position={[0, Math.max(0.18, props.dims.heightIn * 0.34), 0]}
+      />
+      <directionalLight
+        color="#f7fdff"
+        intensity={0.8}
+        position={[0, Math.max(0.4, props.dims.heightIn * 0.92), -Math.max(8, props.dims.depthIn * 1.12)]}
+        target-position={[0, Math.max(0.18, props.dims.heightIn * 0.38), 0]}
       />
     </group>
   );
@@ -3413,18 +3495,22 @@ function TankBackgroundPanel(props: {
   const halfDepth = props.dims.depthIn * 0.5;
   const panelY = props.dims.heightIn * 0.5;
   const panelThickness = Math.max(0.12, Math.min(0.32, props.dims.depthIn * 0.016));
-  const panelZ = -halfDepth - panelThickness * 0.5 - Math.max(0.03, props.dims.depthIn * 0.006);
+  const panelZ = -halfDepth + panelThickness * 0.5 + Math.max(0.03, props.dims.depthIn * 0.006);
   const panelWidth = props.dims.widthIn * 0.995;
   const panelHeight = props.dims.heightIn * 0.995;
   const solidColor =
     props.style === "black"
-      ? "#0a0d10"
+      ? "#151a1f"
       : props.style === "white"
-        ? "#f5f8fb"
-        : props.style === "custom"
-          ? props.customColor
-          : "#d6e4ea";
-  const panelRoughness = props.style === "frosted" ? 0.97 : 0.9;
+        ? "#f8fbff"
+        : props.style === "frosted"
+          ? "#bed8e4"
+          : props.style === "custom"
+            ? props.customColor
+            : "#d2e5ee";
+  const panelRoughness = props.style === "frosted" ? 0.82 : 0.74;
+  const panelEmissive = props.style === "frosted" ? "#f2fbff" : "#000000";
+  const panelEmissiveIntensity = props.style === "frosted" ? 0.04 : 0;
 
   return (
     <mesh
@@ -3435,9 +3521,11 @@ function TankBackgroundPanel(props: {
       <boxGeometry args={[panelWidth, panelHeight, panelThickness]} />
       <meshStandardMaterial
         color={solidColor}
+        emissive={panelEmissive}
+        emissiveIntensity={panelEmissiveIntensity}
         roughness={panelRoughness}
         metalness={0}
-        envMapIntensity={0.06}
+        envMapIntensity={0.12}
         side={THREE.DoubleSide}
       />
     </mesh>
@@ -3700,7 +3788,6 @@ function configureSubstrateTexture(params: {
   params.texture.magFilter = THREE.LinearFilter;
   params.texture.minFilter = THREE.LinearMipmapLinearFilter;
   params.texture.anisotropy = Math.max(1, Math.floor(params.anisotropy));
-  params.texture.needsUpdate = true;
 }
 
 function useSubstrateTextureMaps(params: {
@@ -3822,11 +3909,11 @@ function SubstrateCausticMaterial(props: {
       map={props.surfaceTexture}
       bumpMap={props.surfaceReliefTexture}
       bumpScale={0.1}
-      roughness={0.86}
+      roughness={0.72}
       metalness={0.02}
-      emissive="#6f8089"
+      emissive="#b2c4ce"
       emissiveMap={caustics.texture}
-      emissiveIntensity={causticEmissiveIntensity(props.qualityTier) * 0.7}
+      emissiveIntensity={causticEmissiveIntensity(props.qualityTier) * 0.75}
       side={THREE.DoubleSide}
     />
   );
@@ -4123,12 +4210,12 @@ function TankShell(props: {
   const backFrontPaneWidth = Math.max(0.35, props.dims.widthIn - glassThickness * 2);
   const sidePaneDepth = Math.max(0.35, props.dims.depthIn - glassThickness * 2);
   const paneMaterial = {
-    color: "#add8e8",
+    color: "#f6fdff",
     transparent: true,
-    opacity: 0.12,
-    roughness: 0.94,
+    opacity: 0.03,
+    roughness: 0.08,
     metalness: 0,
-    envMapIntensity: 0.08,
+    envMapIntensity: 0.32,
     depthWrite: false,
   } as const;
 
@@ -4153,12 +4240,12 @@ function TankShell(props: {
       >
         <boxGeometry args={[interiorWidth, waterHeight, interiorDepth]} />
         <meshStandardMaterial
-          color="#8fb8c4"
+          color="#ffffff"
           transparent
-          opacity={0.14}
-          roughness={0.92}
+          opacity={0.02}
+          roughness={0.08}
           metalness={0}
-          envMapIntensity={0.06}
+          envMapIntensity={0.28}
           depthWrite={false}
         />
       </mesh>
@@ -4241,9 +4328,12 @@ function TankShell(props: {
           color="#ffffff"
           map={substrateTextures.sideTexture}
           bumpMap={substrateTextures.sideReliefTexture}
-          bumpScale={0.08}
-          roughness={0.88}
+          bumpScale={0.05}
+          roughness={0.68}
           metalness={0.02}
+          envMapIntensity={0.3}
+          emissive="#2a3037"
+          emissiveIntensity={0.06}
           side={THREE.DoubleSide}
         />
       </mesh>
@@ -4477,6 +4567,14 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         singles.push(renderItem);
         continue;
       }
+      if (
+        selectedItemIdSet.has(renderItem.item.id) ||
+        renderItem.item.id === hoveredItemId
+      ) {
+        // Render interactive plants as regular meshes so outline highlight can stay perimeter-only.
+        singles.push(renderItem);
+        continue;
+      }
 
       const existingGroup = groupedPlants.get(renderItem.asset.id);
       if (!existingGroup) {
@@ -4503,7 +4601,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       singleRenderItems: singles,
       plantInstancedGroups: instanced,
     };
-  }, [renderItems]);
+  }, [hoveredItemId, renderItems, selectedItemIdSet]);
 
   useEffect(() => {
     props.onHoverItem?.(hoveredItemId);
@@ -4643,14 +4741,21 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       }),
     };
 
-    const previewRadius = estimateCollisionRadius({
+    const rawPreviewRadius = estimateCollisionRadius({
       item: mockItem,
       assetWidthIn: asset.widthIn,
       assetDepthIn: asset.depthIn,
     });
+    const previewRadiusCap = Math.max(
+      0.22,
+      Math.min(dims.widthIn, dims.depthIn) * PLACEMENT_RADIUS_MAX_FRACTION,
+    );
+    const previewRadius = Math.min(rawPreviewRadius, previewRadiusCap);
     const footprintBounds = resolveFootprintBounds({
       dims,
-      footprintRadiusIn: previewRadius,
+      footprintWidthIn: previewWidth,
+      footprintDepthIn: previewDepth,
+      rotationDeg: props.placementRotationDeg,
     });
     const xNorm = clampNormalizedToFootprintBounds(
       resolvedPlacement.xNorm,
@@ -4724,7 +4829,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       yNorm,
       zNorm,
       point: snappedPoint,
-      previewRadius: Math.max(previewRadius, Math.max(previewWidth, previewDepth) * 0.48),
+      previewRadius,
     };
   };
 
@@ -4808,9 +4913,18 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
     const anchorType = activeCandidate.anchorType;
     const shouldSnapToGrid = props.gridSnapEnabled && anchorType === "substrate";
+    const scale = Math.max(0.1, props.placementAsset.defaultScale);
     const placementBounds = resolveFootprintBounds({
       dims,
-      footprintRadiusIn: validity.previewRadius,
+      footprintWidthIn: Math.max(
+        0.35,
+        props.placementAsset.widthIn * scale * ASSET_RENDER_DIMENSION_SCALE,
+      ),
+      footprintDepthIn: Math.max(
+        0.35,
+        props.placementAsset.depthIn * scale * ASSET_RENDER_DIMENSION_SCALE,
+      ),
+      rotationDeg: props.placementRotationDeg,
     });
     let xNorm = validity.xNorm;
     let zNorm = validity.zNorm;
@@ -4828,7 +4942,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       tankHeightIn: dims.heightIn,
     });
     const yNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
-    const scale = Math.max(0.1, props.placementAsset.defaultScale);
 
     props.onPlaceItem({
       asset: props.placementAsset,
@@ -4919,6 +5032,19 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     }
 
     if (selectedDragItems.length === 0) return false;
+    const anchorItem = props.canvasState.items.find((item) => item.id === anchorItemId);
+    const dragPlaneY =
+      anchorItem?.anchorType === "glass"
+        ? Math.max(0, Math.min(dims.heightIn, event.point.y))
+        : anchorItem
+          ? sampleSubstrateDepth({
+              xNorm: anchorItem.x,
+              zNorm: anchorItem.z,
+              heightfield: props.canvasState.substrateHeightfield,
+              tankHeightIn: dims.heightIn,
+            })
+          : 0;
+    moveDragPlaneRef.current.set(WORLD_UP, -dragPlaneY);
     const pointerNorm = pointerToMoveSurface(event);
     const pointerTarget = event.target as {
       setPointerCapture?: (pointerId: number) => void;
@@ -4931,10 +5057,13 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     let maxDeltaZ = Number.POSITIVE_INFINITY;
     for (const selectedDragItem of selectedDragItems) {
       const renderItem = renderItemsById.get(selectedDragItem.id);
-      const footprintRadiusIn = renderItem?.collisionRadius ?? 0.18;
+      const footprintWidthIn = renderItem?.size.width ?? 0.35;
+      const footprintDepthIn = renderItem?.size.depth ?? 0.35;
       const bounds = resolveFootprintBounds({
         dims,
-        footprintRadiusIn,
+        footprintWidthIn,
+        footprintDepthIn,
+        rotationDeg: selectedDragItem.rotation,
       });
 
       selectedDragItem.minXNorm = bounds.minXNorm;
@@ -5123,7 +5252,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
   return (
     <>
-      <color attach="background" args={["#071019"]} />
+      <color attach="background" args={["#cfe6f2"]} />
       <SceneBackdrop />
 
       <AquariumOverheadLighting
@@ -5235,8 +5364,6 @@ function SceneRoot(props: VisualBuilderSceneProps) {
             luminanceSmoothing={BLOOM_LUMINANCE_SMOOTHING}
             intensity={BLOOM_INTENSITY}
           />
-          <Vignette eskil={false} offset={0.24} darkness={0.33} />
-          <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         </EffectComposer>
       ) : postprocessingPipeline === "bloom" ? (
         <EffectComposer multisampling={2}>
@@ -5292,6 +5419,20 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
       shadows={props.qualityTier !== "low"}
       dpr={props.qualityTier === "high" ? [1, 2] : props.qualityTier === "medium" ? [1, 1.6] : [1, 1.25]}
       gl={{ antialias: true, alpha: false, powerPreference: "high-performance", preserveDrawingBuffer: true }}
+      onCreated={({ gl }) => {
+        if (typeof (gl as THREE.WebGLRenderer).setClearColor === "function") {
+          (gl as THREE.WebGLRenderer).setClearColor("#cfe6f2", 1);
+        }
+        if ("toneMapping" in (gl as THREE.WebGLRenderer)) {
+          (gl as THREE.WebGLRenderer).toneMapping = THREE.ACESFilmicToneMapping;
+        }
+        if ("outputColorSpace" in (gl as THREE.WebGLRenderer)) {
+          (gl as THREE.WebGLRenderer).outputColorSpace = THREE.SRGBColorSpace;
+        }
+        if (typeof (gl as THREE.WebGLRenderer).toneMappingExposure === "number") {
+          (gl as THREE.WebGLRenderer).toneMappingExposure = 1.24;
+        }
+      }}
       camera={{
         position: camera.position,
         fov: camera.fov,

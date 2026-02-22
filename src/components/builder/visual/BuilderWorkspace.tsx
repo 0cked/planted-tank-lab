@@ -16,7 +16,7 @@ import {
   type BuilderStepId,
 } from "@/components/builder/visual/builder-page-utils";
 import {
-  estimateCollisionRadius,
+  ASSET_RENDER_DIMENSION_SCALE,
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
 import type {
@@ -512,7 +512,27 @@ function BuildActionsCard(props: BuilderWorkspaceProps) {
 function normalizeInset(sizeIn: number, radiusIn: number): number {
   if (!Number.isFinite(sizeIn) || sizeIn <= 0) return 0.5;
   if (!Number.isFinite(radiusIn) || radiusIn <= 0) return 0;
-  return Math.min(0.5, Math.max(0, radiusIn / sizeIn));
+  const safeRadius = Math.min(radiusIn, Math.max(0.09, sizeIn * 0.4));
+  return Math.min(0.5, Math.max(0, safeRadius / sizeIn));
+}
+
+function rotatedDepthInset(params: {
+  tankDepthIn: number;
+  footprintWidthIn: number;
+  footprintDepthIn: number;
+  rotationDeg: number;
+}): number {
+  const tankDepthIn = params.tankDepthIn;
+  if (!Number.isFinite(tankDepthIn) || tankDepthIn <= 0) return 0.5;
+
+  const halfWidth = Math.max(0.09, params.footprintWidthIn * 0.5);
+  const halfDepth = Math.max(0.09, params.footprintDepthIn * 0.5);
+  const rotationRad = (params.rotationDeg * Math.PI) / 180;
+  const absCos = Math.abs(Math.cos(rotationRad));
+  const absSin = Math.abs(Math.sin(rotationRad));
+  const halfExtentZ = halfWidth * absSin + halfDepth * absCos;
+
+  return normalizeInset(tankDepthIn, halfExtentZ);
 }
 
 function severityChip(severity: Severity): string {
@@ -1127,15 +1147,32 @@ function RightPanel(props: BuilderWorkspaceProps) {
     Math.round(dims.widthIn * dims.depthIn * dims.heightIn * 0.004329 * 10) / 10;
   const selectedScale = props.selectedItem ? Math.round(props.selectedItem.scale * 100) / 100 : 1;
   const selectedRotation = props.selectedItem ? Math.round(props.selectedItem.rotation) : 0;
-  const selectedCollisionRadius =
+  const selectedFootprint =
     props.selectedItem && props.selectedAsset
-      ? estimateCollisionRadius({
-          item: props.selectedItem,
-          assetWidthIn: props.selectedAsset.widthIn,
-          assetDepthIn: props.selectedAsset.depthIn,
-        })
-      : 0;
-  const depthInset = normalizeInset(dims.depthIn, selectedCollisionRadius);
+      ? {
+          widthIn: Math.max(
+            0.35,
+            props.selectedAsset.widthIn *
+              props.selectedItem.scale *
+              ASSET_RENDER_DIMENSION_SCALE,
+          ),
+          depthIn: Math.max(
+            0.35,
+            props.selectedAsset.depthIn *
+              props.selectedItem.scale *
+              ASSET_RENDER_DIMENSION_SCALE,
+          ),
+          rotationDeg: props.selectedItem.rotation,
+        }
+      : null;
+  const depthInset = selectedFootprint
+    ? rotatedDepthInset({
+        tankDepthIn: dims.depthIn,
+        footprintWidthIn: selectedFootprint.widthIn,
+        footprintDepthIn: selectedFootprint.depthIn,
+        rotationDeg: selectedFootprint.rotationDeg,
+      })
+    : 0;
   const depthMin = depthInset >= 0.5 ? 0.5 : depthInset;
   const depthMax = depthInset >= 0.5 ? 0.5 : 1 - depthInset;
   const selectedDepthValue = props.selectedItem
