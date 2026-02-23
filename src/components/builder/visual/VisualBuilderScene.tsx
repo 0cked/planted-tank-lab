@@ -6,7 +6,6 @@ import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
-import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry.js";
 
 import {
   AssetLoader,
@@ -309,79 +308,291 @@ const SIMPLEX_GRADIENTS_2D: ReadonlyArray<[number, number]> = [
 const DISABLED_RAYCAST: THREE.Mesh["raycast"] = () => undefined;
 const DISABLED_POINTS_RAYCAST: THREE.Points["raycast"] = () => undefined;
 const DISABLED_LINE_SEGMENTS_RAYCAST: THREE.LineSegments["raycast"] = () => undefined;
-const SILHOUETTE_CONVEX_GEOMETRY_CACHE = new Map<string, THREE.BufferGeometry>();
+type SilhouetteTopology = {
+  vertexPositions: Float32Array;
+  faceNormals: Float32Array;
+  faceCentroids: Float32Array;
+  edges: Uint32Array;
+  faceCount: number;
+  edgeCount: number;
+};
 
-function convexSilhouetteGeometryFor(
-  geometry: THREE.BufferGeometry,
-): THREE.BufferGeometry {
-  const cached = SILHOUETTE_CONVEX_GEOMETRY_CACHE.get(geometry.uuid);
-  if (cached) return cached;
+const SILHOUETTE_TOPOLOGY_CACHE = new Map<string, SilhouetteTopology | null>();
+
+function quantizedVertexKey(x: number, y: number, z: number): string {
+  const precision = 10_000;
+  return `${Math.round(x * precision)}:${Math.round(y * precision)}:${Math.round(z * precision)}`;
+}
+
+function buildSilhouetteTopology(geometry: THREE.BufferGeometry): SilhouetteTopology | null {
+  const cached = SILHOUETTE_TOPOLOGY_CACHE.get(geometry.uuid);
+  if (cached !== undefined) return cached;
 
   const positionAttribute = geometry.getAttribute("position");
-  if (!(positionAttribute instanceof THREE.BufferAttribute) || positionAttribute.count < 4) {
-    SILHOUETTE_CONVEX_GEOMETRY_CACHE.set(geometry.uuid, geometry);
-    return geometry;
+  if (!(positionAttribute instanceof THREE.BufferAttribute) || positionAttribute.count < 3) {
+    SILHOUETTE_TOPOLOGY_CACHE.set(geometry.uuid, null);
+    return null;
   }
 
-  const maxPointSamples = 1700;
-  const step = Math.max(1, Math.ceil(positionAttribute.count / maxPointSamples));
-  const points: THREE.Vector3[] = [];
-  for (let index = 0; index < positionAttribute.count; index += step) {
-    points.push(
-      new THREE.Vector3(
-        positionAttribute.getX(index),
-        positionAttribute.getY(index),
-        positionAttribute.getZ(index),
-      ),
-    );
+  const rawIndices: number[] = [];
+  if (geometry.index) {
+    const indexArray = geometry.index.array;
+    for (let index = 0; index < indexArray.length; index += 1) {
+      rawIndices.push(Number(indexArray[index]));
+    }
+  } else {
+    for (let index = 0; index < positionAttribute.count; index += 1) {
+      rawIndices.push(index);
+    }
   }
 
-  if (points.length < 4) {
-    SILHOUETTE_CONVEX_GEOMETRY_CACHE.set(geometry.uuid, geometry);
-    return geometry;
+  const triangleCount = Math.floor(rawIndices.length / 3);
+  if (triangleCount <= 0) {
+    SILHOUETTE_TOPOLOGY_CACHE.set(geometry.uuid, null);
+    return null;
   }
 
-  try {
-    const convexGeometry = new ConvexGeometry(points);
-    convexGeometry.computeVertexNormals();
-    convexGeometry.computeBoundingSphere();
-    SILHOUETTE_CONVEX_GEOMETRY_CACHE.set(geometry.uuid, convexGeometry);
-    return convexGeometry;
-  } catch {
-    SILHOUETTE_CONVEX_GEOMETRY_CACHE.set(geometry.uuid, geometry);
-    return geometry;
+  const canonicalPositions: number[] = [];
+  const canonicalByRaw = new Array<number>(positionAttribute.count).fill(-1);
+  const canonicalByKey = new Map<string, number>();
+
+  for (let rawIndex = 0; rawIndex < positionAttribute.count; rawIndex += 1) {
+    const x = positionAttribute.getX(rawIndex);
+    const y = positionAttribute.getY(rawIndex);
+    const z = positionAttribute.getZ(rawIndex);
+    const key = quantizedVertexKey(x, y, z);
+    const existing = canonicalByKey.get(key);
+    if (existing != null) {
+      canonicalByRaw[rawIndex] = existing;
+      continue;
+    }
+
+    const canonicalIndex = canonicalPositions.length / 3;
+    canonicalByKey.set(key, canonicalIndex);
+    canonicalByRaw[rawIndex] = canonicalIndex;
+    canonicalPositions.push(x, y, z);
   }
+
+  const faceNormals = new Float32Array(triangleCount * 3);
+  const faceCentroids = new Float32Array(triangleCount * 3);
+
+  type EdgeAdjacency = {
+    v0: number;
+    v1: number;
+    faceA: number;
+    faceB: number;
+  };
+  const edgesByKey = new Map<string, EdgeAdjacency>();
+
+  for (let faceIndex = 0; faceIndex < triangleCount; faceIndex += 1) {
+    const rawIndexA = rawIndices[faceIndex * 3];
+    const rawIndexB = rawIndices[faceIndex * 3 + 1];
+    const rawIndexC = rawIndices[faceIndex * 3 + 2];
+    if (rawIndexA == null || rawIndexB == null || rawIndexC == null) continue;
+
+    const a = canonicalByRaw[rawIndexA];
+    const b = canonicalByRaw[rawIndexB];
+    const c = canonicalByRaw[rawIndexC];
+    if (a < 0 || b < 0 || c < 0 || a === b || b === c || c === a) continue;
+
+    const ax = canonicalPositions[a * 3];
+    const ay = canonicalPositions[a * 3 + 1];
+    const az = canonicalPositions[a * 3 + 2];
+    const bx = canonicalPositions[b * 3];
+    const by = canonicalPositions[b * 3 + 1];
+    const bz = canonicalPositions[b * 3 + 2];
+    const cx = canonicalPositions[c * 3];
+    const cy = canonicalPositions[c * 3 + 1];
+    const cz = canonicalPositions[c * 3 + 2];
+
+    TEMP_VEC3.set(bx - ax, by - ay, bz - az);
+    TEMP_VEC3_B.set(cx - ax, cy - ay, cz - az);
+    const nx = TEMP_VEC3.y * TEMP_VEC3_B.z - TEMP_VEC3.z * TEMP_VEC3_B.y;
+    const ny = TEMP_VEC3.z * TEMP_VEC3_B.x - TEMP_VEC3.x * TEMP_VEC3_B.z;
+    const nz = TEMP_VEC3.x * TEMP_VEC3_B.y - TEMP_VEC3.y * TEMP_VEC3_B.x;
+    const normalLenSq = nx * nx + ny * ny + nz * nz;
+    if (normalLenSq > 1e-10) {
+      const invLen = 1 / Math.sqrt(normalLenSq);
+      faceNormals[faceIndex * 3] = nx * invLen;
+      faceNormals[faceIndex * 3 + 1] = ny * invLen;
+      faceNormals[faceIndex * 3 + 2] = nz * invLen;
+    }
+
+    faceCentroids[faceIndex * 3] = (ax + bx + cx) / 3;
+    faceCentroids[faceIndex * 3 + 1] = (ay + by + cy) / 3;
+    faceCentroids[faceIndex * 3 + 2] = (az + bz + cz) / 3;
+
+    const registerEdge = (first: number, second: number) => {
+      const v0 = Math.min(first, second);
+      const v1 = Math.max(first, second);
+      const key = `${v0}:${v1}`;
+      const existing = edgesByKey.get(key);
+      if (!existing) {
+        edgesByKey.set(key, { v0, v1, faceA: faceIndex, faceB: -1 });
+        return;
+      }
+      if (existing.faceB < 0) {
+        existing.faceB = faceIndex;
+      }
+    };
+
+    registerEdge(a, b);
+    registerEdge(b, c);
+    registerEdge(c, a);
+  }
+
+  const closedEdges = Array.from(edgesByKey.values()).filter((edge) => edge.faceA >= 0 && edge.faceB >= 0);
+  if (closedEdges.length === 0) {
+    SILHOUETTE_TOPOLOGY_CACHE.set(geometry.uuid, null);
+    return null;
+  }
+
+  const edges = new Uint32Array(closedEdges.length * 4);
+  closedEdges.forEach((edge, edgeIndex) => {
+    edges[edgeIndex * 4] = edge.v0;
+    edges[edgeIndex * 4 + 1] = edge.v1;
+    edges[edgeIndex * 4 + 2] = edge.faceA;
+    edges[edgeIndex * 4 + 3] = edge.faceB;
+  });
+
+  const topology: SilhouetteTopology = {
+    vertexPositions: new Float32Array(canonicalPositions),
+    faceNormals,
+    faceCentroids,
+    edges,
+    faceCount: triangleCount,
+    edgeCount: closedEdges.length,
+  };
+  SILHOUETTE_TOPOLOGY_CACHE.set(geometry.uuid, topology);
+  return topology;
 }
 
 function MeshSilhouetteHighlight(props: {
   geometry: THREE.BufferGeometry;
   color: string;
 }) {
-  const silhouetteScale = 1.022;
-  const silhouetteGeometry = useMemo(
-    () => convexSilhouetteGeometryFor(props.geometry),
+  const topology = useMemo(
+    () => buildSilhouetteTopology(props.geometry),
     [props.geometry],
   );
+  const { camera } = useThree();
+  const lineRef = useRef<THREE.LineSegments>(null);
+  const normalMatrixRef = useRef(new THREE.Matrix3());
+  const dynamicGeometry = useMemo(() => {
+    if (!topology) return null;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(topology.edgeCount * 6);
+    const positionAttribute = new THREE.BufferAttribute(positions, 3);
+    positionAttribute.setUsage(THREE.DynamicDrawUsage);
+    geometry.setAttribute("position", positionAttribute);
+    geometry.setDrawRange(0, 0);
+    return geometry;
+  }, [topology]);
+  const dynamicPositionsRef = useRef<Float32Array | null>(null);
+  const faceVisibilityRef = useRef<Int8Array | null>(null);
+
+  useEffect(() => {
+    if (!topology || !dynamicGeometry) {
+      dynamicPositionsRef.current = null;
+      faceVisibilityRef.current = null;
+      return;
+    }
+
+    const positionAttribute = dynamicGeometry.getAttribute("position");
+    dynamicPositionsRef.current =
+      positionAttribute instanceof THREE.BufferAttribute ? (positionAttribute.array as Float32Array) : null;
+    faceVisibilityRef.current = new Int8Array(topology.faceCount);
+
+    return () => {
+      dynamicGeometry.dispose();
+      dynamicPositionsRef.current = null;
+      faceVisibilityRef.current = null;
+    };
+  }, [dynamicGeometry, topology]);
+
+  useFrame(() => {
+    if (!topology || !dynamicGeometry) return;
+    const line = lineRef.current;
+    const positions = dynamicPositionsRef.current;
+    const faceVisibility = faceVisibilityRef.current;
+    if (!line || !dynamicGeometry || !positions || !faceVisibility) return;
+
+    const mesh = line.parent;
+    if (!(mesh instanceof THREE.Mesh)) return;
+
+    const normalMatrix = normalMatrixRef.current;
+    normalMatrix.getNormalMatrix(mesh.matrixWorld);
+    const cameraPosition = camera.position;
+    const vertexPositions = topology.vertexPositions;
+    const faceNormals = topology.faceNormals;
+    const faceCentroids = topology.faceCentroids;
+
+    for (let faceIndex = 0; faceIndex < topology.faceCount; faceIndex += 1) {
+      TEMP_VEC3.set(
+        faceNormals[faceIndex * 3],
+        faceNormals[faceIndex * 3 + 1],
+        faceNormals[faceIndex * 3 + 2],
+      ).applyMatrix3(normalMatrix).normalize();
+
+      TEMP_VEC3_B.set(
+        faceCentroids[faceIndex * 3],
+        faceCentroids[faceIndex * 3 + 1],
+        faceCentroids[faceIndex * 3 + 2],
+      ).applyMatrix4(mesh.matrixWorld);
+
+      const viewX = cameraPosition.x - TEMP_VEC3_B.x;
+      const viewY = cameraPosition.y - TEMP_VEC3_B.y;
+      const viewZ = cameraPosition.z - TEMP_VEC3_B.z;
+      const viewDot = TEMP_VEC3.x * viewX + TEMP_VEC3.y * viewY + TEMP_VEC3.z * viewZ;
+      faceVisibility[faceIndex] = viewDot >= 0 ? 1 : -1;
+    }
+
+    let segmentCount = 0;
+    const edges = topology.edges;
+    for (let edgeIndex = 0; edgeIndex < topology.edgeCount; edgeIndex += 1) {
+      const faceA = edges[edgeIndex * 4 + 2];
+      const faceB = edges[edgeIndex * 4 + 3];
+      if (faceVisibility[faceA] === faceVisibility[faceB]) continue;
+
+      const vertexA = edges[edgeIndex * 4];
+      const vertexB = edges[edgeIndex * 4 + 1];
+      const targetOffset = segmentCount * 6;
+      positions[targetOffset] = vertexPositions[vertexA * 3];
+      positions[targetOffset + 1] = vertexPositions[vertexA * 3 + 1];
+      positions[targetOffset + 2] = vertexPositions[vertexA * 3 + 2];
+      positions[targetOffset + 3] = vertexPositions[vertexB * 3];
+      positions[targetOffset + 4] = vertexPositions[vertexB * 3 + 1];
+      positions[targetOffset + 5] = vertexPositions[vertexB * 3 + 2];
+      segmentCount += 1;
+    }
+
+    dynamicGeometry.setDrawRange(0, segmentCount * 2);
+    const positionAttribute = dynamicGeometry.getAttribute("position");
+    if (positionAttribute instanceof THREE.BufferAttribute) {
+      positionAttribute.needsUpdate = true;
+    }
+    dynamicGeometry.computeBoundingSphere();
+  });
+
+  if (!topology || !dynamicGeometry) return null;
 
   return (
-    <mesh
-      geometry={silhouetteGeometry}
-      scale={[silhouetteScale, silhouetteScale, silhouetteScale]}
-      raycast={DISABLED_RAYCAST}
+    <lineSegments
+      ref={lineRef}
+      geometry={dynamicGeometry}
+      raycast={DISABLED_LINE_SEGMENTS_RAYCAST}
       renderOrder={96}
     >
-      <meshBasicMaterial
+      <lineBasicMaterial
         color={props.color}
-        side={THREE.BackSide}
         transparent
-        opacity={0.95}
+        opacity={0.98}
+        linewidth={1}
+        depthTest
         depthWrite={false}
-        polygonOffset
-        polygonOffsetFactor={-2}
-        polygonOffsetUnits={-2}
         toneMapped={false}
       />
-    </mesh>
+    </lineSegments>
   );
 }
 

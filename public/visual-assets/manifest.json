@@ -49,6 +49,14 @@
       "placementZone": "background",
       "fallbackPlantType": "rosette"
     },
+    "plant:crypt-balansae": {
+      "path": "/visual-assets/plants/cryptocoryne-balansae.glb",
+      "previewImagePath": "/visual-assets/plants/cryptocoryne-balansae.webp",
+      "category": "plant",
+      "defaultScale": 0.9,
+      "placementZone": "background",
+      "fallbackPlantType": "rosette"
+    },
     "2fdd4f61-8b91-4a56-930f-d4f15e8e4c1a": {
       "path": "/visual-assets/hardscape/seiryu-1.glb",
       "previewImagePath": "/visual-assets/hardscape/seiryu-1.webp",

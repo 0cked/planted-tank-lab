@@ -205,6 +205,7 @@ export type BuilderWorkspaceProps = {
 
 type HardscapeSplitMode = "rocks" | "wood";
 type TankPanelMode = "tank" | "cabinet";
+type PlantDrawerZone = "carpeting" | "foreground" | "midground" | "background";
 
 type WorkflowRailItem = {
   id: "tank" | "cabinet" | "substrate" | "rocks" | "wood" | "plants" | "review";
@@ -280,10 +281,71 @@ const WORKFLOW_RAIL_ITEMS: ReadonlyArray<WorkflowRailItem> = [
   },
 ];
 
-const HARDSCAPE_MODE_LABEL: Record<HardscapeSplitMode, string> = {
-  rocks: "Rocks",
-  wood: "Wood",
+const PLANT_ZONE_LABEL: Record<PlantDrawerZone, string> = {
+  carpeting: "Carpeting",
+  foreground: "Foreground",
+  midground: "Midground",
+  background: "Background",
 };
+
+const CURATED_PLANT_ZONE_SLUGS: Record<PlantDrawerZone, ReadonlyArray<string>> = {
+  carpeting: [
+    "monte-carlo",
+    "hc-cuba",
+    "glossostigma",
+    "dwarf-hairgrass-mini",
+    "dwarf-hairgrass",
+    "marsilea-hirsuta",
+    "lilaeopsis-brasiliensis",
+    "riccia-fluitans",
+  ],
+  foreground: [
+    "staurogyne-repens",
+    "crypt-parva",
+    "pygmy-chain-sword",
+    "dwarf-sag",
+    "pogostemon-helferi",
+    "anubias-petite",
+    "marimo-moss-ball",
+    "eriocaulon-quinquangulare",
+  ],
+  midground: [
+    "anubias-nana",
+    "anubias-barteri",
+    "java-fern",
+    "crypt-wendtii",
+    "crypt-lutea",
+    "dwarf-amazon-sword",
+    "alternanthera-reineckii-mini",
+    "blyxa-japonica",
+  ],
+  background: [
+    "amazon-sword",
+    "crypt-balansae",
+    "cryptocoryne-balansae",
+    "limnophila-sessiliflora",
+    "rotala-rotundifolia",
+    "ludwigia-repens",
+    "ludwigia-super-red",
+    "water-wisteria",
+    "rotala-hra",
+    "vallisneria-spiralis",
+    "pogostemon-erectus",
+    "limnophila-aromatica",
+  ],
+};
+
+const CURATED_PLANT_SLUGS = new Set<string>(
+  Object.values(CURATED_PLANT_ZONE_SLUGS)
+    .flat()
+    .map((slug) => slug.toLowerCase()),
+);
+
+const CURATED_PLANT_ZONE_BY_SLUG = new Map<string, PlantDrawerZone>(
+  Object.entries(CURATED_PLANT_ZONE_SLUGS).flatMap(([zone, slugs]) =>
+    slugs.map((slug) => [slug.toLowerCase(), zone as PlantDrawerZone]),
+  ),
+);
 
 const TANK_BACKGROUND_OPTIONS: ReadonlyArray<{
   value: TankBackgroundStyle;
@@ -398,6 +460,54 @@ function formatSavedBuildTimestamp(value: string): string {
     day: "numeric",
     year: "numeric",
   }).format(parsed);
+}
+
+function normalizeAssetSlug(slug: string): string {
+  return slug.trim().toLowerCase();
+}
+
+function classifyPlantDrawerZone(asset: VisualAsset): PlantDrawerZone {
+  const slug = normalizeAssetSlug(asset.slug);
+  const curatedZone = CURATED_PLANT_ZONE_BY_SLUG.get(slug);
+  if (curatedZone) return curatedZone;
+
+  const placement = asset.plantProfile?.placement?.toLowerCase() ?? "";
+  const maxHeightIn = asset.plantProfile?.maxHeightIn ?? null;
+
+  if (placement.includes("carpet")) return "carpeting";
+  if (placement.includes("foreground")) return "foreground";
+  if (placement.includes("background")) return "background";
+  if (placement.includes("midground")) return "midground";
+  if (placement.includes("epiphyte") || placement.includes("hardscape")) {
+    if (maxHeightIn != null && maxHeightIn <= 4) return "foreground";
+    return "midground";
+  }
+
+  if (maxHeightIn != null) {
+    if (maxHeightIn <= 3) return "carpeting";
+    if (maxHeightIn <= 8) return "foreground";
+    if (maxHeightIn <= 14) return "midground";
+    return "background";
+  }
+
+  return "midground";
+}
+
+function sortPlantsInZone(zone: PlantDrawerZone, assets: VisualAsset[]): VisualAsset[] {
+  const priority = CURATED_PLANT_ZONE_SLUGS[zone];
+  const indexBySlug = new Map<string, number>();
+  priority.forEach((slug, index) => {
+    indexBySlug.set(slug.toLowerCase(), index);
+  });
+
+  return [...assets].sort((a, b) => {
+    const aIndex = indexBySlug.get(normalizeAssetSlug(a.slug));
+    const bIndex = indexBySlug.get(normalizeAssetSlug(b.slug));
+    if (aIndex != null && bIndex != null && aIndex !== bIndex) return aIndex - bIndex;
+    if (aIndex != null && bIndex == null) return -1;
+    if (aIndex == null && bIndex != null) return 1;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 function BuildActionsCard(props: BuilderWorkspaceProps) {
@@ -612,68 +722,94 @@ function AssetThumbnail(props: { asset: VisualAsset }) {
   );
 }
 
+type AssetListSection = {
+  id: string;
+  title: string;
+  assets: VisualAsset[];
+  emptyLabel?: string;
+};
+
 function AssetList(props: {
   search: string;
   onSearchChange: (v: string) => void;
-  filteredAssets: VisualAsset[];
+  sections: AssetListSection[];
   selectedProductByCategory: Record<string, string | undefined>;
   placementAssetId: string | null;
   onChooseAsset: (asset: VisualAsset) => void;
   onClearPlacementMode: () => void;
 }) {
+  const totalAssets = props.sections.reduce((count, section) => count + section.assets.length, 0);
+
   return (
     <>
       <input
         value={props.search}
         onChange={(e) => props.onSearchChange(e.target.value)}
-        placeholder="Search\u2026"
+        placeholder="Search plants, rocks, wood\u2026"
         className="w-full rounded-lg border border-[var(--ptl-border)] bg-black/[0.03] px-2.5 py-1.5 text-xs text-[var(--ptl-ink)] outline-none placeholder:text-neutral-400 focus:border-[var(--ptl-border)]"
       />
-      <div className="max-h-[50vh] space-y-1 overflow-auto">
-        {props.filteredAssets.map((asset) => {
-          const isCanvas =
-            asset.categorySlug === "hardscape" || asset.categorySlug === "plants";
-          const isArmed = isCanvas && props.placementAssetId === asset.id;
-          const sel = props.selectedProductByCategory[asset.categorySlug];
-          const isSel = !isCanvas && sel === asset.id;
-          return (
-            <button
-              key={`${asset.type}:${asset.id}:${asset.categorySlug}`}
-              type="button"
-              onClick={() => {
-                if (isArmed) {
-                  props.onClearPlacementMode();
-                  return;
-                }
-                props.onChooseAsset(asset);
-              }}
-              className={`flex w-full items-center gap-2 rounded-lg border p-1.5 text-left transition ${
-                isArmed || isSel
-                  ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8"
-                  : "border-[var(--ptl-border)] bg-black/[0.03] hover:bg-black/[0.06]"
-              }`}
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[var(--ptl-border)] bg-black/5">
-                <AssetThumbnail asset={asset} />
+      <div className="max-h-[52vh] space-y-2 overflow-auto pr-0.5">
+        {props.sections.map((section) => (
+          <section
+            key={section.id}
+            className="space-y-1 rounded-lg border border-[var(--ptl-border)] bg-black/[0.02] p-1.5"
+          >
+            <div className="px-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ptl-ink-muted)]">
+              {section.title}
+            </div>
+            {section.assets.length > 0 ? (
+              section.assets.map((asset) => {
+                const isCanvas =
+                  asset.categorySlug === "hardscape" || asset.categorySlug === "plants";
+                const isArmed = isCanvas && props.placementAssetId === asset.id;
+                const sel = props.selectedProductByCategory[asset.categorySlug];
+                const isSel = !isCanvas && sel === asset.id;
+
+                return (
+                  <button
+                    key={`${section.id}:${asset.type}:${asset.id}:${asset.categorySlug}`}
+                    type="button"
+                    onClick={() => {
+                      if (isArmed) {
+                        props.onClearPlacementMode();
+                        return;
+                      }
+                      props.onChooseAsset(asset);
+                    }}
+                    className={`flex w-full items-center gap-2.5 rounded-lg border p-2 text-left transition ${
+                      isArmed || isSel
+                        ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8"
+                        : "border-[var(--ptl-border)] bg-black/[0.03] hover:bg-black/[0.06]"
+                    }`}
+                  >
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--ptl-border)] bg-black/5">
+                      <AssetThumbnail asset={asset} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[12px] font-semibold text-[var(--ptl-ink)]">
+                        {asset.name}
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-[var(--ptl-ink-muted)]">
+                        {categoryLabel(asset.categorySlug)}
+                      </div>
+                    </div>
+                    {isArmed ? (
+                      <span className="rounded-full border border-[var(--ptl-accent)]/30 bg-[var(--ptl-accent)]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--ptl-accent)]">
+                        Stop
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="rounded-md border border-dashed border-[var(--ptl-border)] bg-black/[0.015] px-2 py-2 text-[10px] text-[var(--ptl-ink-muted)]">
+                {section.emptyLabel ?? "No assets match this section."}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[11px] font-medium text-[var(--ptl-ink)]">
-                  {asset.name}
-                </div>
-                <div className="text-[10px] text-[var(--ptl-ink-muted)]">{categoryLabel(asset.categorySlug)}</div>
-              </div>
-              {isArmed ? (
-                <span className="rounded-full border border-[var(--ptl-accent)]/30 bg-[var(--ptl-accent)]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--ptl-accent)]">
-                  Stop
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
-        {props.filteredAssets.length === 0 ? (
-          <div className="py-4 text-center text-[11px] text-neutral-400">
-            No assets match
-          </div>
+            )}
+          </section>
+        ))}
+        {totalAssets === 0 ? (
+          <div className="py-4 text-center text-[11px] text-neutral-400">No assets match</div>
         ) : null}
       </div>
     </>
@@ -753,7 +889,6 @@ function CabinetSettingsCard(props: {
 type StepPanelProps = BuilderWorkspaceProps & {
   hardscapeMode: HardscapeSplitMode;
   tankPanelMode: TankPanelMode;
-  onHardscapeModeChange: (mode: HardscapeSplitMode) => void;
   filteredAssetsForStep: VisualAsset[];
 };
 
@@ -1017,33 +1152,58 @@ function StepPanel(props: StepPanelProps) {
   }
 
   if (step === "hardscape" || step === "plants") {
+    const hardscapeSections: AssetListSection[] = (() => {
+      const rocks = props.filteredAssetsForStep
+        .filter((asset) => resolveVisualAsset(asset).fallbackKind === "rock")
+        .sort((a, b) => a.name.localeCompare(b.name));
+      const wood = props.filteredAssetsForStep
+        .filter((asset) => resolveVisualAsset(asset).fallbackKind === "wood")
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const orderedIds = props.hardscapeMode === "rocks" ? (["rocks", "wood"] as const) : (["wood", "rocks"] as const);
+
+      return orderedIds.map((id) => ({
+        id,
+        title: id === "rocks" ? "Rocks" : "Wood",
+        assets: id === "rocks" ? rocks : wood,
+        emptyLabel:
+          id === "rocks"
+            ? "No rock assets match your search."
+            : "No wood assets match your search.",
+      }));
+    })();
+
+    const plantSections: AssetListSection[] = (() => {
+      const grouped: Record<PlantDrawerZone, VisualAsset[]> = {
+        carpeting: [],
+        foreground: [],
+        midground: [],
+        background: [],
+      };
+
+      for (const asset of props.filteredAssetsForStep) {
+        const normalizedSlug = normalizeAssetSlug(asset.slug);
+        if (!CURATED_PLANT_SLUGS.has(normalizedSlug)) continue;
+        const zone = classifyPlantDrawerZone(asset);
+        grouped[zone].push(asset);
+      }
+
+      return (["carpeting", "foreground", "midground", "background"] as const).map((zone) => ({
+        id: zone,
+        title: PLANT_ZONE_LABEL[zone],
+        assets: sortPlantsInZone(zone, grouped[zone]),
+        emptyLabel: `No ${PLANT_ZONE_LABEL[zone].toLowerCase()} plants match your search.`,
+      }));
+    })();
+
     return (
       <div className="space-y-3">
         <BuildActionsCard {...props} />
         <SectionLabel>
           {step === "hardscape"
-            ? `Hardscape - ${HARDSCAPE_MODE_LABEL[props.hardscapeMode]}`
+            ? "Hardscape"
             : "Plants"}
         </SectionLabel>
-        {step === "hardscape" ? (
-          <div className="grid grid-cols-2 gap-1">
-            {(["rocks", "wood"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                aria-pressed={props.hardscapeMode === mode}
-                onClick={() => props.onHardscapeModeChange(mode)}
-                className={`rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition ${
-                  props.hardscapeMode === mode
-                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/10 text-[var(--ptl-accent)]"
-                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink-muted)] hover:text-[var(--ptl-ink)]"
-                }`}
-              >
-                {HARDSCAPE_MODE_LABEL[mode]}
-              </button>
-            ))}
-          </div>
-        ) : null}
         {props.placementAsset && (
           <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--ptl-accent)]/25 bg-[var(--ptl-accent)]/[0.05] px-2.5 py-2">
             <div className="min-w-0">
@@ -1064,7 +1224,7 @@ function StepPanel(props: StepPanelProps) {
         <AssetList
           search={props.search}
           onSearchChange={props.onSearchChange}
-          filteredAssets={props.filteredAssetsForStep}
+          sections={step === "hardscape" ? hardscapeSections : plantSections}
           selectedProductByCategory={props.selectedProductByCategory}
           placementAssetId={props.placementAssetId}
           onChooseAsset={props.onChooseAsset}
@@ -1352,17 +1512,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
   const [hardscapeMode, setHardscapeMode] = useState<HardscapeSplitMode>("rocks");
   const [tankPanelMode, setTankPanelMode] = useState<TankPanelMode>("tank");
 
-  const filteredAssetsForStep = useMemo(() => {
-    if (props.currentStep !== "hardscape") {
-      return props.filteredAssets;
-    }
-
-    return props.filteredAssets.filter((asset) => {
-      if (asset.categorySlug !== "hardscape") return false;
-      const kind = resolveVisualAsset(asset).fallbackKind;
-      return hardscapeMode === "rocks" ? kind === "rock" : kind === "wood";
-    });
-  }, [hardscapeMode, props.currentStep, props.filteredAssets]);
+  const filteredAssetsForStep = props.filteredAssets;
 
   const scene = (
     <ErrorBoundary
@@ -1526,7 +1676,6 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
               {...props}
               hardscapeMode={hardscapeMode}
               tankPanelMode={tankPanelMode}
-              onHardscapeModeChange={setHardscapeMode}
               filteredAssetsForStep={filteredAssetsForStep}
             />
           ) : null
