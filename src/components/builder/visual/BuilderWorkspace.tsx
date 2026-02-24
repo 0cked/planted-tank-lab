@@ -351,22 +351,23 @@ const TANK_BACKGROUND_OPTIONS: ReadonlyArray<{
   value: TankBackgroundStyle;
   label: string;
 }> = [
-  { value: "black", label: "Black" },
-  { value: "white", label: "White" },
-  { value: "frosted", label: "Frosted" },
-  { value: "custom", label: "Custom" },
-];
+    { value: "none", label: "None" },
+    { value: "black", label: "Black" },
+    { value: "white", label: "White" },
+    { value: "frosted", label: "Frosted" },
+    { value: "custom", label: "Custom" },
+  ];
 
 const CABINET_FINISH_OPTIONS: ReadonlyArray<{
   value: CabinetFinishStyle;
   label: string;
 }> = [
-  { value: "white", label: "White" },
-  { value: "charcoal", label: "Charcoal" },
-  { value: "oak", label: "Oak grain" },
-  { value: "walnut", label: "Walnut grain" },
-  { value: "custom", label: "Custom" },
-];
+    { value: "white", label: "White" },
+    { value: "charcoal", label: "Charcoal" },
+    { value: "oak", label: "Oak grain" },
+    { value: "walnut", label: "Walnut grain" },
+    { value: "custom", label: "Custom" },
+  ];
 
 function RailBtn(props: {
   label?: string;
@@ -776,11 +777,10 @@ function AssetList(props: {
                       }
                       props.onChooseAsset(asset);
                     }}
-                    className={`flex w-full items-center gap-2.5 rounded-lg border p-2 text-left transition ${
-                      isArmed || isSel
+                    className={`flex w-full items-center gap-2.5 rounded-lg border p-2 text-left transition ${isArmed || isSel
                         ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8"
                         : "border-[var(--ptl-border)] bg-black/[0.03] hover:bg-black/[0.06]"
-                    }`}
+                      }`}
                   >
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--ptl-border)] bg-black/5">
                       <AssetThumbnail asset={asset} />
@@ -840,11 +840,10 @@ function CabinetSettingsCard(props: {
             key={option.value}
             type="button"
             onClick={() => props.onSceneSettingsChange({ cabinetFinishStyle: option.value })}
-            className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${
-              props.cabinetFinishStyle === option.value
+            className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${props.cabinetFinishStyle === option.value
                 ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
                 : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
-            }`}
+              }`}
           >
             {option.label}
           </button>
@@ -987,11 +986,10 @@ function StepPanel(props: StepPanelProps) {
                 key={option.value}
                 type="button"
                 onClick={() => props.onSceneSettingsChange({ tankBackgroundStyle: option.value })}
-                className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${
-                  tankBackgroundStyle === option.value
+                className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${tankBackgroundStyle === option.value
                     ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
                     : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
-                }`}
+                  }`}
               >
                 {option.label}
               </button>
@@ -1039,11 +1037,10 @@ function StepPanel(props: StepPanelProps) {
                 key={preset.id}
                 type="button"
                 onClick={() => props.onApplyTankDimensionPreset(preset.id)}
-                className={`rounded-lg border px-2 py-1.5 text-left text-[10px] transition ${
-                  isTankPresetActive(preset, tankDims)
+                className={`rounded-lg border px-2 py-1.5 text-left text-[10px] transition ${isTankPresetActive(preset, tankDims)
                     ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
                     : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
-                }`}
+                  }`}
               >
                 <div className="font-semibold">{preset.label}</div>
                 <div className="text-[9px] text-[var(--ptl-ink-muted)]">
@@ -1098,11 +1095,10 @@ function StepPanel(props: StepPanelProps) {
               key={slug}
               type="button"
               onClick={() => props.onEquipmentCategoryChange(slug)}
-              className={`rounded-full border px-2 py-1 text-[10px] font-semibold transition ${
-                props.activeEquipmentCategory === slug
+              className={`rounded-full border px-2 py-1 text-[10px] font-semibold transition ${props.activeEquipmentCategory === slug
                   ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
                   : "border-[var(--ptl-border)] text-neutral-500 hover:text-[var(--ptl-ink)]"
-              }`}
+                }`}
             >
               {categoryLabel(slug)}
             </button>
@@ -1340,11 +1336,11 @@ function RightPanel(props: BuilderWorkspaceProps) {
   }, [dims, props.selectedAsset, props.selectedItem]);
   const depthInset = selectedFootprint
     ? rotatedDepthInset({
-        tankDepthIn: dims.depthIn,
-        footprintWidthIn: selectedFootprint.widthIn,
-        footprintDepthIn: selectedFootprint.depthIn,
-        rotationDeg: selectedFootprint.rotationDeg,
-      })
+      tankDepthIn: dims.depthIn,
+      footprintWidthIn: selectedFootprint.widthIn,
+      footprintDepthIn: selectedFootprint.depthIn,
+      rotationDeg: selectedFootprint.rotationDeg,
+    })
     : 0;
   const normalizedDepthInset = Number.isFinite(depthInset)
     ? Math.min(0.42, Math.max(0, depthInset))

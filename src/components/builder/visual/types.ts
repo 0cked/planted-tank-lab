@@ -93,7 +93,7 @@ export type VisualAnchorType = "substrate" | "hardscape" | "glass";
 
 export type VisualDepthZone = "foreground" | "midground" | "background";
 
-export type TankBackgroundStyle = "black" | "white" | "frosted" | "custom";
+export type TankBackgroundStyle = "none" | "black" | "white" | "frosted" | "custom";
 export type CabinetFinishStyle = "white" | "charcoal" | "oak" | "walnut" | "custom";
 
 export type VisualItemTransform = {

@@ -131,14 +131,14 @@ type CameraDiagnosticEvent = {
 
 type CameraIntent =
   | {
-      type: "reframe" | "reset";
-      seq: number;
-    }
+    type: "reframe" | "reset";
+    seq: number;
+  }
   | {
-      type: "focus-item";
-      itemId: string;
-      seq: number;
-    };
+    type: "focus-item";
+    itemId: string;
+    seq: number;
+  };
 
 type CameraFocusTarget = {
   itemId: string;
@@ -2854,13 +2854,13 @@ function ProceduralHardscapeMesh(props: {
     () =>
       isWood
         ? getProceduralWoodModel({
-            type: woodType,
-            seed,
-          })
+          type: woodType,
+          seed,
+        })
         : getProceduralRockModel({
-            type: rockType,
-            seed,
-          }),
+          type: rockType,
+          seed,
+        }),
     [isWood, rockType, seed, woodType],
   );
   const material = useMemo(
@@ -2956,8 +2956,8 @@ function ItemMesh(props: {
     group.rotation.y =
       props.renderItem.asset.categorySlug === "plants"
         ?
-            baseYRotation +
-            Math.sin(state.clock.elapsedTime * 1.25 + props.renderItem.position.x * 0.2) * 0.06
+        baseYRotation +
+        Math.sin(state.clock.elapsedTime * 1.25 + props.renderItem.position.x * 0.2) * 0.06
         : baseYRotation;
     group.scale.setScalar(pulse);
   });
@@ -2993,17 +2993,17 @@ function ItemMesh(props: {
       onPointerOver={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              props.onHover(props.renderItem.item.id);
-            }
+            event.stopPropagation();
+            props.onHover(props.renderItem.item.id);
+          }
           : undefined
       }
       onPointerOut={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              props.onHover(null);
-            }
+            event.stopPropagation();
+            props.onHover(null);
+          }
           : undefined
       }
     >
@@ -3151,40 +3151,40 @@ function InstancedPlantRenderer(props: {
       onPointerMove={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              const renderItem = renderItemFromInstanceId(event.instanceId);
-              if (!renderItem) return;
+            event.stopPropagation();
+            const renderItem = renderItemFromInstanceId(event.instanceId);
+            if (!renderItem) return;
 
-              props.onHover(renderItem.item.id);
-              props.onSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
-            }
+            props.onHover(renderItem.item.id);
+            props.onSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
+          }
           : undefined
       }
       onPointerDown={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              const renderItem = renderItemFromInstanceId(event.instanceId);
-              if (!renderItem) return;
+            event.stopPropagation();
+            const renderItem = renderItemFromInstanceId(event.instanceId);
+            if (!renderItem) return;
 
-              props.onSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
-            }
+            props.onSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id);
+          }
           : undefined
       }
       onPointerOut={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              props.onHover(null);
-            }
+            event.stopPropagation();
+            props.onHover(null);
+          }
           : undefined
       }
       onPointerUp={
         props.interactive
           ? (event) => {
-              event.stopPropagation();
-              props.onSurfaceUp(event);
-            }
+            event.stopPropagation();
+            props.onSurfaceUp(event);
+          }
           : undefined
       }
     />
@@ -3378,10 +3378,10 @@ function WaterSurfacePlane(props: {
       isWebGpuRenderer
         ? null
         :
-      createWaterSurfaceNormalTexture({
-        size: textureSize,
-        seed: WATER_SURFACE_TEXTURE_SEED,
-      }),
+        createWaterSurfaceNormalTexture({
+          size: textureSize,
+          seed: WATER_SURFACE_TEXTURE_SEED,
+        }),
     [isWebGpuRenderer, textureSize],
   );
 
@@ -3753,25 +3753,22 @@ function AquariumOverheadLighting(props: {
         />
       ))}
       <group position={[0, profile.fixtureY + 0.45, 0]} raycast={DISABLED_RAYCAST}>
+        {/* Sleek Chihiros main body */}
         <mesh>
-          <boxGeometry args={[profile.fixtureWidth, 0.56, profile.fixtureDepth]} />
-          <meshStandardMaterial
-            color="#f5fbff"
-            emissive="#ffffff"
-            emissiveIntensity={1.9}
-            roughness={0.16}
-            metalness={0.1}
-          />
+          <boxGeometry args={[profile.fixtureWidth * 0.9, 0.05, profile.fixtureDepth]} />
+          <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.3} />
         </mesh>
-        <mesh position={[0, -0.31, 0]} renderOrder={42}>
-          <planeGeometry args={[profile.fixtureWidth * 0.92, profile.fixtureDepth * 0.72]} />
-          <meshBasicMaterial
-            color="#fffdf2"
-            transparent
-            opacity={0.92}
-            toneMapped={false}
-            side={THREE.DoubleSide}
-          />
+
+        {/* Minimalist wires (left) */}
+        <mesh position={[-profile.fixtureWidth * 0.9 / 2 + 0.5, 3, 0]}>
+          <cylinderGeometry args={[0.02, 0.02, 6]} />
+          <meshStandardMaterial color="#888" metalness={0.9} roughness={0.1} />
+        </mesh>
+
+        {/* Minimalist wires (right) */}
+        <mesh position={[profile.fixtureWidth * 0.9 / 2 - 0.5, 3, 0]}>
+          <cylinderGeometry args={[0.02, 0.02, 6]} />
+          <meshStandardMaterial color="#888" metalness={0.9} roughness={0.1} />
         </mesh>
       </group>
       <mesh
@@ -3836,6 +3833,8 @@ function TankBackgroundPanel(props: {
   style: TankBackgroundStyle;
   customColor: string;
 }) {
+  if (props.style === "none") return null;
+
   const halfDepth = props.dims.depthIn * 0.5;
   const panelY = props.dims.heightIn * 0.5;
   const panelThickness = Math.max(0.12, Math.min(0.32, props.dims.depthIn * 0.016));
@@ -4022,7 +4021,7 @@ function CabinetStand(props: {
         <meshStandardMaterial color={plinthColor} roughness={0.8} metalness={0.05} />
       </mesh>
 
-      {[ -1, 1 ].map((direction) => (
+      {[-1, 1].map((direction) => (
         <mesh
           key={`cabinet-door-${direction}`}
           position={[
@@ -4771,10 +4770,10 @@ function PlacementPreview(props: {
         highlightColorOverride={color}
         toolMode="place"
         interactive={false}
-        onSelect={() => {}}
-        onHover={() => {}}
-        onRotate={() => {}}
-        onDelete={() => {}}
+        onSelect={() => { }}
+        onHover={() => { }}
+        onRotate={() => { }}
+        onDelete={() => { }}
       />
 
       <mesh
@@ -5263,11 +5262,11 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const substrateY =
       nextCandidate.anchorType === "substrate"
         ? sampleSubstrateDepth({
-            xNorm,
-            zNorm,
-            heightfield: props.canvasState.substrateHeightfield,
-            tankHeightIn: dims.heightIn,
-          })
+          xNorm,
+          zNorm,
+          heightfield: props.canvasState.substrateHeightfield,
+          tankHeightIn: dims.heightIn,
+        })
         : null;
     const yNorm =
       substrateY == null ? provisionalYNorm : clamp01(substrateY / Math.max(1, dims.heightIn));
@@ -5375,8 +5374,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       Math.max(
         0.35,
         sanitizeAssetDimension(props.placementAsset.heightIn, 5) *
-          scale *
-          ASSET_RENDER_DIMENSION_SCALE,
+        scale *
+        ASSET_RENDER_DIMENSION_SCALE,
       ),
       props.placementAsset.categorySlug === "plants"
         ? Math.max(0.35, dims.heightIn * 0.9)
@@ -5540,11 +5539,11 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         ? Math.max(0, Math.min(dims.heightIn, event.point.y))
         : anchorItem
           ? sampleSubstrateDepth({
-              xNorm: anchorItem.x,
-              zNorm: anchorItem.z,
-              heightfield: props.canvasState.substrateHeightfield,
-              tankHeightIn: dims.heightIn,
-            })
+            xNorm: anchorItem.x,
+            zNorm: anchorItem.z,
+            heightfield: props.canvasState.substrateHeightfield,
+            tankHeightIn: dims.heightIn,
+          })
           : 0;
     moveDragPlaneRef.current.set(WORLD_UP, -dragPlaneY);
     const pointerNorm = pointerToMoveSurface(event);
@@ -5790,9 +5789,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const candidatePoint =
       props.toolMode === "place" && props.placementAsset
         ? resolvePlacementCoordinates({
-            point: event.point,
-            anchorType,
-          }).point
+          point: event.point,
+          anchorType,
+        }).point
         : event.point.clone();
 
     setCandidate({
@@ -5866,8 +5865,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
   return (
     <>
-      <color attach="background" args={["#cfe6f2"]} />
-      <SceneBackdrop />
+      {props.tankBackgroundStyle !== "none" && (
+        <color attach="background" args={["#cfe6f2"]} />
+      )}
+      {props.tankBackgroundStyle !== "none" && <SceneBackdrop />}
 
       <AquariumOverheadLighting
         dims={dims}
@@ -5898,8 +5899,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         onSurfaceDown={handleSurfaceDown}
         onSurfaceUp={handleSurfaceUp}
         onSubstrateHeightfield={props.onSubstrateHeightfield}
-        onSubstrateStrokeStart={onSubstrateStrokeStart ?? (() => {})}
-        onSubstrateStrokeEnd={onSubstrateStrokeEnd ?? (() => {})}
+        onSubstrateStrokeStart={onSubstrateStrokeStart ?? (() => { })}
+        onSubstrateStrokeEnd={onSubstrateStrokeEnd ?? (() => { })}
         onSubstrateControlPointDragStateChange={setSubstrateNodeDragActive}
       />
 
@@ -5913,13 +5914,13 @@ function SceneRoot(props: VisualBuilderSceneProps) {
           onPointerMove={
             itemInteractionsEnabled
               ? (event) =>
-                  handleSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
+                handleSurfacePointer(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
               : undefined
           }
           onPointerDown={
             itemInteractionsEnabled
               ? (event) =>
-                  handleSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
+                handleSurfaceDown(event, anchorTypeForRenderItem(renderItem), renderItem.item.id)
               : undefined
           }
           onPointerUp={itemInteractionsEnabled ? handleSurfaceUp : undefined}
