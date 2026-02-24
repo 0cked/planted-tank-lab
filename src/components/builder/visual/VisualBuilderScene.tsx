@@ -577,22 +577,37 @@ function MeshSilhouetteHighlight(props: {
   if (!topology || !dynamicGeometry) return null;
 
   return (
-    <lineSegments
-      ref={lineRef}
-      geometry={dynamicGeometry}
-      raycast={DISABLED_LINE_SEGMENTS_RAYCAST}
-      renderOrder={96}
-    >
-      <lineBasicMaterial
-        color={props.color}
-        transparent
-        opacity={0.98}
-        linewidth={1}
-        depthTest
-        depthWrite={false}
-        toneMapped={false}
-      />
-    </lineSegments>
+    <>
+      <lineSegments
+        ref={lineRef}
+        geometry={dynamicGeometry}
+        raycast={DISABLED_LINE_SEGMENTS_RAYCAST}
+        renderOrder={96}
+        visible={false}
+      >
+        <lineBasicMaterial
+          color={props.color}
+          transparent
+          opacity={0}
+          linewidth={1}
+          depthTest
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </lineSegments>
+      <mesh geometry={props.geometry} raycast={DISABLED_RAYCAST} renderOrder={95}>
+        <meshBasicMaterial
+          color={props.color}
+          transparent
+          opacity={0.14}
+          blending={THREE.AdditiveBlending}
+          depthTest
+          depthWrite={false}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+        />
+      </mesh>
+    </>
   );
 }
 
