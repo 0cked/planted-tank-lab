@@ -17,6 +17,7 @@ import {
 } from "@/components/builder/visual/builder-page-utils";
 import {
   resolveAssetFootprintDimensions,
+  sampleSubstrateDepth,
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
 import type {
@@ -1534,7 +1535,24 @@ function RightPanel(props: BuilderWorkspaceProps) {
               type="button"
               onClick={() => {
                 if (props.selectedItem) {
+                  const shouldSnapToSubstrate = props.selectedItem.anchorType !== "glass";
+                  const snappedSubstrateY = shouldSnapToSubstrate
+                    ? sampleSubstrateDepth({
+                      xNorm: props.selectedItem.x,
+                      zNorm: props.selectedItem.z,
+                      heightfield: props.canvasState.substrateHeightfield,
+                      tankHeightIn: props.canvasState.heightIn,
+                    })
+                    : null;
+                  const normalizedY =
+                    snappedSubstrateY == null
+                      ? props.selectedItem.y
+                      : Math.max(
+                        0,
+                        Math.min(1, snappedSubstrateY / Math.max(1, props.canvasState.heightIn)),
+                      );
                   props.onUpdateCanvasItem(props.selectedItem.id, {
+                    y: normalizedY,
                     constraints: { ...props.selectedItem.constraints, snapToSurface: true },
                   });
                 }
