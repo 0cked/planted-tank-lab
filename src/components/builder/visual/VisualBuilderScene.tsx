@@ -3996,7 +3996,6 @@ function TankBackgroundPanel(props: {
           : props.style === "custom"
             ? props.customColor
             : "#d2e5ee";
-  const isFrosted = props.style === "frosted";
 
   return (
     <mesh
@@ -4007,9 +4006,11 @@ function TankBackgroundPanel(props: {
       <boxGeometry args={[panelWidth, panelHeight, panelThickness]} />
       <meshBasicMaterial
         color={solidColor}
-        transparent={isFrosted}
-        opacity={isFrosted ? 0.9 : 1}
+        transparent={false}
+        opacity={1}
         side={THREE.DoubleSide}
+        depthTest
+        depthWrite
         toneMapped={false}
       />
     </mesh>
