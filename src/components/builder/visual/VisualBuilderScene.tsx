@@ -4036,24 +4036,40 @@ function CabinetStand(props: {
         <meshStandardMaterial color={plinthColor} roughness={0.8} metalness={0.05} />
       </mesh>
 
+      <mesh
+        position={[0, bodyY, cabinetDepth * 0.5 - panelInset + 0.012]}
+        raycast={DISABLED_RAYCAST}
+      >
+        <boxGeometry args={[panelGap * 0.85, bodyHeight * 0.9, 0.02]} />
+        <meshStandardMaterial color="#1f1b18" roughness={0.92} metalness={0.03} />
+      </mesh>
+
       {[-1, 1].map((direction) => (
-        <mesh
+        <group
           key={`cabinet-door-${direction}`}
           position={[
             direction * (panelWidth * 0.5 + panelGap * 0.5),
             bodyY,
             cabinetDepth * 0.5 - panelInset,
           ]}
-          raycast={DISABLED_RAYCAST}
         >
-          <boxGeometry args={[panelWidth, bodyHeight * 0.92, 0.08]} />
-          <meshStandardMaterial
-            color={woodTexture ? "#ffffff" : finishColor}
-            map={woodTexture ?? undefined}
-            roughness={0.8}
-            metalness={0.02}
-          />
-        </mesh>
+          <mesh raycast={DISABLED_RAYCAST}>
+            <boxGeometry args={[panelWidth, bodyHeight * 0.92, 0.08]} />
+            <meshStandardMaterial
+              color={woodTexture ? "#ffffff" : finishColor}
+              map={woodTexture ?? undefined}
+              roughness={0.8}
+              metalness={0.02}
+            />
+          </mesh>
+          <mesh
+            position={[direction * (panelWidth * 0.38), 0, 0.06]}
+            raycast={DISABLED_RAYCAST}
+          >
+            <boxGeometry args={[0.08, bodyHeight * 0.34, 0.06]} />
+            <meshStandardMaterial color="#7a828a" roughness={0.35} metalness={0.6} />
+          </mesh>
+        </group>
       ))}
     </group>
   );
