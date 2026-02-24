@@ -756,6 +756,10 @@ type AquariumLightRigProfile = {
   fixtureY: number;
   fixtureWidth: number;
   fixtureDepth: number;
+  housingColor: string;
+  trimColor: string;
+  cableColor: string;
+  diffuserColor: string;
   emitterColor: string;
   ambientColor: string;
   ambientIntensity: number;
@@ -3649,6 +3653,12 @@ function resolveAquariumLightRigProfile(params: {
 
   const fixtureColor =
     fixtureType === "t5" ? "#fff5e6" : fixtureType === "t8" ? "#fff2de" : "#f6fbff";
+  const housingColor =
+    fixtureType === "led" ? "#1b2028" : fixtureType === "t5" ? "#d7dde6" : "#ced6df";
+  const trimColor =
+    fixtureType === "led" ? "#313a47" : fixtureType === "t5" ? "#aeb8c6" : "#a4afbd";
+  const cableColor = fixtureType === "led" ? "#8d9fb0" : "#939eac";
+  const diffuserColor = fixtureType === "led" ? "#eef6ff" : "#f8f8fb";
   const angle = fixtureType === "t5" ? 0.98 : fixtureType === "t8" ? 1.02 : 0.94;
   const penumbra = fixtureType === "t5" ? 0.86 : fixtureType === "t8" ? 0.88 : 0.84;
   const decay = fixtureType === "led" ? 1.45 : 1.35;
@@ -3686,8 +3696,12 @@ function resolveAquariumLightRigProfile(params: {
   return {
     emitters,
     fixtureY,
-    fixtureWidth: Math.max(params.dims.widthIn * 1.12, params.dims.widthIn + 6),
-    fixtureDepth: Math.max(1.8, params.dims.depthIn * 0.2),
+    fixtureWidth: THREE.MathUtils.clamp(params.dims.widthIn * 0.94, 10, params.dims.widthIn + 3.5),
+    fixtureDepth: THREE.MathUtils.clamp(params.dims.depthIn * 0.22, 2, 4.8),
+    housingColor,
+    trimColor,
+    cableColor,
+    diffuserColor,
     emitterColor: fixtureColor,
     ambientColor: fixtureType === "led" ? "#edf8ff" : "#f2f9ff",
     ambientIntensity: params.source ? 0.66 : 0.74,
@@ -3745,6 +3759,132 @@ function AquariumSpotEmitter(props: {
   );
 }
 
+function AquariumSuspendedLightFixture(props: {
+  dims: SceneDims;
+  profile: AquariumLightRigProfile;
+}) {
+  const bodyWidth = props.profile.fixtureWidth;
+  const bodyDepth = props.profile.fixtureDepth;
+  const bodyHeight = THREE.MathUtils.clamp(bodyDepth * 0.14, 0.26, 0.46);
+  const spineHeight = bodyHeight * 0.58;
+  const diffuserDepth = bodyDepth * 0.68;
+  const cableOffsetX = bodyWidth * 0.43;
+  const railY = THREE.MathUtils.clamp(props.dims.heightIn * 0.2 + 2.2, 2.8, 5.8);
+  const cableEndY = bodyHeight * 0.62;
+  const cableLength = Math.max(0.8, railY - cableEndY);
+  const cableCenterY = cableEndY + cableLength * 0.5;
+  const finCount = Math.max(8, Math.min(24, Math.round(bodyWidth / 1.2)));
+  const ledPodCount = Math.max(8, Math.min(18, Math.round(bodyWidth / 2.1)));
+  const ledRowOffsetZ = bodyDepth * 0.18;
+
+  return (
+    <group position={[0, props.profile.fixtureY + 0.2, 0]} raycast={DISABLED_RAYCAST}>
+      <mesh position={[0, railY, 0]} raycast={DISABLED_RAYCAST}>
+        <boxGeometry args={[bodyWidth * 0.88, 0.08, 0.2]} />
+        <meshStandardMaterial color={props.profile.trimColor} roughness={0.28} metalness={0.66} />
+      </mesh>
+
+      <mesh position={[-cableOffsetX, cableCenterY, 0]} raycast={DISABLED_RAYCAST}>
+        <cylinderGeometry args={[0.015, 0.015, cableLength, 8]} />
+        <meshStandardMaterial color={props.profile.cableColor} roughness={0.16} metalness={0.88} />
+      </mesh>
+      <mesh position={[cableOffsetX, cableCenterY, 0]} raycast={DISABLED_RAYCAST}>
+        <cylinderGeometry args={[0.015, 0.015, cableLength, 8]} />
+        <meshStandardMaterial color={props.profile.cableColor} roughness={0.16} metalness={0.88} />
+      </mesh>
+
+      <mesh castShadow raycast={DISABLED_RAYCAST}>
+        <boxGeometry args={[bodyWidth, bodyHeight, bodyDepth]} />
+        <meshStandardMaterial color={props.profile.housingColor} roughness={0.24} metalness={0.76} />
+      </mesh>
+      <mesh position={[0, bodyHeight * 0.35, 0]} castShadow raycast={DISABLED_RAYCAST}>
+        <boxGeometry args={[bodyWidth * 0.9, spineHeight, bodyDepth * 0.84]} />
+        <meshStandardMaterial color={props.profile.trimColor} roughness={0.28} metalness={0.72} />
+      </mesh>
+
+      {Array.from({ length: finCount }, (_, index) => {
+        const t = finCount === 1 ? 0.5 : index / (finCount - 1);
+        const x = THREE.MathUtils.lerp(-bodyWidth * 0.42, bodyWidth * 0.42, t);
+        return (
+          <mesh
+            key={`fixture-fin-${index}`}
+            position={[x, bodyHeight * 0.73, 0]}
+            raycast={DISABLED_RAYCAST}
+          >
+            <boxGeometry args={[0.06, bodyHeight * 0.62, bodyDepth * 0.6]} />
+            <meshStandardMaterial color={props.profile.trimColor} roughness={0.34} metalness={0.64} />
+          </mesh>
+        );
+      })}
+
+      <mesh position={[0, -bodyHeight * 0.55, 0]} raycast={DISABLED_RAYCAST}>
+        <boxGeometry args={[bodyWidth * 0.9, 0.085, diffuserDepth]} />
+        <meshStandardMaterial
+          color={props.profile.diffuserColor}
+          roughness={0.08}
+          metalness={0.08}
+          emissive={props.profile.emitterColor}
+          emissiveIntensity={0.28}
+        />
+      </mesh>
+
+      {Array.from({ length: ledPodCount }, (_, index) => {
+        const t = ledPodCount === 1 ? 0.5 : index / (ledPodCount - 1);
+        const x = THREE.MathUtils.lerp(-bodyWidth * 0.4, bodyWidth * 0.4, t);
+        return (
+          <group key={`fixture-led-${index}`}>
+            <mesh position={[x, -bodyHeight * 0.64, ledRowOffsetZ]} raycast={DISABLED_RAYCAST}>
+              <cylinderGeometry args={[0.11, 0.11, 0.03, 14]} />
+              <meshStandardMaterial
+                color={props.profile.diffuserColor}
+                roughness={0.05}
+                metalness={0.02}
+                emissive={props.profile.emitterColor}
+                emissiveIntensity={0.5}
+              />
+            </mesh>
+            <mesh position={[x, -bodyHeight * 0.64, -ledRowOffsetZ]} raycast={DISABLED_RAYCAST}>
+              <cylinderGeometry args={[0.11, 0.11, 0.03, 14]} />
+              <meshStandardMaterial
+                color={props.profile.diffuserColor}
+                roughness={0.05}
+                metalness={0.02}
+                emissive={props.profile.emitterColor}
+                emissiveIntensity={0.5}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+
+      <mesh position={[-cableOffsetX, cableEndY, 0]} castShadow raycast={DISABLED_RAYCAST}>
+        <boxGeometry args={[0.36, 0.14, 0.24]} />
+        <meshStandardMaterial color={props.profile.trimColor} roughness={0.3} metalness={0.62} />
+      </mesh>
+      <mesh position={[cableOffsetX, cableEndY, 0]} castShadow raycast={DISABLED_RAYCAST}>
+        <boxGeometry args={[0.36, 0.14, 0.24]} />
+        <meshStandardMaterial color={props.profile.trimColor} roughness={0.3} metalness={0.62} />
+      </mesh>
+
+      <mesh
+        position={[0, -bodyHeight * 0.78, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        renderOrder={43}
+        raycast={DISABLED_RAYCAST}
+      >
+        <planeGeometry args={[bodyWidth * 0.76, diffuserDepth * 0.9]} />
+        <meshBasicMaterial
+          color={props.profile.emitterColor}
+          transparent
+          opacity={0.16}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 function AquariumOverheadLighting(props: {
   dims: SceneDims;
   qualityTier: BuilderSceneQualityTier;
@@ -3780,33 +3920,10 @@ function AquariumOverheadLighting(props: {
           profile={profile}
         />
       ))}
-      <group position={[0, profile.fixtureY + 0.45, 0]} raycast={DISABLED_RAYCAST}>
-        {/* Sleek Chihiros main body */}
-        <mesh>
-          <boxGeometry args={[profile.fixtureWidth * 0.9, 0.05, profile.fixtureDepth]} />
-          <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.3} />
-        </mesh>
-
-        {/* Minimalist wires (left) */}
-        <mesh position={[-profile.fixtureWidth * 0.9 / 2 + 0.5, 3, 0]}>
-          <cylinderGeometry args={[0.02, 0.02, 6]} />
-          <meshStandardMaterial color="#888" metalness={0.9} roughness={0.1} />
-        </mesh>
-
-        {/* Minimalist wires (right) */}
-        <mesh position={[profile.fixtureWidth * 0.9 / 2 - 0.5, 3, 0]}>
-          <cylinderGeometry args={[0.02, 0.02, 6]} />
-          <meshStandardMaterial color="#888" metalness={0.9} roughness={0.1} />
-        </mesh>
-      </group>
-      <mesh
-        position={[0, profile.fixtureY + 0.06, 0]}
-        renderOrder={43}
-        raycast={DISABLED_RAYCAST}
-      >
-        <sphereGeometry args={[Math.max(0.42, profile.fixtureDepth * 0.23), 24, 24]} />
-        <meshBasicMaterial color="#ffffff" toneMapped={false} transparent opacity={0.32} />
-      </mesh>
+      <AquariumSuspendedLightFixture
+        dims={props.dims}
+        profile={profile}
+      />
       <pointLight
         color={profile.bounceColor}
         intensity={Math.max(1.1, profile.bounceIntensity * 0.86)}

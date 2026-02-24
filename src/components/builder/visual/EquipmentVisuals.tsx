@@ -396,43 +396,6 @@ function FilterVisual(props: {
   );
 }
 
-function LightFixtureVisual(props: {
-  dims: SceneDims;
-  anchor: [number, number, number];
-}) {
-  const fixtureWidth = THREE.MathUtils.clamp(props.dims.widthIn * 0.64, 10, 30);
-  const fixtureDepth = THREE.MathUtils.clamp(props.dims.depthIn * 0.32, 4, 10);
-  const [x, y, z] = props.anchor;
-
-  return (
-    <group>
-      <mesh position={[x, y, z]} castShadow raycast={DISABLED_MESH_RAYCAST}>
-        <boxGeometry args={[fixtureWidth, 0.24, fixtureDepth]} />
-        <meshStandardMaterial
-          color="#dbe2eb"
-          roughness={0.22}
-          metalness={0.6}
-          emissive="#8bb3ff"
-          emissiveIntensity={0.08}
-        />
-      </mesh>
-      <mesh
-        position={[x, y - 0.14, z]}
-        raycast={DISABLED_MESH_RAYCAST}
-      >
-        <boxGeometry args={[fixtureWidth * 0.92, 0.06, fixtureDepth * 0.9]} />
-        <meshStandardMaterial
-          color="#edf2ff"
-          roughness={0.12}
-          metalness={0.18}
-          emissive="#d2e6ff"
-          emissiveIntensity={0.24}
-        />
-      </mesh>
-    </group>
-  );
-}
-
 function Co2DiffuserVisual(props: {
   dims: SceneDims;
   anchor: [number, number, number];
@@ -532,7 +495,6 @@ export function EquipmentVisuals(props: EquipmentVisualsProps) {
 
   if (
     !slots.filter &&
-    !slots.light &&
     !slots.co2 &&
     !slots.heater &&
     slots.others.length === 0
@@ -546,13 +508,6 @@ export function EquipmentVisuals(props: EquipmentVisualsProps) {
         <FilterVisual
           dims={props.dims}
           anchor={layout.filterAnchor}
-        />
-      ) : null}
-
-      {slots.light ? (
-        <LightFixtureVisual
-          dims={props.dims}
-          anchor={layout.lightAnchor}
         />
       ) : null}
 
