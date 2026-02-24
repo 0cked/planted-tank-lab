@@ -3998,8 +3998,8 @@ function CabinetStand(props: {
     };
   }, [woodTexture]);
 
-  const cabinetWidth = props.dims.widthIn + Math.max(1, props.dims.widthIn * 0.03);
-  const cabinetDepth = props.dims.depthIn + Math.max(0.8, props.dims.depthIn * 0.05);
+  const cabinetWidth = props.dims.widthIn;
+  const cabinetDepth = props.dims.depthIn;
   const cabinetHeight = Math.max(10, Math.min(30, props.dims.heightIn * 1.12));
   const plinthHeight = Math.max(0.48, Math.min(1, cabinetHeight * 0.06));
   const bodyHeight = Math.max(4, cabinetHeight - plinthHeight);
