@@ -131,6 +131,7 @@ export type BuilderWorkspaceProps = {
   selectedProductByCategory: Record<string, string | undefined>;
   onChooseAsset: (asset: VisualAsset) => void;
   onClearPlacementMode: () => void;
+  onFillAll?: () => void;
   substrateSelectionLabel: string;
   substrateControls: {
     sculptMode: SubstrateBrushMode;
@@ -175,6 +176,8 @@ export type BuilderWorkspaceProps = {
     selectionMode?: "replace" | "toggle",
   ) => void;
   onHoverSceneItem: (itemId: string | null) => void;
+  onItemInteractionStart: () => void;
+  onItemInteractionEnd: () => void;
   onPlaceSceneItem: (request: {
     asset: VisualAsset;
     x: number;
@@ -778,8 +781,8 @@ function AssetList(props: {
                       props.onChooseAsset(asset);
                     }}
                     className={`flex w-full items-center gap-2.5 rounded-lg border p-2 text-left transition ${isArmed || isSel
-                        ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8"
-                        : "border-[var(--ptl-border)] bg-black/[0.03] hover:bg-black/[0.06]"
+                      ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8"
+                      : "border-[var(--ptl-border)] bg-black/[0.03] hover:bg-black/[0.06]"
                       }`}
                   >
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--ptl-border)] bg-black/5">
@@ -841,8 +844,8 @@ function CabinetSettingsCard(props: {
             type="button"
             onClick={() => props.onSceneSettingsChange({ cabinetFinishStyle: option.value })}
             className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${props.cabinetFinishStyle === option.value
-                ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
-                : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
+              ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
+              : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
               }`}
           >
             {option.label}
@@ -987,8 +990,8 @@ function StepPanel(props: StepPanelProps) {
                 type="button"
                 onClick={() => props.onSceneSettingsChange({ tankBackgroundStyle: option.value })}
                 className={`rounded-lg border px-2 py-1.5 text-left text-[10px] font-semibold transition ${tankBackgroundStyle === option.value
-                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
-                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
+                  ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
+                  : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
                   }`}
               >
                 {option.label}
@@ -1038,8 +1041,8 @@ function StepPanel(props: StepPanelProps) {
                 type="button"
                 onClick={() => props.onApplyTankDimensionPreset(preset.id)}
                 className={`rounded-lg border px-2 py-1.5 text-left text-[10px] transition ${isTankPresetActive(preset, tankDims)
-                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
-                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
+                  ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
+                  : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
                   }`}
               >
                 <div className="font-semibold">{preset.label}</div>
@@ -1096,8 +1099,8 @@ function StepPanel(props: StepPanelProps) {
               type="button"
               onClick={() => props.onEquipmentCategoryChange(slug)}
               className={`rounded-full border px-2 py-1 text-[10px] font-semibold transition ${props.activeEquipmentCategory === slug
-                  ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
-                  : "border-[var(--ptl-border)] text-neutral-500 hover:text-[var(--ptl-ink)]"
+                ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
+                : "border-[var(--ptl-border)] text-neutral-500 hover:text-[var(--ptl-ink)]"
                 }`}
             >
               {categoryLabel(slug)}
@@ -1208,13 +1211,42 @@ function StepPanel(props: StepPanelProps) {
               </div>
               <div className="text-[10px] text-[var(--ptl-ink-muted)]">Press Esc or stop to select/move items.</div>
             </div>
-            <button
-              type="button"
-              onClick={() => props.onClearPlacementMode()}
-              className="rounded-md border border-[var(--ptl-border)] bg-white/70 px-2 py-1 text-[10px] font-semibold text-[var(--ptl-ink)] transition hover:bg-white"
-            >
-              Stop
-            </button>
+            {classifyPlantDrawerZone(props.placementAsset) === "carpeting" ? (
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => props.onToolModeChange(props.toolMode === "brush" ? "place" : "brush")}
+                  className={`rounded-md border px-2 py-1 text-[10px] font-semibold transition ${props.toolMode === "brush"
+                    ? "border-[var(--ptl-accent)]/40 bg-[var(--ptl-accent)]/8 text-[var(--ptl-accent)]"
+                    : "border-[var(--ptl-border)] bg-black/[0.03] text-[var(--ptl-ink)] hover:bg-black/[0.06]"
+                    }`}
+                >
+                  Brush
+                </button>
+                <button
+                  type="button"
+                  onClick={() => props.onFillAll?.()}
+                  className="rounded-md border border-[var(--ptl-border)] bg-black/[0.03] px-2 py-1 text-[10px] font-semibold text-[var(--ptl-ink)] transition hover:bg-black/[0.06]"
+                >
+                  Fill All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => props.onClearPlacementMode()}
+                  className="rounded-md border border-[var(--ptl-border)] bg-white/70 px-2 py-1 text-[10px] font-semibold text-[var(--ptl-ink)] transition hover:bg-white"
+                >
+                  Stop
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => props.onClearPlacementMode()}
+                className="rounded-md border border-[var(--ptl-border)] bg-white/70 px-2 py-1 text-[10px] font-semibold text-[var(--ptl-ink)] transition hover:bg-white"
+              >
+                Stop
+              </button>
+            )}
           </div>
         )}
         <AssetList
@@ -1497,6 +1529,21 @@ function RightPanel(props: BuilderWorkspaceProps) {
               Del
             </button>
           </div>
+          {props.selectedItem?.constraints?.snapToSurface === false && (
+            <button
+              type="button"
+              onClick={() => {
+                if (props.selectedItem) {
+                  props.onUpdateCanvasItem(props.selectedItem.id, {
+                    constraints: { ...props.selectedItem.constraints, snapToSurface: true },
+                  });
+                }
+              }}
+              className="mt-3 w-full rounded border border-[var(--ptl-accent)]/30 bg-[var(--ptl-accent)]/10 px-2 py-1.5 text-[11px] font-medium text-[var(--ptl-accent)] transition hover:bg-[var(--ptl-accent)]/20"
+            >
+              Re-anchor to Surface
+            </button>
+          )}
         </div>
       ) : null}
     </div>
@@ -1569,6 +1616,8 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         onSubstrateMaterialGrid={props.onSubstrateMaterialGrid}
         onSubstrateStrokeStart={props.onSubstrateStrokeStart}
         onSubstrateStrokeEnd={props.onSubstrateStrokeEnd}
+        onInteractionStart={props.onItemInteractionStart}
+        onInteractionEnd={props.onItemInteractionEnd}
         onCaptureCanvas={props.onCaptureSceneCanvas}
         onCameraPresetModeChange={props.onCameraPresetModeChange}
         onCameraDiagnostic={props.onCameraDiagnostic}

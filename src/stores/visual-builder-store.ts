@@ -40,6 +40,12 @@ import {
   createSubstrateHeightfieldDiff,
   type SubstrateHeightfieldDiff,
 } from "@/stores/substrate-undo";
+import {
+  appendItemUndoEntry,
+  applyItemDiff,
+  createItemDiff,
+  type CanvasItemDiff,
+} from "@/stores/item-undo";
 import { migratePersistedSubstrateHeightfield } from "@/stores/visual-builder-store-migrate";
 
 type VisualBuilderFlags = {
@@ -69,6 +75,9 @@ type VisualBuilderState = {
   substrateRedoStack: SubstrateHeightfieldDiff[];
   activeSubstrateStrokeStart: SubstrateHeightfield | null;
 
+  itemUndoStack: CanvasItemDiff[];
+  itemRedoStack: CanvasItemDiff[];
+
   // Single-select categories (light/filter/co2/...)
   selectedProductByCategory: Record<string, string | undefined>;
 
@@ -90,6 +99,9 @@ type VisualBuilderState = {
   endSubstrateStroke: () => void;
   undoSubstrateStroke: () => void;
   redoSubstrateStroke: () => void;
+  commitCanvasItems: (previousItems: VisualCanvasItem[]) => void;
+  undoCanvasItems: () => void;
+  redoCanvasItems: () => void;
   setSceneSettings: (patch: Partial<VisualSceneSettings>) => void;
 
   setCompatibilityEnabled: (value: boolean) => void;
@@ -110,6 +122,21 @@ type VisualBuilderState = {
       depthZone?: VisualDepthZone | null;
       transform?: VisualItemTransform;
     },
+  ) => void;
+  batchAddCanvasItems: (
+    items: Array<{
+      asset: VisualAsset;
+      pos?: {
+        x: number;
+        y: number;
+        z?: number;
+        scale?: number;
+        rotation?: number;
+        anchorType?: VisualAnchorType;
+        depthZone?: VisualDepthZone | null;
+        transform?: VisualItemTransform;
+      };
+    }>,
   ) => void;
   updateCanvasItem: (itemId: string, patch: Partial<VisualCanvasItem>) => void;
   removeCanvasItem: (itemId: string | string[]) => void;
@@ -266,7 +293,7 @@ function resolveDuplicateOffset(items: VisualCanvasItem[], dims: CanvasDimension
   return { x, z };
 }
 
-function clampScale(value: number): number {
+export function clampScale(value: number): number {
   if (!Number.isFinite(value)) return 1;
   if (value < 0.1) return 0.1;
   if (value > 6) return 6;
@@ -341,26 +368,26 @@ function normalizeSceneSettings(input: Partial<VisualSceneSettings> | undefined)
   const next = input ?? {};
   const qualityTier =
     next.qualityTier === "auto" ||
-    next.qualityTier === "high" ||
-    next.qualityTier === "medium" ||
-    next.qualityTier === "low"
+      next.qualityTier === "high" ||
+      next.qualityTier === "medium" ||
+      next.qualityTier === "low"
       ? next.qualityTier
       : "auto";
   const cameraPreset = next.cameraPreset === "free" ? "free" : "step";
   const tankBackgroundStyle =
     next.tankBackgroundStyle === "none" ||
-    next.tankBackgroundStyle === "black" ||
-    next.tankBackgroundStyle === "white" ||
-    next.tankBackgroundStyle === "frosted" ||
-    next.tankBackgroundStyle === "custom"
+      next.tankBackgroundStyle === "black" ||
+      next.tankBackgroundStyle === "white" ||
+      next.tankBackgroundStyle === "frosted" ||
+      next.tankBackgroundStyle === "custom"
       ? next.tankBackgroundStyle
       : "frosted";
   const cabinetFinishStyle =
     next.cabinetFinishStyle === "white" ||
-    next.cabinetFinishStyle === "charcoal" ||
-    next.cabinetFinishStyle === "oak" ||
-    next.cabinetFinishStyle === "walnut" ||
-    next.cabinetFinishStyle === "custom"
+      next.cabinetFinishStyle === "charcoal" ||
+      next.cabinetFinishStyle === "oak" ||
+      next.cabinetFinishStyle === "walnut" ||
+      next.cabinetFinishStyle === "custom"
       ? next.cabinetFinishStyle
       : "oak";
 
@@ -646,6 +673,8 @@ const initialState = {
   substrateUndoStack: [] as SubstrateHeightfieldDiff[],
   substrateRedoStack: [] as SubstrateHeightfieldDiff[],
   activeSubstrateStrokeStart: null as SubstrateHeightfield | null,
+  itemUndoStack: [] as CanvasItemDiff[],
+  itemRedoStack: [] as CanvasItemDiff[],
   selectedProductByCategory: {} as Record<string, string | undefined>,
   compatibilityEnabled: true,
   flags: {
@@ -671,6 +700,16 @@ function clearSubstrateHistoryState(): {
     substrateUndoStack: [],
     substrateRedoStack: [],
     activeSubstrateStrokeStart: null,
+  };
+}
+
+function clearItemHistoryState(): {
+  itemUndoStack: CanvasItemDiff[];
+  itemRedoStack: CanvasItemDiff[];
+} {
+  return {
+    itemUndoStack: [],
+    itemRedoStack: [],
   };
 }
 
@@ -750,6 +789,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             items: state.canvasState.items,
           }),
           ...clearSubstrateHistoryState(),
+          ...clearItemHistoryState(),
         })),
 
       setCanvasDimensions: (dims) =>
@@ -764,6 +804,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             items: state.canvasState.items,
           }),
           ...clearSubstrateHistoryState(),
+          ...clearItemHistoryState(),
         })),
 
       setSubstrateHeightfield: (next) =>
@@ -869,6 +910,56 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           };
         }),
 
+      commitCanvasItems: (previousItems) =>
+        set((state) => {
+          const diff = createItemDiff({ previous: previousItems, next: state.canvasState.items });
+          if (!diff) return state;
+          return {
+            itemUndoStack: appendItemUndoEntry(state.itemUndoStack, diff),
+            itemRedoStack: [],
+          };
+        }),
+
+      undoCanvasItems: () =>
+        set((state) => {
+          const diff = state.itemUndoStack[state.itemUndoStack.length - 1];
+          if (!diff) return state;
+
+          const previousItems = applyItemDiff(state.canvasState.items, diff, "undo");
+          const currentSelectedIds = resolveSelectionIds(state);
+          const nextSelectedIds = normalizeSelectedItemIds(currentSelectedIds, previousItems);
+
+          return {
+            canvasState: {
+              ...state.canvasState,
+              items: previousItems,
+            },
+            itemUndoStack: state.itemUndoStack.slice(0, -1),
+            itemRedoStack: appendItemUndoEntry(state.itemRedoStack, diff),
+            ...selectionStateFromIds(nextSelectedIds),
+          };
+        }),
+
+      redoCanvasItems: () =>
+        set((state) => {
+          const diff = state.itemRedoStack[state.itemRedoStack.length - 1];
+          if (!diff) return state;
+
+          const nextItems = applyItemDiff(state.canvasState.items, diff, "redo");
+          const currentSelectedIds = resolveSelectionIds(state);
+          const nextSelectedIds = normalizeSelectedItemIds(currentSelectedIds, nextItems);
+
+          return {
+            canvasState: {
+              ...state.canvasState,
+              items: nextItems,
+            },
+            itemUndoStack: appendItemUndoEntry(state.itemUndoStack, diff),
+            itemRedoStack: state.itemRedoStack.slice(0, -1),
+            ...selectionStateFromIds(nextSelectedIds),
+          };
+        }),
+
       setSceneSettings: (patch) =>
         set((state) => ({
           canvasState: normalizeCanvasState({
@@ -891,11 +982,11 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           flags: { ...state.flags, lowTechNoCo2: value },
           ...(value
             ? {
-                selectedProductByCategory: {
-                  ...state.selectedProductByCategory,
-                  co2: undefined,
-                },
-              }
+              selectedProductByCategory: {
+                ...state.selectedProductByCategory,
+                co2: undefined,
+              },
+            }
             : {}),
         })),
       setHasShrimp: (value) => set((state) => ({ flags: { ...state.flags, hasShrimp: value } })),
@@ -964,6 +1055,68 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           };
         }),
 
+      batchAddCanvasItems: (configs) =>
+        set((state) => {
+          if (configs.length === 0) return state;
+
+          const dims = currentDims(state);
+          const newItems = configs.map((config, i) => {
+            const pos = config.pos;
+            const asset = config.asset;
+            const x = clamp01(pos?.x ?? 0.5);
+            const y = clamp01(pos?.y ?? 0.56);
+            const z = clampDepthAxis(pos?.z ?? defaultDepthForCategory(asset.categorySlug));
+            const scale = clampScale(pos?.scale ?? asset.defaultScale);
+            const rotation = clampRotation(pos?.rotation ?? 0);
+            const anchorType = pos?.anchorType ?? defaultAnchorForCategory(asset.categorySlug);
+            const depthZone = pos?.depthZone ?? depthZoneFromZ(z);
+
+            return {
+              id: nanoid(10),
+              assetId: asset.id,
+              assetType: asset.type,
+              categorySlug: asset.categorySlug,
+              sku: asset.sku,
+              variant: asset.slug,
+              x,
+              y,
+              z,
+              scale,
+              rotation,
+              layer: state.canvasState.items.length + i,
+              anchorType,
+              depthZone,
+              constraints: defaultConstraintsForCategory(asset.categorySlug),
+              transform:
+                pos?.transform ??
+                buildTransformFromNormalized({
+                  x,
+                  y,
+                  z,
+                  scale,
+                  rotation,
+                  dims,
+                }),
+            };
+          });
+
+          const nextItems = normalizeItems(
+            [...state.canvasState.items, ...newItems],
+            dims,
+          );
+
+          const nextSelectedItemId = nextItems[nextItems.length - 1]?.id ?? null;
+
+          return {
+            canvasState: {
+              ...state.canvasState,
+              items: nextItems,
+            },
+            selectedItemId: nextSelectedItemId,
+            selectedItemIds: nextSelectedItemId ? [nextSelectedItemId] : [],
+          };
+        }),
+
       updateCanvasItem: (itemId, patch) =>
         set((state) => {
           const dims = currentDims(state);
@@ -1019,21 +1172,21 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
                   : item.constraints,
                 transform: patch.transform
                   ? normalizeTransform(patch.transform, {
-                      x,
-                      y,
-                      z,
-                      scale,
-                      rotation,
-                      dims,
-                    })
+                    x,
+                    y,
+                    z,
+                    scale,
+                    rotation,
+                    dims,
+                  })
                   : buildTransformFromNormalized({
-                      x,
-                      y,
-                      z,
-                      scale,
-                      rotation,
-                      dims,
-                    }),
+                    x,
+                    y,
+                    z,
+                    scale,
+                    rotation,
+                    dims,
+                  }),
               };
             }),
             dims,
@@ -1240,6 +1393,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             },
             ...selectionStateFromIds([]),
             ...clearSubstrateHistoryState(),
+            ...clearItemHistoryState(),
           };
         });
       },
@@ -1298,15 +1452,15 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           (source.canvasState as
             | Partial<VisualCanvasState>
             | {
-                widthIn?: number;
-                heightIn?: number;
-                depthIn?: number;
-                substrateHeightfield?: unknown;
-                substrateMaterialGrid?: unknown;
-                substrateProfile?: Partial<VisualSubstrateProfile>;
-                sceneSettings?: Partial<VisualSceneSettings>;
-                items?: Array<Partial<VisualCanvasItem>>;
-              }
+              widthIn?: number;
+              heightIn?: number;
+              depthIn?: number;
+              substrateHeightfield?: unknown;
+              substrateMaterialGrid?: unknown;
+              substrateProfile?: Partial<VisualSubstrateProfile>;
+              sceneSettings?: Partial<VisualSceneSettings>;
+              items?: Array<Partial<VisualCanvasItem>>;
+            }
             | undefined) ?? {};
 
         const widthIn =

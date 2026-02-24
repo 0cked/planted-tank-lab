@@ -57,6 +57,7 @@ import {
   writeParHeatmapColor,
   type LightSimulationSource,
 } from "@/components/builder/visual/light-simulation";
+import { clampScale } from "@/stores/visual-builder-store";
 import {
   BLOOM_INTENSITY,
   BLOOM_LUMINANCE_SMOOTHING,
@@ -86,7 +87,7 @@ export type BuilderSceneStep =
   | "equipment"
   | "review";
 
-export type BuilderSceneToolMode = "place" | "move" | "rotate" | "delete" | "sculpt";
+export type BuilderSceneToolMode = "place" | "move" | "rotate" | "delete" | "sculpt" | "brush";
 
 export type BuilderSceneQualityTier = "high" | "medium" | "low";
 
@@ -188,6 +189,8 @@ type VisualBuilderSceneProps = {
   onSubstrateMaterialGrid: (next: SubstrateMaterialGrid) => void;
   onSubstrateStrokeStart?: () => void;
   onSubstrateStrokeEnd?: () => void;
+  onInteractionStart?: () => void;
+  onInteractionEnd?: () => void;
   onCaptureCanvas?: (canvas: HTMLCanvasElement | null) => void;
   onCameraPresetModeChange?: (mode: CameraPresetMode) => void;
   onCameraDiagnostic?: (event: CameraDiagnosticEvent) => void;
@@ -237,14 +240,24 @@ type MoveDragState = {
   }>;
 };
 
-type RotateGizmoDragState = {
+type TransformGizmoMode = "rotate" | "lift" | "scale";
+
+type TransformGizmoDragState = {
   pointerId: number;
   itemId: string;
+  mode: TransformGizmoMode;
   center: THREE.Vector3;
-  startPointerAngleDeg: number;
-  startRotationDeg: number;
-  lastRotationDeg: number;
-  rotationSnapDeg: number;
+  startPointerAngleDeg?: number;
+  startRotationDeg?: number;
+  lastRotationDeg?: number;
+  rotationSnapDeg?: number;
+
+  startPointerScreenY?: number;
+  startY?: number;
+  startScale?: number;
+  lastY?: number;
+  lastScale?: number;
+
   x: number;
   y: number;
   z: number;
@@ -4845,35 +4858,50 @@ function rotateGizmoCenterYForRenderItem(renderItem: SceneRenderItem): number {
   );
 }
 
-function SelectedRotateGizmo(props: {
+function SelectedTransformGizmo(props: {
   renderItem: SceneRenderItem;
-  active: boolean;
+  activeMode: TransformGizmoMode | null;
   interactive: boolean;
-  onPointerDown: (event: ThreeEvent<PointerEvent>, renderItem: SceneRenderItem) => void;
-  onPointerMove: (event: ThreeEvent<PointerEvent>, renderItem: SceneRenderItem) => void;
+  onPointerDown: (event: ThreeEvent<PointerEvent>, renderItem: SceneRenderItem, mode: TransformGizmoMode) => void;
+  onPointerMove: (event: ThreeEvent<PointerEvent>) => void;
   onPointerUp: (event: ThreeEvent<PointerEvent>) => void;
 }) {
   const ringRadius = rotateGizmoRadiusForRenderItem(props.renderItem);
   const ringThickness = THREE.MathUtils.clamp(ringRadius * 0.11, 0.055, 0.2);
   const gizmoY = rotateGizmoCenterYForRenderItem(props.renderItem);
+
   const angleRad = THREE.MathUtils.degToRad(props.renderItem.item.rotation);
   const handlePosition: [number, number, number] = [
     Math.sin(angleRad) * ringRadius,
     0,
     Math.cos(angleRad) * ringRadius,
   ];
-  const ringColor = props.active ? "#7eeec8" : "#c6d9e3";
-  const handleColor = props.active ? "#93ffd8" : "#f6fdff";
-  const handleEmissive = props.active ? "#4fd6ac" : "#8cb6c8";
 
-  const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
+  const isRotateActive = props.activeMode === "rotate";
+  const isLiftActive = props.activeMode === "lift";
+  const isScaleActive = props.activeMode === "scale";
+
+  const ringColor = isRotateActive ? "#7eeec8" : "#c6d9e3";
+  const handleColor = isRotateActive ? "#93ffd8" : "#f6fdff";
+  const handleEmissive = isRotateActive ? "#4fd6ac" : "#8cb6c8";
+
+  const arrowColor = isLiftActive ? "#95baf7" : "#cbdcf7";
+  const scaleColor = isScaleActive ? "#f7e595" : "#f7f1cb";
+
+  const arrowHeight = ringRadius * 0.8;
+  const arrowRadius = ringThickness * 0.8;
+  const arrowY = arrowHeight / 2;
+
+  const scaleSize = ringThickness * 1.5;
+
+  const handlePointerDown = (mode: TransformGizmoMode) => (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
-    props.onPointerDown(event, props.renderItem);
+    props.onPointerDown(event, props.renderItem, mode);
   };
 
   const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
-    props.onPointerMove(event, props.renderItem);
+    props.onPointerMove(event);
   };
 
   const handlePointerUp = (event: ThreeEvent<PointerEvent>) => {
@@ -4889,7 +4917,7 @@ function SelectedRotateGizmo(props: {
     >
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        onPointerDown={props.interactive ? handlePointerDown : undefined}
+        onPointerDown={props.interactive ? handlePointerDown("rotate") : undefined}
         onPointerMove={props.interactive ? handlePointerMove : undefined}
         onPointerUp={props.interactive ? handlePointerUp : undefined}
         onPointerCancel={props.interactive ? handlePointerUp : undefined}
@@ -4898,7 +4926,7 @@ function SelectedRotateGizmo(props: {
         <meshBasicMaterial
           color={ringColor}
           transparent
-          opacity={props.active ? 0.92 : 0.7}
+          opacity={isRotateActive ? 0.92 : 0.7}
           depthWrite={false}
           depthTest={false}
           toneMapped={false}
@@ -4908,7 +4936,7 @@ function SelectedRotateGizmo(props: {
       <mesh
         position={handlePosition}
         raycast={props.interactive ? undefined : DISABLED_RAYCAST}
-        onPointerDown={props.interactive ? handlePointerDown : undefined}
+        onPointerDown={props.interactive ? handlePointerDown("rotate") : undefined}
         onPointerMove={props.interactive ? handlePointerMove : undefined}
         onPointerUp={props.interactive ? handlePointerUp : undefined}
         onPointerCancel={props.interactive ? handlePointerUp : undefined}
@@ -4917,7 +4945,7 @@ function SelectedRotateGizmo(props: {
         <meshStandardMaterial
           color={handleColor}
           emissive={handleEmissive}
-          emissiveIntensity={props.active ? 0.62 : 0.3}
+          emissiveIntensity={isRotateActive ? 0.62 : 0.3}
           roughness={0.2}
           metalness={0.08}
           depthWrite={false}
@@ -4925,10 +4953,57 @@ function SelectedRotateGizmo(props: {
           toneMapped={false}
         />
       </mesh>
+
+      <group
+        position={[0, ringThickness, 0]}
+        onPointerDown={props.interactive ? handlePointerDown("lift") : undefined}
+        onPointerMove={props.interactive ? handlePointerMove : undefined}
+        onPointerUp={props.interactive ? handlePointerUp : undefined}
+        onPointerCancel={props.interactive ? handlePointerUp : undefined}
+      >
+        <mesh position={[0, arrowY, 0]}>
+          <cylinderGeometry args={[arrowRadius * 0.3, arrowRadius * 0.3, arrowHeight, 12]} />
+          <meshBasicMaterial
+            color={arrowColor}
+            depthTest={false}
+            depthWrite={false}
+            transparent
+            opacity={0.9}
+          />
+        </mesh>
+        <mesh position={[0, arrowHeight, 0]}>
+          <coneGeometry args={[arrowRadius * 1.5, arrowRadius * 3, 12]} />
+          <meshBasicMaterial
+            color={arrowColor}
+            depthTest={false}
+            depthWrite={false}
+            transparent
+            opacity={0.9}
+          />
+        </mesh>
+      </group>
+
+      <mesh
+        position={[ringRadius * 0.7, 0, 0]}
+        onPointerDown={props.interactive ? handlePointerDown("scale") : undefined}
+        onPointerMove={props.interactive ? handlePointerMove : undefined}
+        onPointerUp={props.interactive ? handlePointerUp : undefined}
+        onPointerCancel={props.interactive ? handlePointerUp : undefined}
+      >
+        <boxGeometry args={[scaleSize, scaleSize, scaleSize]} />
+        <meshBasicMaterial
+          color={scaleColor}
+          depthTest={false}
+          depthWrite={false}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+
       <mesh position={[0, 0, 0]} raycast={DISABLED_RAYCAST}>
         <sphereGeometry args={[Math.max(0.05, ringThickness * 0.55), 12, 12]} />
         <meshBasicMaterial
-          color={ringColor}
+          color={isRotateActive || isLiftActive || isScaleActive ? "#ffffff" : ringColor}
           transparent
           opacity={0.9}
           depthWrite={false}
@@ -4951,11 +5026,12 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const [candidate, setCandidate] = useState<PlacementCandidate | null>(null);
   const [substrateNodeDragActive, setSubstrateNodeDragActive] = useState(false);
   const [moveDragActive, setMoveDragActive] = useState(false);
-  const [rotateGizmoDragActive, setRotateGizmoDragActive] = useState(false);
+  const [transformGizmoDragActive, setTransformGizmoDragActive] = useState(false);
+  const [activeTransformMode, setActiveTransformMode] = useState<TransformGizmoMode | null>(null);
   const itemInteractionsEnabled = props.currentStep !== "substrate";
   const moveDragRef = useRef<MoveDragState | null>(null);
   const moveDragPlaneRef = useRef<THREE.Plane>(new THREE.Plane(WORLD_UP, 0));
-  const rotateGizmoDragRef = useRef<RotateGizmoDragState | null>(null);
+  const transformGizmoDragRef = useRef<TransformGizmoDragState | null>(null);
   const rotateGizmoPlaneRef = useRef<THREE.Plane>(new THREE.Plane(WORLD_UP, 0));
   const rotateGizmoPointRef = useRef<THREE.Vector3>(new THREE.Vector3());
   const onSubstrateStrokeStart = props.onSubstrateStrokeStart;
@@ -5114,8 +5190,8 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     const handleGlobalPointerUp = () => {
       moveDragRef.current = null;
       setMoveDragActive(false);
-      rotateGizmoDragRef.current = null;
-      setRotateGizmoDragActive(false);
+      transformGizmoDragRef.current = null;
+      setTransformGizmoDragActive(false);
     };
 
     window.addEventListener("pointerup", handleGlobalPointerUp);
@@ -5129,9 +5205,9 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
   useEffect(() => {
     moveDragRef.current = null;
-    rotateGizmoDragRef.current = null;
+    transformGizmoDragRef.current = null;
     const frame = window.requestAnimationFrame(() => {
-      setRotateGizmoDragActive(false);
+      setTransformGizmoDragActive(false);
     });
     return () => {
       window.cancelAnimationFrame(frame);
@@ -5715,19 +5791,13 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     return THREE.MathUtils.radToDeg(Math.atan2(dx, dz));
   };
 
-  const startRotateGizmoDrag = (
+  const startTransformGizmoDrag = (
     event: ThreeEvent<PointerEvent>,
     renderItem: SceneRenderItem,
+    mode: TransformGizmoMode,
   ) => {
     if (!itemInteractionsEnabled) return;
     if (props.toolMode === "place" || props.toolMode === "delete") return;
-    const center = new THREE.Vector3(
-      renderItem.position.x,
-      rotateGizmoCenterYForRenderItem(renderItem),
-      renderItem.position.z,
-    );
-    const startPointerAngleDeg = pointerToRotateAngle(event, center);
-    if (startPointerAngleDeg == null) return;
 
     const pointerTarget = event.target as {
       setPointerCapture?: (pointerId: number) => void;
@@ -5735,68 +5805,151 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     };
     pointerTarget.setPointerCapture?.(event.pointerId);
 
+    const center = new THREE.Vector3(
+      renderItem.position.x,
+      rotateGizmoCenterYForRenderItem(renderItem),
+      renderItem.position.z,
+    );
+
+    let startPointerAngleDeg = 0;
+    if (mode === "rotate") {
+      startPointerAngleDeg = pointerToRotateAngle(event, center) ?? 0;
+    }
+
     if (!selectedItemIdSet.has(renderItem.item.id)) {
       props.onSelectItem(renderItem.item.id, "replace");
     }
 
-    rotateGizmoDragRef.current = {
+    transformGizmoDragRef.current = {
       pointerId: event.pointerId,
       itemId: renderItem.item.id,
+      mode,
       center,
       startPointerAngleDeg,
       startRotationDeg: renderItem.item.rotation,
       lastRotationDeg: renderItem.item.rotation,
       rotationSnapDeg: Math.max(1, renderItem.item.constraints.rotationSnapDeg),
+      startPointerScreenY: event.clientY,
+      startY: renderItem.item.y,
+      startScale: renderItem.item.scale,
+      lastY: renderItem.item.y,
+      lastScale: renderItem.item.scale,
       x: renderItem.item.x,
       y: renderItem.item.y,
       z: renderItem.item.z,
       scale: renderItem.item.scale,
       releasePointerCaptureTarget: pointerTarget,
     };
-    setRotateGizmoDragActive(true);
+    props.onInteractionStart?.();
+    setTransformGizmoDragActive(true);
+    setActiveTransformMode(mode);
   };
 
-  const moveRotateGizmoDrag = (event: ThreeEvent<PointerEvent>) => {
-    const activeRotateDrag = rotateGizmoDragRef.current;
-    if (!activeRotateDrag) return;
-    if (activeRotateDrag.pointerId !== event.pointerId) return;
+  const moveTransformGizmoDrag = (event: ThreeEvent<PointerEvent>) => {
+    const activeDrag = transformGizmoDragRef.current;
+    if (!activeDrag) return;
+    if (activeDrag.pointerId !== event.pointerId) return;
 
-    const currentPointerAngleDeg = pointerToRotateAngle(event, activeRotateDrag.center);
-    if (currentPointerAngleDeg == null) return;
+    let constraints = props.canvasState.items.find((i) => i.id === activeDrag.itemId)?.constraints;
+    if (!constraints) {
+      constraints = {
+        snapToSurface: true,
+        rotationSnapDeg: 15,
+        canAttachToHardscape: false,
+        requiresSubstrate: false,
+        collisionRadiusIn: 0,
+      };
+    }
 
-    const pointerDeltaDeg = normalizeAngleDeltaDeg(
-      currentPointerAngleDeg - activeRotateDrag.startPointerAngleDeg,
-    );
-    const unsnappedRotation = activeRotateDrag.startRotationDeg + pointerDeltaDeg;
-    const snapStepDeg = event.altKey ? 1 : activeRotateDrag.rotationSnapDeg;
-    const snappedRotation = clampRotation(
-      Math.round(unsnappedRotation / snapStepDeg) * snapStepDeg,
-    );
+    if (activeDrag.mode === "rotate") {
+      const currentPointerAngleDeg = pointerToRotateAngle(event, activeDrag.center);
+      if (currentPointerAngleDeg == null) return;
 
-    if (Math.abs(snappedRotation - activeRotateDrag.lastRotationDeg) < 0.05) return;
+      const pointerDeltaDeg = normalizeAngleDeltaDeg(
+        currentPointerAngleDeg - (activeDrag.startPointerAngleDeg ?? 0),
+      );
+      const unsnappedRotation = (activeDrag.startRotationDeg ?? 0) + pointerDeltaDeg;
+      const snapStepDeg = event.altKey ? 1 : (activeDrag.rotationSnapDeg ?? 1);
+      const snappedRotation = clampRotation(
+        Math.round(unsnappedRotation / snapStepDeg) * snapStepDeg,
+      );
 
-    activeRotateDrag.lastRotationDeg = snappedRotation;
-    props.onMoveItem(activeRotateDrag.itemId, {
-      rotation: snappedRotation,
-      transform: buildTransformFromNormalized({
-        x: activeRotateDrag.x,
-        y: activeRotateDrag.y,
-        z: activeRotateDrag.z,
-        scale: activeRotateDrag.scale,
+      if (Math.abs(snappedRotation - (activeDrag.lastRotationDeg ?? 0)) < 0.05) return;
+
+      activeDrag.lastRotationDeg = snappedRotation;
+      props.onMoveItem(activeDrag.itemId, {
         rotation: snappedRotation,
-        dims,
-      }),
-    });
+        transform: buildTransformFromNormalized({
+          x: activeDrag.x,
+          y: activeDrag.y,
+          z: activeDrag.z,
+          scale: activeDrag.scale,
+          rotation: snappedRotation,
+          dims,
+        }),
+      });
+    } else if (activeDrag.mode === "lift") {
+      const deltaScreenY = (activeDrag.startPointerScreenY ?? event.clientY) - event.clientY;
+      const verticalSensitivity = 1 / 500;
+      const deltaYNorm = deltaScreenY * verticalSensitivity;
+      const unsnappedY = (activeDrag.startY ?? 0) + deltaYNorm;
+
+      const snapStep = event.altKey ? 0.001 : 0.01;
+      const snappedY = clamp01(Math.round(unsnappedY / snapStep) * snapStep);
+
+      if (Math.abs(snappedY - (activeDrag.lastY ?? 0)) < 0.005) return;
+
+      activeDrag.lastY = snappedY;
+      props.onMoveItem(activeDrag.itemId, {
+        y: snappedY,
+        constraints: {
+          ...constraints,
+          snapToSurface: false,
+        },
+        transform: buildTransformFromNormalized({
+          x: activeDrag.x,
+          y: snappedY,
+          z: activeDrag.z,
+          scale: activeDrag.scale,
+          rotation: activeDrag.startRotationDeg ?? 0,
+          dims,
+        }),
+      });
+    } else if (activeDrag.mode === "scale") {
+      const deltaScreenY = (activeDrag.startPointerScreenY ?? event.clientY) - event.clientY;
+      const scaleSensitivity = 1 / 200;
+
+      const unsnappedScale = clampScale((activeDrag.startScale ?? 1) + deltaScreenY * scaleSensitivity);
+      const snapStep = event.altKey ? 0.01 : 0.1;
+      const snappedScale = clampScale(Math.round(unsnappedScale / snapStep) * snapStep);
+
+      if (Math.abs(snappedScale - (activeDrag.lastScale ?? 1)) < 0.02) return;
+
+      activeDrag.lastScale = snappedScale;
+      props.onMoveItem(activeDrag.itemId, {
+        scale: snappedScale,
+        transform: buildTransformFromNormalized({
+          x: activeDrag.x,
+          y: activeDrag.y,
+          z: activeDrag.z,
+          scale: snappedScale,
+          rotation: activeDrag.startRotationDeg ?? 0,
+          dims,
+        }),
+      });
+    }
   };
 
-  const endRotateGizmoDrag = (event: ThreeEvent<PointerEvent>) => {
-    const activeRotateDrag = rotateGizmoDragRef.current;
-    if (!activeRotateDrag) return;
-    if (activeRotateDrag.pointerId !== event.pointerId) return;
+  const endTransformGizmoDrag = (event: ThreeEvent<PointerEvent>) => {
+    const activeDrag = transformGizmoDragRef.current;
+    if (!activeDrag) return;
+    if (activeDrag.pointerId !== event.pointerId) return;
 
-    activeRotateDrag.releasePointerCaptureTarget?.releasePointerCapture?.(event.pointerId);
-    rotateGizmoDragRef.current = null;
-    setRotateGizmoDragActive(false);
+    activeDrag.releasePointerCaptureTarget?.releasePointerCapture?.(event.pointerId);
+    transformGizmoDragRef.current = null;
+    props.onInteractionEnd?.();
+    setTransformGizmoDragActive(false);
+    setActiveTransformMode(null);
   };
 
   const handleSurfacePointer = (
@@ -5818,19 +5971,26 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       ? event.face.normal.clone().transformDirection(event.object.matrixWorld)
       : WORLD_UP.clone();
     const candidatePoint =
-      props.toolMode === "place" && props.placementAsset
+      (props.toolMode === "place" || props.toolMode === "brush") && props.placementAsset
         ? resolvePlacementCoordinates({
           point: event.point,
           anchorType,
         }).point
         : event.point.clone();
 
-    setCandidate({
+    const immediateCandidate = {
       point: candidatePoint,
       normal: surfaceNormal,
       anchorType,
       anchorItemId: itemId,
-    });
+    };
+    setCandidate(immediateCandidate);
+
+    if (isMoveDragGesture && props.toolMode === "brush" && props.placementAsset) {
+      event.stopPropagation();
+      performPlacement(immediateCandidate);
+      return;
+    }
   };
 
   const handleSurfaceDown = (
@@ -5846,6 +6006,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
       const moveDragStarted = props.toolMode === "move" ? startMoveDrag(event, itemId) : false;
       if (moveDragStarted) {
+        props.onInteractionStart?.();
         handleSurfacePointer(event, anchorType, itemId);
       } else {
         props.onSelectItem(itemId, event.shiftKey ? "toggle" : "replace");
@@ -5856,7 +6017,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     moveDragRef.current = null;
     setMoveDragActive(false);
 
-    if (props.toolMode === "place" && props.placementAsset) {
+    if ((props.toolMode === "place" || props.toolMode === "brush") && props.placementAsset) {
+      if (props.toolMode === "brush") {
+        props.onInteractionStart?.();
+      }
       event.stopPropagation();
       const surfaceNormal = event.face?.normal
         ? event.face.normal.clone().transformDirection(event.object.matrixWorld)
@@ -5882,12 +6046,17 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     if (moveDragRef.current && moveDragRef.current.pointerId === event.pointerId) {
       event.stopPropagation();
       moveDragRef.current.releasePointerCaptureTarget?.releasePointerCapture?.(event.pointerId);
+      props.onInteractionEnd?.();
       setMoveDragActive(false);
     }
     moveDragRef.current = null;
+
+    if (props.toolMode === "brush") {
+      props.onInteractionEnd?.();
+    }
   };
 
-  const showRotateGizmo =
+  const showTransformGizmo =
     itemInteractionsEnabled &&
     props.currentStep !== "substrate" &&
     props.toolMode !== "delete" &&
@@ -5988,14 +6157,14 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         />
       ))}
 
-      {showRotateGizmo && primarySelectedRenderItem ? (
-        <SelectedRotateGizmo
+      {showTransformGizmo && primarySelectedRenderItem ? (
+        <SelectedTransformGizmo
           renderItem={primarySelectedRenderItem}
-          active={rotateGizmoDragActive}
+          activeMode={activeTransformMode}
           interactive={itemInteractionsEnabled}
-          onPointerDown={startRotateGizmoDrag}
-          onPointerMove={moveRotateGizmoDrag}
-          onPointerUp={endRotateGizmoDrag}
+          onPointerDown={startTransformGizmoDrag}
+          onPointerMove={moveTransformGizmoDrag}
+          onPointerUp={endTransformGizmoDrag}
         />
       ) : null}
 
@@ -6037,7 +6206,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         dims={dims}
         idleOrbit={props.idleOrbit}
         cameraPresetMode={props.cameraPresetMode}
-        controlsEnabled={!substrateNodeDragActive && !moveDragActive && !rotateGizmoDragActive}
+        controlsEnabled={!substrateNodeDragActive && !moveDragActive && !transformGizmoDragActive}
         onCameraPresetModeChange={props.onCameraPresetModeChange}
         onCameraDiagnostic={props.onCameraDiagnostic}
         cameraIntent={props.cameraIntent}

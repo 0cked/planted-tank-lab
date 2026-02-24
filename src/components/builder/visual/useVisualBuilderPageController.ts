@@ -39,7 +39,9 @@ import {
 import type {
   SubstrateMaterialType,
   VisualAsset,
-} from "@/components/builder/visual/types";
+  VisualCanvasItem,
+}
+  from "@/components/builder/visual/types";
 import type {
   BuilderSceneQualityTier,
   BuilderSceneToolMode,
@@ -264,12 +266,16 @@ export function useVisualBuilderPageController(
   const endSubstrateStroke = useVisualBuilderStore((state) => state.endSubstrateStroke);
   const undoSubstrateStroke = useVisualBuilderStore((state) => state.undoSubstrateStroke);
   const redoSubstrateStroke = useVisualBuilderStore((state) => state.redoSubstrateStroke);
+  const undoCanvasItems = useVisualBuilderStore((state) => state.undoCanvasItems);
+  const redoCanvasItems = useVisualBuilderStore((state) => state.redoCanvasItems);
   const setSceneSettings = useVisualBuilderStore((state) => state.setSceneSettings);
   const setSelectedProduct = useVisualBuilderStore((state) => state.setSelectedProduct);
   const setCompatibilityEnabled = useVisualBuilderStore((state) => state.setCompatibilityEnabled);
   const setLowTechNoCo2 = useVisualBuilderStore((state) => state.setLowTechNoCo2);
   const setHasShrimp = useVisualBuilderStore((state) => state.setHasShrimp);
   const addCanvasItemFromAsset = useVisualBuilderStore((state) => state.addCanvasItemFromAsset);
+  const batchAddCanvasItems = useVisualBuilderStore((state) => state.batchAddCanvasItems);
+  const commitCanvasItems = useVisualBuilderStore((state) => state.commitCanvasItems);
   const updateCanvasItem = useVisualBuilderStore((state) => state.updateCanvasItem);
   const removeCanvasItem = useVisualBuilderStore((state) => state.removeCanvasItem);
   const duplicateCanvasItem = useVisualBuilderStore((state) => state.duplicateCanvasItem);
@@ -777,6 +783,57 @@ export function useVisualBuilderPageController(
     }
   };
 
+  const handleFillAll = useCallback(() => {
+    if (!placementAssetId) return;
+    const asset = assetsById.get(placementAssetId);
+    if (!asset) return;
+
+    commitCanvasItems(canvasState.items);
+
+    const spacingXIn = 1.4;
+    const spacingZIn = 1.4;
+    const countX = Math.floor(Math.max(1, canvasState.widthIn / spacingXIn));
+    const countZ = Math.floor(Math.max(1, canvasState.depthIn / spacingZIn));
+
+    const configs = [];
+
+    for (let xIndex = 0; xIndex < countX; xIndex++) {
+      for (let zIndex = 0; zIndex < countZ; zIndex++) {
+        const x = (xIndex + 0.5) / countX;
+        const z = (zIndex + 0.5) / countZ;
+
+        if (x < 0.04 || x > 0.96 || z < 0.04 || z > 0.96) continue;
+
+        const jitterX = (Math.random() - 0.5) * 0.02;
+        const jitterZ = (Math.random() - 0.5) * 0.02;
+
+        configs.push({
+          asset,
+          pos: {
+            x: Math.max(0, Math.min(1, x + jitterX)),
+            y: 0.56,
+            z: Math.max(0, Math.min(1, z + jitterZ)),
+            rotation: Math.random() * 360 - 180,
+            scale: asset.defaultScale * (0.85 + Math.random() * 0.3),
+          },
+        });
+      }
+    }
+
+    batchAddCanvasItems(configs);
+    setSaveState({ type: "ok", message: `Filled substrate with ${configs.length} plants.` });
+    setPlacementAssetId(null);
+    setToolMode("move");
+  }, [
+    assetsById,
+    batchAddCanvasItems,
+    canvasState.depthIn,
+    canvasState.items,
+    canvasState.widthIn,
+    commitCanvasItems,
+    placementAssetId,
+  ]);
+
   const saveBuild = async (publish: boolean) => {
     if (!selectedTank) {
       setSaveState({ type: "error", message: "Pick a tank before saving." });
@@ -964,11 +1021,19 @@ export function useVisualBuilderPageController(
       if (hasCommandModifier && !hasBlockedModifier && keyLower === "z") {
         event.preventDefault();
         if (event.shiftKey) {
-          redoSubstrateStroke();
+          if (currentStep === "substrate") {
+            redoSubstrateStroke();
+          } else {
+            redoCanvasItems();
+          }
           return;
         }
 
-        undoSubstrateStroke();
+        if (currentStep === "substrate") {
+          undoSubstrateStroke();
+        } else {
+          undoCanvasItems();
+        }
         return;
       }
 
@@ -1043,13 +1108,15 @@ export function useVisualBuilderPageController(
     currentStep,
     duplicateCanvasItem,
     placementAssetId,
-    redoSubstrateStroke,
     removeCanvasItem,
+    redoCanvasItems,
+    redoSubstrateStroke,
     selectAllCanvasItems,
     selectedItemId,
     selectedItemIds,
     showShortcutsOverlay,
     toolMode,
+    undoCanvasItems,
     undoSubstrateStroke,
     updateCanvasItem,
   ]);
@@ -1228,6 +1295,20 @@ export function useVisualBuilderPageController(
       if (nextStep) applyStepChange(nextStep);
     },
   };
+  const [, setActiveInteractionStartItems] = useState<VisualCanvasItem[] | null>(null);
+
+  const beginItemInteraction = useCallback(() => {
+    setActiveInteractionStartItems((prev) => prev ?? canvasState.items);
+  }, [canvasState.items]);
+
+  const endItemInteraction = useCallback(() => {
+    setActiveInteractionStartItems((prev) => {
+      if (prev) {
+        commitCanvasItems(prev);
+      }
+      return null;
+    });
+  }, [commitCanvasItems]);
 
   const workspaceProps: BuilderWorkspaceProps = {
     buildId,
@@ -1288,6 +1369,7 @@ export function useVisualBuilderPageController(
     selectedProductByCategory,
     onChooseAsset: handleChooseAsset,
     onClearPlacementMode: clearPlacementMode,
+    onFillAll: handleFillAll,
     substrateSelectionLabel: `${SUBSTRATE_PROFILE_META[sculptMaterial].label} • ${substrateBags.bagsRequired} bag(s)`,
     substrateControls: {
       sculptMode,
@@ -1311,9 +1393,21 @@ export function useVisualBuilderPageController(
     onResetView: () => triggerCameraIntent({ type: "reset" }),
     onFocusSceneItem: handleFocusSceneItem,
     onUpdateCanvasItem: updateCanvasItem,
-    onMoveCanvasItemLayer: moveCanvasItemLayer,
-    onDuplicateCanvasItem: duplicateCanvasItem,
-    onRemoveCanvasItem: removeCanvasItem,
+    onMoveCanvasItemLayer: (itemId, dir) => {
+      const previousItems = canvasState.items;
+      moveCanvasItemLayer(itemId, dir);
+      commitCanvasItems(previousItems);
+    },
+    onDuplicateCanvasItem: (itemId) => {
+      const previousItems = canvasState.items;
+      duplicateCanvasItem(itemId);
+      commitCanvasItems(previousItems);
+    },
+    onRemoveCanvasItem: (itemId) => {
+      const previousItems = canvasState.items;
+      removeCanvasItem(itemId);
+      commitCanvasItems(previousItems);
+    },
     onCompatibilityEnabledChange: setCompatibilityEnabled,
     onLowTechNoCo2Change: setLowTechNoCo2,
     onHasShrimpChange: setHasShrimp,
@@ -1342,6 +1436,8 @@ export function useVisualBuilderPageController(
     },
     onSelectSceneItem: handleSceneSelectionChange,
     onHoverSceneItem: setHoveredItemId,
+    onItemInteractionStart: beginItemInteraction,
+    onItemInteractionEnd: endItemInteraction,
     onPlaceSceneItem: (request) => {
       const nowMs = Date.now();
       const previousPlacement = lastPlacementRef.current;
@@ -1364,12 +1460,19 @@ export function useVisualBuilderPageController(
         z: request.z,
         placedAtMs: nowMs,
       };
+
+      const previousItems = canvasState.items;
       addCanvasItemFromAsset(request.asset, request);
-      setPlacementAssetId(null);
-      setToolMode("move");
+
+      if (toolMode !== "brush") {
+        commitCanvasItems(previousItems);
+        setPlacementAssetId(null);
+        setToolMode("move");
+      }
+
       if (currentStep === "hardscape" && hardscapeCount === 0) {
         setSaveState({ type: "ok", message: "Hardscape placed. Drag to refine placement." });
-      } else {
+      } else if (toolMode !== "brush") {
         setSaveState({
           type: "ok",
           message: `${request.asset.name} placed. Select it to move, scale, or rotate.`,
@@ -1377,14 +1480,20 @@ export function useVisualBuilderPageController(
       }
     },
     onMoveSceneItem: updateCanvasItem,
-    onDeleteSceneItem: removeCanvasItem,
+    onDeleteSceneItem: (itemId) => {
+      const previousItems = canvasState.items;
+      removeCanvasItem(itemId);
+      commitCanvasItems(previousItems);
+    },
     onRotateSceneItem: (itemId, deltaDeg) => {
       const item = canvasState.items.find((nextItem) => nextItem.id === itemId);
       if (!item) return;
 
+      const previousItems = canvasState.items;
       updateCanvasItem(itemId, {
         rotation: clampRotationDeg(item.rotation + deltaDeg),
       });
+      commitCanvasItems(previousItems);
     },
     onSubstrateHeightfield: setSubstrateHeightfield,
     onSubstrateMaterialGrid: setSubstrateMaterialGrid,
@@ -1427,30 +1536,30 @@ export function useVisualBuilderPageController(
   const diagnosticsPanelProps: ComponentProps<typeof CameraDiagnosticsPanel> | null =
     cameraEvidence.isDevelopment
       ? {
-          sceneObjectCount: canvasState.items.length,
-          hardscapeCount,
-          plantCount,
-          qualityTier,
-          substrateContour,
-          toolMode,
-          hoveredItemId,
-          cameraMode: canvasState.sceneSettings.cameraPreset,
-          diagnostics: cameraEvidence.cameraDiagnostics,
-          scenarioStatus: cameraEvidence.cameraScenarioStatus,
-          evidenceCapturedAtLabel: cameraEvidence.cameraEvidenceCapturedAtLabel,
-          evidenceSummary: cameraEvidence.cameraEvidenceSummary,
-          evidenceSnapshot: cameraEvidence.cameraEvidenceSnapshot,
-          showExpandedEvidence: cameraEvidence.showExpandedCameraEvidence,
-          copyStatus: cameraEvidence.cameraEvidenceCopyStatus,
-          onToggleExpandedEvidence: () => {
-            cameraEvidence.setShowExpandedCameraEvidence((previous) => !previous);
-          },
-          onCopyEvidenceSnapshot: () => {
-            void cameraEvidence.copyCameraEvidenceSnapshot();
-          },
-          onMarkRestoreCheckVerified: cameraEvidence.markRestoreCheckVerified,
-          onResetCameraChecks: cameraEvidence.resetCameraChecks,
-        }
+        sceneObjectCount: canvasState.items.length,
+        hardscapeCount,
+        plantCount,
+        qualityTier,
+        substrateContour,
+        toolMode,
+        hoveredItemId,
+        cameraMode: canvasState.sceneSettings.cameraPreset,
+        diagnostics: cameraEvidence.cameraDiagnostics,
+        scenarioStatus: cameraEvidence.cameraScenarioStatus,
+        evidenceCapturedAtLabel: cameraEvidence.cameraEvidenceCapturedAtLabel,
+        evidenceSummary: cameraEvidence.cameraEvidenceSummary,
+        evidenceSnapshot: cameraEvidence.cameraEvidenceSnapshot,
+        showExpandedEvidence: cameraEvidence.showExpandedCameraEvidence,
+        copyStatus: cameraEvidence.cameraEvidenceCopyStatus,
+        onToggleExpandedEvidence: () => {
+          cameraEvidence.setShowExpandedCameraEvidence((previous) => !previous);
+        },
+        onCopyEvidenceSnapshot: () => {
+          void cameraEvidence.copyCameraEvidenceSnapshot();
+        },
+        onMarkRestoreCheckVerified: cameraEvidence.markRestoreCheckVerified,
+        onResetCameraChecks: cameraEvidence.resetCameraChecks,
+      }
       : null;
 
   if (loadDataError) {
