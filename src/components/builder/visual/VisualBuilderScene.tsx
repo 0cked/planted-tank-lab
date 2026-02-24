@@ -240,6 +240,14 @@ type MoveDragState = {
   }>;
 };
 
+type BrushDragState = {
+  pointerId: number;
+  releasePointerCaptureTarget?: {
+    setPointerCapture?: (pointerId: number) => void;
+    releasePointerCapture?: (pointerId: number) => void;
+  };
+};
+
 type TransformGizmoMode = "rotate" | "lift" | "scale";
 
 type TransformGizmoDragState = {
@@ -5144,10 +5152,12 @@ function SceneRoot(props: VisualBuilderSceneProps) {
   const [candidate, setCandidate] = useState<PlacementCandidate | null>(null);
   const [substrateNodeDragActive, setSubstrateNodeDragActive] = useState(false);
   const [moveDragActive, setMoveDragActive] = useState(false);
+  const [brushDragActive, setBrushDragActive] = useState(false);
   const [transformGizmoDragActive, setTransformGizmoDragActive] = useState(false);
   const [activeTransformMode, setActiveTransformMode] = useState<TransformGizmoMode | null>(null);
   const itemInteractionsEnabled = props.currentStep !== "substrate";
   const moveDragRef = useRef<MoveDragState | null>(null);
+  const brushDragRef = useRef<BrushDragState | null>(null);
   const moveDragPlaneRef = useRef<THREE.Plane>(new THREE.Plane(WORLD_UP, 0));
   const transformGizmoDragRef = useRef<TransformGizmoDragState | null>(null);
   const rotateGizmoPlaneRef = useRef<THREE.Plane>(new THREE.Plane(WORLD_UP, 0));
@@ -5304,10 +5314,28 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     props.onHoverItem?.(hoveredItemId);
   }, [hoveredItemId, props]);
 
+  const endBrushDrag = (pointerId?: number) => {
+    const activeBrushDrag = brushDragRef.current;
+    if (!activeBrushDrag) return;
+    if (pointerId != null && activeBrushDrag.pointerId !== pointerId) return;
+
+    activeBrushDrag.releasePointerCaptureTarget?.releasePointerCapture?.(activeBrushDrag.pointerId);
+    brushDragRef.current = null;
+    setBrushDragActive(false);
+    props.onInteractionEnd?.();
+  };
+
   useEffect(() => {
-    const handleGlobalPointerUp = () => {
+    const handleGlobalPointerUp = (event: PointerEvent) => {
       moveDragRef.current = null;
       setMoveDragActive(false);
+      const activeBrushDrag = brushDragRef.current;
+      if (activeBrushDrag && activeBrushDrag.pointerId === event.pointerId) {
+        activeBrushDrag.releasePointerCaptureTarget?.releasePointerCapture?.(activeBrushDrag.pointerId);
+        brushDragRef.current = null;
+        setBrushDragActive(false);
+        props.onInteractionEnd?.();
+      }
       transformGizmoDragRef.current = null;
       setTransformGizmoDragActive(false);
     };
@@ -5319,12 +5347,15 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       window.removeEventListener("pointerup", handleGlobalPointerUp);
       window.removeEventListener("pointercancel", handleGlobalPointerUp);
     };
-  }, []);
+  }, [props.onInteractionEnd]);
 
   useEffect(() => {
     moveDragRef.current = null;
+    brushDragRef.current = null;
     transformGizmoDragRef.current = null;
     const frame = window.requestAnimationFrame(() => {
+      setMoveDragActive(false);
+      setBrushDragActive(false);
       setTransformGizmoDragActive(false);
     });
     return () => {
@@ -5522,7 +5553,11 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         placed.collisionRadius,
       );
       const spacingFactor =
-        asset.categorySlug === "plants" && placed.asset.categorySlug === "plants" ? 0.12 : 0.18;
+        asset.categorySlug === "plants" && placed.asset.categorySlug === "plants"
+          ? props.toolMode === "brush"
+            ? 0.42
+            : 0.12
+          : 0.18;
       const minDistance = previewRadius * spacingFactor + placedRadius * spacingFactor;
 
       if (distanceXZ < minDistance) {
@@ -6079,6 +6114,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
 
     const isMoveDragGesture =
       event.buttons === 1 || (event.pointerType === "touch" && event.isPrimary);
+    const isActiveBrushPointer = brushDragRef.current?.pointerId === event.pointerId;
 
     if (isMoveDragGesture && props.toolMode === "move" && moveDragRef.current) {
       moveSelectedItems(event);
@@ -6104,7 +6140,12 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     };
     setCandidate(immediateCandidate);
 
-    if (isMoveDragGesture && props.toolMode === "brush" && props.placementAsset) {
+    if (
+      isMoveDragGesture &&
+      isActiveBrushPointer &&
+      props.toolMode === "brush" &&
+      props.placementAsset
+    ) {
       event.stopPropagation();
       performPlacement(immediateCandidate);
       return;
@@ -6116,6 +6157,44 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     anchorType: VisualAnchorType,
     itemId: string | null,
   ) => {
+    if (
+      props.toolMode === "brush" &&
+      props.placementAsset &&
+      (event.button === 0 || (event.pointerType === "touch" && event.isPrimary))
+    ) {
+      event.stopPropagation();
+
+      if (brushDragRef.current?.pointerId !== event.pointerId) {
+        const pointerTarget = event.target as {
+          setPointerCapture?: (pointerId: number) => void;
+          releasePointerCapture?: (pointerId: number) => void;
+        };
+        pointerTarget.setPointerCapture?.(event.pointerId);
+        brushDragRef.current = {
+          pointerId: event.pointerId,
+          releasePointerCaptureTarget: pointerTarget,
+        };
+        setBrushDragActive(true);
+        props.onInteractionStart?.();
+      }
+
+      const surfaceNormal = event.face?.normal
+        ? event.face.normal.clone().transformDirection(event.object.matrixWorld)
+        : WORLD_UP.clone();
+      const immediateCandidate: PlacementCandidate = {
+        point: resolvePlacementCoordinates({
+          point: event.point,
+          anchorType,
+        }).point,
+        normal: surfaceNormal,
+        anchorType,
+        anchorItemId: itemId,
+      };
+      setCandidate(immediateCandidate);
+      performPlacement(immediateCandidate);
+      return;
+    }
+
     if (itemId && itemInteractionsEnabled) {
       event.stopPropagation();
       if (props.toolMode === "delete" || props.toolMode === "rotate") {
@@ -6135,10 +6214,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     moveDragRef.current = null;
     setMoveDragActive(false);
 
-    if ((props.toolMode === "place" || props.toolMode === "brush") && props.placementAsset) {
-      if (props.toolMode === "brush") {
-        props.onInteractionStart?.();
-      }
+    if (props.toolMode === "place" && props.placementAsset) {
       event.stopPropagation();
       const surfaceNormal = event.face?.normal
         ? event.face.normal.clone().transformDirection(event.object.matrixWorld)
@@ -6169,9 +6245,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     }
     moveDragRef.current = null;
 
-    if (props.toolMode === "brush") {
-      props.onInteractionEnd?.();
-    }
+    endBrushDrag(event.pointerId);
   };
 
   const showTransformGizmo =
@@ -6324,7 +6398,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         dims={dims}
         idleOrbit={props.idleOrbit}
         cameraPresetMode={props.cameraPresetMode}
-        controlsEnabled={!substrateNodeDragActive && !moveDragActive && !transformGizmoDragActive}
+        controlsEnabled={!substrateNodeDragActive && !moveDragActive && !brushDragActive && !transformGizmoDragActive}
         onCameraPresetModeChange={props.onCameraPresetModeChange}
         onCameraDiagnostic={props.onCameraDiagnostic}
         cameraIntent={props.cameraIntent}

@@ -34,6 +34,8 @@ import {
 } from "@/components/builder/visual/builder-page-utils";
 import {
   buildSubstratePreset,
+  resolveAssetFootprintDimensions,
+  sampleSubstrateDepth,
   type SubstrateBrushMode,
 } from "@/components/builder/visual/scene-utils";
 import type {
@@ -63,6 +65,19 @@ export type InitialBuildResponse = RouterOutputs["visualBuilder"]["getByShareSlu
 
 const MAX_THUMBNAIL_WIDTH = 960;
 const VISUAL_BUILD_TEMPLATE_CARDS = getVisualBuildTemplateCards();
+const BRUSH_CACHE_WINDOW_MS = 8_000;
+const BRUSH_CACHE_MAX_ENTRIES_PER_ASSET = 1_500;
+const BRUSH_MIN_SPACING_FACTOR = 0.58;
+const BRUSH_MIN_SPACING_IN = 0.35;
+const BRUSH_MAX_SPACING_IN = 1.15;
+const FILL_ALL_MAX_ITEMS = 3_500;
+const HEX_ROW_SPACING_FACTOR = 0.8660254;
+
+type BrushPlacementCacheEntry = {
+  xIn: number;
+  zIn: number;
+  placedAtMs: number;
+};
 
 export type TankDimensionPreset = {
   id: "10g" | "20g-long" | "29g" | "40b" | "55g" | "75g";
@@ -105,6 +120,23 @@ const SUBSTRATE_PROFILE_META: Record<
 function clampTankDimension(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, value));
+}
+
+function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
+
+function normalizedToTankPlaneInches(params: {
+  xNorm: number;
+  zNorm: number;
+  widthIn: number;
+  depthIn: number;
+}): { xIn: number; zIn: number } {
+  return {
+    xIn: (params.xNorm - 0.5) * params.widthIn,
+    zIn: (params.zNorm - 0.5) * params.depthIn,
+  };
 }
 
 function inferSubstrateMaterial(asset: VisualAsset): SubstrateMaterialType | null {
@@ -238,6 +270,7 @@ export function useVisualBuilderPageController(
     z: number;
     placedAtMs: number;
   } | null>(null);
+  const brushPlacementCacheRef = useRef<Map<string, BrushPlacementCacheEntry[]>>(new Map());
 
   const buildId = useVisualBuilderStore((state) => state.buildId);
   const shareSlug = useVisualBuilderStore((state) => state.shareSlug);
@@ -337,6 +370,16 @@ export function useVisualBuilderPageController(
   useEffect(() => {
     setSceneSettings({ cameraPreset: "step" });
   }, [setSceneSettings]);
+
+  useEffect(() => {
+    if (toolMode === "brush") return;
+    brushPlacementCacheRef.current.clear();
+  }, [toolMode]);
+
+  useEffect(() => {
+    lastPlacementRef.current = null;
+    brushPlacementCacheRef.current.clear();
+  }, [placementAssetId]);
 
   const isSharedSnapshot =
     initialBuild != null &&
@@ -788,47 +831,104 @@ export function useVisualBuilderPageController(
     const asset = assetsById.get(placementAssetId);
     if (!asset) return;
 
-    commitCanvasItems(canvasState.items);
+    const previousItems = canvasState.items;
+    const widthIn = Math.max(1, canvasState.widthIn);
+    const depthIn = Math.max(1, canvasState.depthIn);
+    const heightIn = Math.max(1, canvasState.heightIn);
+    const baseScale = Math.max(0.1, asset.defaultScale);
+    const footprint = resolveAssetFootprintDimensions({
+      widthIn: asset.widthIn,
+      depthIn: asset.depthIn,
+      scale: baseScale,
+      categorySlug: asset.categorySlug,
+      dims: {
+        widthIn,
+        depthIn,
+        heightIn,
+      },
+    });
+    let spacingXIn = Math.max(
+      BRUSH_MIN_SPACING_IN,
+      Math.min(BRUSH_MAX_SPACING_IN, Math.min(footprint.widthIn, footprint.depthIn) * 0.62),
+    );
+    let spacingZIn = Math.max(BRUSH_MIN_SPACING_IN * HEX_ROW_SPACING_FACTOR, spacingXIn * HEX_ROW_SPACING_FACTOR);
+    const estimatedCount = (widthIn * depthIn) / Math.max(0.0001, spacingXIn * spacingZIn);
+    if (estimatedCount > FILL_ALL_MAX_ITEMS) {
+      const densityScale = Math.sqrt(estimatedCount / FILL_ALL_MAX_ITEMS);
+      spacingXIn *= densityScale;
+      spacingZIn *= densityScale;
+    }
+    const halfFootprintXIn = Math.max(0.18, footprint.widthIn * 0.5);
+    const halfFootprintZIn = Math.max(0.18, footprint.depthIn * 0.5);
+    const minXIn = -widthIn * 0.5 + halfFootprintXIn;
+    const maxXIn = widthIn * 0.5 - halfFootprintXIn;
+    const minZIn = -depthIn * 0.5 + halfFootprintZIn;
+    const maxZIn = depthIn * 0.5 - halfFootprintZIn;
+    if (maxXIn <= minXIn || maxZIn <= minZIn) {
+      setSaveState({ type: "error", message: "Tank is too small to fill with this plant footprint." });
+      return;
+    }
 
-    const spacingXIn = 1.4;
-    const spacingZIn = 1.4;
-    const countX = Math.floor(Math.max(1, canvasState.widthIn / spacingXIn));
-    const countZ = Math.floor(Math.max(1, canvasState.depthIn / spacingZIn));
+    const configs: Parameters<typeof batchAddCanvasItems>[0] = [];
+    let rowIndex = 0;
 
-    const configs = [];
+    fillLoop: for (let zIn = minZIn; zIn <= maxZIn + 0.0001; zIn += spacingZIn) {
+      const rowOffset = rowIndex % 2 === 0 ? 0 : spacingXIn * 0.5;
 
-    for (let xIndex = 0; xIndex < countX; xIndex++) {
-      for (let zIndex = 0; zIndex < countZ; zIndex++) {
-        const x = (xIndex + 0.5) / countX;
-        const z = (zIndex + 0.5) / countZ;
-
-        if (x < 0.04 || x > 0.96 || z < 0.04 || z > 0.96) continue;
-
-        const jitterX = (Math.random() - 0.5) * 0.02;
-        const jitterZ = (Math.random() - 0.5) * 0.02;
+      for (let xIn = minXIn + rowOffset; xIn <= maxXIn + 0.0001; xIn += spacingXIn) {
+        const xNorm = clamp01(xIn / widthIn + 0.5);
+        const zNorm = clamp01(zIn / depthIn + 0.5);
+        const substrateYIn = sampleSubstrateDepth({
+          xNorm,
+          zNorm,
+          heightfield: canvasState.substrateHeightfield,
+          tankHeightIn: heightIn,
+        });
+        const yNorm = clamp01(substrateYIn / heightIn);
 
         configs.push({
           asset,
           pos: {
-            x: Math.max(0, Math.min(1, x + jitterX)),
-            y: 0.56,
-            z: Math.max(0, Math.min(1, z + jitterZ)),
+            x: xNorm,
+            y: yNorm,
+            z: zNorm,
+            scale: baseScale * (0.92 + Math.random() * 0.16),
             rotation: Math.random() * 360 - 180,
-            scale: asset.defaultScale * (0.85 + Math.random() * 0.3),
+            anchorType: "substrate",
           },
         });
+
+        if (configs.length >= FILL_ALL_MAX_ITEMS) {
+          break fillLoop;
+        }
       }
+
+      rowIndex += 1;
+    }
+
+    if (configs.length === 0) {
+      setSaveState({ type: "error", message: "Unable to place this plant with Fill All in the current tank." });
+      return;
     }
 
     batchAddCanvasItems(configs);
-    setSaveState({ type: "ok", message: `Filled substrate with ${configs.length} plants.` });
+    commitCanvasItems(previousItems);
+    const wasCapped = configs.length >= FILL_ALL_MAX_ITEMS;
+    setSaveState({
+      type: "ok",
+      message: wasCapped
+        ? `Filled substrate with ${configs.length} plants (capped for performance).`
+        : `Filled substrate with ${configs.length} plants.`,
+    });
     setPlacementAssetId(null);
     setToolMode("move");
   }, [
     assetsById,
     batchAddCanvasItems,
+    canvasState.heightIn,
     canvasState.depthIn,
     canvasState.items,
+    canvasState.substrateHeightfield,
     canvasState.widthIn,
     commitCanvasItems,
     placementAssetId,
@@ -1441,18 +1541,70 @@ export function useVisualBuilderPageController(
     onPlaceSceneItem: (request) => {
       const nowMs = Date.now();
       const previousPlacement = lastPlacementRef.current;
+      const previousDistanceIn =
+        previousPlacement == null
+          ? Number.POSITIVE_INFINITY
+          : Math.hypot(
+            (request.x - previousPlacement.x) * canvasState.widthIn,
+            (request.y - previousPlacement.y) * canvasState.heightIn,
+            (request.z - previousPlacement.z) * canvasState.depthIn,
+          );
       if (
         previousPlacement &&
         previousPlacement.assetId === request.asset.id &&
         nowMs - previousPlacement.placedAtMs < 160 &&
-        Math.hypot(
-          request.x - previousPlacement.x,
-          request.y - previousPlacement.y,
-          request.z - previousPlacement.z,
-        ) < 0.0025
+        previousDistanceIn < 0.12
       ) {
         return;
       }
+
+      if (toolMode === "brush") {
+        const widthIn = Math.max(1, canvasState.widthIn);
+        const depthIn = Math.max(1, canvasState.depthIn);
+        const heightIn = Math.max(1, canvasState.heightIn);
+        const footprint = resolveAssetFootprintDimensions({
+          widthIn: request.asset.widthIn,
+          depthIn: request.asset.depthIn,
+          scale: request.scale,
+          categorySlug: request.asset.categorySlug,
+          dims: {
+            widthIn,
+            depthIn,
+            heightIn,
+          },
+        });
+        const minSpacingIn = Math.max(
+          BRUSH_MIN_SPACING_IN,
+          Math.min(BRUSH_MAX_SPACING_IN, Math.min(footprint.widthIn, footprint.depthIn) * BRUSH_MIN_SPACING_FACTOR),
+        );
+        const requestPointIn = normalizedToTankPlaneInches({
+          xNorm: request.x,
+          zNorm: request.z,
+          widthIn,
+          depthIn,
+        });
+        const existingEntries = brushPlacementCacheRef.current.get(request.asset.id) ?? [];
+        const freshEntries = existingEntries.filter((entry) => nowMs - entry.placedAtMs <= BRUSH_CACHE_WINDOW_MS);
+        const tooClose = freshEntries.some((entry) => {
+          return Math.hypot(entry.xIn - requestPointIn.xIn, entry.zIn - requestPointIn.zIn) < minSpacingIn;
+        });
+
+        if (tooClose) {
+          brushPlacementCacheRef.current.set(request.asset.id, freshEntries);
+          return;
+        }
+
+        freshEntries.push({
+          xIn: requestPointIn.xIn,
+          zIn: requestPointIn.zIn,
+          placedAtMs: nowMs,
+        });
+        if (freshEntries.length > BRUSH_CACHE_MAX_ENTRIES_PER_ASSET) {
+          freshEntries.splice(0, freshEntries.length - BRUSH_CACHE_MAX_ENTRIES_PER_ASSET);
+        }
+        brushPlacementCacheRef.current.set(request.asset.id, freshEntries);
+      }
+
       lastPlacementRef.current = {
         assetId: request.asset.id,
         x: request.x,
