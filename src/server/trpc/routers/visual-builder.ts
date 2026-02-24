@@ -103,7 +103,7 @@ const sceneSettingsSchema = z.object({
   gridSnapEnabled: z.boolean().optional(),
   measurementsVisible: z.boolean().optional(),
   measurementUnit: z.enum(["in", "cm"]).optional(),
-  tankBackgroundStyle: z.enum(["black", "white", "frosted", "custom"]).optional(),
+  tankBackgroundStyle: z.enum(["none", "black", "white", "frosted", "custom"]).optional(),
   tankBackgroundColor: z.string().regex(/^#[\da-fA-F]{6}$/).optional(),
   cabinetFinishStyle: z.enum(["white", "charcoal", "oak", "walnut", "custom"]).optional(),
   cabinetColor: z.string().regex(/^#[\da-fA-F]{6}$/).optional(),
@@ -557,6 +557,7 @@ function normalizeSceneSettings(
       ? source.qualityTier
       : "auto";
   const tankBackgroundStyle =
+    source.tankBackgroundStyle === "none" ||
     source.tankBackgroundStyle === "black" ||
     source.tankBackgroundStyle === "white" ||
     source.tankBackgroundStyle === "frosted" ||

@@ -348,6 +348,7 @@ function normalizeSceneSettings(input: Partial<VisualSceneSettings> | undefined)
       : "auto";
   const cameraPreset = next.cameraPreset === "free" ? "free" : "step";
   const tankBackgroundStyle =
+    next.tankBackgroundStyle === "none" ||
     next.tankBackgroundStyle === "black" ||
     next.tankBackgroundStyle === "white" ||
     next.tankBackgroundStyle === "frosted" ||
