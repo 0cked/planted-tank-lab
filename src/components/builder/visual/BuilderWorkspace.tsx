@@ -547,7 +547,7 @@ function BuildActionsCard(props: BuilderWorkspaceProps) {
           disabled={props.saving}
           className="rounded-lg border border-[var(--ptl-accent)]/35 bg-[var(--ptl-accent)]/10 px-2 py-1.5 text-[11px] font-semibold text-[var(--ptl-accent)] transition hover:bg-[var(--ptl-accent)]/15 disabled:cursor-wait disabled:opacity-60"
         >
-          {props.saving ? "Saving..." : "Save build"}
+          {props.saving ? "Saving..." : props.canLoadSavedBuilds ? "Save build" : "Save draft"}
         </button>
         <button
           type="button"
@@ -582,7 +582,7 @@ function BuildActionsCard(props: BuilderWorkspaceProps) {
         </div>
         {!props.canLoadSavedBuilds ? (
           <div className="rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[10px] text-[var(--ptl-ink-muted)]">
-            Sign in to load your saved builds.
+            Sign in to load/sync saved builds. Drafts are saved locally in this browser.
           </div>
         ) : props.loadingSavedBuilds ? (
           <div className="rounded-md border border-[var(--ptl-border)] bg-black/[0.02] px-2 py-1.5 text-[10px] text-[var(--ptl-ink-muted)]">

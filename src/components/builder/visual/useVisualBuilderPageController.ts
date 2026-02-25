@@ -734,6 +734,15 @@ export function useVisualBuilderPageController(
 
       setToolMode("move");
       setPlacementAssetId(null);
+
+      if (nextStep === "review") {
+        setSaveState((previous) => {
+          if (!previous.message.toLowerCase().includes("placement mode armed")) {
+            return previous;
+          }
+          return { type: "ok", message: "Review mode: placement paused." };
+        });
+      }
     },
     [cameraEvidence],
   );
