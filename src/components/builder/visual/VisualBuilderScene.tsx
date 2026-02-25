@@ -283,6 +283,15 @@ const WORLD_UP = new THREE.Vector3(0, 1, 0);
 const PLANT_COLORS = ["#356f42", "#4f9f5f", "#2f6f3f", "#77ba65"];
 const ROCK_COLORS = ["#6b767e", "#737f87", "#5b666d", "#87939c"];
 const WOOD_COLORS = ["#6d4f35", "#7f5e3f", "#8a6441", "#5f462f"];
+const CARPETING_PLANT_SLUG_HINTS = [
+  "monte-carlo",
+  "hc-cuba",
+  "glossostigma",
+  "dwarf-hairgrass",
+  "marsilea",
+  "lilaeopsis",
+  "riccia",
+];
 
 const FOOTPRINT_INSET_MAX_FRACTION = 0.34;
 
@@ -1725,6 +1734,22 @@ function hasHardscapeAttach(asset: VisualAsset): boolean {
     placement.includes("hardscape") ||
     placement.includes("epiphyte")
   );
+}
+
+function isCarpetingPlantAsset(asset: VisualAsset): boolean {
+  if (asset.categorySlug !== "plants") return false;
+
+  const placement = asset.plantProfile?.placement?.toLowerCase() ?? "";
+  if (placement.includes("carpet")) return true;
+
+  const slug = asset.slug.toLowerCase();
+  if (CARPETING_PLANT_SLUG_HINTS.some((hint) => slug.includes(hint))) return true;
+
+  const tags = asset.tags?.map((tag) => tag.toLowerCase()) ?? [];
+  if (tags.some((tag) => tag.includes("carpet"))) return true;
+
+  const maxHeightIn = asset.plantProfile?.maxHeightIn;
+  return maxHeightIn != null && maxHeightIn <= 3;
 }
 
 function sanitizeAssetDimension(value: number, fallback: number): number {
@@ -3991,9 +4016,9 @@ function TankBackgroundPanel(props: {
   const halfDepth = props.dims.depthIn * 0.5;
   const panelY = props.dims.heightIn * 0.5;
   const panelThickness = Math.max(0.12, Math.min(0.32, props.dims.depthIn * 0.016));
-  const panelZ = -halfDepth + panelThickness * 0.5 + Math.max(0.03, props.dims.depthIn * 0.006);
-  const panelWidth = props.dims.widthIn * 0.995;
-  const panelHeight = props.dims.heightIn * 0.995;
+  const panelZ = -halfDepth - panelThickness * 0.5 - Math.max(0.03, props.dims.depthIn * 0.006);
+  const panelWidth = props.dims.widthIn * 1.02;
+  const panelHeight = props.dims.heightIn * 1.02;
   const solidColor =
     props.style === "black"
       ? "#151a1f"
@@ -5532,6 +5557,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         ? new THREE.Vector3(worldPoint.x, worldPoint.y, worldPoint.z)
         : new THREE.Vector3(worldPoint.x, substrateY, worldPoint.z);
 
+    const nextIsCarpetingPlant = isCarpetingPlantAsset(asset);
     let valid = footprintBounds.fitsInsideTank;
     for (const placed of renderItems) {
       if (
@@ -5540,6 +5566,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         hasHardscapeAttach(asset) &&
         nextCandidate.anchorItemId === placed.item.id
       ) {
+        continue;
+      }
+      if (isCarpetingPlantAsset(placed.asset) && !nextIsCarpetingPlant) {
+        // Carpeting plants should not block placement of hardscape or taller plants layered above them.
         continue;
       }
 
