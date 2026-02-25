@@ -521,23 +521,16 @@ export function useVisualBuilderPageController(
   const previousStep = currentStepIndex > 0 ? STEP_ORDER[currentStepIndex - 1] : null;
 
   const canContinueCurrentStep =
-    currentStep === "equipment" ? true : currentStep === "review" ? false : stepCompletion[currentStep];
+    currentStep === "review"
+      ? false
+      : currentStep === "equipment" || currentStep === "hardscape" || currentStep === "plants"
+        ? true
+        : stepCompletion[currentStep];
 
-  const canNavigateToStep = useCallback(
-    (target: BuilderStepId): boolean => {
-      const targetIndex = STEP_ORDER.indexOf(target);
-      if (targetIndex <= currentStepIndex) return true;
-
-      for (let index = 0; index < targetIndex; index += 1) {
-        const step = STEP_ORDER[index]!;
-        if (step === "review" || step === "equipment") continue;
-        if (!stepCompletion[step]) return false;
-      }
-
-      return true;
-    },
-    [currentStepIndex, stepCompletion],
-  );
+  const canNavigateToStep = useCallback((target: BuilderStepId): boolean => {
+    void target;
+    return true;
+  }, []);
 
   const filteredAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
