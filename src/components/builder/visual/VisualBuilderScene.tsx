@@ -294,6 +294,7 @@ const CARPETING_PLANT_SLUG_HINTS = [
 ];
 
 const FOOTPRINT_INSET_MAX_FRACTION = 0.34;
+const FOOTPRINT_BOUNDARY_INSET_SCALE = 0.32;
 
 const SUBSTRATE_SURFACE_SCALE = 0.992;
 const SUBSTRATE_DEFAULT_DEPTH_IN = 1.6;
@@ -500,6 +501,7 @@ function buildSilhouetteTopology(geometry: THREE.BufferGeometry): SilhouetteTopo
 function MeshSilhouetteHighlight(props: {
   geometry: THREE.BufferGeometry;
   color: string;
+  clippingPlanes?: ReadonlyArray<THREE.Plane>;
 }) {
   const topology = useMemo(
     () => buildSilhouetteTopology(props.geometry),
@@ -623,6 +625,7 @@ function MeshSilhouetteHighlight(props: {
           depthTest
           depthWrite={false}
           toneMapped={false}
+          clippingPlanes={props.clippingPlanes}
         />
       </lineSegments>
       <mesh geometry={props.geometry} raycast={DISABLED_RAYCAST} renderOrder={95}>
@@ -635,6 +638,7 @@ function MeshSilhouetteHighlight(props: {
           depthWrite={false}
           side={THREE.DoubleSide}
           toneMapped={false}
+          clippingPlanes={props.clippingPlanes}
         />
       </mesh>
     </>
@@ -796,10 +800,26 @@ type AquariumLightRigProfile = {
 
 function clampPointToTankBounds(point: THREE.Vector3, dims: SceneDims): THREE.Vector3 {
   return new THREE.Vector3(
-    THREE.MathUtils.clamp(point.x, -dims.widthIn * 0.49, dims.widthIn * 0.49),
+    THREE.MathUtils.clamp(point.x, -dims.widthIn * 0.5, dims.widthIn * 0.5),
     THREE.MathUtils.clamp(point.y, 0, dims.heightIn),
-    THREE.MathUtils.clamp(point.z, -dims.depthIn * 0.49, dims.depthIn * 0.49),
+    THREE.MathUtils.clamp(point.z, -dims.depthIn * 0.5, dims.depthIn * 0.5),
   );
+}
+
+function buildTankItemClippingPlanes(dims: SceneDims): THREE.Plane[] {
+  const glassInset = Math.max(0.04, Math.min(0.11, Math.min(dims.widthIn, dims.depthIn) * 0.004));
+  const halfClipWidth = Math.max(0.2, dims.widthIn * 0.5 - glassInset);
+  const halfClipDepth = Math.max(0.2, dims.depthIn * 0.5 - glassInset);
+  const clipTopY = Math.max(0.2, dims.heightIn - 0.01);
+
+  return [
+    new THREE.Plane(new THREE.Vector3(1, 0, 0), halfClipWidth),
+    new THREE.Plane(new THREE.Vector3(-1, 0, 0), halfClipWidth),
+    new THREE.Plane(new THREE.Vector3(0, 0, 1), halfClipDepth),
+    new THREE.Plane(new THREE.Vector3(0, 0, -1), halfClipDepth),
+    new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
+    new THREE.Plane(new THREE.Vector3(0, -1, 0), clipTopY),
+  ];
 }
 
 function normalizeFootprintInset(sizeIn: number, radiusIn: number): number {
@@ -867,23 +887,25 @@ function resolveFootprintBounds(params: {
   );
   const xInset = normalizeFootprintInset(safeDims.widthIn, safeHalfX);
   const zInset = normalizeFootprintInset(safeDims.depthIn, safeHalfZ);
+  const effectiveXInset = xInset * FOOTPRINT_BOUNDARY_INSET_SCALE;
+  const effectiveZInset = zInset * FOOTPRINT_BOUNDARY_INSET_SCALE;
   const fitsInsideTank = xInset < 0.5 && zInset < 0.5;
 
   if (!fitsInsideTank) {
     return {
-      minXNorm: 0.05,
-      maxXNorm: 0.95,
-      minZNorm: 0.05,
-      maxZNorm: 0.95,
+      minXNorm: 0.01,
+      maxXNorm: 0.99,
+      minZNorm: 0.01,
+      maxZNorm: 0.99,
       fitsInsideTank,
     };
   }
 
   return {
-    minXNorm: xInset,
-    maxXNorm: 1 - xInset,
-    minZNorm: zInset,
-    maxZNorm: 1 - zInset,
+    minXNorm: effectiveXInset,
+    maxXNorm: 1 - effectiveXInset,
+    minZNorm: effectiveZInset,
+    maxZNorm: 1 - effectiveZInset,
     fitsInsideTank,
   };
 }
@@ -909,8 +931,9 @@ function snapNormalizedToInchGrid(value: number, sizeIn: number): number {
   const clampedValue = clamp01(value);
   const snappedValue = clamp01(Math.round(clampedValue / step) * step);
 
-  const minInterior = step;
-  const maxInterior = 1 - step;
+  const halfStep = step * 0.5;
+  const minInterior = halfStep;
+  const maxInterior = 1 - halfStep;
   if (minInterior >= maxInterior) {
     return 0.5;
   }
@@ -1800,6 +1823,14 @@ function cloneInstancedMaterial(source: THREE.Material | null, fallbackColor: st
   });
   fallback.vertexColors = true;
   return fallback;
+}
+
+function applyMaterialClipping(
+  material: THREE.Material,
+  clippingPlanes: ReadonlyArray<THREE.Plane>,
+): void {
+  material.clippingPlanes = clippingPlanes as THREE.Plane[];
+  material.clipShadows = true;
 }
 
 function collectBuildAssetGlbPaths(params: {
@@ -2853,6 +2884,7 @@ function ProceduralPlantMesh(props: {
   resolvedAsset: ResolvedVisualAsset;
   highlightColor: string | null;
   interactive: boolean;
+  clippingPlanes: ReadonlyArray<THREE.Plane>;
 }) {
   const seed = useMemo(
     () => proceduralPlantSeedFromString(props.renderItem.asset.id),
@@ -2875,8 +2907,9 @@ function ProceduralPlantMesh(props: {
       side: THREE.DoubleSide,
       vertexColors: true,
     });
+    applyMaterialClipping(next, props.clippingPlanes);
     return next;
-  }, []);
+  }, [props.clippingPlanes]);
 
   useEffect(() => {
     return () => {
@@ -2896,7 +2929,11 @@ function ProceduralPlantMesh(props: {
       raycast={props.interactive ? undefined : DISABLED_RAYCAST}
     >
       {props.highlightColor ? (
-        <MeshSilhouetteHighlight geometry={model.geometry} color={props.highlightColor} />
+        <MeshSilhouetteHighlight
+          geometry={model.geometry}
+          color={props.highlightColor}
+          clippingPlanes={props.clippingPlanes}
+        />
       ) : null}
     </mesh>
   );
@@ -2907,6 +2944,7 @@ function ProceduralHardscapeMesh(props: {
   resolvedAsset: ResolvedVisualAsset;
   highlightColor: string | null;
   interactive: boolean;
+  clippingPlanes: ReadonlyArray<THREE.Plane>;
 }) {
   const seed = useMemo(
     () => proceduralHardscapeSeedFromString(props.renderItem.asset.id),
@@ -2929,14 +2967,17 @@ function ProceduralHardscapeMesh(props: {
     [isWood, rockType, seed, woodType],
   );
   const material = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
+    () => {
+      const next = new THREE.MeshStandardMaterial({
         color: "#ffffff",
         roughness: isWood ? 0.88 : 0.82,
         metalness: isWood ? 0.05 : 0.1,
         vertexColors: true,
-      }),
-    [isWood],
+      });
+      applyMaterialClipping(next, props.clippingPlanes);
+      return next;
+    },
+    [isWood, props.clippingPlanes],
   );
 
   useEffect(() => {
@@ -2957,7 +2998,11 @@ function ProceduralHardscapeMesh(props: {
       raycast={props.interactive ? undefined : DISABLED_RAYCAST}
     >
       {props.highlightColor ? (
-        <MeshSilhouetteHighlight geometry={model.geometry} color={props.highlightColor} />
+        <MeshSilhouetteHighlight
+          geometry={model.geometry}
+          color={props.highlightColor}
+          clippingPlanes={props.clippingPlanes}
+        />
       ) : null}
     </mesh>
   );
@@ -2968,6 +3013,7 @@ function ProceduralItemMesh(props: {
   resolvedAsset: ResolvedVisualAsset;
   highlightColor: string | null;
   interactive: boolean;
+  clippingPlanes: ReadonlyArray<THREE.Plane>;
 }) {
   if (props.renderItem.asset.categorySlug === "plants") {
     return (
@@ -2976,6 +3022,7 @@ function ProceduralItemMesh(props: {
         resolvedAsset={props.resolvedAsset}
         highlightColor={props.highlightColor}
         interactive={props.interactive}
+        clippingPlanes={props.clippingPlanes}
       />
     );
   }
@@ -2986,7 +3033,47 @@ function ProceduralItemMesh(props: {
       resolvedAsset={props.resolvedAsset}
       highlightColor={props.highlightColor}
       interactive={props.interactive}
+      clippingPlanes={props.clippingPlanes}
     />
+  );
+}
+
+function LoadedItemAssetMesh(props: {
+  model: LoadedAssetModel;
+  scale: [number, number, number];
+  highlightColor: string | null;
+  interactive: boolean;
+  clippingPlanes: ReadonlyArray<THREE.Plane>;
+}) {
+  const material = useMemo(() => {
+    const cloned = props.model.material.clone();
+    applyMaterialClipping(cloned, props.clippingPlanes);
+    return cloned;
+  }, [props.clippingPlanes, props.model.material]);
+
+  useEffect(() => {
+    return () => {
+      material.dispose();
+    };
+  }, [material]);
+
+  return (
+    <mesh
+      castShadow
+      receiveShadow
+      geometry={props.model.geometry}
+      material={material}
+      scale={props.scale}
+      raycast={props.interactive ? undefined : DISABLED_RAYCAST}
+    >
+      {props.highlightColor ? (
+        <MeshSilhouetteHighlight
+          geometry={props.model.geometry}
+          color={props.highlightColor}
+          clippingPlanes={props.clippingPlanes}
+        />
+      ) : null}
+    </mesh>
   );
 }
 
@@ -2995,6 +3082,7 @@ function ItemMesh(props: {
   selected: boolean;
   hovered: boolean;
   highlightColorOverride?: string | null;
+  clippingPlanes: ReadonlyArray<THREE.Plane>;
   toolMode: BuilderSceneToolMode;
   interactive: boolean;
   onSelect: (id: string | null, selectionMode?: "replace" | "toggle") => void;
@@ -3047,6 +3135,7 @@ function ItemMesh(props: {
       resolvedAsset={resolvedAsset}
       highlightColor={highlightColor}
       interactive={props.interactive}
+      clippingPlanes={props.clippingPlanes}
     />
   );
 
@@ -3088,18 +3177,13 @@ function ItemMesh(props: {
               {(model) => {
                 const scale = loadedAssetAxisScale(props.renderItem.size, model.bounds);
                 return (
-                  <mesh
-                    castShadow
-                    receiveShadow
-                    geometry={model.geometry}
-                    material={model.material}
+                  <LoadedItemAssetMesh
+                    model={model}
                     scale={scale}
-                    raycast={props.interactive ? undefined : DISABLED_RAYCAST}
-                  >
-                    {highlightColor ? (
-                      <MeshSilhouetteHighlight geometry={model.geometry} color={highlightColor} />
-                    ) : null}
-                  </mesh>
+                    highlightColor={highlightColor}
+                    interactive={props.interactive}
+                    clippingPlanes={props.clippingPlanes}
+                  />
                 );
               }}
             </AssetLoader>
@@ -3259,6 +3343,7 @@ function InstancedPlantRenderer(props: {
 function LoadedPlantInstancedRenderer(props: {
   group: PlantInstancedGroup;
   model: LoadedAssetModel;
+  clippingPlanes: ReadonlyArray<THREE.Plane>;
   interactive: boolean;
   selectedItemIds: ReadonlySet<string>;
   hoveredItemId: string | null;
@@ -3281,8 +3366,12 @@ function LoadedPlantInstancedRenderer(props: {
 }) {
   const palette = useMemo(() => materialPalette(props.group.asset), [props.group.asset]);
   const material = useMemo(
-    () => cloneInstancedMaterial(props.model.material, palette[1] ?? PLANT_COLORS[1]),
-    [palette, props.model.material],
+    () => {
+      const cloned = cloneInstancedMaterial(props.model.material, palette[1] ?? PLANT_COLORS[1]);
+      applyMaterialClipping(cloned, props.clippingPlanes);
+      return cloned;
+    },
+    [palette, props.clippingPlanes, props.model.material],
   );
 
   useEffect(() => {
@@ -3315,6 +3404,7 @@ function LoadedPlantInstancedRenderer(props: {
 
 function PlantInstancedGroupMesh(props: {
   group: PlantInstancedGroup;
+  clippingPlanes: ReadonlyArray<THREE.Plane>;
   interactive: boolean;
   selectedItemIds: ReadonlySet<string>;
   hoveredItemId: string | null;
@@ -3351,15 +3441,18 @@ function PlantInstancedGroupMesh(props: {
     [proceduralSeed, proceduralType],
   );
   const fallbackMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
+    () => {
+      const next = new THREE.MeshStandardMaterial({
         color: "#ffffff",
         roughness: 0.76,
         metalness: 0.04,
         side: THREE.DoubleSide,
         vertexColors: true,
-      }),
-    [],
+      });
+      applyMaterialClipping(next, props.clippingPlanes);
+      return next;
+    },
+    [props.clippingPlanes],
   );
 
   useEffect(() => {
@@ -3408,6 +3501,7 @@ function PlantInstancedGroupMesh(props: {
             <LoadedPlantInstancedRenderer
               group={props.group}
               model={model}
+              clippingPlanes={props.clippingPlanes}
               interactive={props.interactive}
               selectedItemIds={props.selectedItemIds}
               hoveredItemId={props.hoveredItemId}
@@ -4949,6 +5043,7 @@ function TankShell(props: {
 function PlacementPreview(props: {
   renderItem: SceneRenderItem;
   valid: boolean;
+  clippingPlanes: ReadonlyArray<THREE.Plane>;
 }) {
   const color = props.valid ? "#8ee8c5" : "#ef7f7f";
   const ringRadius = Math.max(
@@ -4963,6 +5058,7 @@ function PlacementPreview(props: {
         selected={false}
         hovered={false}
         highlightColorOverride={color}
+        clippingPlanes={props.clippingPlanes}
         toolMode="place"
         interactive={false}
         onSelect={() => { }}
@@ -5289,6 +5385,10 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     enabled: props.postprocessingEnabled,
     qualityTier: props.qualityTier,
   });
+  const tankItemClippingPlanes = useMemo(
+    () => buildTankItemClippingPlanes(dims),
+    [dims],
+  );
 
   const { singleRenderItems, plantInstancedGroups } = useMemo(() => {
     const singles: SceneRenderItem[] = [];
@@ -6351,6 +6451,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
             renderItem={renderItem}
             selected={selectedItemIdSet.has(renderItem.item.id)}
             hovered={renderItem.item.id === hoveredItemId}
+            clippingPlanes={tankItemClippingPlanes}
             toolMode={props.toolMode}
             interactive={itemInteractionsEnabled}
             onSelect={props.onSelectItem}
@@ -6365,6 +6466,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         <PlantInstancedGroupMesh
           key={`${group.asset.id}:${group.items.length}`}
           group={group}
+          clippingPlanes={tankItemClippingPlanes}
           interactive={itemInteractionsEnabled}
           selectedItemIds={selectedItemIdSet}
           hoveredItemId={hoveredItemId}
@@ -6400,6 +6502,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         <PlacementPreview
           renderItem={placementPreviewRenderItem}
           valid={placementValidity.valid}
+          clippingPlanes={tankItemClippingPlanes}
         />
       ) : null}
 
@@ -6470,6 +6573,9 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
       onCreated={({ gl }) => {
         if (typeof (gl as THREE.WebGLRenderer).setClearColor === "function") {
           (gl as THREE.WebGLRenderer).setClearColor("#cfe6f2", 1);
+        }
+        if ("localClippingEnabled" in (gl as THREE.WebGLRenderer)) {
+          (gl as THREE.WebGLRenderer).localClippingEnabled = true;
         }
         if ("toneMapping" in (gl as THREE.WebGLRenderer)) {
           (gl as THREE.WebGLRenderer).toneMapping = THREE.ACESFilmicToneMapping;
