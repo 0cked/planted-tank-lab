@@ -297,10 +297,8 @@ export function useVisualBuilderPageController(
   const setSubstrateMaterialGrid = useVisualBuilderStore((state) => state.setSubstrateMaterialGrid);
   const beginSubstrateStroke = useVisualBuilderStore((state) => state.beginSubstrateStroke);
   const endSubstrateStroke = useVisualBuilderStore((state) => state.endSubstrateStroke);
-  const undoSubstrateStroke = useVisualBuilderStore((state) => state.undoSubstrateStroke);
-  const redoSubstrateStroke = useVisualBuilderStore((state) => state.redoSubstrateStroke);
-  const undoCanvasItems = useVisualBuilderStore((state) => state.undoCanvasItems);
-  const redoCanvasItems = useVisualBuilderStore((state) => state.redoCanvasItems);
+  const undoBuilderAction = useVisualBuilderStore((state) => state.undoBuilderAction);
+  const redoBuilderAction = useVisualBuilderStore((state) => state.redoBuilderAction);
   const setSceneSettings = useVisualBuilderStore((state) => state.setSceneSettings);
   const setSelectedProduct = useVisualBuilderStore((state) => state.setSelectedProduct);
   const setCompatibilityEnabled = useVisualBuilderStore((state) => state.setCompatibilityEnabled);
@@ -1114,19 +1112,11 @@ export function useVisualBuilderPageController(
       if (hasCommandModifier && !hasBlockedModifier && keyLower === "z") {
         event.preventDefault();
         if (event.shiftKey) {
-          if (currentStep === "substrate") {
-            redoSubstrateStroke();
-          } else {
-            redoCanvasItems();
-          }
+          redoBuilderAction();
           return;
         }
 
-        if (currentStep === "substrate") {
-          undoSubstrateStroke();
-        } else {
-          undoCanvasItems();
-        }
+        undoBuilderAction();
         return;
       }
 
@@ -1167,13 +1157,17 @@ export function useVisualBuilderPageController(
 
       if ((event.key === "Delete" || event.key === "Backspace") && selectedItemIds.length > 0) {
         event.preventDefault();
+        const previousItems = canvasState.items;
         removeCanvasItem(selectedItemIds);
+        commitCanvasItems(previousItems);
         return;
       }
 
       if (keyLower === "d" && selectedItemIds.length > 0) {
         event.preventDefault();
+        const previousItems = canvasState.items;
         duplicateCanvasItem(selectedItemIds);
+        commitCanvasItems(previousItems);
         return;
       }
 
@@ -1182,9 +1176,11 @@ export function useVisualBuilderPageController(
         if (!activeItem) return;
 
         event.preventDefault();
+        const previousItems = canvasState.items;
         updateCanvasItem(selectedItemId, {
           rotation: clampRotationDeg(activeItem.rotation + 45),
         });
+        commitCanvasItems(previousItems);
         return;
       }
 
@@ -1202,15 +1198,14 @@ export function useVisualBuilderPageController(
     duplicateCanvasItem,
     placementAssetId,
     removeCanvasItem,
-    redoCanvasItems,
-    redoSubstrateStroke,
+    commitCanvasItems,
+    redoBuilderAction,
     selectAllCanvasItems,
     selectedItemId,
     selectedItemIds,
     showShortcutsOverlay,
     toolMode,
-    undoCanvasItems,
-    undoSubstrateStroke,
+    undoBuilderAction,
     updateCanvasItem,
   ]);
 

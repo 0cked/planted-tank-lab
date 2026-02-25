@@ -399,4 +399,106 @@ describe("visual-builder-store canvas item actions", () => {
     expect(hydratedState.canvasState.heightIn).toBe(16);
     expect(hydratedState.canvasState.depthIn).toBe(20);
   });
+
+  it("shares one undo stack across placement, move, delete, and redo replay", () => {
+    const store = useVisualBuilderStore.getState();
+
+    const placeItem = (x: number, z: number) => {
+      const previousItems = useVisualBuilderStore.getState().canvasState.items;
+      store.addCanvasItemFromAsset(TEST_ASSET, {
+        x,
+        y: 0,
+        z,
+        scale: 1,
+        rotation: 0,
+        anchorType: "substrate",
+        depthZone: "midground",
+      });
+      store.commitCanvasItems(previousItems);
+    };
+
+    placeItem(0.2, 0.2);
+    placeItem(0.45, 0.5);
+    placeItem(0.72, 0.7);
+
+    const afterPlacement = useVisualBuilderStore.getState();
+    expect(afterPlacement.canvasState.items).toHaveLength(3);
+    const [firstItem, , thirdItem] = afterPlacement.canvasState.items;
+    expect(firstItem).toBeDefined();
+    expect(thirdItem).toBeDefined();
+
+    const originalFirstX = firstItem!.x;
+    const previousItemsBeforeMove = useVisualBuilderStore.getState().canvasState.items;
+    store.updateCanvasItem(firstItem!.id, { x: 0.58 });
+    store.commitCanvasItems(previousItemsBeforeMove);
+
+    const previousItemsBeforeDelete = useVisualBuilderStore.getState().canvasState.items;
+    store.removeCanvasItem(thirdItem!.id);
+    store.commitCanvasItems(previousItemsBeforeDelete);
+
+    expect(useVisualBuilderStore.getState().canvasState.items).toHaveLength(2);
+
+    store.undoBuilderAction();
+    const afterUndoDelete = useVisualBuilderStore.getState();
+    expect(afterUndoDelete.canvasState.items).toHaveLength(3);
+    expect(afterUndoDelete.canvasState.items.some((item) => item.id === thirdItem!.id)).toBe(true);
+
+    store.undoBuilderAction();
+    const afterUndoMove = useVisualBuilderStore.getState();
+    const firstAfterUndoMove = afterUndoMove.canvasState.items.find((item) => item.id === firstItem!.id);
+    expect(firstAfterUndoMove).toBeDefined();
+    expect(firstAfterUndoMove!.x).toBeCloseTo(originalFirstX, 4);
+
+    store.undoBuilderAction();
+    const afterUndoThirdPlacement = useVisualBuilderStore.getState();
+    expect(afterUndoThirdPlacement.canvasState.items).toHaveLength(2);
+    expect(afterUndoThirdPlacement.canvasState.items.some((item) => item.id === thirdItem!.id)).toBe(false);
+
+    store.redoBuilderAction();
+    const afterRedoThirdPlacement = useVisualBuilderStore.getState();
+    expect(afterRedoThirdPlacement.canvasState.items).toHaveLength(3);
+    expect(afterRedoThirdPlacement.canvasState.items.some((item) => item.id === thirdItem!.id)).toBe(true);
+
+    store.redoBuilderAction();
+    const afterRedoMove = useVisualBuilderStore.getState();
+    const firstAfterRedoMove = afterRedoMove.canvasState.items.find((item) => item.id === firstItem!.id);
+    expect(firstAfterRedoMove).toBeDefined();
+    expect(firstAfterRedoMove!.x).toBeCloseTo(0.58, 4);
+  });
+
+  it("includes tank size changes in the shared undo stack", () => {
+    const store = useVisualBuilderStore.getState();
+    const initial = {
+      tankId: store.tankId,
+      widthIn: store.canvasState.widthIn,
+      heightIn: store.canvasState.heightIn,
+      depthIn: store.canvasState.depthIn,
+    };
+
+    store.setTank("tank-history-test", {
+      widthIn: 48,
+      heightIn: 21,
+      depthIn: 18,
+    });
+
+    const afterChange = useVisualBuilderStore.getState();
+    expect(afterChange.tankId).toBe("tank-history-test");
+    expect(afterChange.canvasState.widthIn).toBe(48);
+    expect(afterChange.canvasState.heightIn).toBe(21);
+    expect(afterChange.canvasState.depthIn).toBe(18);
+
+    store.undoBuilderAction();
+    const afterUndo = useVisualBuilderStore.getState();
+    expect(afterUndo.tankId).toBe(initial.tankId);
+    expect(afterUndo.canvasState.widthIn).toBe(initial.widthIn);
+    expect(afterUndo.canvasState.heightIn).toBe(initial.heightIn);
+    expect(afterUndo.canvasState.depthIn).toBe(initial.depthIn);
+
+    store.redoBuilderAction();
+    const afterRedo = useVisualBuilderStore.getState();
+    expect(afterRedo.tankId).toBe("tank-history-test");
+    expect(afterRedo.canvasState.widthIn).toBe(48);
+    expect(afterRedo.canvasState.heightIn).toBe(21);
+    expect(afterRedo.canvasState.depthIn).toBe(18);
+  });
 });

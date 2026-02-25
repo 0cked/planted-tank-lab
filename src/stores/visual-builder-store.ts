@@ -59,6 +59,27 @@ type CanvasDimensions = {
   depthIn: number;
 };
 
+type TankStateSnapshot = {
+  tankId: string | null;
+  canvasState: VisualCanvasState;
+  selectedItemIds: string[];
+};
+
+type BuilderHistoryCommand =
+  | {
+    kind: "substrate-stroke";
+    diff: SubstrateHeightfieldDiff;
+  }
+  | {
+    kind: "canvas-items";
+    diff: CanvasItemDiff;
+  }
+  | {
+    kind: "tank-state";
+    before: TankStateSnapshot;
+    after: TankStateSnapshot;
+  };
+
 type VisualBuilderState = {
   buildId: string | null;
   shareSlug: string | null;
@@ -77,6 +98,8 @@ type VisualBuilderState = {
 
   itemUndoStack: CanvasItemDiff[];
   itemRedoStack: CanvasItemDiff[];
+  historyUndoStack: BuilderHistoryCommand[];
+  historyRedoStack: BuilderHistoryCommand[];
 
   // Single-select categories (light/filter/co2/...)
   selectedProductByCategory: Record<string, string | undefined>;
@@ -102,6 +125,8 @@ type VisualBuilderState = {
   commitCanvasItems: (previousItems: VisualCanvasItem[]) => void;
   undoCanvasItems: () => void;
   redoCanvasItems: () => void;
+  undoBuilderAction: () => void;
+  redoBuilderAction: () => void;
   setSceneSettings: (patch: Partial<VisualSceneSettings>) => void;
 
   setCompatibilityEnabled: (value: boolean) => void;
@@ -659,6 +684,55 @@ const initialCanvasState: VisualCanvasState = {
   items: [],
 };
 
+const MAX_BUILDER_HISTORY_ENTRIES = 80;
+
+function cloneCanvasItem(item: VisualCanvasItem): VisualCanvasItem {
+  return {
+    ...item,
+    constraints: { ...item.constraints },
+    transform: {
+      position: [...item.transform.position] as [number, number, number],
+      rotation: [...item.transform.rotation] as [number, number, number],
+      scale: [...item.transform.scale] as [number, number, number],
+    },
+  };
+}
+
+function cloneCanvasState(canvasState: VisualCanvasState): VisualCanvasState {
+  return {
+    ...canvasState,
+    substrateHeightfield: canvasState.substrateHeightfield.slice(),
+    substrateMaterialGrid: canvasState.substrateMaterialGrid.slice(),
+    sceneSettings: { ...canvasState.sceneSettings },
+    items: canvasState.items.map(cloneCanvasItem),
+  };
+}
+
+function createTankStateSnapshot(state: {
+  tankId: string | null;
+  canvasState: VisualCanvasState;
+  selectedItemId: string | null;
+  selectedItemIds: string[];
+}): TankStateSnapshot {
+  return {
+    tankId: state.tankId,
+    canvasState: cloneCanvasState(state.canvasState),
+    selectedItemIds: resolveSelectionIds(state),
+  };
+}
+
+function appendBuilderHistoryEntry(
+  entries: BuilderHistoryCommand[],
+  command: BuilderHistoryCommand,
+): BuilderHistoryCommand[] {
+  const nextEntries = [...entries, command];
+  if (nextEntries.length <= MAX_BUILDER_HISTORY_ENTRIES) {
+    return nextEntries;
+  }
+
+  return nextEntries.slice(nextEntries.length - MAX_BUILDER_HISTORY_ENTRIES);
+}
+
 const initialState = {
   buildId: null as string | null,
   shareSlug: null as string | null,
@@ -675,6 +749,8 @@ const initialState = {
   activeSubstrateStrokeStart: null as SubstrateHeightfield | null,
   itemUndoStack: [] as CanvasItemDiff[],
   itemRedoStack: [] as CanvasItemDiff[],
+  historyUndoStack: [] as BuilderHistoryCommand[],
+  historyRedoStack: [] as BuilderHistoryCommand[],
   selectedProductByCategory: {} as Record<string, string | undefined>,
   compatibilityEnabled: true,
   flags: {
@@ -713,20 +789,163 @@ function clearItemHistoryState(): {
   };
 }
 
-function commitActiveSubstrateStroke(state: {
-  canvasState: VisualCanvasState;
+function clearBuilderHistoryState(): {
+  historyUndoStack: BuilderHistoryCommand[];
+  historyRedoStack: BuilderHistoryCommand[];
+} {
+  return {
+    historyUndoStack: [],
+    historyRedoStack: [],
+  };
+}
+
+function pushHistoryCommandState(
+  state: {
+    substrateUndoStack: SubstrateHeightfieldDiff[];
+    substrateRedoStack: SubstrateHeightfieldDiff[];
+    itemUndoStack: CanvasItemDiff[];
+    itemRedoStack: CanvasItemDiff[];
+    historyUndoStack: BuilderHistoryCommand[];
+    historyRedoStack: BuilderHistoryCommand[];
+  },
+  command: BuilderHistoryCommand,
+): {
   substrateUndoStack: SubstrateHeightfieldDiff[];
   substrateRedoStack: SubstrateHeightfieldDiff[];
+  itemUndoStack: CanvasItemDiff[];
+  itemRedoStack: CanvasItemDiff[];
+  historyUndoStack: BuilderHistoryCommand[];
+  historyRedoStack: BuilderHistoryCommand[];
+} {
+  const sharedState = {
+    historyUndoStack: appendBuilderHistoryEntry(state.historyUndoStack, command),
+    historyRedoStack: [] as BuilderHistoryCommand[],
+  };
+
+  if (command.kind === "substrate-stroke") {
+    return {
+      substrateUndoStack: appendSubstrateUndoEntry(state.substrateUndoStack, command.diff),
+      substrateRedoStack: [],
+      itemUndoStack: state.itemUndoStack,
+      itemRedoStack: state.itemRedoStack,
+      ...sharedState,
+    };
+  }
+
+  if (command.kind === "canvas-items") {
+    return {
+      substrateUndoStack: state.substrateUndoStack,
+      substrateRedoStack: state.substrateRedoStack,
+      itemUndoStack: appendItemUndoEntry(state.itemUndoStack, command.diff),
+      itemRedoStack: [],
+      ...sharedState,
+    };
+  }
+
+  return {
+    substrateUndoStack: state.substrateUndoStack,
+    substrateRedoStack: state.substrateRedoStack,
+    itemUndoStack: state.itemUndoStack,
+    itemRedoStack: state.itemRedoStack,
+    ...sharedState,
+  };
+}
+
+function applyHistoryCommand(params: {
+  state: {
+    tankId: string | null;
+    canvasState: VisualCanvasState;
+    selectedItemId: string | null;
+    selectedItemIds: string[];
+  };
+  command: BuilderHistoryCommand;
+  direction: "undo" | "redo";
+}):
+  | {
+    tankId?: string | null;
+    canvasState: VisualCanvasState;
+    selectedItemId?: string | null;
+    selectedItemIds?: string[];
+  }
+  | {
+    canvasState: VisualCanvasState;
+    selectedItemId?: string | null;
+    selectedItemIds?: string[];
+  } {
+  if (params.command.kind === "substrate-stroke") {
+    const nextHeightfield = applySubstrateHeightfieldDiff({
+      base: params.state.canvasState.substrateHeightfield,
+      diff: params.command.diff,
+      tankHeightIn: params.state.canvasState.heightIn,
+      invert: params.direction === "undo",
+    });
+
+    return {
+      canvasState: {
+        ...params.state.canvasState,
+        substrateHeightfield: nextHeightfield,
+      },
+    };
+  }
+
+  if (params.command.kind === "canvas-items") {
+    const nextItems = applyItemDiff(
+      params.state.canvasState.items,
+      params.command.diff,
+      params.direction,
+    );
+    const currentSelectedIds = resolveSelectionIds(params.state);
+    const nextSelectedIds = normalizeSelectedItemIds(currentSelectedIds, nextItems);
+
+    return {
+      canvasState: {
+        ...params.state.canvasState,
+        items: nextItems,
+      },
+      ...selectionStateFromIds(nextSelectedIds),
+    };
+  }
+
+  const snapshot = params.direction === "undo" ? params.command.before : params.command.after;
+  const nextCanvasState = cloneCanvasState(snapshot.canvasState);
+  const nextSelectedIds = normalizeSelectedItemIds(snapshot.selectedItemIds, nextCanvasState.items);
+
+  return {
+    tankId: snapshot.tankId,
+    canvasState: nextCanvasState,
+    ...selectionStateFromIds(nextSelectedIds),
+  };
+}
+
+function commitActiveSubstrateStroke(state: {
+  tankId: string | null;
+  canvasState: VisualCanvasState;
+  selectedItemId: string | null;
+  selectedItemIds: string[];
+  substrateUndoStack: SubstrateHeightfieldDiff[];
+  substrateRedoStack: SubstrateHeightfieldDiff[];
+  itemUndoStack: CanvasItemDiff[];
+  itemRedoStack: CanvasItemDiff[];
+  historyUndoStack: BuilderHistoryCommand[];
+  historyRedoStack: BuilderHistoryCommand[];
   activeSubstrateStrokeStart: SubstrateHeightfield | null;
 }): {
   substrateUndoStack: SubstrateHeightfieldDiff[];
   substrateRedoStack: SubstrateHeightfieldDiff[];
+  itemUndoStack: CanvasItemDiff[];
+  itemRedoStack: CanvasItemDiff[];
+  historyUndoStack: BuilderHistoryCommand[];
+  historyRedoStack: BuilderHistoryCommand[];
   activeSubstrateStrokeStart: SubstrateHeightfield | null;
 } {
   if (!state.activeSubstrateStrokeStart) {
     return {
       substrateUndoStack: state.substrateUndoStack,
       substrateRedoStack: state.substrateRedoStack,
+      itemUndoStack: state.itemUndoStack,
+      itemRedoStack: state.itemRedoStack,
+      historyUndoStack: state.historyUndoStack,
+      historyRedoStack: state.historyRedoStack,
       activeSubstrateStrokeStart: null,
     };
   }
@@ -741,13 +960,21 @@ function commitActiveSubstrateStroke(state: {
     return {
       substrateUndoStack: state.substrateUndoStack,
       substrateRedoStack: state.substrateRedoStack,
+      itemUndoStack: state.itemUndoStack,
+      itemRedoStack: state.itemRedoStack,
+      historyUndoStack: state.historyUndoStack,
+      historyRedoStack: state.historyRedoStack,
       activeSubstrateStrokeStart: null,
     };
   }
 
+  const command: BuilderHistoryCommand = {
+    kind: "substrate-stroke",
+    diff,
+  };
+
   return {
-    substrateUndoStack: appendSubstrateUndoEntry(state.substrateUndoStack, diff),
-    substrateRedoStack: [],
+    ...pushHistoryCommandState(state, command),
     activeSubstrateStrokeStart: null,
   };
 }
@@ -777,35 +1004,96 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
       setPublic: (value) => set({ isPublic: value }),
 
       setTank: (tankId, dims) =>
-        set((state) => ({
-          tankId,
-          canvasState: normalizeCanvasState({
-            widthIn: Math.max(1, dims.widthIn),
-            heightIn: Math.max(1, dims.heightIn),
-            depthIn: Math.max(1, dims.depthIn),
+        set((state) => {
+          const nextWidthIn = Math.max(1, dims.widthIn);
+          const nextHeightIn = Math.max(1, dims.heightIn);
+          const nextDepthIn = Math.max(1, dims.depthIn);
+          if (
+            state.tankId === tankId &&
+            state.canvasState.widthIn === nextWidthIn &&
+            state.canvasState.heightIn === nextHeightIn &&
+            state.canvasState.depthIn === nextDepthIn
+          ) {
+            return state;
+          }
+
+          const nextCanvasState = normalizeCanvasState({
+            widthIn: nextWidthIn,
+            heightIn: nextHeightIn,
+            depthIn: nextDepthIn,
             substrateHeightfield: state.canvasState.substrateHeightfield,
             substrateMaterialGrid: state.canvasState.substrateMaterialGrid,
             sceneSettings: state.canvasState.sceneSettings,
             items: state.canvasState.items,
-          }),
-          ...clearSubstrateHistoryState(),
-          ...clearItemHistoryState(),
-        })),
+          });
+
+          const currentSelectedIds = resolveSelectionIds(state);
+          const nextSelectedIds = normalizeSelectedItemIds(currentSelectedIds, nextCanvasState.items);
+          const beforeSnapshot = createTankStateSnapshot(state);
+          const afterSnapshot: TankStateSnapshot = {
+            tankId,
+            canvasState: cloneCanvasState(nextCanvasState),
+            selectedItemIds: nextSelectedIds,
+          };
+          const command: BuilderHistoryCommand = {
+            kind: "tank-state",
+            before: beforeSnapshot,
+            after: afterSnapshot,
+          };
+
+          return {
+            tankId,
+            canvasState: nextCanvasState,
+            ...selectionStateFromIds(nextSelectedIds),
+            ...pushHistoryCommandState(state, command),
+            activeSubstrateStrokeStart: null,
+          };
+        }),
 
       setCanvasDimensions: (dims) =>
-        set((state) => ({
-          canvasState: normalizeCanvasState({
-            widthIn: Math.max(1, dims.widthIn),
-            heightIn: Math.max(1, dims.heightIn),
-            depthIn: Math.max(1, dims.depthIn),
+        set((state) => {
+          const nextWidthIn = Math.max(1, dims.widthIn);
+          const nextHeightIn = Math.max(1, dims.heightIn);
+          const nextDepthIn = Math.max(1, dims.depthIn);
+          if (
+            state.canvasState.widthIn === nextWidthIn &&
+            state.canvasState.heightIn === nextHeightIn &&
+            state.canvasState.depthIn === nextDepthIn
+          ) {
+            return state;
+          }
+
+          const nextCanvasState = normalizeCanvasState({
+            widthIn: nextWidthIn,
+            heightIn: nextHeightIn,
+            depthIn: nextDepthIn,
             substrateHeightfield: state.canvasState.substrateHeightfield,
             substrateMaterialGrid: state.canvasState.substrateMaterialGrid,
             sceneSettings: state.canvasState.sceneSettings,
             items: state.canvasState.items,
-          }),
-          ...clearSubstrateHistoryState(),
-          ...clearItemHistoryState(),
-        })),
+          });
+
+          const currentSelectedIds = resolveSelectionIds(state);
+          const nextSelectedIds = normalizeSelectedItemIds(currentSelectedIds, nextCanvasState.items);
+          const beforeSnapshot = createTankStateSnapshot(state);
+          const afterSnapshot: TankStateSnapshot = {
+            tankId: state.tankId,
+            canvasState: cloneCanvasState(nextCanvasState),
+            selectedItemIds: nextSelectedIds,
+          };
+          const command: BuilderHistoryCommand = {
+            kind: "tank-state",
+            before: beforeSnapshot,
+            after: afterSnapshot,
+          };
+
+          return {
+            canvasState: nextCanvasState,
+            ...selectionStateFromIds(nextSelectedIds),
+            ...pushHistoryCommandState(state, command),
+            activeSubstrateStrokeStart: null,
+          };
+        }),
 
       setSubstrateHeightfield: (next) =>
         set((state) => {
@@ -819,9 +1107,29 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             items: state.canvasState.items,
           });
 
+          if (state.activeSubstrateStrokeStart) {
+            return {
+              canvasState: nextCanvasState,
+            };
+          }
+
+          const diff = createSubstrateHeightfieldDiff({
+            previous: state.canvasState.substrateHeightfield,
+            next: nextCanvasState.substrateHeightfield,
+            tankHeightIn: state.canvasState.heightIn,
+          });
+          if (!diff) {
+            return state;
+          }
+
+          const command: BuilderHistoryCommand = {
+            kind: "substrate-stroke",
+            diff,
+          };
+
           return {
             canvasState: nextCanvasState,
-            ...(state.activeSubstrateStrokeStart ? {} : clearSubstrateHistoryState()),
+            ...pushHistoryCommandState(state, command),
           };
         }),
 
@@ -855,110 +1163,150 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
           return commitActiveSubstrateStroke(state);
         }),
 
-      undoSubstrateStroke: () =>
+      undoBuilderAction: () =>
         set((state) => {
           const committedHistory = commitActiveSubstrateStroke(state);
-          const diff = committedHistory.substrateUndoStack[committedHistory.substrateUndoStack.length - 1];
-
-          if (!diff) {
+          const workingState = {
+            ...state,
+            ...committedHistory,
+          };
+          const command = workingState.historyUndoStack[workingState.historyUndoStack.length - 1];
+          if (!command) {
             if (!state.activeSubstrateStrokeStart) return state;
             return committedHistory;
           }
 
-          const previousHeightfield = applySubstrateHeightfieldDiff({
-            base: state.canvasState.substrateHeightfield,
-            diff,
-            tankHeightIn: state.canvasState.heightIn,
-            invert: true,
+          const applied = applyHistoryCommand({
+            state: workingState,
+            command,
+            direction: "undo",
           });
+          const historyState = {
+            historyUndoStack: workingState.historyUndoStack.slice(0, -1),
+            historyRedoStack: appendBuilderHistoryEntry(workingState.historyRedoStack, command),
+          };
+
+          if (command.kind === "substrate-stroke") {
+            return {
+              ...applied,
+              ...historyState,
+              substrateUndoStack: workingState.substrateUndoStack.slice(0, -1),
+              substrateRedoStack: appendSubstrateUndoEntry(workingState.substrateRedoStack, command.diff),
+              itemUndoStack: workingState.itemUndoStack,
+              itemRedoStack: workingState.itemRedoStack,
+              activeSubstrateStrokeStart: null,
+            };
+          }
+
+          if (command.kind === "canvas-items") {
+            return {
+              ...applied,
+              ...historyState,
+              substrateUndoStack: workingState.substrateUndoStack,
+              substrateRedoStack: workingState.substrateRedoStack,
+              itemUndoStack: workingState.itemUndoStack.slice(0, -1),
+              itemRedoStack: appendItemUndoEntry(workingState.itemRedoStack, command.diff),
+              activeSubstrateStrokeStart: null,
+            };
+          }
 
           return {
-            canvasState: {
-              ...state.canvasState,
-              substrateHeightfield: previousHeightfield,
-            },
-            substrateUndoStack: committedHistory.substrateUndoStack.slice(0, -1),
-            substrateRedoStack: appendSubstrateUndoEntry(committedHistory.substrateRedoStack, diff),
+            ...applied,
+            ...historyState,
+            substrateUndoStack: workingState.substrateUndoStack,
+            substrateRedoStack: workingState.substrateRedoStack,
+            itemUndoStack: workingState.itemUndoStack,
+            itemRedoStack: workingState.itemRedoStack,
             activeSubstrateStrokeStart: null,
           };
         }),
 
-      redoSubstrateStroke: () =>
+      redoBuilderAction: () =>
         set((state) => {
           const committedHistory = commitActiveSubstrateStroke(state);
-          const diff = committedHistory.substrateRedoStack[committedHistory.substrateRedoStack.length - 1];
-
-          if (!diff) {
+          const workingState = {
+            ...state,
+            ...committedHistory,
+          };
+          const command = workingState.historyRedoStack[workingState.historyRedoStack.length - 1];
+          if (!command) {
             if (!state.activeSubstrateStrokeStart) return state;
             return committedHistory;
           }
 
-          const nextHeightfield = applySubstrateHeightfieldDiff({
-            base: state.canvasState.substrateHeightfield,
-            diff,
-            tankHeightIn: state.canvasState.heightIn,
+          const applied = applyHistoryCommand({
+            state: workingState,
+            command,
+            direction: "redo",
           });
+          const historyState = {
+            historyUndoStack: appendBuilderHistoryEntry(workingState.historyUndoStack, command),
+            historyRedoStack: workingState.historyRedoStack.slice(0, -1),
+          };
+
+          if (command.kind === "substrate-stroke") {
+            return {
+              ...applied,
+              ...historyState,
+              substrateUndoStack: appendSubstrateUndoEntry(workingState.substrateUndoStack, command.diff),
+              substrateRedoStack: workingState.substrateRedoStack.slice(0, -1),
+              itemUndoStack: workingState.itemUndoStack,
+              itemRedoStack: workingState.itemRedoStack,
+              activeSubstrateStrokeStart: null,
+            };
+          }
+
+          if (command.kind === "canvas-items") {
+            return {
+              ...applied,
+              ...historyState,
+              substrateUndoStack: workingState.substrateUndoStack,
+              substrateRedoStack: workingState.substrateRedoStack,
+              itemUndoStack: appendItemUndoEntry(workingState.itemUndoStack, command.diff),
+              itemRedoStack: workingState.itemRedoStack.slice(0, -1),
+              activeSubstrateStrokeStart: null,
+            };
+          }
 
           return {
-            canvasState: {
-              ...state.canvasState,
-              substrateHeightfield: nextHeightfield,
-            },
-            substrateUndoStack: appendSubstrateUndoEntry(committedHistory.substrateUndoStack, diff),
-            substrateRedoStack: committedHistory.substrateRedoStack.slice(0, -1),
+            ...applied,
+            ...historyState,
+            substrateUndoStack: workingState.substrateUndoStack,
+            substrateRedoStack: workingState.substrateRedoStack,
+            itemUndoStack: workingState.itemUndoStack,
+            itemRedoStack: workingState.itemRedoStack,
             activeSubstrateStrokeStart: null,
           };
         }),
+
+      undoSubstrateStroke: () => {
+        get().undoBuilderAction();
+      },
+
+      redoSubstrateStroke: () => {
+        get().redoBuilderAction();
+      },
 
       commitCanvasItems: (previousItems) =>
         set((state) => {
           const diff = createItemDiff({ previous: previousItems, next: state.canvasState.items });
           if (!diff) return state;
+          const command: BuilderHistoryCommand = {
+            kind: "canvas-items",
+            diff,
+          };
           return {
-            itemUndoStack: appendItemUndoEntry(state.itemUndoStack, diff),
-            itemRedoStack: [],
+            ...pushHistoryCommandState(state, command),
           };
         }),
 
-      undoCanvasItems: () =>
-        set((state) => {
-          const diff = state.itemUndoStack[state.itemUndoStack.length - 1];
-          if (!diff) return state;
+      undoCanvasItems: () => {
+        get().undoBuilderAction();
+      },
 
-          const previousItems = applyItemDiff(state.canvasState.items, diff, "undo");
-          const currentSelectedIds = resolveSelectionIds(state);
-          const nextSelectedIds = normalizeSelectedItemIds(currentSelectedIds, previousItems);
-
-          return {
-            canvasState: {
-              ...state.canvasState,
-              items: previousItems,
-            },
-            itemUndoStack: state.itemUndoStack.slice(0, -1),
-            itemRedoStack: appendItemUndoEntry(state.itemRedoStack, diff),
-            ...selectionStateFromIds(nextSelectedIds),
-          };
-        }),
-
-      redoCanvasItems: () =>
-        set((state) => {
-          const diff = state.itemRedoStack[state.itemRedoStack.length - 1];
-          if (!diff) return state;
-
-          const nextItems = applyItemDiff(state.canvasState.items, diff, "redo");
-          const currentSelectedIds = resolveSelectionIds(state);
-          const nextSelectedIds = normalizeSelectedItemIds(currentSelectedIds, nextItems);
-
-          return {
-            canvasState: {
-              ...state.canvasState,
-              items: nextItems,
-            },
-            itemUndoStack: appendItemUndoEntry(state.itemUndoStack, diff),
-            itemRedoStack: state.itemRedoStack.slice(0, -1),
-            ...selectionStateFromIds(nextSelectedIds),
-          };
-        }),
+      redoCanvasItems: () => {
+        get().redoBuilderAction();
+      },
 
       setSceneSettings: (patch) =>
         set((state) => ({
@@ -1394,6 +1742,7 @@ export const useVisualBuilderStore = create<VisualBuilderState>()(
             ...selectionStateFromIds([]),
             ...clearSubstrateHistoryState(),
             ...clearItemHistoryState(),
+            ...clearBuilderHistoryState(),
           };
         });
       },

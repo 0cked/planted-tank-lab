@@ -22,8 +22,8 @@ const SHORTCUT_ROWS: ShortcutRow[] = [
   { keys: "R", description: "Rotate selected item by 45°" },
   { keys: "Escape", description: "Exit placement mode (or deselect all)" },
   { keys: "1-5", description: "Jump to workflow step" },
-  { keys: "Cmd/Ctrl + Z", description: "Undo last substrate stroke" },
-  { keys: "Cmd/Ctrl + Shift + Z", description: "Redo substrate stroke" },
+  { keys: "Cmd/Ctrl + Z", description: "Undo last builder action" },
+  { keys: "Cmd/Ctrl + Shift + Z", description: "Redo last builder action" },
   { keys: "?", description: "Open this shortcuts panel" },
 ];
 
