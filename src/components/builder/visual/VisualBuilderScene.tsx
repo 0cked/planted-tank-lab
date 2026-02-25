@@ -1360,15 +1360,21 @@ const CAUSTIC_LAYERS_BY_QUALITY: Record<BuilderSceneQualityTier, ReadonlyArray<C
 };
 
 function causticTextureSize(qualityTier: BuilderSceneQualityTier): number {
-  if (qualityTier === "low") return 56;
-  if (qualityTier === "medium") return 72;
-  return 96;
+  if (qualityTier === "low") return 64;
+  if (qualityTier === "medium") return 88;
+  return 112;
 }
 
 function causticEmissiveIntensity(qualityTier: BuilderSceneQualityTier): number {
-  if (qualityTier === "low") return 0.1;
-  if (qualityTier === "medium") return 0.15;
-  return 0.19;
+  if (qualityTier === "low") return 0.08;
+  if (qualityTier === "medium") return 0.12;
+  return 0.16;
+}
+
+function causticTemporalBlend(qualityTier: BuilderSceneQualityTier): number {
+  if (qualityTier === "low") return 0.14;
+  if (qualityTier === "medium") return 0.18;
+  return 0.22;
 }
 
 function hashGridFloat(params: {
@@ -1514,6 +1520,7 @@ function updateAnimatedCausticTexture(params: {
       : params.qualityTier === "medium"
         ? 0.88
         : 0.72;
+  const blendFactor = causticTemporalBlend(params.qualityTier);
 
   for (let yIndex = 0; yIndex < size; yIndex += 1) {
     const v = yIndex / maxIndex;
@@ -1535,18 +1542,20 @@ function updateAnimatedCausticTexture(params: {
       }
 
       const normalized = totalWeight > 0 ? combined / totalWeight : 0;
-      const shaped = Math.pow(normalized, 1.5);
+      const shaped = Math.pow(normalized, 1.38);
       const thresholded = THREE.MathUtils.clamp(
-        (shaped - 0.19) * 1.52 * qualityGain,
+        (shaped - 0.23) * 1.24 * qualityGain,
         0,
         1,
       );
       const shimmer =
-        0.92 + Math.sin(u * 26.3 + v * 17.8 + params.time * 2.1) * 0.08;
-      const luminance = THREE.MathUtils.clamp(thresholded * shimmer, 0, 1);
-      const encoded = Math.round(luminance * 255);
+        0.96 + Math.sin(u * 12.7 + v * 9.4 + params.time * 1.25) * 0.04;
+      const targetLuminance = THREE.MathUtils.clamp(thresholded * shimmer, 0, 1);
 
       const offset = (yIndex * size + xIndex) * 4;
+      const previousLuminance = data[offset] / 255;
+      const luminance = THREE.MathUtils.lerp(previousLuminance, targetLuminance, blendFactor);
+      const encoded = Math.round(luminance * 255);
       data[offset] = encoded;
       data[offset + 1] = encoded;
       data[offset + 2] = encoded;
