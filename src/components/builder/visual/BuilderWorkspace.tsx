@@ -1273,9 +1273,9 @@ function StepPanel(props: StepPanelProps) {
           <div className="flex justify-between">
             <span className="text-neutral-500">Tank</span>
             <span className="tabular-nums text-[var(--ptl-ink)]">
-              {Math.round(props.canvasState.widthIn * 10) / 10}{"\u00D7"}
-              {Math.round(props.canvasState.depthIn * 10) / 10}{"\u00D7"}
-              {Math.round(props.canvasState.heightIn * 10) / 10} in
+              {toDisplayDimension(props.canvasState.widthIn, unit)}{"\u00D7"}
+              {toDisplayDimension(props.canvasState.depthIn, unit)}{"\u00D7"}
+              {toDisplayDimension(props.canvasState.heightIn, unit)} {unit}
             </span>
           </div>
           <div className="flex justify-between">
@@ -1347,8 +1347,13 @@ function RightPanel(props: BuilderWorkspaceProps) {
     heightIn: props.canvasState.heightIn,
     depthIn: props.canvasState.depthIn,
   };
-  const volumeL =
-    Math.round(dims.widthIn * dims.depthIn * dims.heightIn * 0.004329 * 10) / 10;
+  const unit = props.canvasState.sceneSettings.measurementUnit;
+  const displayedDims = {
+    width: toDisplayDimension(dims.widthIn, unit),
+    depth: toDisplayDimension(dims.depthIn, unit),
+    height: toDisplayDimension(dims.heightIn, unit),
+  };
+  const volumeL = Math.round(dims.widthIn * dims.depthIn * dims.heightIn * 0.016387064 * 10) / 10;
   const selectedScale = props.selectedItem ? Math.round(props.selectedItem.scale * 100) / 100 : 1;
   const selectedRotation = props.selectedItem ? Math.round(props.selectedItem.rotation) : 0;
   const selectedFootprint = useMemo(() => {
@@ -1393,15 +1398,15 @@ function RightPanel(props: BuilderWorkspaceProps) {
     <div className="w-[190px] space-y-3">
       <div className="space-y-1.5">
         {([
-          { label: "W", value: dims.widthIn },
-          { label: "D", value: dims.depthIn },
-          { label: "H", value: dims.heightIn },
+          { label: "W", value: displayedDims.width },
+          { label: "D", value: displayedDims.depth },
+          { label: "H", value: displayedDims.height },
         ] as const).map((d) => (
           <div key={d.label} className="flex items-center justify-between text-xs">
             <span className="text-[var(--ptl-ink-muted)]">{d.label}</span>
             <span className="tabular-nums text-[var(--ptl-ink)]">
               {Math.round(d.value * 10) / 10}{" "}
-              <span className="text-[var(--ptl-ink-muted)]">in</span>
+              <span className="text-[var(--ptl-ink-muted)]">{unit}</span>
             </span>
           </div>
         ))}

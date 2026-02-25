@@ -28,6 +28,11 @@ describe("evaluateVisualCompatibility", () => {
         goUrl: "/go/offer-1",
         specs: { volume_gal: 20, rimless: true },
       },
+      canvasDimensions: {
+        widthIn: 24,
+        depthIn: 12,
+        heightIn: 14,
+      },
       assetsById: new Map([
         [
           "plant-1",
@@ -128,6 +133,11 @@ describe("evaluateVisualCompatibility", () => {
         offerId: "offer-1",
         goUrl: "/go/offer-1",
         specs: { volume_gal: 20, rimless: true },
+      },
+      canvasDimensions: {
+        widthIn: 24,
+        depthIn: 12,
+        heightIn: 14,
       },
       assetsById: new Map([
         [

@@ -644,6 +644,11 @@ export function useVisualBuilderPageController(
   const compatibility = useMemo(() => {
     return evaluateVisualCompatibility({
       tank: selectedTank,
+      canvasDimensions: {
+        widthIn: canvasState.widthIn,
+        depthIn: canvasState.depthIn,
+        heightIn: canvasState.heightIn,
+      },
       assetsById,
       canvasItems: canvasState.items,
       selectedProductByCategory,
@@ -654,7 +659,10 @@ export function useVisualBuilderPageController(
     });
   }, [
     assetsById,
+    canvasState.depthIn,
+    canvasState.heightIn,
     canvasState.items,
+    canvasState.widthIn,
     compatibilityEnabled,
     flags.hasShrimp,
     flags.lowTechNoCo2,
@@ -957,7 +965,13 @@ export function useVisualBuilderPageController(
         await navigator.clipboard.writeText(liveUrl);
         setSaveState({ type: "ok", message: "Public share link copied to clipboard." });
       } else {
-        setSaveState({ type: "ok", message: "Build saved successfully." });
+        setSaveState({
+          type: "ok",
+          message:
+            status === "authenticated"
+              ? "Build saved to your account."
+              : "Build saved locally in this browser. Sign in to sync/load builds across devices.",
+        });
       }
 
       if (publish && window.location.pathname !== `/builder/${result.shareSlug}`) {

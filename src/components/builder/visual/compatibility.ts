@@ -12,6 +12,11 @@ import type { VisualAsset, VisualCanvasItem, VisualTank } from "@/components/bui
 
 type CompatibilityInput = {
   tank: VisualTank | null;
+  canvasDimensions: {
+    widthIn: number;
+    depthIn: number;
+    heightIn: number;
+  };
   assetsById: Map<string, VisualAsset>;
   canvasItems: VisualCanvasItem[];
   selectedProductByCategory: Record<string, string | undefined>;
@@ -67,17 +72,22 @@ function severityRank(severity: Severity): number {
 
 function calculateHardscapeRatio(params: {
   tank: VisualTank | null;
+  canvasDimensions: { widthIn: number; depthIn: number; heightIn: number };
   assetsById: Map<string, VisualAsset>;
   canvasItems: VisualCanvasItem[];
 }): number | null {
-  if (!params.tank) return null;
+  const widthIn = params.canvasDimensions.widthIn;
+  const depthIn = params.canvasDimensions.depthIn;
+  const heightIn = params.canvasDimensions.heightIn;
+  if (!(widthIn > 0 && depthIn > 0 && heightIn > 0)) return null;
 
-  const tankSpecs = params.tank.specs ?? {};
-  const gallons = asNumber(tankSpecs.volume_gal);
+  const tankSpecs = params.tank?.specs ?? {};
+  const gallonsFromSpecs = asNumber(tankSpecs.volume_gal);
+  const gallonsFromDimensions = (widthIn * depthIn * heightIn) / 231;
   const tankVolumeCubicIn =
-    gallons != null && gallons > 0
-      ? gallons * 231
-      : params.tank.widthIn * params.tank.depthIn * params.tank.heightIn * 0.85;
+    gallonsFromSpecs != null && gallonsFromSpecs > 0
+      ? gallonsFromSpecs * 231
+      : gallonsFromDimensions * 231;
 
   if (!Number.isFinite(tankVolumeCubicIn) || tankVolumeCubicIn <= 0) return null;
 
@@ -105,12 +115,21 @@ export function evaluateVisualCompatibility(input: CompatibilityInput): Compatib
   const plants: PlantSnapshot[] = [];
 
   if (input.tank) {
+    const { widthIn, depthIn, heightIn } = input.canvasDimensions;
+    const computedVolumeGallons = (widthIn * depthIn * heightIn) / 231;
+
     productsByCategory.tank = toProductSnapshot(
       "tank",
       input.tank.id,
       input.tank.name,
       input.tank.slug,
-      input.tank.specs,
+      {
+        ...(input.tank.specs ?? {}),
+        width_in: widthIn,
+        depth_in: depthIn,
+        height_in: heightIn,
+        volume_gal: Math.round(computedVolumeGallons * 10) / 10,
+      },
     );
   }
 
@@ -209,6 +228,7 @@ export function evaluateVisualCompatibility(input: CompatibilityInput): Compatib
 
   const hardscapeVolumeRatio = calculateHardscapeRatio({
     tank: input.tank,
+    canvasDimensions: input.canvasDimensions,
     assetsById: input.assetsById,
     canvasItems: input.canvasItems,
   });
