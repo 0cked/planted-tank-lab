@@ -23,7 +23,7 @@ export function BuilderViewportLayout(props: BuilderViewportLayoutProps) {
 
       {/* Floating contextual panel (appears next to icon rail) */}
       {props.floatingPanel ? (
-        <aside className="pointer-events-auto absolute bottom-2 left-[60px] right-2 z-10 max-h-[min(58dvh,520px)] overflow-auto rounded-2xl border border-[var(--ptl-border)] bg-white/66 p-3 shadow-2xl backdrop-blur-xl md:left-[82px] md:right-auto md:top-3 md:bottom-3 md:w-[260px] md:max-h-none md:bg-white/60">
+        <aside className="pointer-events-auto absolute bottom-2 left-[60px] right-2 z-10 max-h-[min(46dvh,420px)] overflow-auto rounded-2xl border border-[var(--ptl-border)] bg-white/72 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-xl md:left-[82px] md:right-auto md:top-3 md:bottom-3 md:w-[260px] md:max-h-none md:bg-white/60 md:pb-3">
           {props.floatingPanel}
         </aside>
       ) : null}
@@ -41,7 +41,7 @@ export function BuilderViewportLayout(props: BuilderViewportLayoutProps) {
       {/* Floating right info panel */}
       {props.floatingRight ? (
         <aside
-          className={`pointer-events-auto absolute right-2 z-10 w-[min(84vw,260px)] max-h-[min(48dvh,430px)] overflow-auto rounded-2xl border border-[var(--ptl-border)] bg-white/78 p-3 shadow-2xl backdrop-blur-xl md:right-3 md:top-3 md:w-auto md:max-h-[calc(100dvh-24px)] md:bg-white/60 ${
+          className={`pointer-events-auto absolute right-2 z-10 w-[min(84vw,260px)] max-h-[min(42dvh,360px)] overflow-auto rounded-2xl border border-[var(--ptl-border)] bg-white/82 p-3 shadow-2xl backdrop-blur-xl md:right-3 md:top-3 md:w-auto md:max-h-[calc(100dvh-24px)] md:bg-white/60 ${
             mobileRightOpen ? "top-14" : "hidden md:block"
           }`}
         >

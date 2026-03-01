@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 import { BuilderShortcutsOverlay } from "@/components/builder/visual/BuilderShortcutsOverlay";
@@ -1574,9 +1574,28 @@ function RightPanel(props: BuilderWorkspaceProps) {
 }
 
 export function BuilderWorkspace(props: BuilderWorkspaceProps) {
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [hardscapeMode, setHardscapeMode] = useState<HardscapeSplitMode>("rocks");
   const [tankPanelMode, setTankPanelMode] = useState<TankPanelMode>("tank");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncPanelState = () => {
+      setPanelOpen(!mediaQuery.matches);
+    };
+
+    syncPanelState();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncPanelState);
+      return () => mediaQuery.removeEventListener("change", syncPanelState);
+    }
+
+    mediaQuery.addListener(syncPanelState);
+    return () => mediaQuery.removeListener(syncPanelState);
+  }, []);
 
   const filteredAssetsForStep = props.filteredAssets;
 
