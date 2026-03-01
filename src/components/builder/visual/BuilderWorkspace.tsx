@@ -1342,11 +1342,14 @@ function StepPanel(props: StepPanelProps) {
 }
 
 function RightPanel(props: BuilderWorkspaceProps) {
-  const dims = {
-    widthIn: props.canvasState.widthIn,
-    heightIn: props.canvasState.heightIn,
-    depthIn: props.canvasState.depthIn,
-  };
+  const dims = useMemo(
+    () => ({
+      widthIn: props.canvasState.widthIn,
+      heightIn: props.canvasState.heightIn,
+      depthIn: props.canvasState.depthIn,
+    }),
+    [props.canvasState.depthIn, props.canvasState.heightIn, props.canvasState.widthIn],
+  );
   const unit = props.canvasState.sceneSettings.measurementUnit;
   const displayedDims = {
     width: toDisplayDimension(dims.widthIn, unit),

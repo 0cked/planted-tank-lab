@@ -2687,10 +2687,19 @@ function CinematicCameraRig(props: {
   cameraIntent?: CameraIntent | null;
   focusTarget?: CameraFocusTarget | null;
 }) {
+  const {
+    step,
+    dims,
+    idleOrbit,
+    cameraPresetMode,
+    onCameraPresetModeChange,
+    cameraIntent,
+    focusTarget,
+  } = props;
   const camera = useThree((state) => state.camera as THREE.PerspectiveCamera);
   const controlsRef = useRef<OrbitControlsImpl>(null);
-  const preset = useMemo(() => cameraPreset(props.step, props.dims), [props.dims, props.step]);
-  const prevStepRef = useRef<BuilderSceneStep>(props.step);
+  const preset = useMemo(() => cameraPreset(step, dims), [dims, step]);
+  const prevStepRef = useRef<BuilderSceneStep>(step);
   const shouldAutoFrameRef = useRef(true);
   const transitionProbeRef = useRef<{
     step: BuilderSceneStep;
@@ -2725,18 +2734,18 @@ function CinematicCameraRig(props: {
 
     shouldAutoFrameRef.current = true;
     forcedPresetRef.current = preset;
-    if (props.cameraPresetMode !== "step") {
-      props.onCameraPresetModeChange?.("step");
+    if (cameraPresetMode !== "step") {
+      onCameraPresetModeChange?.("step");
     }
-  }, [preset, props.cameraPresetMode, props.onCameraPresetModeChange]);
+  }, [cameraPresetMode, onCameraPresetModeChange, preset]);
 
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
 
     const handleStart = () => {
-      if (props.cameraPresetMode === "step") {
-        props.onCameraPresetModeChange?.("free");
+      if (cameraPresetMode === "step") {
+        onCameraPresetModeChange?.("free");
       }
     };
 
@@ -2744,79 +2753,72 @@ function CinematicCameraRig(props: {
     return () => {
       controls.removeEventListener("start", handleStart);
     };
-  }, [props.cameraPresetMode, props.onCameraPresetModeChange]);
+  }, [cameraPresetMode, onCameraPresetModeChange]);
 
   useEffect(() => {
-    if (prevStepRef.current === props.step) return;
-    prevStepRef.current = props.step;
+    if (prevStepRef.current === step) return;
+    prevStepRef.current = step;
 
     const controls = controlsRef.current;
     if (!controls) return;
 
     transitionProbeRef.current = {
-      step: props.step,
+      step,
       startTime: performance.now(),
       startPosition: camera.position.clone(),
       startTarget: controls.target.clone(),
       fired: false,
     };
 
-    if (props.cameraPresetMode === "step") {
+    if (cameraPresetMode === "step") {
       shouldAutoFrameRef.current = true;
     }
-  }, [camera.position, props.cameraPresetMode, props.step]);
+  }, [camera.position, cameraPresetMode, step]);
 
   useEffect(() => {
     const previousPresetKey = lastPresetKeyRef.current;
     lastPresetKeyRef.current = presetKey;
     if (!previousPresetKey || previousPresetKey === presetKey) return;
-    if (props.cameraPresetMode !== "step") return;
+    if (cameraPresetMode !== "step") return;
 
     // Keep the default framing stable when tank dimensions change after catalog hydration.
     forcedPresetRef.current = preset;
     shouldAutoFrameRef.current = true;
-  }, [preset, presetKey, props.cameraPresetMode]);
+  }, [cameraPresetMode, preset, presetKey]);
 
   useEffect(() => {
-    if (!props.cameraIntent) return;
-    if (props.cameraIntent.seq <= lastIntentSeqRef.current) return;
+    if (!cameraIntent) return;
+    if (cameraIntent.seq <= lastIntentSeqRef.current) return;
 
-    lastIntentSeqRef.current = props.cameraIntent.seq;
+    lastIntentSeqRef.current = cameraIntent.seq;
     shouldAutoFrameRef.current = true;
 
-    if (props.cameraIntent.type === "reset") {
-      forcedPresetRef.current = cameraPreset("review", props.dims);
-    } else if (props.cameraIntent.type === "focus-item") {
-      if (props.focusTarget && props.focusTarget.itemId === props.cameraIntent.itemId) {
+    if (cameraIntent.type === "reset") {
+      forcedPresetRef.current = cameraPreset("review", dims);
+    } else if (cameraIntent.type === "focus-item") {
+      if (focusTarget && focusTarget.itemId === cameraIntent.itemId) {
         forcedPresetRef.current = focusItemCameraPreset({
-          target: props.focusTarget.target,
-          radius: props.focusTarget.radius,
-          dims: props.dims,
+          target: focusTarget.target,
+          radius: focusTarget.radius,
+          dims,
         });
       } else {
-        forcedPresetRef.current = cameraPreset(props.step, props.dims);
+        forcedPresetRef.current = cameraPreset(step, dims);
       }
     } else {
-      forcedPresetRef.current = cameraPreset(props.step, props.dims);
+      forcedPresetRef.current = cameraPreset(step, dims);
     }
 
-    if (props.cameraPresetMode !== "step") {
-      props.onCameraPresetModeChange?.("step");
+    if (cameraPresetMode !== "step") {
+      onCameraPresetModeChange?.("step");
     }
-  }, [
-    props.cameraIntent,
-    props.cameraPresetMode,
-    props.dims,
-    props.focusTarget,
-    props.onCameraPresetModeChange,
-    props.step,
-  ]);
+  }, [cameraIntent, cameraPresetMode, dims, focusTarget, onCameraPresetModeChange, step]);
 
   useFrame((_, delta) => {
     const controls = controlsRef.current;
     if (!controls) return;
 
-    const isStepOwned = props.cameraPresetMode === "step";
+    const isStepOwned = cameraPresetMode === "step";
     if (!initialPoseAppliedRef.current) {
       const activePreset = forcedPresetRef.current ?? preset;
       camera.position.set(activePreset.position[0], activePreset.position[1], activePreset.position[2]);
@@ -2841,7 +2843,7 @@ function CinematicCameraRig(props: {
       }
     }
 
-    if (props.idleOrbit && props.step === "review" && isStepOwned) {
+    if (idleOrbit && step === "review" && isStepOwned) {
       controls.setAzimuthalAngle(controls.getAzimuthalAngle() + delta * 0.12);
     }
 
@@ -5444,9 +5446,11 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     };
   }, [hoveredItemId, renderItems, selectedItemIdSet]);
 
+  const { onHoverItem, onInteractionEnd, toolMode } = props;
+
   useEffect(() => {
-    props.onHoverItem?.(hoveredItemId);
-  }, [hoveredItemId, props]);
+    onHoverItem?.(hoveredItemId);
+  }, [hoveredItemId, onHoverItem]);
 
   const endBrushDrag = (pointerId?: number) => {
     const activeBrushDrag = brushDragRef.current;
@@ -5456,7 +5460,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     activeBrushDrag.releasePointerCaptureTarget?.releasePointerCapture?.(activeBrushDrag.pointerId);
     brushDragRef.current = null;
     setBrushDragActive(false);
-    props.onInteractionEnd?.();
+    onInteractionEnd?.();
   };
 
   useEffect(() => {
@@ -5468,7 +5472,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         activeBrushDrag.releasePointerCaptureTarget?.releasePointerCapture?.(activeBrushDrag.pointerId);
         brushDragRef.current = null;
         setBrushDragActive(false);
-        props.onInteractionEnd?.();
+        onInteractionEnd?.();
       }
       transformGizmoDragRef.current = null;
       setTransformGizmoDragActive(false);
@@ -5481,7 +5485,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
       window.removeEventListener("pointerup", handleGlobalPointerUp);
       window.removeEventListener("pointercancel", handleGlobalPointerUp);
     };
-  }, [props.onInteractionEnd]);
+  }, [onInteractionEnd]);
 
   useEffect(() => {
     moveDragRef.current = null;
@@ -5495,7 +5499,7 @@ function SceneRoot(props: VisualBuilderSceneProps) {
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [props.toolMode]);
+  }, [toolMode]);
 
   const resolvePlacementCoordinates = (params: {
     point: THREE.Vector3;
