@@ -3780,13 +3780,13 @@ function resolveAquariumLightRigProfile(params: {
   const targetY = Math.max(0.34, params.dims.heightIn * 0.28);
   const targetZCenter = 0;
   const qualityScale =
-    params.qualityTier === "high" ? 1.06 : params.qualityTier === "medium" ? 1 : 0.9;
+    params.qualityTier === "high" ? 1.1 : params.qualityTier === "medium" ? 1.02 : 0.9;
   const wattageScale = THREE.MathUtils.clamp(sourceWattage / 45, 0.55, 1.82);
   const efficiencyScale = THREE.MathUtils.clamp(sourceEfficiency / 1.2, 0.72, 1.2);
   const baseIntensity = THREE.MathUtils.clamp(
-    10.4 * wattageScale * efficiencyScale * qualityScale,
-    7.5,
-    16,
+    10.9 * wattageScale * efficiencyScale * qualityScale,
+    8,
+    16.8,
   );
 
   const fixtureColor =
@@ -4040,6 +4040,9 @@ function AquariumOverheadLighting(props: {
     [props.dims, props.lightMountHeightIn, props.qualityTier, props.source],
   );
   const bounceDistance = Math.max(props.dims.widthIn, props.dims.depthIn) * 1.9;
+  const cinematicKeyBoost = props.qualityTier === "high" ? 1.12 : 1.06;
+  const waterlineY = Math.max(0.28, props.dims.heightIn * 0.82);
+  const rimDistance = Math.max(props.dims.widthIn, props.dims.depthIn) * 2.05;
 
   return (
     <group>
@@ -4064,49 +4067,81 @@ function AquariumOverheadLighting(props: {
       />
       <pointLight
         color={profile.bounceColor}
-        intensity={Math.max(1.1, profile.bounceIntensity * 0.86)}
+        intensity={Math.max(1.2, profile.bounceIntensity * 0.92)}
         position={[0, Math.max(0.4, props.dims.heightIn * 0.52), props.dims.depthIn * 0.06]}
+        distance={bounceDistance}
+        decay={1.08}
+      />
+      <pointLight
+        color="#f8ffff"
+        intensity={Math.max(1.1, profile.bounceIntensity * 0.64)}
+        position={[0, Math.max(0.4, props.dims.heightIn * 0.84), props.dims.depthIn * 0.38]}
+        distance={bounceDistance * 1.18}
+        decay={1.1}
+      />
+      <pointLight
+        color="#dff3ff"
+        intensity={Math.max(0.88, profile.bounceIntensity * 0.56)}
+        position={[0, Math.max(0.4, props.dims.heightIn * 0.48), -props.dims.depthIn * 0.34]}
         distance={bounceDistance}
         decay={1.1}
       />
       <pointLight
-        color="#f8ffff"
-        intensity={Math.max(1, profile.bounceIntensity * 0.58)}
-        position={[0, Math.max(0.4, props.dims.heightIn * 0.84), props.dims.depthIn * 0.38]}
-        distance={bounceDistance * 1.18}
-        decay={1.12}
+        color="#9dd9ff"
+        intensity={Math.max(0.42, profile.bounceIntensity * 0.24)}
+        position={[0, waterlineY, -props.dims.depthIn * 0.46]}
+        distance={rimDistance}
+        decay={1.24}
       />
       <pointLight
-        color="#dff3ff"
-        intensity={Math.max(0.8, profile.bounceIntensity * 0.5)}
-        position={[0, Math.max(0.4, props.dims.heightIn * 0.48), -props.dims.depthIn * 0.34]}
-        distance={bounceDistance}
-        decay={1.12}
+        color="#ffffff"
+        intensity={Math.max(0.32, profile.bounceIntensity * 0.2)}
+        position={[0, Math.max(0.3, props.dims.heightIn * 0.18), props.dims.depthIn * 0.42]}
+        distance={rimDistance * 0.9}
+        decay={1.3}
       />
       <directionalLight
         color="#ffffff"
-        intensity={1.7}
+        intensity={1.78 * cinematicKeyBoost}
         position={[0, Math.max(0.4, props.dims.heightIn * 1.34), props.dims.depthIn * 0.86]}
         target-position={[0, Math.max(0.2, props.dims.heightIn * 0.42), 0]}
       />
       <directionalLight
         color="#f2fbff"
-        intensity={0.95}
+        intensity={1.02 * cinematicKeyBoost}
         position={[props.dims.widthIn * 0.22, Math.max(0.4, props.dims.heightIn * 0.92), props.dims.depthIn * 0.48]}
         target-position={[0, Math.max(0.18, props.dims.heightIn * 0.36), 0]}
       />
       <directionalLight
         color="#f7fdff"
-        intensity={1.05}
+        intensity={1.14 * cinematicKeyBoost}
         position={[0, Math.max(0.4, props.dims.heightIn * 0.74), Math.max(8, props.dims.depthIn * 1.25)]}
         target-position={[0, Math.max(0.18, props.dims.heightIn * 0.34), 0]}
       />
       <directionalLight
         color="#f7fdff"
-        intensity={0.8}
+        intensity={0.88 * cinematicKeyBoost}
         position={[0, Math.max(0.4, props.dims.heightIn * 0.92), -Math.max(8, props.dims.depthIn * 1.12)]}
         target-position={[0, Math.max(0.18, props.dims.heightIn * 0.38), 0]}
       />
+      {props.qualityTier !== "low" ? (
+        <mesh
+          position={[0, waterlineY, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          raycast={DISABLED_RAYCAST}
+          renderOrder={37}
+        >
+          <planeGeometry args={[props.dims.widthIn * 0.98, props.dims.depthIn * 0.86]} />
+          <meshBasicMaterial
+            color="#c7ebff"
+            transparent
+            opacity={props.qualityTier === "high" ? 0.085 : 0.065}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ) : null}
     </group>
   );
 }
@@ -6597,7 +6632,7 @@ export function VisualBuilderScene(props: VisualBuilderSceneProps) {
           (gl as THREE.WebGLRenderer).outputColorSpace = THREE.SRGBColorSpace;
         }
         if (typeof (gl as THREE.WebGLRenderer).toneMappingExposure === "number") {
-          (gl as THREE.WebGLRenderer).toneMappingExposure = 1.58;
+          (gl as THREE.WebGLRenderer).toneMappingExposure = 1.62;
         }
       }}
       camera={{
