@@ -195,7 +195,14 @@ type VisualBuilderSceneProps = {
   onCameraPresetModeChange?: (mode: CameraPresetMode) => void;
   onCameraDiagnostic?: (event: CameraDiagnosticEvent) => void;
   cameraIntent?: CameraIntent | null;
+  externalDropRef?: React.MutableRefObject<SceneExternalDropHandler | null>;
 };
+
+export type SceneExternalDropHandler = (
+  clientX: number,
+  clientY: number,
+  asset: VisualAsset,
+) => void;
 
 type PlacementCandidate = {
   point: THREE.Vector3;
@@ -5308,6 +5315,82 @@ function SelectedTransformGizmo(props: {
   );
 }
 
+function ExternalDropConnector(props: {
+  externalDropRef: React.MutableRefObject<SceneExternalDropHandler | null>;
+  dims: SceneDims;
+  onPlaceItem: (request: PlacementRequest) => void;
+  substrateHeightfield: SubstrateHeightfield;
+  placementRotationDeg: number;
+  gridSnapEnabled: boolean;
+}) {
+  const { camera, gl } = useThree();
+
+  // Use a ref so the drop handler always sees the latest values without re-registering
+  const stateRef = useRef(props);
+  useLayoutEffect(() => { stateRef.current = props; });
+
+  useEffect(() => {
+    const { externalDropRef } = props;
+    externalDropRef.current = (clientX: number, clientY: number, asset: VisualAsset) => {
+      const { dims, onPlaceItem, substrateHeightfield, placementRotationDeg, gridSnapEnabled } =
+        stateRef.current;
+
+      const rect = gl.domElement.getBoundingClientRect();
+      const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+
+      // Intersect with horizontal substrate plane at y=0
+      const substratePlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const hit = new THREE.Vector3();
+      if (!raycaster.ray.intersectPlane(substratePlane, hit)) return;
+
+      const boundedPoint = clampPointToTankBounds(hit, dims);
+      const norm = worldToNormalized({ x: boundedPoint.x, y: boundedPoint.y, z: boundedPoint.z, dims });
+
+      let xNorm = clamp01(norm.x);
+      let zNorm = clamp01(norm.z);
+
+      if (gridSnapEnabled) {
+        xNorm = snapNormalizedToInchGrid(xNorm, dims.widthIn);
+        zNorm = snapNormalizedToInchGrid(zNorm, dims.depthIn);
+      }
+
+      const substrateY = sampleSubstrateDepth({
+        xNorm,
+        zNorm,
+        heightfield: substrateHeightfield,
+        tankHeightIn: dims.heightIn,
+      });
+      const yNorm = clamp01(substrateY / Math.max(1, dims.heightIn));
+
+      const scale = Math.max(0.1, asset.defaultScale);
+      const rotation = clampRotation(placementRotationDeg);
+
+      onPlaceItem({
+        asset,
+        x: xNorm,
+        y: yNorm,
+        z: zNorm,
+        scale,
+        rotation,
+        anchorType: "substrate",
+        depthZone: depthZoneFromZ(zNorm),
+        transform: buildTransformFromNormalized({ x: xNorm, y: yNorm, z: zNorm, scale, rotation, dims }),
+      });
+    };
+
+    return () => {
+      externalDropRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.externalDropRef, camera, gl]);
+
+  return null;
+}
+
 function SceneRoot(props: VisualBuilderSceneProps) {
   const dims = useMemo(() => normalizeDims(props.tank, props.canvasState), [props.canvasState, props.tank]);
   const lightSimulationSource = useMemo(
@@ -6586,6 +6669,17 @@ function SceneRoot(props: VisualBuilderSceneProps) {
         focusTarget={cameraFocusTarget}
       />
       <SceneCaptureBridge onCaptureCanvas={props.onCaptureCanvas} />
+
+      {props.externalDropRef ? (
+        <ExternalDropConnector
+          externalDropRef={props.externalDropRef}
+          dims={dims}
+          onPlaceItem={props.onPlaceItem}
+          substrateHeightfield={props.canvasState.substrateHeightfield}
+          placementRotationDeg={props.placementRotationDeg}
+          gridSnapEnabled={props.gridSnapEnabled}
+        />
+      ) : null}
     </>
   );
 }

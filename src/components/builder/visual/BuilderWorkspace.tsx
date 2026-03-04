@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 import { BuilderShortcutsOverlay } from "@/components/builder/visual/BuilderShortcutsOverlay";
@@ -37,6 +37,7 @@ import {
   VisualBuilderScene,
   type BuilderSceneQualityTier,
   type BuilderSceneToolMode,
+  type SceneExternalDropHandler,
 } from "@/components/builder/visual/VisualBuilderScene";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import type { Severity } from "@/engine/types";
@@ -742,6 +743,7 @@ function AssetList(props: {
   placementAssetId: string | null;
   onChooseAsset: (asset: VisualAsset) => void;
   onClearPlacementMode: () => void;
+  onDragAsset?: (asset: VisualAsset | null) => void;
 }) {
   const totalAssets = props.sections.reduce((count, section) => count + section.assets.length, 0);
 
@@ -774,6 +776,16 @@ function AssetList(props: {
                   <button
                     key={`${section.id}:${asset.type}:${asset.id}:${asset.categorySlug}`}
                     type="button"
+                    draggable={isCanvas}
+                    onDragStart={
+                      isCanvas
+                        ? (e) => {
+                            e.dataTransfer.effectAllowed = "copy";
+                            props.onDragAsset?.(asset);
+                          }
+                        : undefined
+                    }
+                    onDragEnd={isCanvas ? () => props.onDragAsset?.(null) : undefined}
                     onClick={() => {
                       if (isArmed) {
                         props.onClearPlacementMode();
@@ -893,6 +905,7 @@ type StepPanelProps = BuilderWorkspaceProps & {
   hardscapeMode: HardscapeSplitMode;
   tankPanelMode: TankPanelMode;
   filteredAssetsForStep: VisualAsset[];
+  onDragSceneAsset?: (asset: VisualAsset | null) => void;
 };
 
 function StepPanel(props: StepPanelProps) {
@@ -1258,6 +1271,7 @@ function StepPanel(props: StepPanelProps) {
           placementAssetId={props.placementAssetId}
           onChooseAsset={props.onChooseAsset}
           onClearPlacementMode={props.onClearPlacementMode}
+          onDragAsset={props.onDragSceneAsset}
         />
       </div>
     );
@@ -1581,6 +1595,12 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
   const [hardscapeMode, setHardscapeMode] = useState<HardscapeSplitMode>("rocks");
   const [tankPanelMode, setTankPanelMode] = useState<TankPanelMode>("tank");
 
+  const externalDropRef = useRef<SceneExternalDropHandler | null>(null);
+  const dragAssetRef = useRef<VisualAsset | null>(null);
+  const handleDragSceneAsset = useCallback((asset: VisualAsset | null) => {
+    dragAssetRef.current = asset;
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -1603,6 +1623,21 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
   const filteredAssetsForStep = props.filteredAssets;
 
   const scene = (
+    <div
+      className="h-full w-full"
+      onDragOver={(e) => {
+        if (!dragAssetRef.current) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={(e) => {
+        const asset = dragAssetRef.current;
+        if (!asset) return;
+        e.preventDefault();
+        externalDropRef.current?.(e.clientX, e.clientY, asset);
+        dragAssetRef.current = null;
+      }}
+    >
     <ErrorBoundary
       fallback={({ retry }) => (
         <div className="flex h-full w-full items-center justify-center bg-white/80 px-4 text-[var(--ptl-ink)]">
@@ -1667,8 +1702,10 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
         onCameraPresetModeChange={props.onCameraPresetModeChange}
         onCameraDiagnostic={props.onCameraDiagnostic}
         cameraIntent={props.cameraIntent}
+        externalDropRef={externalDropRef}
       />
     </ErrorBoundary>
+    </div>
   );
 
   const iconRail = (
@@ -1767,6 +1804,7 @@ export function BuilderWorkspace(props: BuilderWorkspaceProps) {
               hardscapeMode={hardscapeMode}
               tankPanelMode={tankPanelMode}
               filteredAssetsForStep={filteredAssetsForStep}
+              onDragSceneAsset={handleDragSceneAsset}
             />
           ) : null
         }
